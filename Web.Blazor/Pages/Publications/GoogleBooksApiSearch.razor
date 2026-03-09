@@ -1,0 +1,357 @@
+﻿@using MediaOrganizerApp.Application.Formatting
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Logging
+@using System.Globalization
+@using System.Text
+@using Web.Blazor.Components
+
+<div class="container-fluid">
+    <div class="form-row mt-1">
+        <SfTextBox Enabled="true" Placeholder="@localizerApp["lblTitulo"]"
+                   CssClass="form-control font-weight-bold e-corner"
+                   ShowClearButton="true"
+                   FloatLabelType="@FloatLabelType.Always"
+                   @bind-Value="@ApiRecord.Titulo">
+        </SfTextBox>
+    </div>
+    <div>
+        <SfTextBox Enabled="true" Placeholder="@localizerApp["lblAutor"]"
+                   CssClass="form-control font-weight-bold e-corner"
+                   ShowClearButton="true"
+                   FloatLabelType="@FloatLabelType.Always"
+                   @bind-Value="@authorToSearch">
+        </SfTextBox>
+    </div>
+    <hr />
+    <div class="row justify-content-end mt-2">
+        <SfButton CssClass="e-success text-color-white e-round-corner mr-3"
+                  IconCss="fa fa-search"
+                  Content="Search"
+                  Disabled="@(string.IsNullOrWhiteSpace(ApiRecord.Titulo) && string.IsNullOrWhiteSpace(authorToSearch))"
+                  @onclick="(async () => await GetBookInfo(ApiRecord.Titulo, authorToSearch))" />
+    </div>
+</div>
+
+
+
+<AlertUserComponent Visibility="@alertUser"
+                    Title="Search Google Books Api"
+                    Message="@alertMessage"
+                    AlertMessageType="AlertMessageType.Info"
+                    XPosition="right"
+                    YPosition="bottom"
+                    OnCloseDialog="CloseDialog"
+                    DialogWidth="400"
+                    ShowRightSideIcon="false"
+                    MessageNote="@noteMessage" />
+
+
+
+@code {
+
+    [Inject] public IStringLocalizer<App> localizerApp { get; set; }
+    [Inject] public IPublicacaoService PubsService { get; set; }
+    [Inject] public IAutorService autoresService { get; set; }
+    [Inject] public IGoogleBooksService GoogleBooksService { get; set; }
+    [Inject] public ILogger<App> _logger { get; set; }
+    [Inject] public IUtilitiesService utilitiesService { get; set; }
+    [Inject] public SfDialogService DialogService { get; set; }
+
+    [Parameter]
+    public PubsWithDescriptions ApiRecord { get; set; }
+    [Parameter]
+    public EventCallback<PubsWithDescriptions> OnGoogleResponse { get; set; }
+
+    protected string authorToSearch = string.Empty;
+    protected bool alertUser = false;
+    protected string alertMessage = string.Empty;
+    protected string noteMessage = string.Empty;
+    int authorId = 0;
+
+
+    protected override void OnInitialized()
+    {
+        alertUser = false;
+        alertMessage = string.Empty;
+        noteMessage = string.Empty;
+        authorToSearch = string.Empty;
+    }
+
+    protected async Task GetBookInfo(string bookTitle, string author)
+    {
+        if (string.IsNullOrEmpty(bookTitle) && string.IsNullOrEmpty(author))
+        {
+            alertUser = true;
+            alertMessage = "Preencha critérios de pesquisa, p.f.";
+            return;
+        }
+        try
+        {
+            var titles = (await PubsService.GetPubsByTitle(bookTitle)).ToList();
+            if (titles.Count > 0)
+            {
+                alertUser = true;
+                alertMessage = "Título já existe. Confirme, pf.";
+                return;
+            }
+
+            string translatedTitle = "";
+            var bookInfo = await GoogleBooksService.GetBookAsync(bookTitle, author);
+            if (bookInfo is null)
+            {
+                translatedTitle = await autoresService.TranslateWithMyMemoryAsync(bookTitle, "pt", "en");
+                bookInfo = await GoogleBooksService.GetBookAsync(translatedTitle, author);
+                if (bookInfo is null)
+                {
+                    alertUser = true;
+                    alertMessage = localizerApp["msgNoResults"] ;
+                    return;
+                }
+            }
+
+            if (bookInfo.items is null || bookInfo.items.Length == 0)
+            {
+                alertUser = true;
+                alertMessage = localizerApp["msgNoResults"];
+                return;
+            }
+            else
+            {
+                float salePrice = 0;
+                var retailPrice = bookInfo.items[0].saleInfo.retailPrice;
+                if (retailPrice is not null)
+                {
+
+                    var itemPrice = bookInfo.items
+                        .FirstOrDefault(bi => bi.saleInfo.retailPrice != null && bi.saleInfo.retailPrice.amount > 0).saleInfo.listPrice.amount;
+
+                    if (itemPrice > 0)
+                        salePrice = itemPrice;
+                }
+                var booksAuthors = new List<string>();
+                var booksDescriptions = new List<string>();
+                var booksTitles = new List<string>();
+                var booksPublishedDates = new List<string>();
+                var booksImages = new List<string>();
+                var booksPages = new List<string>();
+                var booksItems = bookInfo.items;
+
+                foreach (var bookitem in booksItems.Select(v => v.volumeInfo))
+                {
+                    if (bookitem is not null)
+                    {
+                        var bookDesc = bookitem.description is not null ? bookitem.description : "";
+                        booksDescriptions.Add(bookDesc);
+
+                        if (bookitem.authors is not null)
+                            booksAuthors.Add(bookitem.authors.FirstOrDefault());
+
+
+                        if (bookitem.imageLinks is not null)
+                        {
+                            booksImages.Add(bookitem.imageLinks.thumbnail);
+                        }
+
+                        if (bookitem.title is not null)
+                        {
+                            booksTitles.Add(bookitem.title);
+                        }
+
+                        if (bookitem.pageCount > 0)
+                        {
+                            booksPages.Add(bookitem.pageCount.ToString());
+                        }
+                        else
+                        {
+                            booksPages.Add("0");
+
+                        }
+
+                        if (bookitem.publishedDate is not null)
+                        {
+                            booksPublishedDates.Add(bookitem.publishedDate);
+                        }
+
+                    }
+                }
+
+                string englishAuthorName = "";
+                if (!string.IsNullOrEmpty(bookTitle))
+                {
+                    var titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == bookTitle.ToLower());
+                    if (string.IsNullOrEmpty(titleMatch))
+                    {
+                        englishAuthorName = await autoresService.TranslateWithMyMemoryAsync(bookTitle, "pt", "en");
+                        titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == englishAuthorName.ToLower());
+                        if (string.IsNullOrEmpty(titleMatch))
+                        {
+                            alertUser = true;
+                            StringBuilder sbTitles = new();
+                            foreach (var item in booksTitles)
+                            { 
+                                
+                                sbTitles.AppendLine($"'{item}',");
+                            }
+                            var titlesFound = sbTitles.ToString().Trim();
+                            titlesFound = titlesFound.Remove(titlesFound.Length - 1);
+                            noteMessage = "No data returned. Below are the books found for the author";
+                            alertMessage = titlesFound;
+                            return;
+                        }
+                    }
+                }
+
+                string bookAuthor = "";
+                bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName);
+                if (bookAuthorNameIsInEnglish)
+                {
+                    bookAuthor = booksAuthors.FirstOrDefault();
+                }
+                else
+                {
+                    bookAuthor = author;
+                }
+
+                var bookCategory = bookInfo.items[0].volumeInfo.categories is not null ? bookInfo.items[0].volumeInfo.categories.FirstOrDefault() : "Desconhecida";
+                var bookDescription = booksDescriptions.Where(bd => bd is not null).FirstOrDefault();
+                var bookImage = booksImages.Where(bi => bi is not null).FirstOrDefault();
+                var bookPublishDate = booksPublishedDates.FirstOrDefault();
+                var bookItemPages = booksPages.FirstOrDefault();
+                var bookItemTitle = booksTitles.FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(bookAuthor))
+                {
+                    bookAuthor = bookAuthor.Replace("'", "");
+                    var authorExist = await autoresService.AutorExiste(bookAuthor);
+                    var authorNameConverted = bookAuthorNameIsInEnglish ? ConvertToProperCase(bookAuthor) : author;
+                    if (!authorExist)
+                    {
+                        await CreateAuthor(authorNameConverted);
+                        authorId = await autoresService.GetIdByDescription(authorNameConverted);
+                    }
+                    else
+                    {
+                        authorId = await autoresService.GetIdByDescription(authorNameConverted);
+                    }
+
+                    ApiRecord.Autor = authorNameConverted;
+                    authorToSearch = authorNameConverted;
+
+                }
+                int iCategoria = utilitiesService.GetPkValueFromTable("Categoria", "Id", "Descricao", bookCategory);
+                if (iCategoria == 0)
+                {
+                    iCategoria = utilitiesService.GetPkValueFromTable("Categoria", "Id", "Descricao", "Desconhecida");
+                }
+
+                ApiRecord.IdCategoria = iCategoria;
+
+                if (!string.IsNullOrEmpty(bookDescription))
+                {
+                    var translatedAboutText = await autoresService.TranslateWithMyMemoryAsync(bookDescription, "en", "pt");
+                    bookDescription = !string.IsNullOrEmpty(translatedAboutText) ? translatedAboutText : bookDescription;
+                    ApiRecord.Resumo = bookDescription;
+                }
+
+                if (!string.IsNullOrEmpty(bookPublishDate))
+                {
+                    if (bookPublishDate.Length == 4)
+                    {
+                        bookPublishDate = bookPublishDate + "-01-01";
+                    }
+
+                    if (DataFormat.IsValidDate(bookPublishDate))
+                    {
+                        ApiRecord.DataMovimento = DateTime.Parse(bookPublishDate);
+                        ApiRecord.AnoEdicao = ApiRecord.DataMovimento.Year.ToString();
+                    }
+                }
+                if (!string.IsNullOrEmpty(bookImage))
+                {
+                    ApiRecord.ImagemCapa = bookImage;
+                }
+
+                if (authorId == 0)
+                {
+                    authorId = await autoresService.GetIdByDescription("Desconhecido");
+                }
+
+                int iFormato = utilitiesService.GetPkValueFromTable("Formato", "Id", "Descricao", "Capa dura");
+                if (iFormato == 0)
+                {
+                    iFormato = utilitiesService.GetPkValueFromTable("Formato", "Id", "Descricao", "Desconhecido");
+                }
+
+                ApiRecord.Titulo = bookTitle;
+                ApiRecord.IdFormato = iFormato;
+                ApiRecord.IdAutor = authorId;
+                ApiRecord.Paginas = int.Parse(bookItemPages) > 0 ? int.Parse(bookItemPages) : 0;
+                ApiRecord.Preco = (decimal)salePrice > 0 ? (decimal)salePrice : 0;
+
+                await OnGoogleResponse.InvokeAsync(ApiRecord);
+            }
+
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                alertUser = true;
+                alertMessage = $"Título ('{bookTitle}') não foi encontrado. Confirme, pf.";
+            }
+
+        }
+        catch (Exception ex)
+        {
+            alertUser = true;
+            alertMessage = $"Erro ao consultar api da Google. Confirme, pf";
+            _logger.LogError($"Erro ao consultar api da Google. Confirme, pf. ({ex.Message})");
+        }
+    }
+
+    private string ConvertToProperCase(string input)
+    {
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+        return textInfo.ToTitleCase(input.ToLower());
+    }
+
+    private async Task CreateAuthor(string sNomeAutor)
+    {
+        AutorDTO autor = new AutorDTO()
+        {
+            Descricao = sNomeAutor,
+            Sobre = localizerApp["msgUploadAuthor_AboutMsg"] + " " + DateTime.Now.ToShortDateString(),
+            ImagemAutor = "",
+            DataNascimento = null
+        };
+
+        try
+        {
+            await autoresService.CreateAuthor(autor);
+        }
+        catch (Exception exc)
+        {
+            throw new ApplicationException(localizerApp["msgUploadAuthorCreation_Error"] +
+                "\r\n\r\n" + exc.StackTrace);
+        }
+    }
+
+    private void CloseDialog()
+    {
+        ApiRecord.Titulo = "";
+        noteMessage = "";
+        authorToSearch = "";
+        alertUser = false;
+    }
+
+}
+
+<style>
+    .search-title {
+        display: flex;
+        gap: 16px;
+        justify-content: start;
+        align-items: center;
+    }
+</style>

@@ -1,0 +1,52 @@
+﻿@using System.IO
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.SfPdfViewer
+
+@inject IStringLocalizer<App> L
+
+@*@attribute [Authorize(Roles = "Admin, Medicos")]*@
+
+<SfSpinner @ref="SpinnerObj"
+           @bind-Visible="@VisibleProperty"
+           Label="@L["MSG_PreparandoDados"]" Size="50"
+           Type="SpinnerType.Material" />
+
+
+<div class="container-fluid">
+    <hr />
+    <div>
+        <SfPdfViewer2 @ref="@Viewer"
+                      Width="100%"
+                      Height="800px"
+                      DocumentPath="@PdfPath"
+                      EnablePrint="true"
+                      EnableDownload="true">
+            <PdfViewerEvents DocumentLoaded="@OnDocumentLoaded" Created="OnCreate"></PdfViewerEvents>
+        </SfPdfViewer2>
+
+    </div>
+</div>
+
+@code {
+    [Parameter] public string PdfPath { get; set; }
+
+    private SfPdfViewer2 Viewer { get; set; }
+    private SfSpinner SpinnerObj { get; set; }
+    private bool VisibleProperty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Task.Delay(3000);
+        await Viewer!.LoadAsync(PdfPath, null);
+    }
+    private void OnDocumentLoaded(LoadEventArgs args)
+    {
+        VisibleProperty = false;
+    }
+    private void OnCreate()
+    {
+        VisibleProperty = true;
+    }
+}

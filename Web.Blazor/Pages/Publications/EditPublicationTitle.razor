@@ -1,0 +1,32 @@
+﻿@using Microsoft.Extensions.Localization;
+@using MediaOrganizerApp.Application.Enums;
+@inject IStringLocalizer<App>  localizerApp
+
+@attribute [Authorize]
+
+<div class="row">
+    <div class="col-9">
+        <div class="form-group">
+            <SfTextBox Enabled="true"
+                       Placeholder="@(localizerApp["lblTitulo"])"
+                       CssClass="input-control e-corner"
+                       FloatLabelType="@FloatLabelType.Auto"
+                       @bind-Value="@Title">
+            </SfTextBox>
+        </div>
+    </div>
+    <RightSideImageComponent Operation="@(EditOrInsert)" />
+</div>
+
+
+@code {
+
+    protected AppDefinitions.OpcoesRegisto EditOrInsert { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnUpdate { get; set; }
+
+}

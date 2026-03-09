@@ -1,0 +1,10 @@
+﻿#logsGrid .e-grid .e-gridheader {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 56px;
+    z-index: 1;
+}
+
+ #btn-1.e-round-corner {
+    border-radius: 30px;
+}

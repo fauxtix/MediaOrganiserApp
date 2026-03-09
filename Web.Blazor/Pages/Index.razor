@@ -1,0 +1,370 @@
+﻿@page "/"
+@using Microsoft.Extensions.Configuration;
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+@using MediaOrganizerApp.Application.DTOs
+@using Web.Blazor.Services.Common
+
+@inherits IndexBase
+
+<div id="page-top">
+    @if (categoriasSummary == null || categoriasMediaSummary == null ||
+    categoriasMediaSummaryTop10 == null || categoriasSummaryTop10 == null ||
+    autoresSummary == null || editorasSummary == null ||
+    formatosSummary == null || formatosMediaSummary == null)
+    {
+        <div><em>@localizerApp["LoadingMsg"]</em></div>
+    }
+    else
+    {
+
+        if (categoriasSummaryTop10.Count() > 0 &&
+        categoriasMediaSummary.Count() > 0 &&
+        editorasSummary.Count() > 0 &&
+        formatosSummary.Count() > 0 &&
+        formatosMediaSummary.Count() > 0 &&
+        autoresSummary.Count() > 0)
+        {
+            <div class="row">
+                <div class="col-md-6 control-section sb-property-border">
+                    <div class="control-section">
+                        <SfAccumulationChart Title="@localizerApp["TituloCategoriasPublicacoes"]" EnableAnimation="true">
+                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
+                            <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
+                                                         Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@categoriasSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
+                                                         Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
+                                                         InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
+                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+                        </SfAccumulationChart>
+                    </div>
+
+                    <div class="control-section">
+                        <SfAccumulationChart Title="@localizerApp["frmFormatos"]" EnableAnimation="true">
+                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
+                            <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
+                                                         Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@formatosSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
+                                                         Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
+                                                         InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
+                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+                        </SfAccumulationChart>
+                    </div>
+                    @*                     <div class="control-section">
+                        <SfAccumulationChart Title="@localizerApp["frmEditoras"]" EnableAnimation="true">
+                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
+                            <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
+                                                         Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@editorasSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
+                                                         Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
+                                                         InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
+                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+                        </SfAccumulationChart>
+                    </div>
+ *@
+                </div>
+                <div class="col-md-6 control-section sb-property-border">
+                    <div class="control-section">
+                        <SfAccumulationChart Title="@localizerApp["TituloCategoriasMedia"]" EnableAnimation="true">
+                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
+                            <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
+                                                         Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@categoriasMediaSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
+                                                         Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
+                                                         InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
+                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+                        </SfAccumulationChart>
+                    </div>
+
+                    <div class="control-section">
+                        <SfAccumulationChart Title="@localizerApp["TituloFormatoMedia"]" EnableAnimation="true">
+                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
+                            <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
+                                                         Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@formatosMediaSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
+                                                         Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
+                                                         InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
+                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+                        </SfAccumulationChart>
+                    </div>
+
+                </div>
+            </div>
+        }
+
+        <div class="container-fluid grey-bg">
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="publicacoes"
+                                   Titulo="@localizerApp["frmLivros"]"
+                                   CardImages="@PubImages"
+                                   CardInfo_Count="@pubsList.Count().ToString()"
+                                   CardInfo_Count_Real=""
+                                   ShowRealCount="false" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="media"
+                                   Titulo="Média"
+                                   CardImages="@MediaImage"
+                                   CardInfo_Count="@mediaList.Count().ToString()"
+                                   CardInfo_Count_Real=""
+                                   ShowRealCount="false" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="autores"
+                                   Titulo="@localizerApp["frmAutores"]"
+                                   CardImages="@AuthorsImage"
+                                   CardInfo_Count="@authorList.Count().ToString()"
+                                   CardInfo_Count_Real=""
+                                   ShowRealCount="false" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="editoras"
+                                   Titulo="@localizerApp["frmEditoras"]"
+                                   CardImages="@PublishersImage"
+                                   CardInfo_Count="@editorList.Count().ToString()"
+                                   CardInfo_Count_Real=""
+                                   ShowRealCount="false" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="categoriaspublicacoes"
+                                   Titulo="@(localizerApp["frmCategorias"])"
+                                   CardImages="@CategoriesImage"
+                                   CardInfo_Count="@categoriasSummary.Count().ToString()"
+                                   CardInfo_Count_Real="@categoriasCount.ToString()"
+                                   ShowRealCount="true" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="categoriasMedia"
+                                   Titulo="@(localizerApp["frmCategorias"])"
+                                   CardImages="@TableManagementImage"
+                                   CardInfo_Count="@categoriasMediaSummary.Count().ToString()"
+                                   CardInfo_Count_Real="@categoriasMediaCount.ToString()"
+                                   ShowRealCount="true" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="formatos"
+                                   Titulo="@localizerApp["frmFormatos"]"
+                                   CardImages="@CategoriesImage"
+                                   CardInfo_Count="@formatosSummary.Count().ToString()"
+                                   CardInfo_Count_Real="@formatosCount.ToString()"
+                                   ShowRealCount="true" />
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <DashboardCard Href="formatosmedia"
+                                   Titulo="@localizerApp["frmFormatos"]"
+                                   CardImages="@TableManagementImage"
+                                   CardInfo_Count="@formatosMediaSummary.Count().ToString()"
+                                   CardInfo_Count_Real="@formatosMediaCount.ToString()"
+                                   ShowRealCount="true" />
+                </div>
+            </div>
+        </div>
+
+        <hr />
+        <div>
+            <div class="container-fluid  p-0">
+                <div class="row no-gutters">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="TituloCategoriasPublicacoes"
+                                                                   Paging="true"
+                                                                   Source="@categoriasSummary" />
+
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="TituloCategoriasMedia"
+                                                                   Paging="true"
+                                                                   Source="@categoriasMediaSummary" />
+                    </div>
+
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="frmAutores"
+                                                                   Paging="false"
+                                                                   Source="@autoresSummaryTop10" />
+
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="frmEditoras"
+                                                                   Paging="false"
+                                                                   Source="@editorasSummaryTop10" />
+
+                    </div>
+                </div>
+
+                <div class="row no-gutters">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="frmFormatos"
+                                                                   Paging="false"
+                                                                   Source="@formatosSummary" />
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="TituloFormatosMedia"
+                                                                   Paging="false"
+                                                                   Source="@formatosMediaSummary" />
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                        <Web.Blazor.Components.Cards.DashboardGrid LocalizerKey="frmLocaisArquivo"
+                                                                   Paging="false"
+                                                                   Source="@storagePlacesSummary" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <AlertUserComponent AlertMessageType="AlertMessageType.Warning"
+                            Title="@AlertUserTitle" Message="@AlertUserMessage"
+                            Visibility="@AlertUserVisibility"
+                            OperationType="@AlertUserMessageType"
+                            OnCloseDialog="@(()=>AlertUserVisibility = false)" />
+
+        <br />
+        <br />
+
+
+    }
+
+    <!-- Portfolio-->
+    @*<div id="portfolio">
+    <div class="container-fluid p-0">
+    <div class="row no-gutters">
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="images/Publicacoes/blazor-succinctly.png">
+    <img class="img-fluid" src="images/publicacoes/thumbnails/blazor-succinctly.png" alt="" />
+    <div class="portfolio-box-caption">
+    <div class="project-category text-white-50">Blazor</div>
+    <div class="project-name">Syncfusion</div>
+    </div>
+    </a>
+    </div>
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="images/Publicacoes/Expert_Python_programming.png">
+    <img class="img-fluid" src="images/Publicacoes/thumbnails/Expert_Python_programming.png" alt="" />
+    <div class="portfolio-box-caption">
+    <div class="project-category text-white-50">Python</div>
+    <div class="project-name">Editor's name</div>
+    </div>
+    </a>
+    </div>
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="images/Publicacoes/livro-vue-sample.png">
+    <img class="img-fluid" src="images/Publicacoes/thumbnails/livro-vue-sample.png" alt="" />
+    <div class="portfolio-box-caption">
+    <div class="project-category text-white-50">Python</div>
+    <div class="project-name">Editor's name</div>
+    </div>
+    </a>
+    </div>
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="images/Publicacoes/mvvm_tutorial.png">
+    <img class="img-fluid" src="images/Publicacoes/thumbnails/mvvm_tutorial.png" alt="" />
+    <div class="portfolio-box-caption">
+    <div class="project-category text-white-50">Python</div>
+    <div class="project-name">Editor's name</div>
+    </div>
+    </a>
+    </div>
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="assets/img/portfolio/fullsize/5.jpg">
+    <img class="img-fluid" src="assets/img/portfolio/thumbnails/5.jpg" alt="" />
+    <div class="portfolio-box-caption">
+    <div class="project-category text-white-50">Category</div>
+    <div class="project-name">Project Name</div>
+    </div>
+    </a>
+    </div>
+    <div class="col-lg-4 col-sm-6">
+    <a class="portfolio-box" href="assets/img/portfolio/fullsize/6.jpg">
+    <img class="img-fluid" src="assets/img/portfolio/thumbnails/6.jpg" alt="" />
+    <div class="portfolio-box-caption p-3">
+    <div class="project-category text-white-50">Category</div>
+    <div class="project-name">Project Name</div>
+    </div>
+    </a>
+    </div>
+    </div>
+    </div>
+    </div>*@
+
+    <!-- Contact-->
+    @*     <section class="page-section" id="contact">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 ml-auto text-center mb-5 mb-lg-0">
+                    <i class="fa fa-phone fa-3x mb-3 text-muted"></i>
+                    <div>@authorMobile</div>
+                </div>
+                <div class="col-lg-4 mr-auto text-center">
+                    <i class="fa fa-envelope fa-3x mb-3 text-muted"></i>
+                    <!-- Make sure to change the email address in BOTH the anchor text and the link target below!-->
+                    <a class="d-block" href="mailto:fauxtix.luix@hotmail.com">fauxtix.luix@hotmail.com</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Footer-->
+    <footer class="bg-light py-5">
+        <div class="container"><div class="small text-center text-muted">Copyright © 2023 - Fausto Luís</div></div>
+    </footer>
+ *@
+</div>
+
+@code {
+    [Inject] IConfiguration _env { get; set; }
+
+    public double ExplodeIndex { get; set; } = 0;
+    public string OuterRadius = "70%", ExplodeRadius = "10%";
+    public int StartAngle = 0, EndAngle = 360;
+    List<string> PubImages = new List<string> { "card-Pubs-image-click" };
+    List<string> MediaImage = new List<string> { "card-Media-image-click" };
+    List<string> AuthorsImage = new List<string> { "card-Authors-image-click" };
+    List<string> CategoriesImage = new List<string> { "card-FileOrganizer-image-click" };
+    List<string> PublishersImage = new List<string> { "card-Publisher-image-click" };
+    List<string> TableManagementImage = new List<string> { "card-TablesManagement-image-click" };
+    protected string authorMobile;
+
+    public bool AlertUserVisibility { get; set; } = false;
+    public string AlertUserTitle { get; set; } = string.Empty;
+    public string AlertUserMessage { get; set; } = string.Empty;
+    public AppDefinitions.OpcoesRegisto AlertUserMessageType { get; set; } = AppDefinitions.OpcoesRegisto.Info;
+
+    protected override void OnInitialized()
+    {
+        authorMobile = _env["AuthorMobile"];
+        if (!InternetAccess())
+        {
+            AlertUserVisibility = true;
+            AlertUserTitle = "Verificação de acessos";
+            AlertUserMessage = "Internet indisponível. Sistema poderá ficar mais lento e algumas informações poderão não ser mostradas corretamente. Se ocorrer um erro de execução, refresque o browser, p.f. .";
+        }
+    }
+
+    private bool InternetAccess()
+    {
+        bool isAlive = InternetService.CheckForInternetConnection(1000, "https://www.google.com");
+        return isAlive;
+
+    }
+
+}

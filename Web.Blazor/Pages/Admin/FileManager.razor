@@ -1,0 +1,160 @@
+﻿@page "/admin/filemanager"
+
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.FileManager;
+@using Syncfusion.Blazor.SplitButtons;
+@inject IJSRuntime JSRuntime
+@inject IWebHostEnvironment env
+
+@inject IConfiguration configuration
+
+<Web.Blazor.Components.PageTitleComponent PageTitle="File Manager" />
+<div id="file-container" class="control-section">
+    @* Initialization of File Manager component with Directory upload functionality *@
+    <SfFileManager TValue="FileManagerDirectoryContent">
+        <FileManagerAjaxSettings Url="/api/FileManager/FileOperations"
+                                 UploadUrl="/api/FileManager/Upload"
+                                 DownloadUrl="/api/FileManager/Download"
+                                 GetImageUrl="/api/FileManager/GetImage">
+        </FileManagerAjaxSettings>
+        <FileManagerUploadSettings DirectoryUpload="@IsDirectoryUpload"></FileManagerUploadSettings>
+        <FileManagerToolbarSettings ToolbarItems="@Items">
+            <FileManagerCustomToolbarItems>
+                <FileManagerCustomToolbarItem Name="Upload">
+                    <Template>
+                        <div class="directory-upload">
+                            <SfDropDownButton IconCss="e-icons e-fe-upload" CssClass=" e-tbar-btn e-tbtn-txt  e-fe-popup"
+                                              @attributes="@(new Dictionary<string, object> { { "tabindex", -1 } })">
+                                <span class="e-tbar-btn-text e-tbar-ddb-text">Upload</span>
+                                <DropDownButtonEvents ItemSelected="@ItemSelected"></DropDownButtonEvents>
+                                <DropDownMenuItems>
+                                    <DropDownMenuItem Id="Folder" Text="Folder"></DropDownMenuItem>
+                                    <DropDownMenuItem Id="Files" Text="Files"></DropDownMenuItem>
+                                </DropDownMenuItems>
+                            </SfDropDownButton>
+                        </div>
+                    </Template>
+                </FileManagerCustomToolbarItem>
+            </FileManagerCustomToolbarItems>
+        </FileManagerToolbarSettings>
+        <FileManagerEvents TValue="FileManagerDirectoryContent"
+                           OnFileOpen="fileOpen"
+                           ToolbarItemClicked="ItemClicked"></FileManagerEvents>
+    </SfFileManager>
+
+    <SfDialog Width="60%"
+              Height="80%" style="min-width:480px;"
+              MinHeight="640px"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ReadPdfVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @PdfTitle
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <ReadPDF PdfFile="@DocumentPath"></ReadPDF>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="@(() => ReadPdfVisibility = false)">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+</div>
+@code {
+
+    [Inject] public IStringLocalizer<App> localizerApp { get; set; }
+
+    protected bool IsDirectoryUpload = true;
+    protected string PdfTitle { get; set; }
+    protected string DocumentPath { get; set; }
+    protected SfPdfViewer2 PdfViewer;
+    protected SfDialog dialog;
+    protected bool ReadPdfVisibility { get; set; } = false;
+    protected DialogEffect Effects = DialogEffect.Zoom;
+
+    string FileManagerBaseUrl => configuration["FileManagerApiBaseUrl"];
+
+    string FileOperationsUrl => $"{FileManagerBaseUrl}/FileOperations";
+    string UploadUrl => $"{FileManagerBaseUrl}/Upload";
+    string DownloadUrl => $"{FileManagerBaseUrl}/Download";
+    string GetImageUrl => $"{FileManagerBaseUrl}/GetImage";
+
+
+    // Removed unused OnInitialized logic for environment
+
+    public List<ToolBarItemModel> Items = new List<ToolBarItemModel>()
+    {
+        new ToolBarItemModel() { Name = "NewFolder" },
+        new ToolBarItemModel() { Name = "Upload" },
+        //new ToolBarItemModel() { Name = "Cut" },
+        //new ToolBarItemModel() { Name = "Copy" },
+        //new ToolBarItemModel() { Name = "Paste" },
+        //new ToolBarItemModel() { Name = "Delete" },
+        new ToolBarItemModel() { Name = "Download" },
+        //new ToolBarItemModel() { Name = "Rename" },
+        //new ToolBarItemModel() { Name = "SortBy" },
+        new ToolBarItemModel() { Name = "Refresh" },
+        new ToolBarItemModel() { Name = "Selection" },
+        new ToolBarItemModel() { Name = "View" },
+        new ToolBarItemModel() { Name = "Details" },
+    };
+    public void ItemClicked(ToolbarClickEventArgs<FileManagerDirectoryContent> args)
+    {
+        if (args.Item.Text == "Upload")
+        {
+            args.Cancel = true;
+        }
+    }
+    public async void ItemSelected(MenuEventArgs args)
+    {
+        if (args.Item.Id == "Folder")
+        {
+            IsDirectoryUpload = true;
+        }
+        else
+        {
+            IsDirectoryUpload = false;
+        }
+        await Task.Delay(100);
+        await JSRuntime.InvokeVoidAsync("uploadClick");
+    }
+
+    public void fileOpen(Syncfusion.Blazor.FileManager.FileOpenEventArgs<FileManagerDirectoryContent> args)
+    {
+        if ((args.FileDetails.IsFile == true) && args.FileDetails.Type == ".pdf")
+        {
+            PdfTitle = args.FileDetails.Name;
+            var root = Path.Combine(env.WebRootPath, "Files");
+            string[] folders = args.FileDetails.FilterPath.Split("\\");
+            List<string> foldersToMap = new();
+            foreach (var folder in folders)
+            {
+                if (!string.IsNullOrWhiteSpace(folder))
+                {
+                    foldersToMap.Add(folder);
+                }
+            }
+            DocumentPath = Path.Combine(env.WebRootPath, "Files", foldersToMap[0], foldersToMap[1], foldersToMap[2], PdfTitle);
+            ReadPdfVisibility = true;
+        }
+    }
+
+}
+<style>
+    .fluent .directory-upload,
+    .fluent-dark .directory-upload {
+        padding-right: 5px;
+    }
+</style>

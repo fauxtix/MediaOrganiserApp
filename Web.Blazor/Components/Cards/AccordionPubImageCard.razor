@@ -1,0 +1,52 @@
+﻿@using MediaOrganizerApp.Domain.Entities
+<div id="myCarousel" class="col-lg-3 col-md-4 col-6">
+    <a class="d-block mb-4 h-100">
+        <div class="img-box">
+            <img class="img-fluid img-thumbnail"
+                 @onclick="() => ShowPubDetail.InvokeAsync(Image.Id)"
+                 src="@GetImageSource()"
+                 alt="">
+        </div>
+        <p class="small-text text-center">@Path.GetFileName(Image.Titulo) (@Image.AnoEdicao)</p>
+    </a>
+</div>
+
+@code {
+    [Parameter]
+    public ImageCategoryLocations Image { get; set; }
+
+    [Parameter]
+    public EventCallback<int> ShowPubDetail { get; set; }
+
+    [Parameter]
+    public Func<string, string> DecodeImage { get; set; }
+
+    [Parameter]
+    public bool ImageSourceOnInternet { get; set; }
+
+    [Parameter]
+    public string ImageRootPath { get; set; }
+
+    private string GetImageSource()
+    {
+        // Verifica se a imagem está na internet
+        if (ImageSourceOnInternet)
+        {
+            return Image.ImagemCapa;
+        }
+
+        // Constroi o caminho completo para a imagem local
+        var imagePath = Path.Combine(ImageRootPath, Image.ImagemCapa);
+
+        // Verifica se o arquivo existe no caminho construído
+        if (File.Exists(imagePath))
+        {
+            // Decodifica e retorna o caminho da imagem
+            return DecodeImage.Invoke(imagePath);
+        }
+
+        // Retorna uma imagem padrão se o arquivo não for encontrado
+        return "/images/No-image-icon.png";
+    }
+}
+

@@ -1,0 +1,389 @@
+﻿@page "/autores"
+@inherits AutoresBase
+
+
+@using MediaOrganizerApp.Application.DTOs
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+@inject IJSRuntime JsRuntime
+
+
+@attribute [Authorize]
+
+<PageTitle>@localizerApp["mnuAutores"]</PageTitle>
+<PageTitleComponent PageTitle="@localizerApp["mnuAutores"]"></PageTitleComponent>
+
+
+@{
+    var Filtering = new
+    {@@operator = "contains"
+}
+;
+var Tool = (new List<object>()
+{
+        "Search",
+        new ItemModel() {
+            PrefixIcon = "fa fa-times",
+            TooltipText = "Clear",
+            Align = ItemAlign.Right,
+            Id = "Clear"
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "fa fa-ban",
+            Text = @msgSemPublicacoes,
+            Id = "ASP"
+        },
+        new ItemModel() {
+            Type = ItemType.Separator,
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "fa fa-trash",
+            Text = @msgApagaAutores,
+            Id = "ARASP"
+        },
+        new ItemModel() {
+            Type = ItemType.Separator,
+        },
+        new ItemModel() {
+            Type = ItemType.Separator,
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "fa fa-filter",
+            Text = @menuTodos,
+            Id = "TR"
+        },
+        new ItemModel() {
+            Type = ItemType.Separator,
+        },
+
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "e-download-icon",
+            Text = @msgListaAutores,
+            Id = "ALPDF"
+        }
+    }
+);
+}
+
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+@if ((autores == null || !autores.Any()) && !IsTableEmpty)
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="col-lg-12 control-section">
+        <div id="target" class="content-wrapper">
+            <div class="row">
+                <div class="e-dddata">
+                    @*                     <div class="title">@(localizerApp["frmAutores"])</div>
+                <div class="underline"></div>
+                *@
+                    <SfButton CssClass="e-btn e-success p-2 my-2" style="border-radius:11px"
+                              IconCss="fa fa-plus"
+                              @onclick="NotifyAddingRecord">
+                        &nbsp;&nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
+                    </SfButton>
+                </div>
+                <hr />
+                <div class="table table-striped table-hover">
+                    <SfGrid @ref="gridObj"
+                            Width="70%"
+                            Height="100%"
+                            DataSource="@autores"
+                            AllowFiltering="false"
+                            AllowGrouping="false"
+                            Toolbar="@Tool"
+                            AllowPaging="true"
+                            AllowSorting="true"
+                            RowHeight="36"
+                            AllowTextWrap="true">
+                        <GridPageSettings PageSize="10" PageCount="10" PageSizes="true" />
+                        <GridEvents OnLoad="OnLoad" DataBound="DataBound"
+                                    OnToolbarClick="OnToolbarClick"
+                                    OnActionBegin="OnActionBegin"
+                                    CommandClicked="OnCommandClicked"
+                                    TValue="AutorDTO" />
+                        <GridTemplates>
+                            <DetailTemplate>
+                                <SfTab HeaderPlacement="HeaderPosition.Top" OverflowMode="OverflowMode.Popup">
+                                    <TabItems>
+                                        <TabItem>
+                                            <ChildContent>
+                                                <TabHeader Text="@(localizerApp["MSG_PubsCatalogadas"])"></TabHeader>
+                                            </ChildContent>
+                                            <ContentTemplate>
+                                                @{
+                                                    var autor = (context as AutorDTO);
+                                                    var PubsCatalogadas = GetPubsCatalogadas(autor.Id);
+                                                }
+                                                @if (PubsCatalogadas.Any())
+                                                {
+                                                    <div style="table table-striped table-hover">
+                                                        <SfGrid Width="85%"
+                                                                Height="auto"
+                                                                DataSource="@PubsCatalogadas"
+                                                                AllowPaging="false"
+                                                                RowHeight="32"
+                                                                GridLines="GridLine.Horizontal">
+                                                            <GridPageSettings PageSize="4"></GridPageSettings>
+                                                            <GridEvents CommandClicked="OnPdfButtonClicked" TValue="PublicacoesVM"></GridEvents>
+                                                            <GridColumns>
+                                                                <GridColumn Field=@nameof(PublicacoesVM.Titulo)
+                                                                            HeaderText="@(localizerApp["lblTitulo"])"
+                                                                            Width="230" />
+                                                                <GridColumn Field=@nameof(PublicacoesVM.Editora)
+                                                                            HeaderText="@(localizerApp["lblEditora"])"
+                                                                            HideAtMedia="(min-width: 700px)"
+                                                                            Width="150" />
+                                                                <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="80">
+                                                                    <GridCommandColumns>
+                                                                        <GridCommandColumn Type=CommandButtonType.None Title="@localizerApp["LerPdf"]"
+                                                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                                           {
+                                                                                               CssClass = "e-btn e-success e-round",
+                                                                                               IconCss = "fa fa-file-pdf-o"
+                                                                                           })">
+                                                                </GridCommandColumn>
+                                                            </GridCommandColumns>
+                                                        </GridColumn>
+                                                    </GridColumns>
+                                                </SfGrid>
+                                            </div>
+                                                                                        }
+                                            </ContentTemplate>
+                                        </TabItem>
+                                    </TabItems>
+
+                                </SfTab>
+                            </DetailTemplate>
+                        </GridTemplates>
+                        <GridColumns>
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false"
+                                        TextAlign=Syncfusion.Blazor.Grids.TextAlign.Left Width="100px">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           CssClass = "e-btn e-round",
+                                                           IconCss = "fa fa-edit",
+                                                           IsPrimary = true,
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                </GridCommandColumn>
+                                <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                   ButtonOption="@(new CommandButtonOptions()
+                                                   {
+                                                       CssClass = "e-btn e-danger e-round",
+                                                       IconCss = "fa fa-trash",
+                                                       IconPosition = @IconPosition.Left
+                                                   })">
+                                </GridCommandColumn>
+                            </GridCommandColumns>
+                        </GridColumn>
+
+                        <GridColumn Field=@nameof(AutorDTO.Id)
+                                    HeaderText="ID#"
+                                    Visible="false"
+                                    IsPrimaryKey="true"
+                                    TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
+                                    HideAtMedia="(min-width: 700px)"
+                                    Width="60" />
+                        <GridColumn Field=@nameof(AutorDTO.Descricao)
+                                    ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                    HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
+                                    CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
+                                    Width="250" />
+                    </GridColumns>
+                </SfGrid>
+            </div>
+        </div>
+    </div>
+</div>
+
+<SfDialog Width="40%"
+          Height="auto"
+          MinHeight="480px"
+          IsModal="true"
+          EnableResize="true"
+          ShowCloseIcon="false"
+          @bind-Visible="EditDialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div>
+                @if (blnEdit)
+                    {
+                        <div>@localizerApp["editionMsg"]&nbsp;@localizerApp["lblAutor"]</div>
+                    }
+                    else
+                    {
+                        <div>@localizerApp["NewMsg"]&nbsp;@localizerApp["lblAutor"]</div>
+                    }
+                </div>
+        </Header>
+            <Content>
+                <EditAuthor SelectedAuthor="@SelectedAuthor" AuthorImage="@authorImage" blnEdit="@blnEdit" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord">
+                        &nbsp;@(localizerApp["btnSalvar"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="Voltar">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%"
+              Height="85%"
+              IsModal="true"
+              EnableResize="true"
+              AllowDragging="true"
+              ShowCloseIcon="true"
+              @bind-Visible="ReadPdfVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @TituloPdf
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <ReadPDF @rendermode="InteractiveServer" PdfFile="@DigitalPath"></ReadPDF>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="FecharPdf">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <ValidateErrorComponent Visible="@ErrorVisibility"
+                            DialogTitle="@localizerApp["DadosEmFalta"]"
+                            DialogSubTitle="@SelectedAuthor.Descricao"
+                            DialogEffect="@Effects"
+                            DialogDuration="400"
+                            ValidationMessages="@ListValidationMessages" OnCloseDialog="@closeErrorBox" />
+
+    <ConfirmDeleteComponent Visible="DeleteRecordConfirmVisibility" 
+                            AlertMessageType="AlertMessageType.Warning"
+                            DialogWidth="30%"
+                            ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
+                            Message="@SelectedAuthor.Descricao"
+                            DialogTitle="@(localizerApp["DeleteMsg"] + " " + localizerApp["lblAutor"])"
+                            OnConfirmationYes="ConfirmDeleteYes"
+                            OnConfirmationNo="ConfirmDeleteNo" />
+
+    <ConfirmDeleteComponent Visible="@DeleteAuthorsConfirmVisibility" 
+                            AlertMessageType="AlertMessageType.Warning"
+                            DialogWidth="20%"
+                            ConfirmationText="@(localizerApp["MSG_ConfirmarOperacao"])"
+                            DialogTitle="@localizerApp["msgDeleteAuthorsWithoutPublications"]"
+                            OnConfirmationYes="ConfirmDeleteAuthorsYes"
+                            OnConfirmationNo="ConfirmDeleteAuthorsNo" />
+
+    <SfToast @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="3000" ShowProgressBar="true" ProgressDirection="ProgressDirection.RTL"
+             ShowCloseButton="true">
+        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+        <ToastButtons>
+            <ToastButton IsPrimary="true"
+                         IsToggle="true"
+                         Content="@localizerApp["btnFechar"]"
+                         OnClick="@HideToast" />
+        </ToastButtons>
+    </SfToast>
+}
+@code {
+    protected string menuTodos;
+    protected string msgApagaAutores;
+    protected string msgSemPublicacoes;
+    protected string msgPesquisar;
+    protected string msgListaAutores;
+
+    protected Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
+    {
+        {"class", "custom_bold" }
+    };
+
+    protected override void OnInitialized()
+    {
+        menuTodos = localizerApp["msgAll"];
+        msgApagaAutores = localizerApp["msgDeleteAuthorsWithoutPublications"];
+        msgSemPublicacoes = localizerApp["msgNoPublications"];
+        msgPesquisar = localizerApp["btnPesquisar"];
+        msgListaAutores = localizerApp["TituloListagem"];
+    }
+
+}
+<style>
+    #spinnerContainer {
+        position: center;
+        height: 30px;
+    }
+
+    .e-spinner-pane .e-spinner-inner .e-spin-bootstrap4 {
+        stroke: steelblue;
+    }
+
+    .btn {
+        background-color: var(--background-color);
+        border: none;
+        color: var(--text-color);
+        padding: 12px 16px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background-color: RoyalBlue;
+    }
+
+    .e-grid .e-headercell {
+        background-color: var(--header-background);
+        color: var(--header-text-color);
+    }
+
+    .e-headercell {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .autores-container {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        padding: 20px;
+        border-radius: 10px;
+    }
+</style>
+

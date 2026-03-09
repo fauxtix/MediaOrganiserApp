@@ -1,0 +1,118 @@
+using FluentValidation;
+using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Services;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Interfaces.Services.Security;
+using MediaOrganizerApp.Application.Interfaces.Services.Validators;
+using MediaOrganizerApp.Application.Validators;
+using Web.Blazor.Data;
+using Web.Blazor.Reporting.BusinessObjects;
+using Web.Blazor.Reporting.Helpers;
+using Web.Blazor.Reporting.Helpers.Reporting;
+using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.Common;
+using Web.Blazor.Services.DocumentHelpers;
+using Web.Blazor.Services.Recipes;
+using Web.Blazor.Services.Reporting;
+using Web.Blazor.Services.Security;
+using Web.Blazor.Services.User;
+
+
+namespace Web.Blazor
+{
+    public static class ServiceRegistration
+    {
+        public static void AddServicesInfrastructure(this IServiceCollection services)
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            //services.AddHttpClient<IWebApiExecuter, WebApiExecuter>();
+
+            services.AddHttpClient<IRDLC_ReportService, RDLC_ReportService>();
+
+            services.AddHttpClient<IDashboardService, DashboardService>();
+
+            services.AddHttpClient<IPublicacaoService, PublicacaoService>();
+
+            services.AddHttpClient<IMediaServiceWrapper, MediaServiceWrapper>();
+
+            // 02/ 26 / 2024 - Added new services for Playlists, but not using the interface for now,
+            // as it's only used in one place and doesn't have any complex logic that would require
+            // an interface abstraction at this point.
+            // If we find that we need to use it in multiple places or if it becomes more complex,
+            // we can easily refactor it to implement an interface later on.
+            services.AddHttpClient< PlaylistsClientService>();
+
+            services.AddHttpClient<IAutorService, AutorService>();
+
+            services.AddHttpClient<ICategoriasService, CategoriasService>();
+            services.AddHttpClient<IEditorasService, EditorasService>();
+            services.AddHttpClient<IFormatosService, FormatosService>();
+            services.AddHttpClient<IFormatos_MediaService, Formatos_MediaService>();
+            services.AddHttpClient<ILocaisArquivoService, LocaisArquivoService>();
+            services.AddHttpClient<IMostUsedService, MostUsedService>();
+            services.AddHttpClient<IUsersService, UsersService>();
+            services.AddHttpClient<IPdfService, PdfService>();
+            services.AddHttpClient<IMediaThumbnailsService, MediaThumbnailsService>();
+            services.AddHttpClient<ILogService, WrapperAppLogs>();
+
+            services.AddScoped<IFormService, FormService>();
+            services.AddScoped<IUtilitiesService, UtilitiesService>();
+            services.AddScoped<IPdfHelper, PdfHelper>();
+            services.AddScoped<IDocxHelper, DocxHelper>();
+            services.AddScoped<IOutlookMsgHelper, OutlookMsgHelper>();
+            services.AddScoped<IFileService, FileService>();
+            services.AddScoped<IGoogleBooksService, GoogleBooksService>();
+
+            services.AddScoped<IGetYoutubeVideoMetadata, GetYoutubeVideoMetadata>();
+
+            services.AddScoped<ITastyApiRecipesService, TastyApiRecipesService>();
+            services.AddScoped<IAppSettingsService, WrapperAppSettings>();
+
+            services.AddScoped<IUserService, UserService>();
+
+            services.AddTransient<HttpClientConfigurationService>();
+
+            // Reporting
+
+            services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<IReportLists, ReportLists>();
+
+            services.AddScoped<IBO_Autores, BO_Autores>();
+            services.AddScoped<IBO_Categorias, BO_Categorias>();
+            services.AddScoped<IBO_Formatos, BO_Formatos>();
+            services.AddScoped<IBO_Editoras, BO_Editoras>();
+            services.AddScoped<IBO_LocalArquivo, BO_LocalArquivo>();
+            services.AddScoped<IBO_Media, BO_Media>();
+            services.AddScoped<IBO_Publicacoes, BO_Publicacoes>();
+            services.AddScoped<IBO_Utilizadores, BO_Utilizadores>();
+            services.AddScoped<IReports_CustomObjects, Reports_CustomObjects>();
+
+        }
+
+        public static void AddCorsInfrastructure(this IServiceCollection services)
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+        }
+
+        public static void AddValidators(this IServiceCollection services)
+        {
+            // Register individual validators
+            services.AddTransient<IValidator<AutorDTO>, AutorValidator>();
+            services.AddTransient<IValidator<CategoryVM>, CategoriaValidator>();
+            services.AddTransient<IValidator<PublisherVM>, EditoraValidator>();
+            services.AddTransient<IValidator<FormatoMediaVM>, FormatoMediaValidator>();
+            services.AddTransient<IValidator<FormatoPublicacaoVM>, FormatoValidator>();
+            services.AddTransient<IValidator<MediaVM>, MediaValidator>();
+            services.AddTransient<IValidator<PubsWithDescriptions>, PublicacaoValidator>();
+
+            // Register the generic validator
+            services.AddTransient(typeof(IValidator<>), typeof(TabAuxGenericValidator<>));
+
+            // Register the generic validation service
+            services.AddScoped<IValidationService, ValidationService>();
+        }
+    }
+}

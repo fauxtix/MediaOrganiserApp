@@ -1,0 +1,521 @@
+﻿@using System
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.Extensions.Configuration
+@using Microsoft.Extensions.Logging
+@using System.Globalization
+@using Web.Blazor.Components.Layout.SideBar
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+<div class="layout has-sidebar fixed-sidebar fixed-header">
+
+    <AuthorizeView>
+        <Authorized>
+            <SidebarComponent @ref="sideBarComponent" />
+        </Authorized>
+    </AuthorizeView>
+
+    <div class="main">
+        <AuthorizeView>
+            <NotAuthorized>
+                <div class="top-navbar">
+                    <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 64px;">
+                        <span class="brand">Organise It!</span>
+                        <div class="d-flex align-items-center">
+                            <a class="nav-link oi oi-account-login mx-2" href="/identity/account/login" title="Login">
+                                <span class="d-none d-md-inline">&nbsp;Login</span>
+                            </a>
+                            <a class="nav-link oi oi-people mx-2" href="/identity/account/register" title="Registo">
+                                <span class="d-none d-md-inline">&nbsp;Registo</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <section class="showcase">
+                    <div class="video-container">
+                        <video src="/videos/index-video.mov" autoplay muted loop></video>
+                    </div>
+                    <div class="container page-content">
+                        <div class="row">
+                            <div class="col-6">
+                                <img class="img-2 shadow p-3 mb-5 bg-white rounded" src="images/publicacoes_6.jpg" />
+                            </div>
+                            <div class="col-6">
+                                <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                     src="images/publicacoes_7.jpg" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <img class="img-2 shadow p-3 mb-5 bg-white" src="images/audioimage.jpg" />
+                            </div>
+                            <div class="col-6">
+                                <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                     src="images/videoimage.jpg" />
+                            </div>
+                        </div>
+                        <div class="mt-1 text-center text-muted">
+                            Copyright © 2026 - Fausto Luís
+                        </div>
+                        <div class="my-2">
+                            <hr class="white-divider" />
+                        </div>
+                        <div class="row mt-1 mb-3 contact-row d-flex justify-content-center align-items-start" style="gap: 2rem;">
+                            <div class="contact-item">
+                                <div class="contact-icons-row d-flex justify-content-center">
+                                    <i class="fa fa-phone contact-icon"></i>
+                                </div>
+                                <div class="contact-label text-center">@authorMobile</div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-icons-row d-flex justify-content-center">
+                                    <i class="fa fa-envelope contact-icon"></i>
+                                </div>
+                                <div class="contact-label text-center">
+                                    <a href="mailto:fauxtix.luix@hotmail.com">fauxtix.luix@hotmail.com</a>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-icons-row d-flex justify-content-center">
+                                    <a href="https://github.com/fauxtix" target="_blank" rel="noopener noreferrer">
+                                        <i class="fa fa-github contact-icon"></i>
+                                    </a>
+                                </div>
+                                <div class="contact-label text-center">
+                                    <a href="https://github.com/fauxtix" target="_blank" rel="noopener noreferrer">github.com/fauxtix</a>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-icons-row d-flex justify-content-center">
+                                    <a href="https://www.linkedin.com/in/fausto-luis-489388211/" target="_blank" rel="noopener noreferrer">
+                                        <i class="fa fa-linkedin contact-icon"></i>
+                                    </a>
+                                </div>
+                                <div class="contact-label text-center">
+                                    <a href="https://www.linkedin.com/in/fausto-luis-489388211/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </NotAuthorized>
+            <Authorized>
+                <div class="top-navbar">
+                    <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 64px;">
+                        <span class="brand">Organise It!</span>
+                        <div class="d-flex align-items-center justify-content-end" style="flex:1;">
+                            <div class="top-row px-2 auth d-flex align-items-center" style="background-color: #343a40; color: #fff; border-radius: 8px; z-index:1111; padding: 4px 12px;">
+                                <div class="d-flex align-items-center">
+                                    <div class="pl-2 pr-2 font-weight-bold" style="color: #fff;">
+                                        <i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()
+                                    </div>
+                                    <div class="pl-2 pr-2 font-weight-bold" style="color: #fff;">
+                                        <i class="fa fa-user pr-2"></i>@userName
+                                    </div>
+                                </div>
+                                <nav class="d-flex align-items-center my-2 my-md-0 mr-sm-3 font-weight-bold">
+                                    <a class="btn btn-primary ml-2" href="/identity/account/logout" style="white-space: nowrap; margin-right: 10px;">
+                                        Logout
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div @onclick="@(e => sideBarComponent?.MouseClickedInOverlay())" id="overlay" class="overlay"></div>
+                <div class="layout">
+                    <main class="content" @onclick="@(e => sideBarComponent?.MouseClickedInContent())">
+                        <div>
+                            <a @onclick="(e => sideBarComponent?.BtnToggleClicked())" id="btn-toggle" href="#" class="sidebar-toggler break-point-sm">
+                                <i class="ri-menu-line ri-xl"></i>
+                            </a>
+                        </div>
+                        <div class="main-content">
+                            @Body
+                        </div>
+                        @* <FooterComponent /> *@
+                    </main>
+                    <div class="overlay"></div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+    </div>
+</div>
+
+@code {
+    SidebarComponent? sideBarComponent;
+    private bool isDarkMode;
+    [CascadingParameter] protected Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject] ILogger<MainLayout> Logger { get; set; }
+    [Inject] IConfiguration _env { get; set; }
+    [Inject] NavigationManager Navigation { get; set; }
+    [Inject] IAppSettingsService AppSettingsService { get; set; }
+    [Inject] IHttpContextAccessor HttpContextAccessor { get; set; }
+
+    protected string defaultCulture;
+
+    protected string authorMobile;
+    protected string userName;
+
+    protected string currentCultureAbbreviation = "...";
+
+    private ErrorBoundary? _errorBoundary;
+    protected override async Task OnInitializedAsync()
+    {
+
+        try
+        {
+            var authState = await AuthenticationStateTask;
+            userName = authState.User.Identity.Name;
+            authorMobile = _env["AuthorMobile"];
+
+            var cultureCookie = HttpContextAccessor.HttpContext?
+                .Request.Cookies[CookieRequestCultureProvider.DefaultCookieName];
+
+            if (string.IsNullOrEmpty(cultureCookie))
+            {
+                var settings = await AppSettingsService.GetSettingsAsync();
+                defaultCulture = settings.DefaultLanguage ?? "pt";
+                var uri = new Uri(Navigation.Uri)
+                    .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+                var query = $"?culture={Uri.EscapeDataString(defaultCulture)}&" +
+                            $"redirectUri={Uri.EscapeDataString(uri)}";
+
+                Navigation.NavigateTo($"/Culture/SetCulture{query}", forceLoad: true);
+            }
+            else
+            {
+                var currentCulture = CookieRequestCultureProvider.ParseCookieValue(cultureCookie);
+                var cultureInfo = CultureInfo.GetCultureInfo(currentCulture.Cultures.FirstOrDefault().Value);
+                currentCultureAbbreviation = cultureInfo.TwoLetterISOLanguageName;
+            }
+
+        }
+        catch (Exception exc)
+        {
+            Logger.LogCritical(exc.Message);
+        }
+
+    }
+
+    private void ResetErrorBoundary()
+    {
+        _errorBoundary.Recover();
+    }
+}
+
+<style>
+    body {
+        outline: none;
+        border: none;
+        background-color:aliceblue;
+    }
+
+    .sidebar {
+        margin-top: 64px;
+    }
+
+    :root {
+        --primary-color: #3a4052;
+        --text-color: white;
+        --background-color: #ffffff;
+        --text-color: #000000;
+        --header-background: gray;
+        --header-text-color: white;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    ul {
+        color: var(--text-color);
+        list-style-type: square;
+        padding: 0 3px;
+        margin: 0;
+        text-align: left;
+    }
+
+    li {
+        background-repeat: no-repeat;
+        background-position: 100% .4em;
+        padding-right: .6em;
+    }
+
+
+    .sidebar {
+        width: 300px;
+        min-width: 300px;
+    }
+
+    .imagetitle {
+        flex-basis: auto;
+        margin-top: 0;
+        padding: 0;
+        display: compact;
+        width: 100%;
+        height: 5%;
+        object-fit: cover;
+    }
+
+    .img-2 {
+        display: block;
+        width: 85%;
+        height: 85%;
+        max-width: 85%;
+        object-fit: cover;
+        box-shadow: inset;
+    }
+
+    div > nav a {
+        font-size: larger;
+        font-weight: bolder;
+        display: block;
+    }
+
+        div > nav a:hover {
+            font-weight: normal;
+            background-color: transparent;
+            font-display: block;
+        }
+
+    .showcase {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #fff;
+        padding: 0 20px;
+    }
+
+
+    .video-container {
+        position: absolute;
+        top: 50px;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--primary-color) url('./https://traversymedia.com/downloads/cover.jpg') no-repeat center;
+    }
+
+        .video-container video {
+            min-width: 100%;
+            min-height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+
+        .video-container:after {
+            content: '';
+            z-index: 1;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.5);
+            position: absolute;
+        }
+
+    .page-content {
+        z-index: 2;
+    }
+
+    #about {
+        padding: 40px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+        #about p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        #about h2 {
+            margin: 30px 0;
+            color: var(--primary-color);
+        }
+
+    .social a {
+        margin: 0 5px;
+    }
+
+    .logo-image {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-top: -6px;
+    }
+
+    .brand {
+        font-weight: bold;
+        font-size: 24px;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding-left: 12px;
+    }
+
+    .top-navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1050;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        background-color: #343a40; /* matches bg-dark */
+    }
+
+    .nav-link {
+        color: white !important;
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        transition: background 0.2s, border-color 0.2s, color 0.2s;
+        border: 1px solid #e0e0e0; /* cinzento claro, mais fino */
+        border-radius: 6px;
+        padding: 6px 16px;
+        background: transparent;
+    }
+
+    .nav-link:hover {
+        background-color: #495057;
+        color: #ffc107 !important;
+        border-color: #ffc107; /* amarelo no hover */
+    }
+
+    .navbar nav a {
+        color: white !important;
+        border-width: 0;
+    }
+
+        .navbar nav a:hover {
+            background-color: steelblue;
+            border-width: 1px;
+        }
+
+    .nav-button {
+        /* display: block; */
+        width: 115px;
+        height: auto;
+        background: #4E9CAF;
+        padding: 4px;
+        text-align: center;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        line-height: 25px;
+    }
+
+    [data-theme="dark"] {
+        --background-color: #121212;
+        --text-color: #ffffff;
+        --header-background: #333333;
+        --header-text-color: #cccccc;
+    }
+
+    .top-navbar {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .nav-options .nav-link {
+        color: white;
+    }
+
+    .nav-options .nav-link:hover {
+        color: #ffc107;
+    }
+
+    .main, .page-content {
+        padding-top: 64px;
+    }
+
+    .contact-row {
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+        gap: 2rem;
+    }
+
+    .contact-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-width: 90px;
+    }
+
+    .contact-icons-row {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 0.2rem;
+    }
+
+    .contact-icon {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .contact-label {
+        font-size: 0.8rem;
+        color: #666;
+        word-break: break-all;
+        text-decoration: none;
+        margin-bottom: 0.1rem;
+    }
+
+    .contact-label a {
+        color: #666;
+        text-decoration: none;
+    }
+
+    .contact-label a:hover {
+        color: #3a4052;
+        text-decoration: underline;
+    }
+
+    .contact-row > .col-auto {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+    }
+
+    .row.mt-1.mb-4 > [class*='col-'] {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+
+    .contact-row {
+        margin-top: 1rem;
+        margin-bottom: 3rem;
+    }
+
+    .contact-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .white-divider {
+        border: none;
+        border-top: 1.5px solid #fff;
+        margin: 0.5rem 0;
+        opacity: 1;
+    }
+</style>

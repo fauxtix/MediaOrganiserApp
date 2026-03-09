@@ -1,0 +1,735 @@
+@page "/media/playlists/{PlaylistId:int}/player"
+
+@using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Domain.Enums
+@using Web.Blazor.Services.ApiWrappers
+
+@inject PlaylistsClientService PlaylistsService
+@inject IMediaServiceWrapper MediaService
+@inject IWebHostEnvironment HostingEnvironment
+@inject IJSRuntime JS
+
+@attribute [Authorize]
+@implements IDisposable
+
+<PageTitle>Playlist Player</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="p-3">
+        <SfSpinner @ref="_spinner" CssClass="e-spin-overlay" Label="Loading playlist..." Type="SpinnerType.Tailwind"></SfSpinner>
+    </div>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info m-2">No items to play.</div>
+}
+else
+{
+    <div class="pp-layout">
+        <div class="pp-header">
+            <div class="pp-title">
+                <div class="pp-title-main">@_playlistName</div>
+                <div class="pp-title-sub">@($"{_items.Count} item(s) • Ordered by SortOrder")</div>
+            </div>
+
+            <div class="pp-actions">
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-arrow-left"
+                          @onclick="BackToPlaylists">
+                    Back
+                </SfButton>
+            </div>
+        </div>
+
+        <div class="pp-body">
+            <SfCard CssClass="pp-nowplaying">
+                <CardHeader Title="Now Playing" SubTitle="@NowPlayingSubTitle()"></CardHeader>
+                <CardContent>
+                    <div class="pp-nowplaying-content">
+                        <div class="pp-cover">
+                            <img src="@_coverUrl" alt="cover" />
+                        </div>
+
+                        <div class="pp-meta">
+                            <div class="pp-meta-header">
+                                <div class="pp-meta-titles">
+                                    <div class="pp-track-title">@(_currentItem?.Title ?? "-")</div>
+                                    <div class="pp-track-author">@(_currentItem?.Author ?? "")</div>
+                                </div>
+
+                                @if (_currentItem?.MediaType == MediaType.Audio)
+                                {
+                                    <div class="pp-loader-container pp-loader-container--mini @(_isPlaying ? "" : "pp-hidden")" aria-label="Playing">
+                                        <div class="pp-rectangle-1"></div>
+                                        <div class="pp-rectangle-2"></div>
+                                        <div class="pp-rectangle-3"></div>
+                                        <div class="pp-rectangle-4"></div>
+                                        <div class="pp-rectangle-5"></div>
+                                        <div class="pp-rectangle-6"></div>
+                                        <div class="pp-rectangle-5"></div>
+                                        <div class="pp-rectangle-4"></div>
+                                        <div class="pp-rectangle-3"></div>
+                                        <div class="pp-rectangle-2"></div>
+                                        <div class="pp-rectangle-1"></div>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="pp-flags">
+                                <span class="pp-pill">@(_currentItem?.MediaType.ToString() ?? "")</span>
+                                <span class="pp-pill">Repeat: @_repeatMode</span>
+                                <span class="pp-pill">Shuffle: @(_shuffle ? "On" : "Off")</span>
+                            </div>
+
+                            <div class="pp-controls">
+                                <SfButton CssClass="e-btn e-info e-round-corner"
+                                          IconCss="fa fa-step-backward"
+                                          Disabled="@(_queueIndex <= 0)"
+                                          @onclick="PrevAsync">
+                                    Prev
+                                </SfButton>
+
+                                <SfButton CssClass="e-btn e-success e-round-corner"
+                                          IconCss="@(_isPlaying ? "fa fa-pause" : "fa fa-play")"
+                                          @onclick="TogglePlayPauseAsync">
+                                    @(_isPlaying ? "Pause" : "Play")
+                                </SfButton>
+
+                                <SfButton CssClass="e-btn e-warning e-round-corner"
+                                          IconCss="fa fa-stop"
+                                          @onclick="StopAsync">
+                                    Stop
+                                </SfButton>
+
+                                <SfButton CssClass="e-btn e-info e-round-corner"
+                                          IconCss="fa fa-step-forward"
+                                          Disabled="@(_queueIndex >= _queue.Count - 1)"
+                                          @onclick="NextAsync">
+                                    Next
+                                </SfButton>
+
+                                <SfButton CssClass="e-btn e-outline e-round-corner"
+                                          IconCss="fa fa-random"
+                                          IsToggle="true"
+                                          @bind-IsToggled="Shuffle">
+                                    Shuffle
+                                </SfButton>
+
+                                <SfButton CssClass="e-btn e-outline e-round-corner"
+                                          IconCss="fa fa-repeat"
+                                          @onclick="CycleRepeatModeAsync">
+                                    Repeat
+                                </SfButton>
+                            </div>
+
+                            <div class="pp-sliders">
+                                <div class="pp-slider-row">
+                                    <div class="pp-slider-label">@FormatTime(_currentTime)</div>
+
+                                    <SfSlider TValue="double"
+                                              Min="0"
+                                              Max="@Math.Max(1, _duration)"
+                                              Step="0.25"
+                                              Value="@_currentTime"
+                                              ValueChanged="OnSeekChanged"
+                                              CssClass="pp-slider" />
+
+                                    <div class="pp-slider-label">@FormatTime(_duration)</div>
+                                </div>
+
+                                <div class="pp-slider-row">
+                                    <div class="pp-slider-label">Vol</div>
+
+                                    <SfSlider TValue="double"
+                                              Min="0"
+                                              Max="1"
+                                              Step="0.01"
+                                              Value="@_volume"
+                                              ValueChanged="OnVolumeChanged"
+                                              CssClass="pp-slider" />
+
+                                    <div class="pp-slider-label">@($"{(int)(_volume * 100)}%")</div>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(_status))
+                            {
+                                <div class="pp-status">@_status</div>
+                            }
+
+                            <div class="pp-media">
+                                @if (_currentItem?.MediaType == MediaType.Audio)
+                                {
+                                    <audio @ref="_audioRef" class="pp-audio" preload="auto" controls>
+                                        <source src="" type="audio/mpeg" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </SfCard>
+
+            <SfCard CssClass="pp-queue">
+                <CardHeader Title="Queue"></CardHeader>
+                <CardContent>
+                    <SfGrid TValue="PlaylistItemDto"
+                            DataSource="@_queue"
+                            AllowPaging="true"
+                            AllowSorting="false"
+                            AllowFiltering="false"
+                            AllowSelection="true"
+                            Height="420">
+                        <GridEvents TValue="PlaylistItemDto" RowSelected="OnQueueRowSelected"></GridEvents>
+
+                        <GridPageSettings PageSize="10" PageCount="5" PageSizes="true"></GridPageSettings>
+
+                        <GridColumns>
+                            <GridColumn Field="@nameof(PlaylistItemDto.SortOrder)" HeaderText="#" Width="80" TextAlign="TextAlign.Center" />
+                            <GridColumn Field="@nameof(PlaylistItemDto.Title)" HeaderText="Title" Width="420" />
+                            <GridColumn Field="@nameof(PlaylistItemDto.Author)" HeaderText="Author" Width="260" />
+                        </GridColumns>
+                    </SfGrid>
+                </CardContent>
+            </SfCard>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int PlaylistId { get; set; }
+
+    [Inject] public NavigationManager Navigation { get; set; } = default!;
+
+    private SfSpinner? _spinner;
+
+    private bool _isLoading = true;
+
+    private string _playlistName = "Playlist";
+    private List<PlaylistItemDto> _items = new();
+
+    private List<PlaylistItemDto> _queue = new();
+    private int _queueIndex;
+
+    private PlaylistItemDto? _currentItem;
+    private bool _isPlaying;
+
+    private bool _shuffle;
+
+    private bool Shuffle
+    {
+        get => _shuffle;
+        set
+        {
+            if (_shuffle == value)
+                return;
+
+            _shuffle = value;
+
+            // Reorder queue without interrupting playback
+            _ = InvokeAsync(ApplyShuffleChangeAsync);
+        }
+    }
+
+    private RepeatMode _repeatMode = RepeatMode.Off;
+
+    private ElementReference _audioRef;
+    private DotNetObjectReference<PlaylistPlayer>? _dotNetRef;
+
+    private string _audioSrc = "";
+    private double _currentTime;
+    private double _duration;
+    private double _volume = 0.5;
+
+    private string _status = "";
+    private string _coverUrl = "/images/headphones.jpg";
+
+    // Render/interop coordination
+    private bool _jsReady;
+    private bool _pendingAudioApply;
+    private bool _pendingAutoplay;
+
+    protected void BackToPlaylists() => Navigation.NavigateTo("/media/playlists");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var details = await PlaylistsService.GetByIdAsync(PlaylistId);
+            _playlistName = details?.Name ?? $"Playlist {PlaylistId}";
+
+            var items = await PlaylistsService.GetItemsAsync(PlaylistId);
+            _items = (items ?? Enumerable.Empty<PlaylistItemDto>())
+                .OrderBy(i => i.SortOrder)
+                .ToList();
+
+            BuildQueue(resetIndex: true);
+            await LoadCurrentAsync(autoplay: false);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _jsReady = true;
+        }
+
+        if (!_jsReady || _dotNetRef is null || _currentItem is null)
+            return;
+
+        if (_pendingAudioApply)
+        {
+            await JS.InvokeVoidAsync("playlistPlayerInterop.initAudio", _audioRef, _dotNetRef);
+            await JS.InvokeVoidAsync(
+                "playlistPlayerInterop.setAudioSourceAndMaybePlay",
+                _audioRef,
+                _audioSrc,
+                _volume,
+                _pendingAutoplay);
+
+            _isPlaying = _pendingAutoplay;
+
+            _pendingAudioApply = false;
+            _pendingAutoplay = false;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void BuildQueue(bool resetIndex)
+    {
+        _queue = _items.ToList();
+
+        if (resetIndex)
+            _queueIndex = 0;
+    }
+
+    private Task ApplyShuffleChangeAsync()
+    {
+        var currentId = _currentItem?.Id;
+
+        // Rebuild base queue (SortOrder)
+        _queue = _items.ToList();
+
+        if (_shuffle)
+        {
+            ShuffleQueueKeepingCurrentFirst(currentId);
+        }
+        else
+        {
+            if (currentId is not null)
+            {
+                var idx = _queue.FindIndex(x => x.Id == currentId.Value);
+                _queueIndex = idx >= 0 ? idx : 0;
+            }
+            else
+            {
+                _queueIndex = 0;
+            }
+        }
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void ShuffleQueueKeepingCurrentFirst(int? currentId)
+    {
+        if (_queue.Count <= 1)
+        {
+            _queueIndex = 0;
+            return;
+        }
+
+        var rnd = new Random();
+
+        PlaylistItemDto? current = null;
+        if (currentId is not null)
+            current = _queue.FirstOrDefault(x => x.Id == currentId.Value);
+
+        current ??= _queue[0];
+
+        var rest = _queue
+            .Where(x => x.Id != current.Id)
+            .OrderBy(_ => rnd.Next())
+            .ToList();
+
+        _queue = new List<PlaylistItemDto>(capacity: 1 + rest.Count) { current };
+        _queue.AddRange(rest);
+
+        _queueIndex = 0;
+    }
+
+    private async Task LoadCurrentAsync(bool autoplay)
+    {
+        if (_queueIndex < 0 || _queueIndex >= _queue.Count)
+            return;
+
+        // Stop previous audio (only if JS is ready)
+        if (_jsReady && _currentItem?.MediaType == MediaType.Audio)
+            await JS.InvokeVoidAsync("playlistPlayerInterop.stopAudio", _audioRef);
+
+        _status = "";
+        _currentItem = _queue[_queueIndex];
+        _coverUrl = "/images/headphones.jpg";
+        _currentTime = 0;
+        _duration = 0;
+        _isPlaying = false;
+
+        if (_currentItem.MediaType != MediaType.Audio)
+        {
+            _status = "Only audio items are supported in this player.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        // Schedule audio setup after render
+        _pendingAutoplay = autoplay;
+        _pendingAudioApply = true;
+
+        _audioSrc = await EnsureAudioIsServedFromWwwrootAsync(_currentItem);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<string> EnsureAudioIsServedFromWwwrootAsync(PlaylistItemDto item)
+    {
+        var media = await MediaService.GetMediaByID(item.MediaId);
+
+        var sourcePath = media?.FilePath;
+        if (string.IsNullOrWhiteSpace(sourcePath) || !System.IO.File.Exists(sourcePath))
+            sourcePath = item.ResourcePathOrUrl;
+
+        if (!string.IsNullOrWhiteSpace(sourcePath) &&
+            sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return sourcePath;
+        }
+
+        var mediaDirectory = Path.Combine(HostingEnvironment.WebRootPath, "files", "uploads", "Media");
+        Directory.CreateDirectory(mediaDirectory);
+
+        var fileName = Path.GetFileName(sourcePath ?? item.ResourcePathOrUrl);
+        var destPath = Path.Combine(mediaDirectory, fileName);
+
+        if (!string.IsNullOrWhiteSpace(sourcePath) && System.IO.File.Exists(sourcePath) && !System.IO.File.Exists(destPath))
+            System.IO.File.Copy(sourcePath, destPath);
+
+        return $"files/uploads/Media/{fileName}";
+    }
+
+    private async Task TogglePlayPauseAsync()
+    {
+        if (_currentItem is null || !_jsReady)
+            return;
+
+        if (_currentItem.MediaType != MediaType.Audio)
+            return;
+
+        if (_isPlaying)
+        {
+            await JS.InvokeVoidAsync("playlistPlayerInterop.pauseAudio", _audioRef);
+            _isPlaying = false;
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("playlistPlayerInterop.playAudio", _audioRef);
+            _isPlaying = true;
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        if (_currentItem is null || !_jsReady)
+        {
+            _isPlaying = false;
+            return;
+        }
+
+        if (_currentItem.MediaType == MediaType.Audio)
+            await JS.InvokeVoidAsync("playlistPlayerInterop.stopAudio", _audioRef);
+
+        _isPlaying = false;
+    }
+
+    private async Task NextAsync()
+    {
+        if (_queue.Count == 0)
+            return;
+
+        if (_repeatMode == RepeatMode.One)
+        {
+            await LoadCurrentAsync(autoplay: true);
+            return;
+        }
+
+        if (_queueIndex >= _queue.Count - 1)
+        {
+            if (_repeatMode == RepeatMode.All)
+            {
+                _queueIndex = 0;
+                await LoadCurrentAsync(autoplay: true);
+            }
+            else
+            {
+                _isPlaying = false;
+                _status = "Reached end of playlist.";
+                await InvokeAsync(StateHasChanged);
+            }
+
+            return;
+        }
+
+        _queueIndex++;
+        await LoadCurrentAsync(autoplay: true);
+    }
+
+    private async Task PrevAsync()
+    {
+        if (_queue.Count == 0)
+            return;
+
+        if (_queueIndex <= 0)
+        {
+            await LoadCurrentAsync(autoplay: true);
+            return;
+        }
+
+        _queueIndex--;
+        await LoadCurrentAsync(autoplay: true);
+    }
+
+    private Task CycleRepeatModeAsync()
+    {
+        _repeatMode = _repeatMode switch
+        {
+            RepeatMode.Off => RepeatMode.One,
+            RepeatMode.One => RepeatMode.All,
+            _ => RepeatMode.Off
+        };
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSeekChanged(double value)
+    {
+        _currentTime = value;
+
+        if (_jsReady)
+            await JS.InvokeVoidAsync("playlistPlayerInterop.seekAudio", _audioRef, _currentTime);
+    }
+
+    private async Task OnVolumeChanged(double value)
+    {
+        _volume = value;
+
+        if (_jsReady)
+            await JS.InvokeVoidAsync("playlistPlayerInterop.setAudioVolume", _audioRef, _volume);
+    }
+
+    private async Task OnQueueRowSelected(RowSelectEventArgs<PlaylistItemDto> args)
+    {
+        var selected = args?.Data;
+        if (selected is null)
+            return;
+
+        var idx = _queue.FindIndex(x => x.Id == selected.Id);
+        if (idx < 0)
+            return;
+
+        _queueIndex = idx;
+        await LoadCurrentAsync(autoplay: true);
+    }
+
+    [JSInvokable]
+    public async Task OnAudioEnded() => await NextAsync();
+
+    [JSInvokable]
+    public Task OnAudioMetadata(double duration)
+    {
+        _duration = duration;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnAudioTimeUpdate(double currentTime, double duration)
+    {
+        _currentTime = currentTime;
+        _duration = duration;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnAudioError()
+    {
+        _status = "Audio error. Skipping to next item...";
+        await NextAsync();
+    }
+
+    [JSInvokable]
+    public Task OnAudioPlayFailed(string errorName, string errorMessage)
+    {
+        _isPlaying = false;
+        _status = errorName == "NotAllowedError"
+            ? "Playback was blocked by the browser. Click Play to continue."
+            : $"Playback failed: {errorName} {errorMessage}".Trim();
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnMediaStateChanged(bool isPlaying)
+    {
+        _isPlaying = isPlaying;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private string NowPlayingSubTitle()
+    {
+        if (_currentItem is null) return "";
+        return $"#{_currentItem.SortOrder} • Queue {_queueIndex + 1}/{_queue.Count}";
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        if (seconds <= 0 || double.IsNaN(seconds) || double.IsInfinity(seconds))
+            return "0:00";
+
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0 ? ts.ToString(@"h\:mm\:ss") : ts.ToString(@"m\:ss");
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("playlistPlayerInterop.disposeAudio", _audioRef); } catch { }
+        _dotNetRef?.Dispose();
+    }
+
+    private enum RepeatMode
+    {
+        Off = 0,
+        One = 1,
+        All = 2
+    }
+}
+
+<style scoped>
+.pp-layout {
+    padding: 12px;
+    max-width: 960px;   /* adjust (e.g., 820px / 900px / 960px) */
+    margin: 0 auto;  
+}
+
+/* optional: make the cover smaller so the card feels less “wide” */
+.pp-cover img {
+    width: 120px;
+    height: 120px;
+}
+
+.pp-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.pp-title-main { font-size: 1.4rem; font-weight: 800; }
+.pp-title-sub { opacity: .75; font-size: .95rem; }
+
+.pp-body { display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; gap: 12px; }
+.pp-nowplaying { grid-column: 1 / 2; grid-row: 1 / 2; }
+.pp-queue { grid-column: 1 / 2; grid-row: 2 / 3; }
+
+.pp-nowplaying-content { display: flex; gap: 14px; align-items: flex-start; }
+.pp-cover img { width: 140px; height: 140px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+
+.pp-meta { flex: 1; min-width: 0; }
+.pp-meta-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pp-meta-titles { min-width: 0; }
+
+.pp-track-title { font-size: 1.2rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-track-author { margin-top: 2px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pp-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pp-pill { padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.06); font-size: .85rem; font-weight: 700; }
+
+.pp-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.pp-sliders { margin-top: 12px; display: grid; gap: 10px; }
+.pp-slider-row { display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; gap: 10px; }
+.pp-slider-label { text-align: center; font-weight: 700; opacity: .85; }
+
+.pp-media { margin-top: 10px; }
+.pp-audio { width: 100%; }
+
+.pp-status { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 193, 7, .18); font-weight: 700; }
+
+.pp-hidden { display: none !important; }
+
+/* Bars */
+.pp-loader-container {
+    height: 40px;
+    width: 160px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.pp-loader-container--mini {
+    height: 28px;
+    width: 130px;
+}
+
+.pp-loader-container > div {
+    display: inline-block;
+    background: #03A9F4;
+    height: 100%;
+    width: 10px;
+    margin: 0;
+    -webkit-animation: pp-load 3s ease-in-out infinite;
+    animation: pp-load 3s ease-in-out infinite;
+}
+
+.pp-loader-container--mini > div { width: 8px; }
+
+.pp-loader-container .pp-rectangle-2 { -webkit-animation-delay: 0.1s; animation-delay: 0.1s; }
+.pp-loader-container .pp-rectangle-3 { -webkit-animation-delay: 0.2s; animation-delay: 0.2s; }
+.pp-loader-container .pp-rectangle-4 { -webkit-animation-delay: 0.3s; animation-delay: 0.3s; }
+.pp-loader-container .pp-rectangle-5 { -webkit-animation-delay: 0.4s; animation-delay: 0.4s; }
+.pp-loader-container .pp-rectangle-6 { -webkit-animation-delay: 0.5s; animation-delay: 0.5s; }
+
+@@-webkit-keyframes pp-load {
+    0%, 100% { -webkit-transform: scaleY(1); background: #03A9F4; }
+    16.67%   { -webkit-transform: scaleY(3); background: #FF5722; }
+    33.33%   { -webkit-transform: scaleY(1); background: #FF5252; }
+    50%      { -webkit-transform: scaleY(3); background: #E91E63; }
+    66.67%   { -webkit-transform: scaleY(1); background: #9C27B0; }
+    83.34%   { -webkit-transform: scaleY(3); background: #673AB7; }
+}
+
+@@keyframes pp-load {
+    0%, 100% { transform: scaleY(1); background: #03A9F4; }
+    16.67%   { transform: scaleY(3); background: #FF5722; }
+    33.33%   { transform: scaleY(1); background: #FF5252; }
+    50%      { transform: scaleY(3); background: #E91E63; }
+    66.67%   { transform: scaleY(1); background: #9C27B0; }
+    83.34%   { transform: scaleY(3); background: #673AB7; }
+}
+
+.pp-layout {
+    max-width: 900px; 
+    margin: 0 auto;
+}
+
+.pp-nowplaying,
+.pp-queue {
+    max-width: 900px; 
+    margin: 0 auto;
+}
+
+.pp-cover img {
+    width: 120px; 
+    height: 120px;
+}
+</style>

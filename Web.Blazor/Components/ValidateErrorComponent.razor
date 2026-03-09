@@ -1,0 +1,75 @@
+﻿@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<App> L
+
+<SfDialog Width="30%"
+          Height="auto"
+          IsModal="true"
+          CloseOnEscape="false"
+          AllowDragging="true"
+          Visible="@Visible"
+          ShowCloseIcon="false">
+    <DialogTemplates>
+        <Header>
+            <div>
+                @{
+                    if (string.IsNullOrEmpty(DialogTitle))
+                    {
+                        <SfMessage Severity="MessageSeverity.Warning" ShowIcon="true">@L["MSG_DadosEmFaltaOuInvalidos"]</SfMessage>
+                    }
+                    else
+                    {
+                        <SfMessage Severity="MessageSeverity.Warning" ShowIcon="true">@DialogTitle</SfMessage>
+                    }
+                }
+            </div>
+        </Header>
+        <Content>
+            @if (!string.IsNullOrEmpty(DialogSubTitle))
+            {
+                <div class="card-box ml-2">[ <span class="font-weight-bold">@DialogSubTitle</span> ]</div>
+            }
+            @if (ValidationMessages != null)
+            {
+                <div class="card-box">
+                    <div class="row mx-2">
+                        <div class="col-12">
+                            @foreach (string ValidationMessage in ValidationMessages)
+                            {
+                                <SfMessage Severity="MessageSeverity.Info" ShowIcon="false">@ValidationMessage</SfMessage>
+                                @*                                <div class="notify-info px-2"> @(ValidationMessage)</div>*@
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </Content>
+
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                          @onclick="OnClose" Content="@L["BtnSalir"]">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogPositionData X="center" Y="center"></DialogPositionData>
+    <DialogAnimationSettings Effect="@DialogEffect" Duration=@DialogDuration />
+</SfDialog>
+
+
+@code {
+    [Parameter] public List<string> ValidationMessages { get; set; }
+    [Parameter] public int DialogDuration { get; set; } = 600;
+    [Parameter] public Syncfusion.Blazor.Popups.DialogEffect DialogEffect { get; set; } = DialogEffect.FadeZoom;
+    [Parameter] public EventCallback OnCloseDialog { get; set; }
+    [Parameter] public bool Visible { get; set; } = false;
+    [Parameter] public string DialogTitle { get; set; } = "";
+    [Parameter] public string DialogSubTitle { get; set; } = "";
+
+    private string TitleColor { get; set; } = "grey";
+
+    protected void OnClose()
+    {
+        OnCloseDialog.InvokeAsync();
+    }
+}

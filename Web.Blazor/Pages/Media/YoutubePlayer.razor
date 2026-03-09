@@ -1,0 +1,63 @@
+﻿@page "/youtubeplayer"
+
+@using Microsoft.AspNetCore.Hosting
+@using Web.Blazor.Services.ApiWrappers
+
+@inherits MediaPlayer
+
+@inject IMediaServiceWrapper mediaSvc
+@inject IWebHostEnvironment hostingEnvironment
+
+@attribute [Authorize]
+
+
+@if (!string.IsNullOrEmpty(Mp4_FileToPlay))
+{
+    <div class="my-1 ml-2 font-weight-bold" style="font-size:1.2rem;"><img src="images/media-documents-icon_64.png" width="48" height="48" />&nbsp;@SelectedRecord.FileName</div>
+    <div class="d-flex flex-column p-2 align-content-center border border-info">
+        <div class="embed-responsive embed-responsive-16by9">
+
+            <iframe width="560" height="315"
+                    src="@Mp4_FileToPlay"
+                    class="embed-responsive-item"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+            </iframe>
+
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column p-2 align-content-center border border-danger">
+        <div class="error-message">Vídeo não pode ser reproduzido</div>
+    </div>
+    <hr />
+    <div class="d-flex flex-column p-2 align-content-center border border-info">
+        <SfCard>
+            <CardHeader ImageUrl="/images/media-player.png" Title="Informação adicional"></CardHeader>
+            <CardContent EnableSeparator="true">
+                <p>
+                    Path: @SelectedRecord.FilePath
+                    @if (!File.Exists(SelectedRecord.FilePath))
+                    {
+                        <span> (não existe no local indicado)</span>
+                    }
+                </p>
+                <p>
+                    Url:
+                    @if (string.IsNullOrEmpty(SelectedRecord.FileUrl))
+                    {
+                        <span>não informado</span>
+                    }
+                    else
+                    {
+                        <span>&nbsp;@SelectedRecord.FileUrl</span>
+                    }
+                </p>
+            </CardContent>
+        </SfCard>
+    </div>
+}

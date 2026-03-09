@@ -1,0 +1,376 @@
+﻿@page "/videogallery"
+
+@using Microsoft.Extensions.Localization
+@using MediaOrganizerApp.Domain.Entities
+@using System.IO
+
+@using Syncfusion.Blazor.DropDowns
+@using Web.Blazor.Components.Cards
+@using Web.Blazor.Pages.Media
+
+<!-- Page Content -->
+<div class="container e-container-style ">
+
+    <div class="title">@localizerApp["lblGaleria"] (Media)</div>
+    <div class="underline"></div>
+    <br />
+
+    <div id="spinnerContainer"></div>
+    <SfSpinner @ref="SpinnerObj"
+               Label="@localizerApp["LoadingMsg"]"
+               Type="@SpinnerType.Bootstrap4" Size="50"
+               CssClass="e-spin-overlay">
+    </SfSpinner>
+
+    @if (categoryList is null)
+    {
+        <NoDataAvailable CardTitle="Video categories" Visible="@NoDataVisibility" />
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-4 py-3 align-self-md-center">
+                <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
+                <SfDropDownList PopupWidth="250px" PopupHeight="450px" @bind-Value="@CatId" AllowFiltering="true"
+                                CssClass="custom-class e-corner"
+                                FilterBarPlaceholder="@localizerApp["TituloPesquisaCategorias"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                TItem="CategoryVM" TValue="int" Placeholder="@localizerApp["lblCategoria"]" DataSource="@categoryList">
+                    <DropDownListEvents TItem="CategoryVM" TValue="int" ValueChange="onChangeCategory"></DropDownListEvents>
+                    <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                </SfDropDownList>
+            </div>
+            <div class="col-3" style="margin-top:60px;">
+                <SfChip>
+                    <ChipItems>
+                        <ChipItem CssClass="e-info e-outline" Text="@VideoFilesCount" style="margin-top:-5px;" />
+                    </ChipItems>
+                </SfChip>
+            </div>
+        </div>
+    }
+
+    @if (VideoFiles is null)
+    {
+        <NoDataAvailable CardTitle="Video files" />
+    }
+    else
+    {
+        <div class="row text-lg-start">
+            @foreach (var videoPath in VideoFiles)
+            {
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <a class="d-block mb-4 h-100">
+                        <div class="img-box fixed-img-box">
+                            <img class="img-fluid img-thumbnail fixed-img"
+                                 src="@(videoPath.CoverFile)"
+                                 @onclick="() => PlayVideo(videoPath.Id)"
+                                 alt="">
+                        </div>
+                        <div class="card fixed-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start card-title-row">
+                                    <p class="info-title"><i>@videoPath.Titulo</i></p>
+                                    <p class="info-author text-right">@videoPath.Autor</p>
+                                </div>
+
+                                <div class="d-flex flex-row justify-content-between align-items-center mt-4" style="gap:50px">
+                                    <SfChip>
+                                        <ChipItems>
+                                            <ChipItem CssClass="@(videoPath.Formato == "LP"
+                                                                ? "e-success"
+                                                                : videoPath.Formato == "CD"
+                                                                ? "e-danger"
+                                                                : videoPath.Formato.ToLower().StartsWith("dvd")
+                                                                ? "e-primary"
+                                                                : string.IsNullOrEmpty(videoPath.FileUrl)
+                                                                ? "e-info" : "e-warning")"
+                                              Text="@(videoPath.Formato == "LP" || videoPath.Formato == "CD" || videoPath.Formato.ToLower().StartsWith("dvd")
+                                                                                                  ? videoPath.Formato
+                                                                                                  : string.IsNullOrEmpty(videoPath.FileUrl) ? "MP3" : "Youtube")" style="margin-top:-10px;" />
+                                    <ChipItem CssClass="e-primary" Text="@(string.IsNullOrEmpty(videoPath.Tempo) || videoPath.Tempo == "00:00:00"
+                                                                                                                                                                                                              ? "N/A" : videoPath.Tempo)" style="margin-top:-10px;" />
+                                </ChipItems>
+                            </SfChip>
+                            <div class="justify-content-end" style="margin-top:-10px" >@videoPath.AnoEdicao</div>
+
+                        </div>
+
+                        @if (CatId == 0)
+                                {
+                                    <div class="row mt-2">
+                                        <div class="col-md-12">
+                                            <SfMessage Severity="MessageSeverity.Success" Variant="MessageVariant.Text">
+                                                @(CatId == 0 ? videoPath.Categoria : "")
+                                            </SfMessage>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (videoPath.CoverFile.ToLower().Contains("available"))
+                                {
+                                    <p>
+                                        <SfButton Content="Get Image" CssClass="e-btn e-info e-round-corner"
+                                                  @onclick="() => UpdateCover(videoPath.Id)"></SfButton>
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+
+        <!-- Error Dialog -->
+        <SfDialog Target="#target"
+                  Width="400px"
+                  Height="auto"
+                  IsModal="true"
+                  ShowCloseIcon="false"
+                  @bind-Visible="ErrorDialogVisibility">
+            <DialogTemplates>
+                <Header>
+                    <div class="modal-header">
+                        @(localizerApp["msgNoPublications"])
+                    </div>
+                </Header>
+                <Content>
+                    <div class='dialogContent'><span class='dialogText'><pre>@ErrorMessage</pre></span></div>
+                    <p class="text-info">@(localizerApp["OperacaoCancelada"]).</p>
+                </Content>
+                <FooterTemplate>
+                    <div class="modal-footer">
+                        <SfButton CssClass="e-btn e-outlinee-round-corner"
+                                  @onclick="() => ErrorDialogVisibility = false">
+                            @(localizerApp["btnFechar"])
+                        </SfButton>
+                    </div>
+                </FooterTemplate>
+            </DialogTemplates>
+            <DialogAnimationSettings Effect="@Effects" Duration=700></DialogAnimationSettings>
+        </SfDialog>
+
+        <!-- YouTube Dialog -->
+        <SfDialog Width="60%"
+                  Height="86%"
+                  MinHeight="86%"
+                  IsModal="true"
+                  ShowCloseIcon="false"
+                  EnableResize="true"
+                  AllowDragging="true"
+                  @bind-Visible="YouTubePlayerDialogVisibility">
+            <DialogTemplates>
+                <Content>
+                    <YoutubePlayer SelectedRecord="@SelectedRecord" mediaFileName="@mediaFilename" mediaExtension="@mediaExtension" />
+                </Content>
+                <FooterTemplate>
+                    <div class="modal-footer">
+                        <SfButton CssClass="e-btn e-success e-outline pl-2 pr-3 e-round-corner" IconCss="fa fa-times"
+                                  @onclick="() => CloseMediaPlayer()">
+                            &nbsp;@localizerApp["BtnSalir"]
+                        </SfButton>
+                    </div>
+                </FooterTemplate>
+            </DialogTemplates>
+            <DialogAnimationSettings Effect="@Effects" Duration=1000></DialogAnimationSettings>
+        </SfDialog>
+
+        <!-- MP3 Dialog -->
+        <SfDialog Width="50%"
+                  Height="85%"
+                  MinHeight="85%"
+                  IsModal="true"
+                  ShowCloseIcon="false"
+                  EnableResize="true"
+                  AllowDragging="true"
+                  @bind-Visible="Mp3DialogVisibility">
+            <DialogTemplates>
+                <Header>
+                    <div class="font-weight-bold" style="font-size:1.5rem;">
+                        <img src="images/mp3Image.png" width="48" height="48" />&nbsp;MP3 Player
+                    </div>
+                </Header>
+                <Content>
+                    <Mp3Player SelectedRecord="@SelectedRecord" mediaFileName="@mediaFilename" mediaExtension="@mediaExtension" />
+                </Content>
+                <FooterTemplate>
+                    <div class="modal-footer">
+                        <SfButton CssClass="e-btn e-outline e-success e-round-corner" IconCss="fa fa-times"
+                                  @onclick="() => CloseMp3Player()">
+                            &nbsp;@localizerApp["BtnSalir"]
+                        </SfButton>
+                    </div>
+                </FooterTemplate>
+            </DialogTemplates>
+            <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+        </SfDialog>
+
+        <!-- Generic Error Dialog -->
+        <SfDialog Target="#target"
+                  Width="600px"
+                  Height="300x"
+                  IsModal="true"
+                  ShowCloseIcon="false"
+                  @bind-Visible="ErrorVisibility">
+            <DialogTemplates>
+                <Header>
+                    <div>
+                        <div class="text-danger">@ErrorTitle</div>
+                    </div>
+                </Header>
+                <Content>
+                    <div class='dialogContent text-body border border-warning'>
+                        <SfTextBox Readonly="true" Multiline="true" Value="@sErrorMsgs"></SfTextBox>
+                    </div>
+                    <br />
+                    <div class="border-warning">
+                        <div class="text-info">@(localizerApp["OperacaoCancelada"])</div>
+                    </div>
+                </Content>
+                <FooterTemplate>
+                    <div class="modal-footer">
+                        <SfButton CssClass="e-btn e-info e-round-corner"
+                                  IconCss="fa fa-times"
+                                  @onclick="() => CloseErrorDialog()">
+                            &nbsp;@(localizerApp["btnFechar"])
+                        </SfButton>
+                    </div>
+                </FooterTemplate>
+            </DialogTemplates>
+            <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+        </SfDialog>
+
+        <!-- Toast -->
+        <SfToast @ref="ToastObj"
+                 Title="@ToastTitle"
+                 Content="@ToastContent"
+                 CssClass="@ToastCssClass"
+                 Timeout="3000" ShowCloseButton="true">
+            <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+        </SfToast>
+    }
+</div>
+
+<style>
+    /* ------------------ GENERAL ------------------ */
+    .e-round-corner {
+        border-radius: 10px;
+    }
+
+    .e-container-style {
+        background-color: #f0f0f0;
+    }
+
+    /* ------------------ IMAGE ------------------ */
+    .fixed-img-box {
+        width: 100%;
+        height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f8f8f8;
+        border-radius: 16px;
+    }
+
+    .fixed-img {
+        width: 100%;
+        height: 100%;
+        max-width: 340px;
+        max-height: 240px;
+        object-fit: contain;
+        border-radius: 16px;
+    }
+
+    /* ------------------ CARD ------------------ */
+    .fixed-card {
+        min-height: 170px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    /* ------------------ TITLE / AUTHOR ------------------ */
+    .card-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        min-height: 2.5em;
+        max-height: 2.5em;
+        overflow: hidden;
+    }
+
+    .info-title, .info-author {
+        flex: 1 1 0;
+        font-size: 0.9rem;
+        line-height: 1.2em;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        margin-bottom: 0;
+    }
+
+    .info-title {
+        margin-left: 3px;
+        font-weight: 500;
+    }
+
+    .info-author {
+        text-align: right;
+        margin-right: 3px;
+        font-weight: 400;
+    }
+
+    /* ------------------ RESPONSIVE ------------------ */
+    @@media (max-width: 1024px) {
+        .info-title, .info-author {
+            font-size: 10px;
+            line-height: 1.2rem;
+        }
+
+        .fixed-img-box, .fixed-img {
+            max-width: 120px;
+            max-height: 120px;
+            height: 120px;
+        }
+
+        .fixed-card {
+            min-height: 160px;
+        }
+    }
+
+    @@media (max-width: 767px) {
+        .card-title-row {
+            flex-direction: column;
+            align-items: flex-start;
+            min-height: auto;
+            max-height: none;
+        }
+
+        .info-title, .info-author {
+            flex: 0 0 100%;
+            text-align: left;
+            -webkit-line-clamp: 2;
+            padding-bottom: 0.1em;
+            box-sizing: border-box;
+        }
+
+        .info-author {
+            font-size: 0.7rem;
+            opacity: 0.75;
+        }
+
+        .fixed-img-box, .fixed-img {
+            max-width: 80px;
+            max-height: 80px;
+            height: 80px;
+        }
+
+        .fixed-card {
+            min-height: 120px;
+        }
+    }
+</style>

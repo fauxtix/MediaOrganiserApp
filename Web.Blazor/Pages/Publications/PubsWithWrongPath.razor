@@ -1,0 +1,482 @@
+﻿@page "/pubswithwrongpath"
+
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components
+
+@inject IPublicacaoService publicacoesService
+@inject IFileService fileService
+@inject IWebHostEnvironment env
+@inject IStringLocalizer<App> L
+@inject SfDialogService DialogService
+
+
+
+@if (publicacoes is null)
+{
+    <p><em>Loading</em></p>
+}
+else
+{
+
+    <h3>@L["TituloCaminhoFicheirosIncorreto"] (@pubsWithWrongPath.Count)</h3>
+    <hr />
+
+    <SfBreadcrumb>
+        <BreadcrumbItems>
+            <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
+            <BreadcrumbItem Text="@L["mnuLivros"]" Url="/publicacoes" />
+            <BreadcrumbItem Text="@L["TituloCaminhoFicheirosIncorretos"]" Url="/pubswithwrongpath" />
+        </BreadcrumbItems>
+    </SfBreadcrumb>
+    <hr />
+
+    <div class="container-fluid mt-2">
+        <div class="row">
+            @foreach (var PubNotTransferedCtx in pubsWithWrongPath)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-4 col-sm-6 col-xs-12 col-12">
+                    <SfCard CssClass="teste my-1">
+                        @*<CardImage Image="@fileService.DecodeImage(PubNotTransferedCtx.WrongCoverPath)"/>*@
+                        <CardHeader Title="@PubNotTransferedCtx.Id.ToString()"
+                                    SubTitle="@PubNotTransferedCtx.PubTitle" />
+                        <CardContent EnableSeparator="true">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="row mt-2">
+                                        <div class="col-6">
+                                            <div><b>@L["TituloCategoriaRegistada"]</b></div>
+                                            <div class="mt-2">@PubNotTransferedCtx.ActualCategory</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div><b>@L["TituloCategoriaPrevista"]</b></div>
+                                            <div class="mt-2">@PubNotTransferedCtx.WantedCategory</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <CardFooterContent>
+                                <hr />
+                                <div class="options-buttons-container">
+                                    <SfButton IconCss="fa fa-exchange"
+                                              CssClass="e-btn e-warning e-round-corner"
+                                              Content="@L["TituloTransferir"]" @onclick="()=>TransferFile(PubNotTransferedCtx)" />
+                                </div>
+                            </CardFooterContent>
+                        </CardFooter>
+                    </SfCard>
+                </div>
+                <br />
+            }
+        </div>
+    </div>
+
+    <SfDialog @ref="ErrorDialog"
+              Width="600px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              CloseOnEscape="false"
+              Visible="false">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <p class="text-danger">Erro ao transferir ficheiro.</p>
+                </div>
+            </Header>
+            <Content>
+                <div class="e-textbox">
+                    <SfTextBox Multiline="true" @bind-Value="ErrorMessage" Readonly="true" />
+                </div>
+                <br />
+                <p class="text-info">Operação cancelada.</p>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="btn btn-info e-primary" Content="Fechar"
+                              @onclick="CloseErrorBox">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="DialogEffect.Fade" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <AlertUserComponent Visibility="alertUserVisibility"
+                        Message="@L["msgSuccess"]"
+                        Title="Transferência de ficheiros"
+                        OnCloseDialog="@(()=>alertUserVisibility = false)" />
+}
+
+@code {
+
+    [Inject] public IUserService UserService { get; set; }
+    [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+
+    protected IEnumerable<PubsWithDescriptions> publicacoes;
+    protected List<PubNotTransfered> pubsWithWrongPath = new();
+    protected bool alertUserVisibility = false;
+    protected SfDialog ErrorDialog;
+    protected string ErrorMessage = "";
+    protected string dialogMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        publicacoes = await GetAllPublicationsWithDescriptions();
+        pubsWithWrongPath = GetPubsWithWrongPaths();
+    }
+
+    protected async Task<IEnumerable<PubsWithDescriptions>> GetAllPublicationsWithDescriptions()
+    {
+        string userId;
+        string role;
+        var userDetails = await UserService.GetAuthenticatedUserDetails(AuthenticationStateProvider);
+        userId = userDetails.UserId;
+        role = userDetails.Role;
+
+        var output = await publicacoesService.GetAllAsync( userId, role);
+        return output;
+    }
+
+    protected class PubNotTransfered
+    {
+        public int Id { get; set; }
+        public string PubTitle { get; set; }
+
+        public string ActualCategory { get; set; }
+        public string WantedCategory { get; set; }
+
+        public DateTime UploadedDate { get; set; }
+
+        public string ActualPubPath { get; set; }
+        public string WantedDestinationPath { get; set; }
+
+        public string ActualCoverPath { get; set; }
+        public string WantedCoverPath { get; set; }
+    }
+
+    protected List<PubNotTransfered> GetPubsWithWrongPaths()
+    {
+        List<PubNotTransfered> pubs = new();
+        var wwwRoot = env.WebRootPath;
+        foreach (var pub in publicacoes)
+        {
+            var fileFullPath = Path.Combine(wwwRoot, pub.DigitalPath);
+            if (!File.Exists(fileFullPath) && !string.IsNullOrEmpty(pub.DigitalPath))
+            {
+                var names = GetActualCategory(Path.GetFileName(fileFullPath));
+                pubs.Add(
+                    new PubNotTransfered
+                        {
+                            Id = pub.Id,
+                            PubTitle = pub.Titulo,
+                            UploadedDate = pub.DataMovimento,
+
+                            WantedDestinationPath = fileFullPath,
+                            ActualPubPath = names.Item1,
+
+                            ActualCategory = names.Item2,
+                            WantedCategory = pub.Categoria,
+
+                            ActualCoverPath = Path.Combine(wwwRoot, pub.ImagemCapa).Replace(pub.Categoria, names.Item2),
+                            WantedCoverPath = Path.Combine(wwwRoot, pub.ImagemCapa).Replace(names.Item2, pub.Categoria)
+                        }
+                );
+            }
+        }
+
+        return pubs;
+
+    }
+
+
+    protected (string, string) GetActualCategory(string searchFile)
+    {
+        var pubsPath = Path.Combine(env.WebRootPath,"Files", "Uploads", "Publicacoes");
+
+        DirectoryInfo dir = new DirectoryInfo(pubsPath);
+        System.IO.FileInfo[] files = dir.GetFiles("*.pdf", SearchOption.AllDirectories);
+        foreach (var f in files)
+        {
+            if (f.Name == searchFile)
+            {
+                return (
+                    f.FullName,
+                    f.DirectoryName.Substring(f.DirectoryName.LastIndexOf(@"\") + 1));
+            }
+        }
+
+        return ("", "Não encontrada");
+
+    }
+
+    private async Task<bool> OkToTransferFile(string pubTitle)
+    {
+        string yesMsg = L["Sim"];
+        string noMsg = L["Nao"];
+        string confirmMsg = L["ConfirmarTransferencia"];
+
+        var dialogOptions = new DialogOptions()
+            {
+                AllowDragging = true,
+                CloseOnEscape = false,
+                Width = "400px",
+                Height = "180px",
+                ShowCloseIcon = false,
+                PrimaryButtonOptions = new DialogButtonOptions() { Content = yesMsg, IconCss = "fa fa-check" },
+                CancelButtonOptions = new DialogButtonOptions() { Content = noMsg, IconCss = "fa fa-times" }
+            };
+
+        bool isConfirm = await DialogService.ConfirmAsync(confirmMsg, pubTitle, dialogOptions);
+        return isConfirm;
+    }
+    protected async Task TransferFile(PubNotTransfered pubToMove)
+    {
+        if (!await OkToTransferFile(pubToMove.PubTitle))
+        {
+            return;
+        }
+
+        var pubFileTransfered = false;
+        alertUserVisibility = false;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(pubToMove.ActualPubPath))
+            {
+                var productionPubPath = @"C:\inetpub\OrganizeIt\wwwroot\Uploads\Publicacoes\";
+                var productionFullPubPath = Path.Combine(productionPubPath, pubToMove.WantedCategory, Path.GetFileName(pubToMove.WantedDestinationPath));
+                var productionFullPubCoverPath = Path.Combine(productionPubPath, pubToMove.WantedCategory, "Capas", Path.GetFileName(pubToMove.WantedCoverPath));
+
+                if (File.Exists(productionFullPubPath))
+                {
+                    File.Copy(productionFullPubPath, pubToMove.WantedDestinationPath);
+                    if (File.Exists(productionFullPubCoverPath))
+                    {
+                        File.Copy(productionFullPubCoverPath, pubToMove.WantedCoverPath);
+                    }
+
+                    pubsWithWrongPath = GetPubsWithWrongPaths();
+                    alertUserVisibility = true;
+                    StateHasChanged();
+                    return;
+                }
+
+                ErrorMessage = $"'{pubToMove.PubTitle}' não foi transferido, por não ter sido encontrado. Considere apagar entrada no ficheiro";
+                await ErrorDialog.ShowAsync();
+                return;
+            }
+
+            System.IO.FileInfo fileInfo = new System.IO.FileInfo(pubToMove.ActualPubPath);
+            if (!fileService.IsFileLocked(fileInfo))
+            {
+                if (File.Exists(pubToMove.ActualPubPath))
+                {
+                    File.Move(pubToMove.ActualPubPath, pubToMove.WantedDestinationPath);
+                    pubFileTransfered = true;
+                }
+                else
+                {
+                    ErrorMessage = $"{Path.GetFileNameWithoutExtension(pubToMove.ActualPubPath)} não foi transferido, por não ter sido encontrado. Considere apagar entrada no ficheiro";
+                    await ErrorDialog.ShowAsync();
+                    return;
+                }
+                if (File.Exists(pubToMove.ActualCoverPath) && pubFileTransfered)
+                {
+                    File.Move(pubToMove.ActualCoverPath, pubToMove.WantedCoverPath);
+                }
+
+                pubsWithWrongPath = GetPubsWithWrongPaths();
+            }
+            else
+            {
+                ErrorMessage = "Ficheiro não foi transferido; poderá estar a ser usado por outro processo";
+                await ErrorDialog.ShowAsync();
+            }
+        }
+        catch (FileNotFoundException fnfe)
+        {
+            ErrorMessage = $"{fnfe.Message}: The file cannot be found.";
+            await ErrorDialog.ShowAsync();
+        }
+        catch (IOException ioe)
+        {
+            ErrorMessage = $"{ioe.Message}: An I/O error has occurred.";
+            await ErrorDialog.ShowAsync();
+        }
+        catch (OutOfMemoryException oome)
+        {
+            ErrorMessage = $"{oome.Message}: There is insufficient memory to read the file.";
+            await ErrorDialog.ShowAsync();
+        }
+
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            await ErrorDialog.ShowAsync();
+        }
+    }
+
+    public async Task CloseErrorBox()
+    {
+        ErrorMessage = "";
+        await ErrorDialog.HideAsync();
+    }
+}
+<style type="text/css" scoped>
+    .e-icon-transfer:before {
+        background-color: white;
+        color: black;
+        content: '\e727'
+    }
+
+    .e-card {
+        height: auto;
+        box-shadow: inset 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.4);
+    }
+    /* Tile view card customization */
+    .tile_layout.card-control-section .row.filter .tile_search {
+        justify-content: flex-end;
+    }
+
+    .tile_layout.card-control-section .row .e-card {
+        text-align: left;
+        margin: 2px;
+    }
+
+    .tile_layout.card-control-section .control-wrapper {
+        padding: 0 20px;
+    }
+
+    .tile_layout.card-control-section .row.filter {
+        margin: 0;
+    }
+
+    .tile_layout.card-control-section .e-card .e-card-actions a {
+        border: 1px solid;
+        display: block;
+        margin: auto;
+        width: 100px;
+        border-radius: inherit;
+    }
+
+    .tile_layout.card-control-section .row.filter .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        display: inline-flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .tile_layout.card-control-section .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        margin: auto;
+        max-width: 190px;
+    }
+
+    *, ::after, ::before {
+        box-sizing: border-box;
+    }
+
+    .tile_layout.card-control-section .col-xs-6.col-sm-6.col-lg-6.col-md-6 {
+        width: 25%;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        max-width: 890px;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size: 1vw;
+        font-family: 'Segoe UI', Helvetica,;
+        font-weight: bold;
+    }
+
+    .card-title {
+        font-size: 1.5vw;
+        word-break: keep-all !important;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        padding-top: 5px;
+        font-size: 0.8vw;
+        font-family: Helvetica, 'Segoe UI';
+        font-style: italic
+    }
+
+    .e-card .e-card-content {
+        line-height: initial;
+        font-weight: normal;
+        padding-top: 2px;
+        font-size: 0.7vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .e-card .e-card-footer-content {
+        padding-top: 2px;
+        font-size: 0.8vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .primary-button {
+        font-family: Arial, sans-serif;
+        font-size: 1.3em;
+        color: #fff;
+        border: 1px solid #004487;
+        background-image: -webkit-gradient(linear, top, bottom, from(#5288bd), to(#2f659a));
+        background-image: -webkit-linear-gradient(top, #5288bd, #2f659a);
+        box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.4), inset 0px 0px 0px 1px rgba(255, 255, 255, 0.2), 0px 1px 0px rgba(255, 255, 255, .7);
+        text-shadow: 0px -1px 0px black;
+        cursor: pointer;
+    }
+
+    .select-button {
+        padding: 10px 20px;
+        border-radius: 5px;
+        display: block;
+        width: 130px;
+        height: 60px;
+        margin: 10px auto 0px auto;
+    }
+
+    .container-button {
+        height: 40px;
+        position: relative;
+        border: 0px solid lightgrey;
+    }
+
+    .center-button {
+        margin: 0;
+        position: absolute;
+        top: 25%;
+        left: 25%;
+        -ms-transform: translate(-25%, -25%);
+        transform: translate(-25%, -25%);
+    }
+
+
+    .card-content {
+        border: none;
+    }
+
+    .teste {
+        height: auto;
+    }
+
+    .options-buttons-container {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        justify-content: space-around;
+        align-items: center;
+    }
+</style>

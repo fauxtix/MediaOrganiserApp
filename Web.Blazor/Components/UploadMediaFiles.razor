@@ -1,0 +1,48 @@
+@page "/uploadMediaFiles"
+@using System.IO
+@using System.Threading
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Logging
+@using TagLib
+@using Web.Blazor.Services.ApiWrappers
+
+@inject IWebHostEnvironment env
+@inject ICategoriasService categoriasSVC
+@inject IMediaServiceWrapper mediaSvc
+@inject IUtilitiesService utilsSvc
+@inject ILogger<App> logger
+
+<h4 class="mb-4">@localizerApp["TituloUploadLocalFiles"] (mp3/mp4/avi/wmv/flv)</h4>
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4" Size="50"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+<div class="@AlertClass" role="alert">
+    @alertMessage
+</div>
+
+<div class="progress mb-3" style="height: 20px;">
+    <div class="progress-bar" role="progressbar" style="width: @ProgressPercentage%;"
+         aria-valuenow="@ProgressPercentage" aria-valuemin="0" aria-valuemax="100">
+        @ProgressPercentage% Complete
+    </div>
+</div>
+
+<form @onsubmit="OnSubmit" class="needs-validation" novalidate>
+    <div class="input-group my-3 p-2">
+        <InputFile @key=@(inputFileId) class="form-control" id="inputFile" OnChange="OnInputFileChange" aria-describedby="uploadButton" required />&nbsp;&nbsp;
+        <button class="btn btn-primary" type="submit" id="uploadButton" disabled="@IsUploadDisabled">
+            <span class="oi oi-cloud-upload" aria-hidden="true"></span>@localizerApp["TituloUploadSelectedFile"]
+        </button>
+    </div>
+    <div class="invalid-feedback">
+        @localizerApp["TituloSelecioneFicheiro"]
+    </div>
+</form>
+
+

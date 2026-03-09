@@ -1,0 +1,48 @@
+﻿@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<App>  localizerApp
+
+@attribute [Authorize]
+
+<div class="row">
+    <div class="col-9">
+        @if (blnEdit)
+        {
+            <div class="form-group">
+                <SfTextBox Enabled="false" Placeholder="ID#" Width="60px"
+                           CssClass="input-control e-round-corner center-text"
+                           FloatLabelType="@FloatLabelType.Auto"
+                           Value="@SelectedStoragePlace.Id.ToString()">
+                </SfTextBox>
+            </div>
+        }
+        <div class="form-group">
+            <SfTextBox Enabled="true" Placeholder="@(localizerApp["rbtDescricao"])"
+                       CssClass="input-control e-corner"
+                       FloatLabelType="@FloatLabelType.Auto"
+                       @bind-Value="@SelectedStoragePlace.Descricao">
+            </SfTextBox>
+        </div>
+    </div>
+    <RightSideImageComponent Operation="@(blnEdit?AppDefinitions.OpcoesRegisto.Gravar:AppDefinitions.OpcoesRegisto.Inserir)" />
+</div>
+
+@code {
+
+    [Parameter]
+    public LocalArquivoVM SelectedStoragePlace { get; set; }
+
+    [Parameter]
+    public bool blnEdit { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Get the current user
+        //CurrentUser = (await authenticationStateTask).User;
+
+        // If there is a logged in user
+        // they are an Administrator
+        // Enable editing
+        //isReadOnly = !CurrentUser.Identity.IsAuthenticated;
+    }
+
+}

@@ -1,0 +1,7 @@
+﻿.e-selected-icon::before {
+    content: '\e705';
+}
+
+.e-selection-close::before {
+    content: '\e761';
+}

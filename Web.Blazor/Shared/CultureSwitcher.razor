@@ -1,0 +1,222 @@
+﻿@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.DropDowns
+@using System.Threading
+@using System.Globalization
+@using static Web.Blazor.Pages.Admin.AppSettings
+
+<div class="navbar-nav ml-auto my-2 my-lg-0 mr-2">
+    <SfDropDownList TValue="string" CssClass="template"
+                    TItem="CountryModel"
+                    Placeholder="@L["lblEscolhaLinguagem"]"
+                    DataSource="@CountryData" Value="@selectedCulture">
+        <DropDownListTemplates TItem="CountryModel">
+            <ItemTemplate Context="langCtx">
+                <div>
+                    <img class="empImage" src="/images/@((langCtx as CountryModel).Pic).png" alt="país" />
+                    <div class="ename">@L[((langCtx as CountryModel).Text!)] </div>
+                </div>
+            </ItemTemplate>
+            <ValueTemplate Context="ctx">
+                <div class="dropdown-width" style="width:100%;height:100%;">
+                    <img class="value" src="/images/@((ctx as CountryModel).Pic).png" height="26" width="26" alt="país">
+                    <div class="name">@L[((ctx as CountryModel).Text!)] </div>
+                </div>
+            </ValueTemplate>
+        </DropDownListTemplates>
+        <DropDownListFieldSettings Value="ID" Text="Text"></DropDownListFieldSettings>
+        <DropDownListEvents TItem="CountryModel" TValue="string" ValueChange="OnSelected"></DropDownListEvents>
+    </SfDropDownList>
+
+</div>
+
+@code {
+    private int cultureIndex { get; set; }
+    private string? culture;
+    private string selectedCulture = Thread.CurrentThread.CurrentCulture.Name;
+    [Inject] public IAppSettingsService? AppSettingsService { get; set; }
+    [Inject] public IStringLocalizer<App>? L { get; set; }
+
+    protected ApplicationSettingsDto? settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CultureInfo culture;
+        try
+        {
+            settings = await AppSettingsService.GetSettingsAsync();
+        }
+        catch
+        {
+            settings = new();
+        }
+
+        selectedCulture = settings.DefaultLanguage;
+        if (!string.IsNullOrEmpty(selectedCulture))
+        {
+            culture = new CultureInfo(selectedCulture);
+        }
+        else
+        {
+            culture = new CultureInfo("pt-PT");
+        }
+
+
+
+        switch (System.Globalization.CultureInfo.CurrentCulture.Name)
+        {
+            case "en":
+                this.cultureIndex = 0;
+                break;
+            case "fr":
+                this.cultureIndex = 1;
+                break;
+            case "pt":
+                this.cultureIndex = 2;
+                break;
+            case "es":
+                this.cultureIndex = 3;
+                break;
+        }
+
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+    }
+
+    private async void OnSelected(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, CountryModel> e)
+    {
+        if (e.Value is null) return;
+
+        CultureInfo culture;
+        selectedCulture = e.Value.ToString();
+        settings!.DefaultLanguage = selectedCulture;
+
+
+        // var uri = new Uri(NavigationManager.Uri)
+        //     .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+
+        // query = $"?culture={Uri.EscapeDataString(culture)}&" +
+        //    $"redirectUri={Uri.EscapeDataString(uri)}";
+
+        switch (selectedCulture)
+        {
+            case "en":
+                this.cultureIndex = 0;
+                break;
+            case "fr":
+                this.cultureIndex = 1;
+                break;
+            case "pt":
+                this.cultureIndex = 2;
+                break;
+            case "es":
+                this.cultureIndex = 3;
+                break;
+        }
+
+        var uri = new Uri(NavigationManager.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+
+        var query = $"?culture={Uri.EscapeDataString(selectedCulture)}&" +
+            $"redirectUri={Uri.EscapeDataString(uri)}";
+
+        if (!string.IsNullOrEmpty(selectedCulture))
+        {
+            culture = new CultureInfo(selectedCulture);
+        }
+        else
+        {
+            culture = new CultureInfo("pt-PT");
+
+        }
+
+        var resp = await AppSettingsService!.UpdateLanguageAsync(selectedCulture); // 11/03/2024
+        // var success = resp.Item2 == true;
+
+        // if (success)
+        // {
+        //     try
+        //     {
+        //         navigationManager.NavigateTo("/Culture/SetCulture" + query, forceLoad: true);
+        //     }
+        //     catch (Exception)
+        //     {
+        //     }
+        // }
+
+
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+
+    }
+    public class Cultures
+    {
+        public string Text { get; set; }
+        public string Code { get; set; }
+        public string Flag { get; set; }
+    }
+
+    List<Cultures> CultureList = new List<Cultures>
+{
+        new Cultures() { Text = "Inglês", Code = "en", Flag="inglaterra" },
+        new Cultures() { Text = "Francês", Code = "fr", Flag="franca" },
+        new Cultures() { Text = "Português", Code = "pt", Flag="portugal" },
+        new Cultures() { Text = "Espanhol", Code = "es", Flag="espanha"},
+    };
+
+    public List<CountryModel> CountryData = new List<CountryModel>
+        {
+            new CountryModel { ID ="pt-PT", Text = "TituloIdiomaPortugues", Pic = "portugal" },
+            new CountryModel { ID = "es", Text = "TituloIdiomaEspanhol", Pic = "espanha" },
+            new CountryModel { ID ="en-US", Text = "TituloIdiomaIngles", Pic = "american_flag" },
+            new CountryModel { ID ="fr", Text = "TituloIdiomaFrances", Pic = "franca" }
+        };
+
+}
+
+<style>
+
+    .info {
+        margin-left: 34px;
+    }
+
+    .ename {
+        display: block !important;
+        opacity: .87;
+        font-size: 16px;
+        margin-top: 8px;
+    }
+
+    .name {
+        padding: 5px 42px;
+        opacity: .87;
+        line-height: 1.063em;
+    }
+
+    .empImage {
+        margin: 6px 16px;
+        float: left;
+        width: 25px;
+        height: 25px;
+    }
+
+    .value {
+        border-radius: 50%;
+        float: left;
+        margin-top: 2px;
+        margin-left: 2px;
+    }
+
+    .localization-combo {
+        border-radius: 4px;
+        border-color: #B3B3B3;
+        font-family: OpenSans-Regular;
+        font-size: 12px;
+        background-color: #FFFFFF;
+        border-width: 1px;
+        color: #333333;
+    }
+</style>

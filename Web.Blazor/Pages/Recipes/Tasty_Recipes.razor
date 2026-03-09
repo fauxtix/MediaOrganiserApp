@@ -1,0 +1,383 @@
+﻿@page "/recipes"
+
+@using Syncfusion.Blazor.DropDowns
+@using System.Linq;
+@using Web.Blazor.Services.Recipes
+
+@inject ITastyApiRecipesService recipeService
+@inject IJSRuntime JS
+
+@inherits TastyBaseComponents.TastyBase
+
+<div class="title">
+    Receitas
+    @if (@recipesCount > 0)
+    {
+        <span style="font-weight:normal; font-size:small">
+            &nbsp;(@recipesCount)
+        </span>
+    }
+</div>
+<div class="underline"></div>
+<br />
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@spinnerLabel"
+           Type="@SpinnerType.Bootstrap4" Size="50" ZIndex="99"
+           
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+@if (tagsList is null)
+{
+    <div class="spinner-grow text-info"></div>
+}
+else
+{
+
+    <div class="row">
+        <div class="col-3 py-3 align-self-md-center">
+            <label class="col-form-label font-weight-bold">Categorias</label>
+            <SfDropDownList PopupWidth="250px" PopupHeight="450px" @bind-Value="@TagId" AllowFiltering="true"
+                            CssClass="custom-class e-corner"
+                            FilterBarPlaceholder="Filtrar" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                            TItem="TagItem" TValue="int" Placeholder="Escolha Tag" DataSource="@tagsList">
+                <DropDownListEvents TItem="TagItem" TValue="int" ValueChange="onChangeTag"></DropDownListEvents>
+                <DropDownListFieldSettings Text="DisplayName" Value="Id"></DropDownListFieldSettings>
+            </SfDropDownList>
+        </div>
+        <div class="col-9" style="margin-top:60px;">
+            <p>
+                &nbsp;&nbsp;Ou pesquise texto nas receitas&nbsp;&nbsp;
+                <span>
+                    <SfTextBox @ref="searchTxtBox" @bind-Value="@text2Search" Placeholder="Texto a pesquisar" Width="250px"
+                               CssClass="input-control e-corner">
+                    </SfTextBox>
+                </span>
+                <span>
+                    &nbsp;&nbsp;
+                    <SfButton @ref="searchBtn" CssClass="e-btn e-success e-round-corner" IconCss="fas fa-search"
+                              @onclick="()=>SearchByRecipeName()">
+                        &nbsp;Pesquisar
+                    </SfButton>
+                </span>
+            </p>
+        </div>
+    </div>
+    <hr />
+}
+@if (recipesList.results is not null)
+{
+    <a id="top"></a>
+    <div class="col-lg-12 control-section">
+        <div class="content-wrapper">
+            @foreach (var item in recipesList.results)
+            {
+                <div class="row">
+                    <div id="myCarousel" class="col-lg-3 col-md-4 col-6">
+                        <a class="d-block mb-4 h-100">
+                            <div class="img-box">
+                                <img class="img-fluid img-thumbnail"
+                                     @onclick="(e) => ShowVideo(item.original_video_url, item.name)"
+                                     src="@item.thumbnail_url" alt="" />
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-9">
+                        <p style="font-weight:bold; font-size:larger; color:cornflowerblue">
+                            @item.name
+                            @if (!string.IsNullOrEmpty(item.original_video_url))
+                            {
+                                <span style="font-weight:normal; color:black">&nbsp;&nbsp;<i class="fa fa-video-camera icon-green span-border icon-large"></i></span>
+                            }
+                        </p>
+                        <hr />
+
+                        @if (item.recirc_feeds is not null && item.recirc_feeds.meal.Count > 0)
+                        {
+                            <p style="font-size:smaller">
+                                [@item.recirc_feeds.meal[0]]
+                            </p>
+                        }
+                        @if (item.prep_time_minutes is not null)
+                        {
+                            <p style="font-size:smaller">
+                                Tempo de preparação: [@item.prep_time_minutes]&nbsp;&nbsp;&nbsp;&nbsp;Doses: [@item.num_servings]
+                            </p>
+                        }
+
+                        @if (item.nutrition is not null && item.nutrition.calories is not null)
+                        {
+                            <p style="font-weight:bold">Nutrição <span style="font-weight:100"> (gramas)</span></p>
+                            <table class="table table-sm table-bordered" cellspacing="5" width="85%" style="text-align: center; font-size:small">
+                                <tr>
+                                    <th>Calorias</th>
+                                    <th>Carboidratos</th>
+                                    <th>Gordura</th>
+                                    <th>Fibra</th>
+                                    <th>Proteína</th>
+                                    <th>Açúcar</th>
+                                </tr>
+                                <tr>
+                                    <td>@item.nutrition.calories</td>
+                                    <td>@item.nutrition.carbohydrates</td>
+                                    <td>@item.nutrition.fat</td>
+                                    <td>@item.nutrition.fiber</td>
+                                    <td>@item.nutrition.protein</td>
+                                    <td>@item.nutrition.sugar</td>
+                                </tr>
+                            </table>
+                        }
+                        <hr />
+                        @if (item.instructions is not null)
+                        {
+                            @foreach (var instruction in item.instructions)
+                            {
+                                <p style="font-size:medium; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">@instruction.display_text</p>
+                            }
+                        }
+                        else
+                        {
+                            <p style="font-weight:bold;color:red">Sem instruções</p>
+                        }
+
+                        @if (iCnt++ % 2 == 0 && iCnt > 1)
+                        {
+                            <button class="float-right btn btn-info e-round" onclick="topFunction()"><i class="fa fa-arrow-up"></i></button>
+                        }
+
+                    </div>
+                </div>
+                <hr />
+            }
+        </div>
+    </div>
+
+    <SfDialog Width="60%"
+              Height="86%"
+              MinHeight="86%"
+              IsModal="true"
+              ShowCloseIcon="false"
+              EnableResize="true"
+              AllowDragging="true"
+              @bind-Visible="VideoVisibility">
+        <DialogTemplates>
+            <Content>
+                <div>Video: @video_title</div>
+                <br />
+                <div class="d-flex flex-column p-2 align-content-center border border-info">
+                    <div class="embed-responsive embed-responsive-16by9">
+                        <iframe id="videoPlayer" class="embed-responsive-item" src="@video_url" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-success e-round-corner" IconCss="fa fa-times"
+                              @onclick="()=>CloseVideoDialog()">
+                        &nbsp;Fechar
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+}
+
+
+<style>
+    #myCarousel a img {
+    }
+
+        #myCarousel a img:hover {
+            cursor: pointer;
+        }
+
+    .carousel:before, .carousel:after {
+        content: "";
+        position: absolute;
+    }
+
+    .carousel:before {
+        bottom: 12px;
+        box-shadow: 0 16px 3px rgba(0, 0, 0, 0.05);
+        height: 20%;
+        left: 4px;
+        transform: rotate(-2deg) skew(-2deg);
+        width: 47%;
+        z-index: -1;
+    }
+
+    .carousel:before, .carousel:after {
+        content: "";
+        position: absolute;
+    }
+
+    .carousel:after {
+        bottom: 12px;
+        box-shadow: 0 16px 3px rgba(0, 0, 0, 0.05);
+        height: 20%;
+        right: 4px;
+        transform: rotate(2deg) skew(2deg);
+        width: 47%;
+        z-index: -1;
+    }
+
+    .carousel:before, .carousel:after {
+        content: "";
+        position: absolute;
+    }
+
+    .carousel:before, .carousel:after {
+        content: "";
+        position: absolute;
+    }
+
+    .carousel {
+        background-color: #A59E89;
+        border: 10px solid white;
+        border-radius: 0px;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+        height: 300px;
+        margin: 30px auto;
+        position: relative;
+        width: 450px;
+    }
+
+        .carousel a img {
+            display: block;
+            width: 450px;
+            height: 300px;
+            transform: rotate(-3deg);
+            box-shadow: 0px 0 4px rgba(0, 0, 0, 0.4);
+            background-color: #A59E89;
+            border: 10px solid white;
+            position: relative;
+            top: -15px;
+            left: -10px;
+        }
+
+            .carousel a img:hover {
+                opacity: 1;
+                cursor: pointer;
+            }
+
+    /*-- Images Hover Effects CSS --*/
+    .img-box {
+        position: relative;
+        transition: .5s;
+        max-height: 230px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        border-radius: 0px 100px;
+    }
+
+        .img-box img {
+            max-width: 100%;
+            border: 3px solid #FFC107;
+            position: relative;
+            width: 100%;
+        }
+
+        .img-box::before {
+            content: '';
+            border-left: 3px solid #ffffff;
+            border-top: 3px solid #ffffff;
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 50px;
+            height: 50px;
+            z-index: 1;
+            transition: .5s;
+        }
+
+        .img-box::after {
+            content: '';
+            border-right: 3px solid #ffffff;
+            border-bottom: 3px solid #ffffff;
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            z-index: 2;
+            transition: .5s;
+        }
+
+        .img-box:hover {
+            transform: scale(1.04);
+        }
+
+            .img-box:hover::before {
+                left: 10px;
+                top: 10px;
+            }
+
+            .img-box:hover::after {
+                right: 10px;
+                bottom: 10px;
+            }
+
+    .small-text {
+        font-size: 0.8rem;
+    }
+
+
+    #scrollTopBtn {
+        display: none; /* Hidden by default */
+        position: fixed; /* Fixed/sticky position */
+        bottom: 20px; /* Place the button at the bottom of the page */
+        right: 30px; /* Place the button 30px from the right */
+        z-index: 99; /* Make sure it does not overlap */
+        border: none; /* Remove borders */
+        outline: none; /* Remove outline */
+        background-color: red; /* Set a background color */
+        color: white; /* Text color */
+        cursor: pointer; /* Add a mouse pointer on hover */
+        padding: 15px; /* Some padding */
+        border-radius: 10px; /* Rounded corners */
+        font-size: 18px; /* Increase font size */
+    }
+
+        #scrollTopBtn:hover {
+            background-color: #555; /* Add a dark-grey background on hover */
+        }
+
+    .e-icon-arrowup::before {
+        content: 'e7d1';
+    }
+
+    .e-icon-search::before {
+        content: '\e961';
+    }
+
+    .span-border {
+        display: inline-block;
+        padding: 10px 20px;
+    }
+
+    .icon-green {
+        color: green;
+    }
+
+    .icon-red {
+        color: red;
+    }
+
+    .icon-large {
+        font-size: 25px;
+    }
+
+    .fa fa-times::before {
+        content: '\e745';
+    }
+
+    .Table {
+        border-collapse: separate;
+        border-spacing: 10px;
+        width: 85%;
+        margin: 0px -5px 0px;
+    }
+</style>

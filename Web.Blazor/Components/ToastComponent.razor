@@ -1,0 +1,45 @@
+﻿@using Syncfusion.Blazor.Notifications
+@implements IDisposable
+
+<SfToast ID="toast_custom" @ref="ToastComponentObj"
+         Title="@ToastTitle"
+         Content="@ToastContent" 
+         Icon="@ToastIcon" 
+         CssClass="@ToastCssClass" Timeout="@ToastTimeout"
+         ShowCloseButton="true">
+    <ToastAnimationSettings>
+        <ToastShowAnimationSettings Effect="@ShowAnimation"></ToastShowAnimationSettings>
+        <ToastHideAnimationSettings Effect="@HideAnimation"></ToastHideAnimationSettings>
+    </ToastAnimationSettings>
+    <ToastButtons>
+        <ToastButton Content="Close" OnClick="@HideToast"></ToastButton>
+    </ToastButtons>
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+</SfToast>
+
+@code {
+
+    [Parameter]
+    public SfToast ToastComponentObj { get; set; }
+
+    [Parameter] public string ToastTitle { get; set; }
+    [Parameter] public string ToastContent { get; set; }
+    [Parameter] public string ToastCssClass { get; set; } = "e-toast-success";
+    [Parameter] public int ToastTimeout { get; set; } = 2000;
+    [Parameter] public string ToastIcon { get; set; } = "fa fa-check";
+    [Parameter] public bool ShowProgressBar { get; set; } = false;
+
+    private ToastEffect ShowAnimation = ToastEffect.FadeIn;
+    private ToastEffect HideAnimation = ToastEffect.FadeOut;
+
+    private async Task HideToast()
+    {
+        await ToastComponentObj!.HideAsync();
+    }
+
+    public void Dispose()
+    {
+        ToastComponentObj?.Dispose();
+    }
+
+}

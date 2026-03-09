@@ -1,0 +1,306 @@
+﻿@page "/pubsnotfoundondisk"
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components
+@if (FilesNotFound is null || FilesNotFound.Count == 0)
+{
+    <LoadingData />
+}
+else
+{
+    <div>
+        <h3>Publicações não encontradas no disco (@FilesNotFound.Count)</h3>
+        <hr />
+
+        <SfBreadcrumb>
+            <BreadcrumbItems>
+                <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
+                <BreadcrumbItem Text="Publications" Url="/publicacoes" />
+                <BreadcrumbItem Text= "Pubs not found on disk" Url="/pubsnotfoundondisk" />
+            </BreadcrumbItems>
+        </SfBreadcrumb>
+        <hr />
+
+        <div class="container-fluid mt-2">
+            <div class="row">
+                @foreach (var file in FilesNotFound)
+                {
+                    string directoryPath = Path.GetDirectoryName(file.DigitalPath);
+                    DirectoryInfo directoryInfo = new DirectoryInfo(directoryPath);
+                    string lastSubFolder = directoryInfo.Name;
+                    <div class="col-md-6 col-lg-3 col-sm-12">
+                        <SfCard CssClass="teste my-1">
+                            <CardHeader Title="@file.Id.ToString()"
+                                        SubTitle="@file.FileName" />
+                            <CardContent EnableSeparator="true">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row mt-2">
+                                            <div class="col-md-3">
+                                                <div class="text-center"><b>Edição</b></div>
+                                                <div class="mt-2 text-center">@file.Edition</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center"><b>Páginas</b></div>
+                                                <div class="mt-2 text-center">@file.Pages</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div><b>Pasta</b></div>
+                                                <div class="text-ellipsis mt-2">@lastSubFolder</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <CardFooterContent>
+                                    <hr />
+                                    <div class="options-buttons-container">
+                                        <SfButton IconCss="fa fa-edit" CssClass="e-btn e-primary e-round-corner"
+                                                  @onclick="@( async ()=>await ShowPublication(file.Id))"
+                                                  Content="Edit"></SfButton>
+                                        <SfButton IconCss="fa fa-trash" CssClass="e-btn e-danger e-round-corner" Content="Delete"></SfButton>
+                                    </div>
+                                </CardFooterContent>
+                            </CardFooter>
+                        </SfCard>
+                    </div>
+                    <br />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<SfDialog Width="900px"
+          Height="800px"
+          IsModal="true"
+          MinHeight="700px"
+          ShowCloseIcon="false"
+          @bind-Visible="EditDialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    @SelectedRecord.Titulo
+                </h5>
+            </div>
+        </Header>
+        <Content>
+            <EditPublicacoes SelectedRecord="@SelectedRecord" CurrentCategory="@SelectedRecord.IdCategoria" blnEdit="true" />
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="@(()=>EditDialogVisibility = false)" Content="@(L["BtnSalir"])">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
+
+
+@code {
+    [Inject] public IPublicacaoService PublicacationsService { get; set; }
+    [Inject] protected IWebHostEnvironment hostingEnvironment { get; set; }
+    [Inject] public IStringLocalizer<App> L { get; set; }
+
+    protected PubsWithDescriptions SelectedRecord { get; set; }
+    protected bool EditDialogVisibility { get; set; } = false;
+
+    protected DialogEffect Effects = DialogEffect.FadeZoom;
+
+    protected List<FileCheckResult> FilesNotFound { get; set; } = new();
+    string webRoot = "";
+    protected override async Task OnInitializedAsync()
+    {
+        webRoot = hostingEnvironment.WebRootPath;
+        FilesNotFound = await PublicacationsService.PubsNotFoundOnDisk(webRoot);
+    }
+
+    protected async Task ShowPublication(int pubId)
+    {
+        SelectedRecord = await PublicacationsService.GetByIdAsync_Extended(pubId);
+        EditDialogVisibility = true;
+    }
+}
+
+<style>
+
+    .card-height {
+        height: auto;
+    }
+
+    .circle-header {
+        display: inline-block;
+        padding: 10px;
+        border-radius: 50%;
+        background-color: #f1f1f1;
+        text-align: start;
+        line-height: 1;
+    }
+
+    .text-ellipsis {
+        font-size: small;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 97%; /* Constrain the maximum width to prevent overflow */
+    }
+
+    .e-icon-transfer:before {
+        background-color: white;
+        color: black;
+        content: '\e727'
+    }
+
+    .e-card {
+        height: auto;
+        box-shadow: inset 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.4);
+    }
+    /* Tile view card customization */
+    .tile_layout.card-control-section .row.filter .tile_search {
+        justify-content: flex-end;
+    }
+
+    .tile_layout.card-control-section .row .e-card {
+        text-align: left;
+        margin: 2px;
+    }
+
+    .tile_layout.card-control-section .control-wrapper {
+        padding: 0 20px;
+    }
+
+    .tile_layout.card-control-section .row.filter {
+        margin: 0;
+    }
+
+    .tile_layout.card-control-section .e-card .e-card-actions a {
+        border: 1px solid;
+        display: block;
+        margin: auto;
+        width: 100px;
+        border-radius: inherit;
+    }
+
+    .tile_layout.card-control-section .row.filter .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        display: inline-flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .tile_layout.card-control-section .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        margin: auto;
+        max-width: 190px;
+    }
+
+    *, ::after, ::before {
+        box-sizing: border-box;
+    }
+
+    .tile_layout.card-control-section .col-xs-6.col-sm-6.col-lg-6.col-md-6 {
+        width: 25%;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        max-width: 890px;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size: 1vw;
+        font-family: 'Segoe UI', Helvetica,;
+        font-weight: bold;
+    }
+
+    .card-title {
+        font-size: 1.5vw;
+        word-break: keep-all !important;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        padding-top: 5px;
+        font-size: 0.8vw;
+        font-family: Helvetica, 'Segoe UI';
+        font-style: italic
+    }
+
+    .e-card .e-card-content {
+        line-height: initial;
+        font-weight: normal;
+        padding-top: 2px;
+        font-size: 0.7vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .e-card .e-card-footer-content {
+        padding-top: 2px;
+        font-size: 0.8vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .primary-button {
+        font-family: Arial, sans-serif;
+        font-size: 1.3em;
+        color: #fff;
+        border: 1px solid #004487;
+        background-image: -webkit-gradient(linear, top, bottom, from(#5288bd), to(#2f659a));
+        background-image: -webkit-linear-gradient(top, #5288bd, #2f659a);
+        box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.4), inset 0px 0px 0px 1px rgba(255, 255, 255, 0.2), 0px 1px 0px rgba(255, 255, 255, .7);
+        text-shadow: 0px -1px 0px black;
+        cursor: pointer;
+    }
+
+    .select-button {
+        padding: 10px 20px;
+        border-radius: 5px;
+        display: block;
+        width: 130px;
+        height: 60px;
+        margin: 10px auto 0px auto;
+    }
+
+    .container-button {
+        height: 40px;
+        position: relative;
+        border: 0px solid lightgrey;
+    }
+
+    .center-button {
+        margin: 0;
+        position: absolute;
+        top: 25%;
+        left: 25%;
+        -ms-transform: translate(-25%, -25%);
+        transform: translate(-25%, -25%);
+    }
+
+
+    .card-content {
+        border: none;
+    }
+
+    .teste {
+        height: auto;
+    }
+
+    .options-buttons-container {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+</style>

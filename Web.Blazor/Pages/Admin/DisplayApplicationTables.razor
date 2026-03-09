@@ -1,0 +1,112 @@
+﻿@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components.Cards
+@*@attribute [Authorize(Roles = "Admin")]*@
+
+
+<div class="cards">
+    <div class="table-card">
+        <LookupTableCard cardContent="@L["frmCategorias"]"
+                         cardImage="Doctors.svg" cardTitle="@PublicationsTypesTitle" tableParam="Categoria"></LookupTableCard>
+    </div>
+    <div class="table-card">
+        <LookupTableCard cardContent="@PublishersTitle"
+                         cardImage="Doctors.svg" cardTitle="@PublishersTitle" tableParam="Editora"></LookupTableCard>
+    </div>
+    <div class="table-card">
+        <LookupTableCard cardContent="Formatos de publicações"
+                         cardImage="Doctors.svg" cardTitle="@PublicationsFormatsTitle" tableParam="Formato"></LookupTableCard>
+    </div>
+    <div class="table-card">
+        <LookupTableCard cardContent="@StorageLocationTitle"
+                         cardImage="Doctors.svg" cardTitle="@StorageLocationTitle" tableParam="LocalArquivo"></LookupTableCard>
+    </div>
+    <div class="table-card">
+        <LookupTableCard cardContent="@MediaTypesTitle"
+                         cardImage="Doctors.svg" cardTitle="@MediaTypesTitle" tableParam="Categoria de Média"></LookupTableCard>
+    </div>
+    <div class="table-card">
+        <LookupTableCard cardContent="@MediaFormatsTitle"
+                         cardImage="Doctors.svg" cardTitle="@MediaFormatsTitle" tableParam="Formato_Media"></LookupTableCard>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> L { get; set; }
+
+    private string? PublicationsTypesTitle;
+    private string? PublishersTitle;
+    private string? PublicationsFormatsTitle;
+    private string? StorageLocationTitle;
+    private string? MediaTypesTitle;
+    private string? MediaFormatsTitle;
+
+    protected override void OnInitialized()
+    {
+        PublicationsTypesTitle = L["frmCategorias"];
+        PublishersTitle = L["frmEditoras"];
+        PublicationsFormatsTitle = L["frmFormatos"];
+        StorageLocationTitle = L["frmLocaisArquivo"];
+        MediaTypesTitle = $"{L["frmCategorias"]} Media";
+        MediaFormatsTitle = $"{L["frmFormatos"]} Media";
+    }
+}
+<style>
+
+    .table-cards {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        border: 1px solid rgba(0, 0, 0, 0.8);
+        gap: 1rem;
+    }
+
+    ..table-card {
+         background: radial-gradient(#c000, #c0c0);
+        margin: 20px;
+        padding: 20px;
+        width: 500px;
+        min-height: 200px;
+        display: grid;
+        grid-template-rows: 20px 50px 1fr 50px;
+        border-radius: 10px;
+        box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.25);
+        transition: all 0.8s;
+    }
+
+    .table-card:hover {
+        box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.4);
+        transform: scale(1.05);
+    }
+
+    .table-card-2 {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 2px solid rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        font-size: 50px;
+        text-align: center;
+    }
+
+    .grid-container {
+        display: grid;
+        /*        grid-template-columns: auto;*/
+        background-color: #2196F3;
+        padding: 5px;
+    }
+
+    /*    .card {
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            font-size: 30px;
+            text-align: center;
+        }
+    */
+    .app-tables {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+</style>

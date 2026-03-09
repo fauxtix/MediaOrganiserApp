@@ -1,0 +1,1150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="btnCancelar" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="btnCopiar_error" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="btnExcluir" xml:space="preserve">
+    <value>Effacer</value>
+  </data>
+  <data name="btnFechar" xml:space="preserve">
+    <value>Férmer</value>
+  </data>
+  <data name="btnHelp" xml:space="preserve">
+    <value>Aide</value>
+  </data>
+  <data name="btnListar" xml:space="preserve">
+    <value>Lister</value>
+  </data>
+  <data name="btnLocalizar" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="btnNovo" xml:space="preserve">
+    <value>Nouveau</value>
+  </data>
+  <data name="btnSair_error" xml:space="preserve">
+    <value>Férmer</value>
+  </data>
+  <data name="btnSalvar" xml:space="preserve">
+    <value>Sauver</value>
+  </data>
+  <data name="btnSendEmail" xml:space="preserve">
+    <value>Rapporter un problème</value>
+  </data>
+  <data name="frmAutores" xml:space="preserve">
+    <value>Auteurs</value>
+  </data>
+  <data name="frmCategorias" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="frmLivros" xml:space="preserve">
+    <value>Publications</value>
+  </data>
+  <data name="frmUsers" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
+  <data name="lblCodigo" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="lblExplanation" xml:space="preserve">
+    <value>Une exception non gérée contrôlée par le programme trouvé.Vous pouvez copier le détail ou signaler le problème par eMaill.</value>
+  </data>
+  <data name="lblMessage" xml:space="preserve">
+    <value>Qu'est-il arrivé?</value>
+  </data>
+  <data name="lblNascAutor" xml:space="preserve">
+    <value>Dtate de Naissance</value>
+  </data>
+  <data name="lblNomeAutor" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="lblSobreAutor" xml:space="preserve">
+    <value>A propos de l'auteur</value>
+  </data>
+  <data name="toolStripErro" xml:space="preserve">
+    <value>toolStrip1</value>
+  </data>
+  <data name="lblDescricaoCategoria" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="txtCodigo" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="lblAnoEdicao" xml:space="preserve">
+    <value>Édition</value>
+  </data>
+  <data name="lblAutor" xml:space="preserve">
+    <value>Auteur</value>
+  </data>
+  <data name="lblCategoria" xml:space="preserve">
+    <value>Categorie</value>
+  </data>
+  <data name="lblPaginas" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="lblPreco" xml:space="preserve">
+    <value>Prix</value>
+  </data>
+  <data name="lblSinopse" xml:space="preserve">
+    <value>Synopsis</value>
+  </data>
+  <data name="lblTitulo" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="BtnIngresar" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="BtnSalir" xml:space="preserve">
+    <value>Férmer</value>
+  </data>
+  <data name="gpLogin" xml:space="preserve">
+    <value>Accès au système</value>
+  </data>
+  <data name="lblHora" xml:space="preserve">
+    <value>label4</value>
+  </data>
+  <data name="lblPassword" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="lblTituloLogin" xml:space="preserve">
+    <value>Bibliothèque</value>
+  </data>
+  <data name="lblUtilizador" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="btnOK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="btnPesquisar" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="columnHeader1" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="columnHeader2" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="gpPesquisaBase" xml:space="preserve">
+    <value>Type de Recherche:</value>
+  </data>
+  <data name="lblDescricao" xml:space="preserve">
+    <value>Entrez le texte à rechercher et appuyez sur ENTER</value>
+  </data>
+  <data name="rbtCodigo" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="rbtDescricao" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="chkActive" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="lblConfirmarPassword" xml:space="preserve">
+    <value>Confirmer mot de passe:</value>
+  </data>
+  <data name="lblEmail" xml:space="preserve">
+    <value>EMail: </value>
+  </data>
+  <data name="lblTelemovel" xml:space="preserve">
+    <value>Mobile:</value>
+  </data>
+  <data name="lblTipoUtilizador" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="lblUltAltPassord" xml:space="preserve">
+    <value>Dernière modif. mot de passe</value>
+  </data>
+  <data name="lblUltLogin" xml:space="preserve">
+    <value>Dernière visite</value>
+  </data>
+  <data name="lblUserName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="aboutToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Sur</value>
+  </data>
+  <data name="arrangeIconsToolStripMenuItem" xml:space="preserve">
+    <value>Organiser des icône&amp;s</value>
+  </data>
+  <data name="btnAutores" xml:space="preserve">
+    <value>Auteurs</value>
+  </data>
+  <data name="btnCategorias" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="btnLivros" xml:space="preserve">
+    <value>Publications</value>
+  </data>
+  <data name="btnUsers" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
+  <data name="cascadeToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Cascade</value>
+  </data>
+  <data name="closeAllToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Fermez tous</value>
+  </data>
+  <data name="helpMenu" xml:space="preserve">
+    <value>Aide</value>
+  </data>
+  <data name="indexToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Índice</value>
+  </data>
+  <data name="MainMenuStrip" xml:space="preserve">
+    <value>MenuStrip</value>
+  </data>
+  <data name="mnuAlterarPwd" xml:space="preserve">
+    <value>Changer mot de passe</value>
+  </data>
+  <data name="mnuAutores" xml:space="preserve">
+    <value>Auteurs</value>
+  </data>
+  <data name="mnuBackup" xml:space="preserve">
+    <value>Backup BD</value>
+  </data>
+  <data name="mnuCategorias" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="MnuHerramientas" xml:space="preserve">
+    <value>Outils</value>
+  </data>
+  <data name="mnuLivros" xml:space="preserve">
+    <value>Publications</value>
+  </data>
+  <data name="MnuSistema" xml:space="preserve">
+    <value>Bibliothèque</value>
+  </data>
+  <data name="mnuUtilizadores" xml:space="preserve">
+    <value>Utilisateurs:</value>
+  </data>
+  <data name="MnuVentanas" xml:space="preserve">
+    <value>&amp;Fenêtres</value>
+  </data>
+  <data name="MnuVer" xml:space="preserve">
+    <value>&amp;Voir</value>
+  </data>
+  <data name="newWindowToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Nouveu fenetre</value>
+  </data>
+  <data name="salirToolStripMenuItem" xml:space="preserve">
+    <value>Sortir</value>
+  </data>
+  <data name="statusBarToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Barre d'etat</value>
+  </data>
+  <data name="statusStrip" xml:space="preserve">
+    <value>StatusStrip</value>
+  </data>
+  <data name="tileHorizontalToolStripMenuItem" xml:space="preserve">
+    <value>Mosaico &amp;horizontal</value>
+  </data>
+  <data name="tileVerticalToolStripMenuItem" xml:space="preserve">
+    <value>Mosaico &amp;vertical</value>
+  </data>
+  <data name="toolBarToolStripMenuItem" xml:space="preserve">
+    <value>&amp;Barra de herramientas</value>
+  </data>
+  <data name="toolStrip" xml:space="preserve">
+    <value>ToolStrip</value>
+  </data>
+  <data name="toolStripStatusLabel" xml:space="preserve">
+    <value>Bibliothèque personnelle - Fausto Luis 2016</value>
+  </data>
+  <data name="AvisoSistema" xml:space="preserve">
+    <value>PubliSoft</value>
+  </data>
+  <data name="ConfirmarExclusao" xml:space="preserve">
+    <value>Voulez-vous supprimer l'enregistrement ?</value>
+  </data>
+  <data name="ErroGeral" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="ErroListagem" xml:space="preserve">
+    <value>Erreur dans le Listing
+. Vérifiez les erreurs, s'il vous plaît</value>
+  </data>
+  <data name="FalhaCriacaoRegisto" xml:space="preserve">
+    <value>Inscription n'a pas été créé avec succès</value>
+  </data>
+  <data name="FalhaGravacaoRegisto" xml:space="preserve">
+    <value>Enregistrement n'a pas été mis à jour. Vérifiez les erreurs</value>
+  </data>
+  <data name="RegistoCriadoSucesso" xml:space="preserve">
+    <value>Enregistrement inséré avec succès</value>
+  </data>
+  <data name="RegistoGravadoSucesso" xml:space="preserve">
+    <value>Enregistrement mis à jour avec succès</value>
+  </data>
+  <data name="FalhaAnulacaoRegisto" xml:space="preserve">
+    <value>Erreur dans l'exclusion de registre</value>
+  </data>
+  <data name="RegistoAnuladoSucesso" xml:space="preserve">
+    <value>Enregistrement annulé avec succès</value>
+  </data>
+  <data name="SaidaAplicacao" xml:space="preserve">
+    <value>Vous voulez vraiment quitter le programme?</value>
+  </data>
+  <data name="TituloCampo1Autores" xml:space="preserve">
+    <value>Auteur</value>
+  </data>
+  <data name="TituloCampo1Categorias" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="TituloCampo1Livros" xml:space="preserve">
+    <value>Auteur</value>
+  </data>
+  <data name="TituloCampo1Utilizadores" xml:space="preserve">
+    <value>Nom d'utilisateur</value>
+  </data>
+  <data name="TituloCampo2Autores" xml:space="preserve">
+    <value>Sur</value>
+  </data>
+  <data name="TituloCampo2Categorias" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="TituloCampo2Livros" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="TituloCampo2Utilizadores" xml:space="preserve">
+    <value>Dernière visite</value>
+  </data>
+  <data name="TituloCampo3Livros" xml:space="preserve">
+    <value>Categorie</value>
+  </data>
+  <data name="TituloCampo3Utilizadores" xml:space="preserve">
+    <value>Mise à jour-mot de passe</value>
+  </data>
+  <data name="TituloListagemAutores" xml:space="preserve">
+    <value>Liste générale des auteurs</value>
+  </data>
+  <data name="TituloListagemCategorias" xml:space="preserve">
+    <value>Liste générale des categories</value>
+  </data>
+  <data name="TituloListagemLivros" xml:space="preserve">
+    <value>Liste générale des livres</value>
+  </data>
+  <data name="TituloPesquisa" xml:space="preserve">
+    <value>Recherche de</value>
+  </data>
+  <data name="TituloPesquisaAutores" xml:space="preserve">
+    <value>Recherche Auteurs</value>
+  </data>
+  <data name="TituloPesquisaCategorias" xml:space="preserve">
+    <value>Recherche Categories</value>
+  </data>
+  <data name="TituloPesquisaUtilizadores" xml:space="preserve">
+    <value>Recherche Utilizateurs</value>
+  </data>
+  <data name="RegistosEncontrados" xml:space="preserve">
+    <value>enregistrements trouvés avec le mot</value>
+  </data>
+  <data name="lblEscolhaLinguagem" xml:space="preserve">
+    <value>Choisir la langue</value>
+  </data>
+  <data name="SaidaPrograma" xml:space="preserve">
+    <value>Voulez vous vraiment quitter l'application?</value>
+  </data>
+  <data name="frmPreviewAutoresGenerico" xml:space="preserve">
+    <value>Liste des Auteurs</value>
+  </data>
+  <data name="frmPreviewCategoriasGenerico" xml:space="preserve">
+    <value>Liste des Catégories</value>
+  </data>
+  <data name="frmPreviewLivrosGenerico" xml:space="preserve">
+    <value>Liste des Livres</value>
+  </data>
+  <data name="frmPreviewUtilizadoresGenerico" xml:space="preserve">
+    <value>Liste des Utilizateurs</value>
+  </data>
+  <data name="TituloListagemUtilizadores" xml:space="preserve">
+    <value>Liste de Utilizateurs</value>
+  </data>
+  <data name="TituloCampo4Utilizadores" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="lblEditora" xml:space="preserve">
+    <value>Editeur</value>
+  </data>
+  <data name="TituloCampo4Livros" xml:space="preserve">
+    <value>Editeur</value>
+  </data>
+  <data name="frmEditoras" xml:space="preserve">
+    <value>Editeurs</value>
+  </data>
+  <data name="btnEditoras" xml:space="preserve">
+    <value>Editoras</value>
+  </data>
+  <data name="TituloListagemEditoras" xml:space="preserve">
+    <value>Liste de Editeurs</value>
+  </data>
+  <data name="TituloCampo1Editoras" xml:space="preserve">
+    <value>Editeur</value>
+  </data>
+  <data name="TituloCampo2Editoras" xml:space="preserve">
+    <value>e-mail</value>
+  </data>
+  <data name="TituloCampo3Editoras" xml:space="preserve">
+    <value>Teléfono</value>
+  </data>
+  <data name="frmPreviewEditorasGenerico" xml:space="preserve">
+    <value>Liste de Editeurs</value>
+  </data>
+  <data name="TituloPesquisaEditoras" xml:space="preserve">
+    <value>Recherche Editeurs</value>
+  </data>
+  <data name="MSG_AuthorDeleteCaptionError" xml:space="preserve">
+    <value>Effacer Auteur</value>
+  </data>
+  <data name="MSG_AuthorDeleteError" xml:space="preserve">
+    <value>Il y a des livres à cet auteur ...</value>
+  </data>
+  <data name="MSG_AuthorDOBInvalid" xml:space="preserve">
+    <value>Date de naissance invalide</value>
+  </data>
+  <data name="MSG_AuthorNameRequired" xml:space="preserve">
+    <value>Remplissez le nom de l'auteur s'il vous plaît</value>
+  </data>
+  <data name="MSG_BookAuthorRequired" xml:space="preserve">
+    <value>Vous devez choisir l'Editeur</value>
+  </data>
+  <data name="MSG_BookCategoryRequired" xml:space="preserve">
+    <value>Vous devez choisir la Categorie</value>
+  </data>
+  <data name="MSG_BookPublisherrRequired" xml:space="preserve">
+    <value>Vous devez choisir l'Editeur</value>
+  </data>
+  <data name="MSG_BookTitleRequired" xml:space="preserve">
+    <value>Faut compléter le titre du livre</value>
+  </data>
+  <data name="MSG_CategoryDeleteCaptionError" xml:space="preserve">
+    <value>Effacer Categorie</value>
+  </data>
+  <data name="MSG_CategoryDeleteError" xml:space="preserve">
+    <value>Il y a des livres avec cette Categorie...</value>
+  </data>
+  <data name="MSG_CategoryNameRequired" xml:space="preserve">
+    <value>Faut compléter la Categorie</value>
+  </data>
+  <data name="MSG_PublisherDeleteCaptionError" xml:space="preserve">
+    <value>Effacer Editeur</value>
+  </data>
+  <data name="MSG_PublisherDeleteError" xml:space="preserve">
+    <value>Il y a des livres avec ce Editeur ...</value>
+  </data>
+  <data name="MSG_PublisherNameRequired" xml:space="preserve">
+    <value>Remplissez le nom de l'Editeur, s'il vous plaît</value>
+  </data>
+  <data name="MSG_UserConfirmationPasswordRequired" xml:space="preserve">
+    <value>Confirmer mot de passe, s'il vous plaît</value>
+  </data>
+  <data name="MSG_UserIDRequired" xml:space="preserve">
+    <value>Nom d'utilisateur doit être rempli.</value>
+  </data>
+  <data name="MSG_UserNameRequired" xml:space="preserve">
+    <value>Nom d'utilisateur doit être rempli.</value>
+  </data>
+  <data name="MSG_UserPasswordRequired" xml:space="preserve">
+    <value>Entrez le mot de passe s'il vous plaît</value>
+  </data>
+  <data name="MSG_UserPasswordsNotEqual" xml:space="preserve">
+    <value>Les mots de passe ne sont pas égaux</value>
+  </data>
+  <data name="TituloPesquisaLivros" xml:space="preserve">
+    <value>Recherche Publications</value>
+  </data>
+  <data name="MSG_UserAlreadyExist" xml:space="preserve">
+    <value>ID de l'utilisateur {0] existe déjà. Choisir une autre s'il vous plaît</value>
+  </data>
+  <data name="InvalidYear" xml:space="preserve">
+    <value>Anée invalide</value>
+  </data>
+  <data name="lblEMailEditora" xml:space="preserve">
+    <value>e-mail</value>
+  </data>
+  <data name="lblMoradaEditora" xml:space="preserve">
+    <value>Domicile</value>
+  </data>
+  <data name="lblSiteEditora" xml:space="preserve">
+    <value>site Web</value>
+  </data>
+  <data name="lblTelefoneEditora" xml:space="preserve">
+    <value>téléphone</value>
+  </data>
+  <data name="lblNomeEditora" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="lblDescricaoLocalArquivo" xml:space="preserve">
+    <value>Enregistré dans</value>
+  </data>
+  <data name="MSG_StorageDeleteCaptionError" xml:space="preserve">
+    <value>Effacer type de archive</value>
+  </data>
+  <data name="MSG_StorageDeleteError" xml:space="preserve">
+    <value>Il y a des livres avec ce type de archive</value>
+  </data>
+  <data name="TituloListagemLocaisArquivo" xml:space="preserve">
+    <value>Rapports de stockage</value>
+  </data>
+  <data name="frmPreviewLocalArquivoGenerico" xml:space="preserve">
+    <value>Recherche Archives</value>
+  </data>
+  <data name="frmLocaisArquivo" xml:space="preserve">
+    <value>Emplacements des fichiers</value>
+  </data>
+  <data name="lblFormato" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="TituloListagemFormatos" xml:space="preserve">
+    <value>Rapport de Formats</value>
+  </data>
+  <data name="TituloPesquisaFormatos" xml:space="preserve">
+    <value>Pesquisar Formato</value>
+  </data>
+  <data name="TituloPesquisaLocaisArquivo" xml:space="preserve">
+    <value>Rechercher l'emplacement du fichier</value>
+  </data>
+  <data name="lblRating" xml:space="preserve">
+    <value>Évaluation</value>
+  </data>
+  <data name="MSG_BookStorageRequired" xml:space="preserve">
+    <value>Remplissez type de archive, s'il vous plaît</value>
+  </data>
+  <data name="TituloCampo5Livros" xml:space="preserve">
+    <value>Anée</value>
+  </data>
+  <data name="frmPrincipal" xml:space="preserve">
+    <value>Gestion des Publications</value>
+  </data>
+  <data name="frmPublicacoes" xml:space="preserve">
+    <value>Publications</value>
+  </data>
+  <data name="lblLido" xml:space="preserve">
+    <value>Lu?</value>
+  </data>
+  <data name="btnLimpar" xml:space="preserve">
+    <value>Effacé</value>
+  </data>
+  <data name="btnManutBD" xml:space="preserve">
+    <value>Base de données</value>
+  </data>
+  <data name="lblGuardadoEm" xml:space="preserve">
+    <value>Enregistré dans</value>
+  </data>
+  <data name="lblLocalArquivo" xml:space="preserve">
+    <value>Emplacement</value>
+  </data>
+  <data name="lblMovimento" xml:space="preserve">
+    <value>Créé le</value>
+  </data>
+  <data name="lblPubCover" xml:space="preserve">
+    <value>Couverture</value>
+  </data>
+  <data name="Nao" xml:space="preserve">
+    <value>Non</value>
+  </data>
+  <data name="Sim" xml:space="preserve">
+    <value>Oui</value>
+  </data>
+  <data name="btnFormatos" xml:space="preserve">
+    <value>Formats</value>
+  </data>
+  <data name="frmFormatos" xml:space="preserve">
+    <value>Formats</value>
+  </data>
+  <data name="frmPreviewFormatosGenerico" xml:space="preserve">
+    <value>Rapport de Formats</value>
+  </data>
+  <data name="TituloCampo1Formatos" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="TituloCampo2Formatos" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="TituloListagemFormatos1" xml:space="preserve">
+    <value>Liste des formats</value>
+  </data>
+  <data name="DeleteMsg" xml:space="preserve">
+    <value>Apagar</value>
+  </data>
+  <data name="EditMsg" xml:space="preserve">
+    <value>Éditer</value>
+  </data>
+  <data name="LerPdf" xml:space="preserve">
+    <value>Ler Pdf</value>
+  </data>
+  <data name="NewMsg" xml:space="preserve">
+    <value>Nouveau</value>
+  </data>
+  <data name="PlayMp3" xml:space="preserve">
+    <value>Ouvir</value>
+  </data>
+  <data name="PlayVideo" xml:space="preserve">
+    <value>Ver</value>
+  </data>
+  <data name="Record" xml:space="preserve">
+    <value>Enregistrement</value>
+  </data>
+  <data name="RegistosCatalogados" xml:space="preserve">
+    <value>registos catalogados.</value>
+  </data>
+  <data name="OperacaoCancelada" xml:space="preserve">
+    <value>Operação cancelada.</value>
+  </data>
+  <data name="DadosEmFalta" xml:space="preserve">
+    <value>Operação inválida / Dados inválidos ou em falta</value>
+  </data>
+  <data name="SuccessDelete" xml:space="preserve">
+    <value>Registo foi eliminado com sucesso.</value>
+  </data>
+  <data name="SuccessInsert" xml:space="preserve">
+    <value>Registo foi criado com sucesso.</value>
+  </data>
+  <data name="SuccessUpdate" xml:space="preserve">
+    <value>Registo foi gravado com sucesso.</value>
+  </data>
+  <data name="creationMsg" xml:space="preserve">
+    <value>Criação de </value>
+  </data>
+  <data name="deletionMsg" xml:space="preserve">
+    <value>Remoção de </value>
+  </data>
+  <data name="editionMsg" xml:space="preserve">
+    <value>Edition</value>
+  </data>
+  <data name="msgAll" xml:space="preserve">
+    <value>Afficher tous</value>
+  </data>
+  <data name="msgBlankPages" xml:space="preserve">
+    <value>Pas d'image</value>
+  </data>
+  <data name="msgDuplicated" xml:space="preserve">
+    <value>Duplicados</value>
+  </data>
+  <data name="msgReaded" xml:space="preserve">
+    <value>Lidos</value>
+  </data>
+  <data name="msgBlankCover" xml:space="preserve">
+    <value>Pas de couverture</value>
+  </data>
+  <data name="msgUpdateCategories" xml:space="preserve">
+    <value>Atualiza Categorias</value>
+  </data>
+  <data name="msgUpdateFormats" xml:space="preserve">
+    <value>Atualiza Formatos</value>
+  </data>
+  <data name="msgUpdatePublishers" xml:space="preserve">
+    <value>Atualiza Editoras</value>
+  </data>
+  <data name="msgUpdateStoragePlaces" xml:space="preserve">
+    <value>Mise à jour des emplacements de fichiers</value>
+  </data>
+  <data name="msgUpload" xml:space="preserve">
+    <value>Importação de ficheiros</value>
+  </data>
+  <data name="msgUploadError" xml:space="preserve">
+    <value>Ficheiro não tem a extensão Pdf/Docx</value>
+  </data>
+  <data name="msgSelect" xml:space="preserve">
+    <value>Selecione opção</value>
+  </data>
+  <data name="msgUploadAuthorCreation_Error" xml:space="preserve">
+    <value>Erro ao criação de Autor (processamento em 'batch').</value>
+  </data>
+  <data name="msgUploadAuthor_AboutMsg" xml:space="preserve">
+    <value>Registo criado automáticamente em </value>
+  </data>
+  <data name="msgUploadCountingPdfPages" xml:space="preserve">
+    <value>Erro ao contagem de páginas (PDF).</value>
+  </data>
+  <data name="msgUploadCreationError" xml:space="preserve">
+    <value>Registo não foi criado, título já existe na base de dados</value>
+  </data>
+  <data name="msgUploadCreationMsg" xml:space="preserve">
+    <value>Criação de Publicação, via Upload</value>
+  </data>
+  <data name="msgUploadCreationSuccess" xml:space="preserve">
+    <value>Processo de Upload concluído.</value>
+  </data>
+  <data name="msgUploadKeywords" xml:space="preserve">
+    <value>Palavras-chave</value>
+  </data>
+  <data name="msgUploadStorageFileNotInDisk" xml:space="preserve">
+    <value>Local do arquivo não existe no disco.</value>
+  </data>
+  <data name="msgUploadSubject" xml:space="preserve">
+    <value>Assunto</value>
+  </data>
+  <data name="ConfirmarAtualizacao" xml:space="preserve">
+    <value>Confirma atualização dos registos marcados?</value>
+  </data>
+  <data name="SuccessUpdates" xml:space="preserve">
+    <value>Registo(s) atualizado(s) com sucesso.</value>
+  </data>
+  <data name="updateRecordsMsg" xml:space="preserve">
+    <value>Mettre à jour l'image de couverture</value>
+  </data>
+  <data name="MSG_PubsCatalogadas" xml:space="preserve">
+    <value>Publications Cataloguées</value>
+  </data>
+  <data name="LoadingMsg" xml:space="preserve">
+    <value>Chargement...</value>
+  </data>
+  <data name="msgDeleteAuthorsWithoutPublications" xml:space="preserve">
+    <value>Supprimer les auteurs sans publications</value>
+  </data>
+  <data name="msgNoPublications" xml:space="preserve">
+    <value>Sen publications</value>
+  </data>
+  <data name="AutoresSemPublicacoes" xml:space="preserve">
+    <value>Auteurs sans publications</value>
+  </data>
+  <data name="msgNoResults" xml:space="preserve">
+    <value>La recherche n'a donné aucun résultat</value>
+  </data>
+  <data name="msgSuccess" xml:space="preserve">
+    <value>Opération terminée avec succès</value>
+  </data>
+  <data name="MsgManutencao" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="lblPublicacao" xml:space="preserve">
+    <value>Publication</value>
+  </data>
+  <data name="msgData" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="msgDuracao" xml:space="preserve">
+    <value>Dureé</value>
+  </data>
+  <data name="msgTamanho" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="lblProcess" xml:space="preserve">
+    <value>Traiter</value>
+  </data>
+  <data name="lblForgotPassword" xml:space="preserve">
+    <value>Mot de passe oublié?</value>
+  </data>
+  <data name="lblRegisterUser" xml:space="preserve">
+    <value>Inscrivez-vous en tant que nouvel utilisateur</value>
+  </data>
+  <data name="lblGaleria" xml:space="preserve">
+    <value>Galerie d'images</value>
+  </data>
+  <data name="lblGestao" xml:space="preserve">
+    <value>Gestion</value>
+  </data>
+  <data name="lblImagens" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="msgDragUpload" xml:space="preserve">
+    <value>Faites glisser l'image ici pour la télécharger</value>
+  </data>
+  <data name="msgUploadImage" xml:space="preserve">
+    <value>Importer une image</value>
+  </data>
+  <data name="lblNotas" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="msgOtherTypes" xml:space="preserve">
+    <value>Autres</value>
+  </data>
+  <data name="msgUpdateCover" xml:space="preserve">
+    <value>Mise à jour de l'image de la couverture</value>
+  </data>
+  <data name="msgTutorials" xml:space="preserve">
+    <value>Tutoriels</value>
+  </data>
+  <data name="TituloAcessos" xml:space="preserve">
+    <value>Accès à l'application</value>
+  </data>
+  <data name="TituloUploadsImagens" xml:space="preserve">
+    <value>Uploads (Images)</value>
+  </data>
+  <data name="TituloUploadsMedia" xml:space="preserve">
+    <value>Uploads (Media)</value>
+  </data>
+  <data name="TituloUploadsPublicacoes" xml:space="preserve">
+    <value>Uploads (Pubs)</value>
+  </data>
+  <data name="TituloCategoriasMedia" xml:space="preserve">
+    <value>Catégories (fichiers multimédias)</value>
+  </data>
+  <data name="TituloCategoriasPublicacoes" xml:space="preserve">
+    <value>Catégories (Publications)</value>
+  </data>
+  <data name="MSG_PreparandoDados" xml:space="preserve">
+    <value>Préparer les données</value>
+  </data>
+  <data name="TituloMensagem" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="MSG_ConfirmarOperacao" xml:space="preserve">
+    <value>Confirmer l'opération?</value>
+  </data>
+  <data name="TituloApagarRegisto" xml:space="preserve">
+    <value>Supprimer l'enregistrement</value>
+  </data>
+  <data name="TituloApagarRegistosLog" xml:space="preserve">
+    <value>Supprimez entrées du journal</value>
+  </data>
+  <data name="TituloProcessandoPedido" xml:space="preserve">
+    <value>Traitement des commandes</value>
+  </data>
+  <data name="TipoFicheiro" xml:space="preserve">
+    <value>Type de fichier</value>
+  </data>
+  <data name="TituloDadosInvalidos" xml:space="preserve">
+    <value>Données invalides ou manquantes</value>
+  </data>
+  <data name="TituloFicheiro" xml:space="preserve">
+    <value>Fichier</value>
+  </data>
+  <data name="TituloFicheiroProcessadoComErro" xml:space="preserve">
+    <value>Le dossier n'a pas été traité. Veuillez vérifier</value>
+  </data>
+  <data name="TituloFicheiroProcessadoSucesso" xml:space="preserve">
+    <value>Le fichier a été traité avec succès</value>
+  </data>
+  <data name="TituloFormatoMediaInvalido" xml:space="preserve">
+    <value>n'a pas le format attendu (Mp3/Mp4)</value>
+  </data>
+  <data name="TituloIncompativel" xml:space="preserve">
+    <value>incompatible</value>
+  </data>
+  <data name="TituloNaoPodeSerReproduzido" xml:space="preserve">
+    <value>ne peut être reproduit</value>
+  </data>
+  <data name="TituloListagem" xml:space="preserve">
+    <value>Liste</value>
+  </data>
+  <data name="menu-admin-main" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="TituloDefaultLanguage" xml:space="preserve">
+    <value>Langue</value>
+  </data>
+  <data name="TituloDefinicoes" xml:space="preserve">
+    <value>Définitions</value>
+  </data>
+  <data name="TituloIdiomaEspanhol" xml:space="preserve">
+    <value>Espagnol</value>
+  </data>
+  <data name="TituloIdiomaFrances" xml:space="preserve">
+    <value>Français</value>
+  </data>
+  <data name="TituloIdiomaIngles" xml:space="preserve">
+    <value>Anglais</value>
+  </data>
+  <data name="TituloIdiomaPortugues" xml:space="preserve">
+    <value>Portugais</value>
+  </data>
+  <data name="ConfirmarTransferencia" xml:space="preserve">
+    <value>Pouvez-vous confirmer le transfert ?</value>
+  </data>
+  <data name="TituloCaminhoFicheirosIncorreto" xml:space="preserve">
+    <value>Fichiers avec un chemin d'accès incorrect</value>
+  </data>
+  <data name="TituloCategoriaPrevista" xml:space="preserve">
+    <value>Catégorie attendue</value>
+  </data>
+  <data name="TituloCategoriaRegistada" xml:space="preserve">
+    <value>Catégorie enregistrée</value>
+  </data>
+  <data name="TituloTransferir" xml:space="preserve">
+    <value>Télécharger</value>
+  </data>
+  <data name="TituloCategoriaAlterada" xml:space="preserve">
+    <value>Changement de catégorie</value>
+  </data>
+  <data name="TituloErroNotificacaoCriacaoRegisto" xml:space="preserve">
+    <value>Erro ao notificar criação de registo</value>
+  </data>
+  <data name="TituloFicheiroNaoExisteLocalEspecificado" xml:space="preserve">
+    <value>n'existe pas à l'emplacement indiqué</value>
+  </data>
+  <data name="TituloFicheiroNaoPdf" xml:space="preserve">
+    <value>n'est pas un fichier Pdf</value>
+  </data>
+  <data name="TituloJaExiste" xml:space="preserve">
+    <value>existe déjà</value>
+  </data>
+  <data name="TituloPastaUploadsNãoEncontrada" xml:space="preserve">
+    <value>Le dossier Uploads n'a pas été trouvé. Contacter l'administrateur.</value>
+  </data>
+  <data name="TituloFormatoMedia" xml:space="preserve">
+    <value>Formats (multimédia)</value>
+  </data>
+  <data name="TituloConsultarInfo" xml:space="preserve">
+    <value>Consulter l'info</value>
+  </data>
+  <data name="TituloNoDataToShow" xml:space="preserve">
+    <value>Aucune information n'a été trouvée pour montrer</value>
+  </data>
+  <data name="TituloPastas" xml:space="preserve">
+    <value>Dossiers</value>
+  </data>
+  <data name="TituloOtherSettings" xml:space="preserve">
+    <value>Autres configurations</value>
+  </data>
+  <data name="TituloAplicacao" xml:space="preserve">
+    <value>Application</value>
+  </data>
+  <data name="TituloListagens" xml:space="preserve">
+    <value>Rapports</value>
+  </data>
+  <data name="TituloImagensAutores" xml:space="preserve">
+    <value>Images d'auteur</value>
+  </data>
+  <data name="TituloContactos" xml:space="preserve">
+    <value>Contacts</value>
+  </data>
+  <data name="TituloEmailSuporte" xml:space="preserve">
+    <value>e-mail d'assistance</value>
+  </data>
+  <data name="TituloOutrasDefinicoes" xml:space="preserve">
+    <value>Autres définitions</value>
+  </data>
+  <data name="TituloFicheirosOrganizados" xml:space="preserve">
+    <value>Dossiers organisés ?</value>
+  </data>
+  <data name="TituloRemoverImagemAposEdicao" xml:space="preserve">
+    <value>Supprimer une image après l'édition ?</value>
+  </data>
+  <data name="TituloBackups" xml:space="preserve">
+    <value>Sauvegardes</value>
+  </data>
+  <data name="TituloArmazenamento" xml:space="preserve">
+    <value>Stockage</value>
+  </data>
+  <data name="TituloChaveApi" xml:space="preserve">
+    <value>Clé Api</value>
+  </data>
+  <data name="TituloFormatosMedia" xml:space="preserve">
+    <value>Formats des médias</value>
+  </data>
+  <data name="TituloUploadSelectedFile" xml:space="preserve">
+    <value>Charger le fichier sélectionné</value>
+  </data>
+  <data name="TituloNenhumFicheiroSelecionado" xml:space="preserve">
+    <value>Aucun fichier sélectionné</value>
+  </data>
+  <data name="TituloSelecioneFicheiro" xml:space="preserve">
+    <value>Sélectionnez un fichier à télécharger</value>
+  </data>
+  <data name="TituloUploadLocalFiles" xml:space="preserve">
+    <value>Chargement de fichiers locaux</value>
+  </data>
+  <data name="TituloFicheiroLocalSelecionado" xml:space="preserve">
+    <value>fichier sélectionné</value>
+  </data>
+  <data name="TituloFicheiroJaExiste" xml:space="preserve">
+    <value>Le fichier chargé existe déjà. Veuillez vérifier</value>
+  </data>
+  <data name="TituloAutorJaExiste" xml:space="preserve">
+    <value>L'auteur existe déjà</value>
+  </data>
+  <data name="TituloTabelasAuxiliares" xml:space="preserve">
+    <value>Tables auxiliaires</value>
+  </data>
+  <data name="TituloNotificationTime" xml:space="preserve">
+    <value>Délai de notification</value>
+  </data>
+  <data name="msgDeleteFileFailed" xml:space="preserve">
+    <value>Opération de suppression échouée!</value>
+  </data>
+  <data name="GetInfo" xml:space="preserve">
+    <value>Obtenir des informations</value>
+  </data>
+  <data name="RegisterDate" xml:space="preserve">
+    <value>Date d'enregistrement </value>
+  </data>
+  <data name="Category" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="SearchCategory" xml:space="preserve">
+    <value>Rechercher une catégorie</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Fichiers</value>
+  </data>
+  <data name="Year" xml:space="preserve">
+    <value>Anée</value>
+  </data>
+  <data name="Genres" xml:space="preserve">
+    <value>Genre(s)</value>
+  </data>
+  <data name="References" xml:space="preserve">
+    <value>Références à</value>
+  </data>
+  <data name="TitleCannotBeReproduced" xml:space="preserve">
+    <value>Le titre ne peut pas être reproduit.</value>
+  </data>
+  <data name="AdditionalInformation" xml:space="preserve">
+    <value>Informations  complémentaires</value>
+  </data>
+  <data name="NotApplicable" xml:space="preserve">
+    <value>Non applicable</value>
+  </data>
+  <data name="ViewLogins" xml:space="preserve">
+    <value>Voir les connexions</value>
+  </data>
+  <data name="Level" xml:space="preserve">
+    <value>Niveau</value>
+  </data>
+  <data name="MediaReport" xml:space="preserve">
+    <value>Liste des fichiers Media</value>
+  </data>
+  <data name="lblPagina" xml:space="preserve">
+    <value>Page</value>
+  </data>
+  <data name="SerarchGoogleApi" xml:space="preserve">
+    <value>Rechercher dans Google Books API</value>
+  </data>
+  <data name="AppNotConfigured" xml:space="preserve">
+    <value>Application non configurée !</value>
+  </data>
+  <data name="FileManager" xml:space="preserve">
+    <value>File Management</value>
+  </data>
+  <data name="BackupTitle" xml:space="preserve">
+    <value>Sauvegarde de la base de données</value>
+  </data>
+  <data name="BackupDatabaseError" xml:space="preserve">
+    <value>Une erreur s'est produite pendant le processus de sauvegarde de la base de données !</value>
+  </data>
+  <data name="BackupSuccessMsg" xml:space="preserve">
+    <value>Sauvegarde (fichiers statiques) terminée avec succès. Durée (mm:ss) :</value>
+  </data>
+  <data name="TituloImagensCapasLivros" xml:space="preserve">
+    <value>Images des couvertures des livres</value>
+  </data>
+  <data name="ContactAdmin" xml:space="preserve">
+    <value>Contacter l'administrateur.</value>
+  </data>
+  <data name="Playlists" xml:space="preserve">
+    <value>Listes de lecture</value>
+  </data>
+  <data name="TrackTime" xml:space="preserve">
+    <value>Durée</value>
+  </data>
+</root>

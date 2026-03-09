@@ -1,0 +1,436 @@
+﻿﻿@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components
+
+@inject IJSRuntime JSRuntime
+
+@if (!string.IsNullOrEmpty(TituloPublicacao))
+{
+    <div class="title">Galeria de Imagens</div>
+    <div class="underline"></div>
+    <br />
+
+    <SfCard>
+        <CardHeader Title="@TituloPublicacao"></CardHeader>
+        <CardContent EnableSeparator="true">
+            <div class="form-row">
+                <div class="form-group col-12">
+                    <EditForm Model="PublicationInfo">
+                        <div class="form-row">
+                            <div class="col-8">
+                                <SfTextBox ID="titulo" Readonly="true"
+                                           CssClass="e-field e-corner"
+                                           Placeholder="Título"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           Value="@PublicationInfo.Titulo">
+                                </SfTextBox>
+                            </div>
+                            <div class="col-2">
+                                <SfTextBox Readonly="true" Value="@PublicationInfo.AnoEdicao"
+                                           Placeholder="Edição"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           CssClass="e-field custom-class e-corner">
+                                </SfTextBox>
+                            </div>
+                            <div class="col-2">
+                                <SfTextBox Readonly="true" Value="@PublicationInfo.Paginas.ToString()"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           Placeholder="Páginas"
+                                           CssClass="e-field custom-class e-corner">
+                                </SfTextBox>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col-6">
+                                <SfTextBox Readonly="true"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           Placeholder="Editora"
+                                           CssClass="e-field"
+                                           Value="@PublicationInfo.Editora">
+                                </SfTextBox>
+                            </div>
+                            <div class="col-6">
+                                <SfTextBox Readonly="true"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           Placeholder="Autor"
+                                           CssClass="e-field e-corner"
+                                           Value="@PublicationInfo.Autor">
+                                </SfTextBox>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col-6">
+                                <SfTextBox CssClass="e-field e-corner"
+                                           FloatLabelType="@FloatLabelType.Auto"
+                                           Placeholder="Categoria"
+                                           Readonly="true" Value="@PublicationInfo.Categoria">
+                                </SfTextBox>
+                            </div>
+                            <div class="col-6">
+                                <SfTextBox Readonly="true" CssClass="e-field e-corner"
+                                           Value="@PublicationInfo.Formato"
+                                           Placeholder="Formato"
+                                           FloatLabelType="@FloatLabelType.Auto">
+                                </SfTextBox>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col-6">
+                                <SfTextBox Readonly="true" CssClass="e-field e-corner"
+                                           Value="@PublicationInfo.Local"
+                                           Placeholder="Local de Arquivo"
+                                           FloatLabelType="@FloatLabelType.Auto">
+                                </SfTextBox>
+                            </div>
+                            <div class="col-6">
+                                <label class="mt-2">Rating</label>
+                                <div class="mt-2">
+                                    <SfRating Value="@PublicationInfo.Rating" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col-12">
+                                <SfRichTextEditor CssClass="form-control custom-class e-corner"
+                                                  Placeholder="Resumo" Readonly="true"
+                                                  @bind-Value="@PublicationInfo.Resumo" />
+
+                                @*                                 <SfTextBox @attributes="htmlAttribute"
+                            CssClass="e-corner"
+                            FloatLabelType="@FloatLabelType.Auto"
+                            Placeholder="Resumo"
+                            Multiline="true" Readonly="true"
+                            Value="@(resumoPublicacao.Value)">
+                            </SfTextBox>
+                            *@
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </CardContent>
+        <CardFooter>
+            @if (!string.IsNullOrEmpty(PublicationInfo.ImagemCapa) && PublicationInfo.ImagemCapa.ToLower().Contains("book") == false)
+            {
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-primary p-2" style="border-radius:10px;"
+                              IconCss="fa fa-file-pdf-o"
+                              @onclick="ReadPdf">
+                        &nbsp;@localizerApp["LerPdf"]
+                    </SfButton>
+                </div>
+            }
+        </CardFooter>
+    </SfCard>
+
+    <SfDialog 
+              IsModal="true"
+              AllowDragging="true"
+              EnableResize ="true"
+              CssClass="responsive-dialog-50"
+              @bind-Visible="ReadPdfVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @PublicationInfo.Titulo
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <ReadPDF PdfFile="@PdfFilePath"/>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="ClosePdf">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=500></DialogAnimationSettings>
+    </SfDialog>
+
+}
+
+@code {
+    [Parameter]
+    public PubsWithDescriptions PublicationInfo { get; set; }
+    [Parameter]
+    public string TituloPublicacao { get; set; }
+
+    [Inject] NavigationManager Navigation { get; set; }
+    [Inject]
+    public IStringLocalizer<App> localizerApp { get; set; }
+
+    [Inject]
+    IWebHostEnvironment hostingEnvironment { get; set; }
+
+    protected bool ReadPdfVisibility { get; set; } = false;
+    public string PdfFilePath { get; set; }
+    protected MarkupString resumoPublicacao;
+
+    
+    private Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
+{
+        {"rows", "2" }
+    };
+
+
+    protected override void OnParametersSet()
+    {
+        resumoPublicacao = (MarkupString)PublicationInfo.Resumo;
+    }
+    private void ReadPdf()
+    {
+        PdfFilePath = $@"{hostingEnvironment.WebRootPath}\{PublicationInfo.DigitalPath}";
+        ReadPdfVisibility = true;
+        //StateHasChanged();
+    }
+
+    private void ClosePdf()
+    {
+        PdfFilePath = "";
+        ReadPdfVisibility = false;
+    }
+
+    private void Voltar()
+    {
+        Navigation.NavigateTo("/imagegallery");
+    }
+
+
+
+}
+
+<style>
+    .e-pdf-icon:before {
+        content: '\e727';
+    }
+
+    .custom-class.e-control-wrapper .e-textbox {
+        text-align: center;
+    }
+
+    .e-card {
+        height: auto;
+        box-shadow: inset 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.4);
+    }
+    /* Tile view card customization */
+    .tile_layout.card-control-section .row.filter .tile_search {
+        justify-content: flex-end;
+    }
+
+    .tile_layout.card-control-section .row .e-card {
+        text-align: left;
+        margin: 2px;
+    }
+
+    .tile_layout.card-control-section .control-wrapper {
+        padding: 0 20px;
+    }
+
+    .tile_layout.card-control-section .row.filter {
+        margin: 0;
+    }
+
+    .tile_layout.card-control-section .e-card .e-card-actions a {
+        border: 1px solid;
+        display: block;
+        margin: auto;
+        width: 100px;
+        border-radius: inherit;
+    }
+
+    .tile_layout.card-control-section .row.filter .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        display: inline-flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .tile_layout.card-control-section .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        margin: auto;
+        max-width: 190px;
+    }
+
+    *, ::after, ::before {
+        box-sizing: border-box;
+    }
+
+    .tile_layout.card-control-section .col-xs-6.col-sm-6.col-lg-6.col-md-6 {
+        width: 25%;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        max-width: 890px;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size: 1vw;
+        font-family: 'Segoe UI', Helvetica,;
+        font-weight: bold;
+    }
+
+    .card-title {
+        font-size: 1.5vw;
+        word-break: keep-all !important;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        padding-top: 5px;
+        font-size: 0.8vw;
+        font-family: Helvetica, 'Segoe UI';
+        font-style: italic
+    }
+
+    .e-card .e-card-content {
+        line-height: initial;
+        font-weight: normal;
+        padding-top: 2px;
+        font-size: 0.7vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .e-card .e-card-footer-content {
+        padding-top: 2px;
+        font-size: 0.8vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    /* Mobile devices (smartphones, 480px and below) */
+    @@media only screen and (max-width: 480px) {
+        .responsive-dialog-30.e-dialog {
+            width: 90%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog,
+        .responsive-dialog-50.e-dialog,
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 90%;
+            height: 85%;
+        }
+    }
+
+    /* Small tablets (portrait, 481px to 768px) */
+    @@media only screen and (min-width: 481px) and (max-width: 768px) {
+        .responsive-dialog-30.e-dialog {
+            width: 80%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog,
+        .responsive-dialog-50.e-dialog,
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 80%;
+            height: 85%;
+        }
+    }
+
+    /* Large tablets or small laptops (landscape, 769px to 1024px) */
+    @@media only screen and (min-width: 769px) and (max-width: 1024px) {
+        .responsive-dialog-30.e-dialog {
+            width: 70%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog {
+            width: 70%;
+            height: auto;
+        }
+
+        .responsive-dialog-50.e-dialog,
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 70%;
+            height: 85%;
+        }
+    }
+
+    /* Laptops (1025px to 1440px) */
+    @@media only screen and (min-width: 1025px) and (max-width: 1440px) {
+        .responsive-dialog-30.e-dialog {
+            width: 60%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog {
+            width: 60%;
+            height: auto;
+        }
+
+        .responsive-dialog-50.e-dialog,
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 60%;
+            height: 85%;
+        }
+    }
+
+    /* Large desktops (1441px and above) */
+    @@media only screen and (min-width: 1441px) {
+        .responsive-dialog-30.e-dialog {
+            width: 30%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog {
+            width: 40%;
+            height: auto;
+        }
+
+        .responsive-dialog-50.e-dialog {
+            width: 50%;
+            height: auto;
+        }
+
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 70%;
+            height: 85%;
+        }
+    }
+
+
+    /* Extra large devices (large laptops and desktops, 1200px and up) */
+
+    @@media only screen and (min-width: 1201px) {
+        .group-box {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: start;
+            vertical-align: middle;
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+
+        .responsive-dialog-30.e-dialog {
+            width: 30%;
+            height: auto;
+        }
+
+        .responsive-dialog-40.e-dialog {
+            width: 40%;
+            height: auto;
+        }
+
+        .responsive-dialog-50.e-dialog {
+            width: 50%;
+            height: auto;
+        }
+
+        .responsive-pdf-word-viewer.e-dialog {
+            width: 70%;
+            height: 85%;
+        }
+    }
+
+</style>

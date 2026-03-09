@@ -1,0 +1,45 @@
+name: Build and Deploy MediaOrganiser.Web.Blazor to IIS
+
+on:
+  push:
+    branches:
+      - main  # Ou o nome da branch que você deseja monitorar
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '7.0.x'  # Certifique-se de usar a versão correta do .NET
+
+      - name: Restore dependencies
+        run: dotnet restore MediaOrganiser.Web.Blazor/MediaOrganiser.Web.Blazor.csproj
+
+      - name: Build
+        run: dotnet build MediaOrganiser.Web.Blazor/MediaOrganiser.Web.Blazor.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish MediaOrganiser.Web.Blazor/MediaOrganiser.Web.Blazor.csproj --configuration Release --output ./publish --no-build
+
+      - name: Deploy to IIS
+        run: |
+          $publishPath = "${{ github.workspace }}\publish"
+          $siteName = "MediaOrganiserWebBlazor"
+          $iisPath = "C:\inetpub\wwwroot\$siteName"
+          if (!(Test-Path $iisPath)) {
+              New-Item -Path $iisPath -ItemType Directory
+          }
+          Copy-Item -Path "$publishPath\*" -Destination $iisPath -Recurse
+          Import-Module WebAdministration
+          if (-not (Get-Website -Name $siteName)) {
+              New-Website -Name $siteName -Port 4101 -PhysicalPath $iisPath -ApplicationPool ".NET v4.5"
+          } else {
+              Set-ItemProperty IIS:\Sites\$siteName -Name physicalPath -Value $iisPath
+          }
+          Start-Process -FilePath "iisreset" -ArgumentList "/noforce"

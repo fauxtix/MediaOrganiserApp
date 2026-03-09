@@ -5,7 +5,7 @@ namespace MediaOrganizerApp.Application.DTOs
     public class PlaylistItemCreateDto
     {
         public int PlaylistId { get; set; }
-
+        public int MediaId { get; set; }
         public MediaType MediaType { get; set; }
 
         public string ResourcePathOrUrl { get; set; } = default!;

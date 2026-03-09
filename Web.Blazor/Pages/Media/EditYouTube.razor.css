@@ -1,0 +1,107 @@
+﻿.head, .item {
+    display: table;
+    width: 100%;
+    margin: auto;
+}
+
+.head {
+    height: 40px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.name, .city {
+    display: table-cell;
+    vertical-align: middle;
+    width: 50%;
+}
+
+.head .name {
+    text-indent: 16px;
+}
+
+.head .city {
+    text-indent: 10px;
+}
+
+.footer {
+    text-indent: 1.2em;
+    display: block;
+    font-size: 15px;
+    line-height: 40px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.text-multiline textarea {
+    height: 80px !important;
+}
+
+.center {
+    text-align: center;
+    border: 3px solid green;
+}
+
+.text-multiline textarea {
+    height: 140px !important;
+}
+
+.e-round-corner {
+    border-radius: 15px;
+}
+
+.e-input-url {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 3px;
+    vertical-align: middle;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.e-youtube-form {
+    display: flex;
+    flex-direction: column;
+    line-height: 5px;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.img-box {
+    position: relative;
+    transition: transform .2s;
+    width: 160px; /* smaller thumbnail width */
+    height: 90px; /* smaller thumbnail height (16:9) */
+    overflow: hidden;
+    margin-bottom: 12px;
+    border-radius: 6px;
+}
+
+    .img-box img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border: 2px solid #FFC107; /* slightly thinner border for small thumb */
+    }
+
+    /* adjust corner decorations for the smaller box */
+    .img-box::before,
+    .img-box::after {
+        width: 20px;
+        height: 20px;
+    }
+
+    .img-box::before {
+        left: 6px;
+        top: 6px;
+    }
+
+    .img-box::after {
+        right: 6px;
+        bottom: 6px;
+    }
+
+    .img-box:hover {
+        transform: scale(1.03);
+    }

@@ -1,0 +1,43 @@
+﻿.player {
+    width: 100%;
+    height: auto;
+}
+
+.player img {
+    width: 100%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.player audio {
+    width: 300px;
+    outline: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.error-message {
+    text-align: center;
+    color: red;
+    font-weight: 300;
+    font-size: large;
+}
+
+.e-card .e-card-image {
+    background-image: url(/wwwroot/images/media-player.png);
+    background-color: yellow;
+    height: 160px;
+}
+
+.e-card .e-card-header .e-card-header-image {
+    height: 48px;
+    width: 48px;
+}
+
+.e-card .e-card-header .e-card-header-caption .e-card-header-title {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+    font-size: 16px;
+    font-weight: 200;
+}

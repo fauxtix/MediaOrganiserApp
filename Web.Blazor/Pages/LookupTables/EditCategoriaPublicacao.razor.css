@@ -1,0 +1,16 @@
+﻿.InputId {
+    margin-top: 10px;
+    width: 70px;
+    background-color: black;
+    color: white;
+    align-content: end;
+}
+
+.text-multiline textarea {
+    height: 80px !important;
+}
+
+.center {
+    text-align: center;
+    border: 3px solid green;
+}

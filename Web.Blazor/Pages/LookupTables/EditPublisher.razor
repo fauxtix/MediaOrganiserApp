@@ -1,0 +1,93 @@
+﻿@using Web.Blazor.Pages.BaseComponents
+@inherits EditorasBase
+
+@attribute [Authorize]
+
+<div>
+    @if (EditMode)
+    {
+        <div class="row">
+            <div class="col-6">
+                <SfTextBox Enabled="false" Placeholder="ID#" Width="60px"
+                           CssClass="input-control e-corner center-text"
+                           FloatLabelType="@FloatLabelType.Auto"
+                           Value="@Publisher.Id.ToString()">
+                </SfTextBox>
+            </div>
+            <div class="col-3 mx-auto my-auto d-block ">
+                <img src="images/edit_22164.png" width="64" height="64" />
+            </div>
+        </div>
+    }
+</div>
+<div>
+    <SfTextBox Enabled="true" Placeholder="@(localizerApp["lblEditora"])"
+               CssClass="input-control e-corner"
+               FloatLabelType="@FloatLabelType.Auto"
+               @bind-Value="@Publisher.Descricao">
+    </SfTextBox>
+</div>
+<div>
+    <SfTextBox Enabled="true" Placeholder="@(localizerApp["lblMoradaEditora"])"
+               CssClass="input-control e-corner"
+               FloatLabelType="@FloatLabelType.Auto"
+               @bind-Value="@Publisher.Morada">
+    </SfTextBox>
+</div>
+<div>
+    <SfTextBox Enabled="true" Placeholder="@(localizerApp["lblTelefoneEditora"])"
+               CssClass="input-control e-corner"
+               FloatLabelType="@FloatLabelType.Auto"
+               @bind-Value="@Publisher.Telefone">
+    </SfTextBox>
+</div>
+<div>
+    <SfTextBox Enabled="true" Placeholder="@(localizerApp["lblEmail"])"
+               CssClass="input-control e-corner"
+               FloatLabelType="@FloatLabelType.Auto"
+               @bind-Value="@Publisher.EMail">
+    </SfTextBox>
+</div><div>
+    <SfTextBox Enabled="true" Placeholder="@(localizerApp["lblSiteEditora"])"
+               CssClass="input-control e-corner"
+               HtmlAttributes="@htmlAttribute"
+               FloatLabelType="@FloatLabelType.Auto"
+               @bind-Value="@Publisher.Site">
+    </SfTextBox>
+</div>
+
+
+<style>
+    .text-multiline textarea {
+        height: 80px !important;
+    }
+    .e-round-corner{
+        border-radius:11px;
+    }
+</style>
+
+@code {
+
+    [Parameter]
+    public PublisherVM Publisher { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; }
+
+    protected override void OnInitialized()
+    {
+    }
+
+    public object[] Tools = new object[]{
+        "Bold", "Italic",
+        "FontName", "FontSize",
+        "Formats", "Alignments", "OrderedList", "UnorderedList",
+        "Outdent", "Indent", "|", "CreateTable", "Image", "FullScreen",
+         "Undo", "Redo"
+    };
+
+    private Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
+{
+        {"rows", "3" }
+    };
+}

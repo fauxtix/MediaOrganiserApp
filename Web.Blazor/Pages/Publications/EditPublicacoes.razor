@@ -1,0 +1,276 @@
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.LookupComponents
+
+@attribute [Authorize]
+
+@if (!AppConfigured)
+{
+    <AlertMessage Message="@localizerApp["AppNotConfigured"]" MessageType="AlertMessageType.Error" />
+}
+else if (authorList == null || categoryList == null || formatList == null || storageList == null || editorList == null)
+{
+    <LoadingData />
+}
+
+else
+{
+    <div>
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                @* @if (blnEdit || (!blnEdit && !dataReceivedFromGoogle))
+                { *@
+
+                <div id="myCarousel">
+                    <a class="d-block mb-4 h-100">
+                        <div class="img-box img-fluid">
+                            <img class="img img-responsive img-thumbnail"
+                                 alt="Imagem da publicação" src="@CoverImage" />
+                        </div>
+                    </a>
+                </div>
+
+                @*  } *@
+
+                <div class="form-group mt-2 mt-md-2 control-wrapper">
+                    @*Carregar imagem*@
+                    <SfUploader @ref="@objUploader" DropArea="#DropArea" ID="UploadFiles" AllowedExtensions=".jpg,.png,.jpeg, .tiff, .gif"
+                                DirectoryUpload="false" AllowMultiple="false">
+                        <UploaderEvents FileSelected="Selected" ValueChange="OnChange"></UploaderEvents>
+                        <UploaderButtons Browse="@localizerApp["msgUploadImage"]"></UploaderButtons>
+                    </SfUploader>
+                    <div class="row">
+                        <div ID="DropArea" class="ml-2">@localizerApp["msgDragUpload"]</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-8">
+                <EditForm Model="SelectedRecord">
+
+                    <div class="form-row">
+                        <div class="col-3 ">
+                            <SfTextBox Enabled="false" Placeholder="ID#"
+                                       CssClass="form-control custom-class e-corner"
+                                       FloatLabelType="@FloatLabelType.Always"
+                                       Value="@SelectedRecord.Id.ToString()">
+                            </SfTextBox>
+                        </div>
+                        <div class="col-3">
+                            <SfTextBox Enabled="true" Placeholder="ISBN"
+                                       CssClass="form-control custom-class e-corner"
+                                       FloatLabelType="@FloatLabelType.Always"
+                                       @bind-Value="@SelectedRecord.isbn">
+                            </SfTextBox>
+                        </div>
+                        <div class="col-3">
+                            <SfDatePicker Enabled="true" Placeholder="@localizerApp["msgData"]"
+                                          CssClass="form-control custom-class e-corner"
+                                          Format="dd/MM/yyyy"
+                                          Width="150px"
+                                          FloatLabelType="@FloatLabelType.Always"
+                                          @bind-Value="@SelectedRecord.DataMovimento">
+                            </SfDatePicker>
+                        </div>
+                    </div>
+                    <div class="search-title">
+                        <div class="form-row mt-1">
+                            <SfTextBox ID="txtTitle" Enabled="true" Placeholder="@localizerApp["lblTitulo"]"
+                                       CssClass="form-control custom-class e-corner" style="font-weight:600;" Width="400px"
+                                       FloatLabelType="@FloatLabelType.Always"
+                                       @bind-Value="@SelectedRecord.Titulo"
+                                       title="@SelectedRecord.Titulo">
+                            </SfTextBox>
+                        </div>
+                        @if (!blnEdit)
+                        {
+                            <div>
+                                <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
+                                          IconCss="fa fa-search"
+                                          Content="Google Books Api"
+                                          @onclick="@(()=>SearchApiVisibility = true)" />
+                            </div>
+                        }
+                    </div>
+                    <div class="form-row mt-1">
+                        <div class="col-4">
+                            <SfTextBox Enabled="true" Placeholder="@localizerApp["lblAnoEdicao"]"
+                                       CssClass="form-control custom-class e-corner"
+                                       FloatLabelType="@FloatLabelType.Auto"
+                                       @bind-Value="@SelectedRecord.AnoEdicao">
+                            </SfTextBox>
+                        </div>
+                        <div class="col-4">
+                            <SfNumericTextBox TValue="int" Placeholder="@localizerApp["lblPaginas"]"
+                                              @bind-Value="@SelectedRecord.Paginas"
+                                              CssClass="form-control custom-class e-corner"
+                                              FloatLabelType="@FloatLabelType.Auto">
+                            </SfNumericTextBox>
+                        </div>
+                        <div class="col-4">
+                            <SfNumericTextBox TValue="decimal" Decimals="2" Placeholder="@localizerApp["lblPreco"]" Format="C2"
+                                              FloatLabelType="@FloatLabelType.Auto"
+                                              CssClass="form-control custom-class e-corner"
+                                              @bind-Value="@SelectedRecord.Preco">
+                            </SfNumericTextBox>
+                        </div>
+                    </div>
+                    <div class="form-row mt-1">
+                        <div class="col-6">
+                            <label class="col-form-label font-weight-bold">@localizerApp["lblAutor"]</label>
+                            <SfDropDownList TValue="int" AllowFiltering="true" @bind-Value="@SelectedRecord.IdAutor"
+                                            CssClass="custom-class e-corner"
+                                            FilterBarPlaceholder="@localizerApp["TituloPesquisaAutores"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                            TItem="AutorDTO" Placeholder="@localizerApp["lblAutor"]" DataSource="@authorList">
+                                <DropDownListTemplates TItem="AutorDTO">
+                                    <FooterTemplate>
+                                        <span class='footer'>(@localizerApp["frmAutores"]): @authorList.Count()</span>
+                                    </FooterTemplate>
+                                </DropDownListTemplates>
+                                <DropDownListEvents TItem="AutorDTO" TValue="int" ValueChange="OnChangeAuthor"></DropDownListEvents>
+                                <DropDownListFieldSettings Value="Id" Text="Descricao"></DropDownListFieldSettings>
+                            </SfDropDownList>
+                        </div>
+                        <div class="col-6">
+                            <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
+                            <SfDropDownList PopupWidth="250px" PopupHeight="450px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdCategoria"
+                                            CssClass="custom-class e-corner font-weight-bold"
+                                            FilterBarPlaceholder="@localizerApp["TituloPesquisaCategorias"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                            TItem="CategoryVM" TValue="int" Placeholder="@localizerApp["lblCategoria"]" DataSource="@categoryList">
+                                <DropDownListTemplates TItem="CategoryVM">
+                                    <FooterTemplate>
+                                        <span class='footer'>(@localizerApp["frmCategorias"]): @categoryList.Count()</span>
+                                    </FooterTemplate>
+                                </DropDownListTemplates>
+
+                                <DropDownListEvents TItem="CategoryVM" TValue="int" ValueChange="OnChangeCategory"></DropDownListEvents>
+                                <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                            </SfDropDownList>
+                        </div>
+                    </div>
+                    <div class="form-row mt-1">
+                        <div class="col-6">
+                            <label class="col-form-label font-weight-bold">@localizerApp["lblEditora"]</label>
+                            <SfDropDownList PopupWidth="250px" PopupHeight="450px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdEditora"
+                                            CssClass="custom-class e-corner"
+                                            FilterBarPlaceholder="@localizerApp["TituloPesquisaEditoras"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                            TItem="PublisherVM" TValue="int" Placeholder="@localizerApp["lblEditora"]" DataSource="@editorList">
+                                <DropDownListTemplates TItem="PublisherVM">
+                                    <FooterTemplate>
+                                        <span class='footer'>(@localizerApp["frmEditoras"]): @editorList.Count()</span>
+                                    </FooterTemplate>
+                                </DropDownListTemplates>
+
+                                <DropDownListEvents TItem="PublisherVM" TValue="int" ValueChange="OnChangePublisher"></DropDownListEvents>
+                                <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                            </SfDropDownList>
+                        </div>
+                        <div class="col-6">
+                            <label class="col-form-label font-weight-bold">@localizerApp["lblFormato"]</label>
+                            <SfDropDownList PopupWidth="250px" PopupHeight="250px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdFormato"
+                                            CssClass="custom-class e-corner"
+                                            FilterBarPlaceholder="@localizerApp["TituloPesquisaFormatos"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                            TItem="FormatoPublicacaoVM" TValue="int" Placeholder="@localizerApp["lblFormato"]" DataSource="@formatList">
+                                <DropDownListTemplates TItem="FormatoPublicacaoVM">
+                                    <FooterTemplate>
+                                        <span class='footer'>(@localizerApp["frmFormatos"]): @formatList.Count()</span>
+                                    </FooterTemplate>
+                                </DropDownListTemplates>
+                                <DropDownListEvents TItem="FormatoPublicacaoVM" TValue="int" ValueChange="OnChangeFormat"></DropDownListEvents>
+                                <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                            </SfDropDownList>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col-6">
+                            <label class="col-form-label font-weight-bold">@localizerApp["lblLocalArquivo"]</label>
+                            <SfDropDownList PopupWidth="250px" PopupHeight="250px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdLocalArquivo"
+                                            CssClass="custom-class e-corner"
+                                            FilterBarPlaceholder="@localizerApp["TituloPesquisaLocaisArquivo"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                            TItem="LocalArquivoVM" TValue="int" Placeholder="@localizerApp["lblLocalArquivo"]" DataSource="@storageList">
+                                <DropDownListEvents TItem="LocalArquivoVM" TValue="int" ValueChange="OnChangeStoragePlace"></DropDownListEvents>
+                                <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                            </SfDropDownList>
+                        </div>
+                    </div>
+                    <div class="form-row mt-1">
+                        <div class="col-4">
+                            <label class="col-form-label">@localizerApp["lblRating"]</label><br />
+                            <SfRating @bind-Value="SelectedRecord.Rating"
+                                      ItemsCount="5"
+                                      Precision="PrecisionType.Full" />
+                        </div>
+                        @* <div class="col-2 mt-4">
+                    <SfCheckBox @ref="@chkLido" TChecked="bool" Label="@localizerApp["lblLido"]" Name="Lido" CssClass="form-control"
+                    @bind-Checked="@SelectedRecord.Lido"
+                    ValueChange="onLidoChange"></SfCheckBox>
+                    </div> *@
+                    </div>
+                    <div class="form-row mt-1">
+                        <SfRichTextEditor CssClass="custom-class e-corner"
+                                          Placeholder="@localizerApp["lblSinopse"]" @bind-Value="@SelectedRecord.Resumo" />
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+    <SfDialog Width="500px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="SearchApiVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <div>
+                            <i class="fa fa-google p-2"></i>&nbsp;&nbsp;@localizerApp["SerarchGoogleApi"]
+                        </div>
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <GoogleBooksApiSearch ApiRecord="SelectedRecord"
+                                      OnGoogleResponse="HandleApiResponse" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="@(()=>SearchApiVisibility = false)"
+                              Content="@(localizerApp["BtnSalir"])">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
+    </SfDialog>
+
+    @if (ShowLookup)
+    {
+        <SelectAuthor AuthorSelected="GetSelectedAuthor"
+                      ShowDialog="@ShowLookup"
+                      AuthorName="@SelectedRecord.Autor" />
+    }
+
+    <AlertUserComponent AlertMessageType="AlertMessageType.Warning"
+                        Title="@(localizerApp["creationMsg"] + " " + localizerApp["lblPublicacao"])" Message="@alertMessage"
+                        Visibility="@alertUser"
+                        OperationType="AppDefinitions.OpcoesRegisto.Inserir"
+                        OnCloseDialog="@(()=>alertUser = false)" />
+}
+
+<style>
+    .search-title {
+        display: flex;
+        font-size: 2rem;
+        gap: 16px;
+        justify-content: start;
+        align-items: center;
+    }
+
+    .control-wrapper {
+        max-width: 350px;
+        margin: 0 auto;
+        padding: 50px 0px 0px;
+    }
+</style>

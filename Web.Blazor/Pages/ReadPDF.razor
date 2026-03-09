@@ -1,0 +1,45 @@
+@using Syncfusion.Blazor.SfPdfViewer
+
+@if (fileCanBeViewed)
+{
+    <div class="container-fluid w-100 h-100">
+        <SfPdfViewer2 DocumentPath="@DocumentPath"
+                      Height="100%"
+                      Width="100%" />
+    </div>
+}
+else
+{
+    <SfMessage Severity="MessageSeverity.Error">
+        Problem reading Pdf.
+    </SfMessage>
+}
+
+@code {
+    private bool fileCanBeViewed;
+    private string DocumentPath;
+
+    [Parameter] public string PdfFile { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // CASE 1: In-memory PDF (data URL)
+        if (!string.IsNullOrWhiteSpace(PdfFile) &&
+            PdfFile.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            DocumentPath = PdfFile;
+            fileCanBeViewed = true;
+            return;
+        }
+
+        // CASE 2: Physical file path
+        if (!string.IsNullOrWhiteSpace(PdfFile) && File.Exists(PdfFile))
+        {
+            DocumentPath = PdfFile;
+            fileCanBeViewed = true;
+            return;
+        }
+
+        fileCanBeViewed = false;
+    }
+}

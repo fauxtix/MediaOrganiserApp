@@ -1,0 +1,145 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<UserSecretsId>aspnet-Web.Blazor-82599089-8959-419C-85C2-F04A9D8841F2</UserSecretsId>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ScopedCssEnabled>enable</ScopedCssEnabled>
+		<!-- Prevent SDK from emitting assembly attributes and TargetFramework attribute to avoid duplicate generation -->
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="Services\ApiRelated\**" />
+		<Content Remove="Services\ApiRelated\**" />
+		<EmbeddedResource Remove="Services\ApiRelated\**" />
+		<None Remove="Services\ApiRelated\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Pages\Admin\CodeBehind\TabAuxBase.razor.cs" />
+		<Compile Remove="Services\ApiWrappers\LookupTableService.cs" />
+		<Compile Remove="Services\ServiceRegistration.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Remove="Components\LookupTableComponent.razor" />
+		<Content Remove="Pages\Admin\AppConfiguration_Tables.razor" />
+		<Content Remove="Pages\Admin\ConfigAppTables.razor" />
+		<Content Remove="Pages\Admin\ConfigurationTablesView.razor" />
+		<Content Remove="Pages\Admin\DisplayApplicationTables.razor" />
+		<Content Remove="Pages\Admin\ManageAppTables.razor" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="wwwroot\css\bootstrap\bootstrap.min.css.map" />
+		<None Include="wwwroot\css\open-iconic\FONT-LICENSE" />
+		<None Include="wwwroot\css\open-iconic\font\fonts\open-iconic.svg" />
+		<None Include="wwwroot\css\open-iconic\ICON-LICENSE" />
+		<None Include="wwwroot\css\open-iconic\README.md" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="AspNetCore.Reporting" Version="2.1.0" />
+		<PackageReference Include="AutoMapper" Version="16.0.0" />
+		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.0" />
+		<PackageReference Include="Blazored.Menu" Version="2.1.0" />
+		<PackageReference Include="BoldReports.Net.Core" Version="12.1.16" />
+		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
+		<PackageReference Include="Google.Apis.YouTube.v3" Version="1.73.0.4022" />
+		<PackageReference Include="HtmlSanitizer" Version="9.0.889" />
+		<PackageReference Include="MediaInfo.Wrapper.Core" Version="21.9.3" />
+		<PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.1" />
+		<PackageReference Include="MsgReader" Version="6.0.6" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
+		<PackageReference Include="NuGet.Common" Version="7.0.1" />
+		<PackageReference Include="NuGet.Protocol" Version="7.0.1" />
+		<PackageReference Include="ReportViewerCore.NETCore" Version="15.1.32" />
+		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
+		<PackageReference Include="Serilog.Sinks.MSSqlServer" Version="9.0.2" />
+		<PackageReference Include="SharpGrabber" Version="2.1.1" />
+		<PackageReference Include="SharpZipLib" Version="1.4.2" />
+		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.1" />
+		<PackageReference Include="Syncfusion.Blazor.Calendars" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Cards" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Charts" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.DropDowns" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.FileManager" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.FileManager.PhysicalFileProvider" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Grid" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Navigations" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Popups" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.ProgressBar" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.RichTextEditor" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.SfPdfViewer" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.SplitButtons" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Blazor.WordProcessor" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.DocIO.Net.Core" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.DocIORenderer.Net.Core" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.EJ2.AspNet.Core" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Windows" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.Pdf.Imaging.Net.Core" Version="31.2.5" />
+		<PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="31.2.5" />
+		<PackageReference Include="TagLibSharp" Version="2.3.0" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<Compile Update="Resources\SfResources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>SfResources.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Resources\SfResources.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>SfResources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Application\MediaOrganizerApp.Application.csproj" />
+		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Domain\MediaOrganizerApp.Domain.csproj" />
+		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\MediaOrganizerApp.Persistence\MediaOrganizerApp.Persistence.csproj" />
+		<ProjectReference Include="..\Web.Blazor.ReportObjects\Web.Blazor.Reporting.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Data\Datasets\" />
+		<Folder Include="Properties\DataSources\" />
+		<Folder Include="wwwroot\Files\Backup\Pubs_Media_and_Images\" />
+		<Folder Include="wwwroot\Files\Documents\" />
+		<Folder Include="wwwroot\Files\Downloads\" />
+		<Folder Include="wwwroot\Files\Uploads\Media\" />
+		<Folder Include="wwwroot\Files\Uploads\Publicacoes\" />
+		<Folder Include="wwwroot\images\Audiocovers\" />
+		<Folder Include="wwwroot\Reports_Pdf\" />
+		<Folder Include="wwwroot\Reports_Pdf\Publicacoes\" />
+		<Folder Include="wwwroot\videos\" />
+	</ItemGroup>
+
+	<ProjectExtensions><VisualStudio><UserProperties wwwroot_4css_4bootstrap_4bootstrap_1min_1css_1map__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>
+
+

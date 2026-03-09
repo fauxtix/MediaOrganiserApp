@@ -1,0 +1,46 @@
+﻿@using Microsoft.Extensions.Localization;
+
+@inject IStringLocalizer<App> localizerApp
+
+<SfDialog Target="#target"
+          Width="600px"
+          Height="300x"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="DialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="modal-header">
+                <p class="text-danger">@localizerApp["DadosEmFalta"]</p>
+            </div>
+        </Header>
+        <Content>
+            @ChildContent
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-info e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="CloseDialog">
+                    &nbsp;&nbsp;@localizerApp["btnFechar"]...
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
+
+@code {
+    [Parameter]
+    public bool DialogVisibility { get; set; }
+    [Parameter]
+    public DialogEffect Effects { get; set; } = DialogEffect.FadeZoom;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public void CloseDialog()
+    {
+        DialogVisibility = false;
+    }
+}

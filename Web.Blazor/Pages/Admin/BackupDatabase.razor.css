@@ -1,0 +1,22 @@
+﻿#toast_default .e-meeting::before {
+    content: "\e705";
+    font-size: 17px;
+}
+
+.e-icon-ThumbsUp:before {
+    content: '\e682';
+}
+
+.e-icon-ThumbsDown:before {
+    content: '\e683';
+}
+
+.in-middle {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.e-round-corner {
+    border-radius: 15px;
+}

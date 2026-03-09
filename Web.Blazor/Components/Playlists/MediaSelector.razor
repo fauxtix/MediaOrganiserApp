@@ -1,0 +1,188 @@
+﻿@using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Domain.Enums
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.Grids
+@using Web.Blazor.Services.ApiWrappers
+@inject IMediaServiceWrapper MediaService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IUserService UserService
+@inject IStringLocalizer<App> localizerApp
+
+
+<div>
+    <SfGrid DataSource="@FilteredFiles"
+            AllowPaging="true"
+            AllowSorting="true"
+            AllowFiltering="true"
+            AllowSelection="true"
+            @ref="fileGrid">
+        <GridPageSettings PageSize="5" PageCount="5" PageSizes="true"></GridPageSettings>
+        <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple" EnableToggle="true" />
+        <GridColumns>
+            <GridColumn Width="80" HideAtMedia="(min-width: 1280px)">
+                <Template Context="ImageRow">
+                    @{
+                        var currentRow = (ImageRow as MediaVM);
+                        var mediaFormat = currentRow.FormatoMedia;
+                        var mediaImage = "";
+                        if (!string.IsNullOrEmpty(currentRow.CoverFile))
+                        {
+                            var coverTmp = currentRow.CoverFile;
+                            if (coverTmp.ToLower().StartsWith("http"))
+                            {
+                                Task.Delay(100);
+                                SpinnerLabel = "Tentando aceder ao Api do Youtube";
+                                SpinnerObj?.ShowAsync();
+                            }
+                            mediaImage = currentRow.CoverFile;
+                            if (coverTmp.ToLower().StartsWith("http"))
+                            {
+                                Task.Delay(100);
+                                SpinnerObj?.HideAsync();
+                            }
+
+                        }
+                        else
+                        {
+                            switch (mediaFormat.ToLower())
+                            {
+                                case "lp":
+                                    mediaImage = "/images/music-bg.jpg";
+                                    break;
+                                case "cd":
+                                    mediaImage = "/images/music-icon2.png";
+                                    break;
+                                case "a partir de url":
+                                    if (string.IsNullOrEmpty(currentRow.CoverFile))
+                                    {
+                                        if (currentRow.FileUrl.ToLower().Contains("youtube"))
+                                        {
+                                            mediaImage = "/images/youtube64.png";
+                                        }
+                                        else
+                                        {
+                                            mediaImage = "/images/Windows_Media_Player_10.png";
+                                        }
+                                    }
+                                    break;
+                                case "armazenamento média":
+                                case "download da internet":
+                                    mediaImage = "/images/mp3Image.png";
+                                    break;
+                                case "dvd - filme":
+                                    mediaImage = "/images/dvd-image.jpg";
+                                    break;
+                                default:
+                                    mediaImage = "/images/No-image-available.png";
+                                    break;
+                            }
+                        }
+
+                        <img class="p-1 e-round-corner" src="@mediaImage" width="96" height="64" />
+                    }
+                </Template>
+            </GridColumn>
+
+            <GridColumn Field=@nameof(MediaVM.FileName) HeaderText="@(localizerApp["lblTitulo"])"
+                        CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
+                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="250"></GridColumn>
+            <GridColumn Field=@nameof(MediaVM.Autor) HeaderText="@(localizerApp["lblAutor"])"
+                        CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
+                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="250"></GridColumn>
+            <GridColumn Field=@nameof(MediaVM.Rating) HeaderText="@localizerApp["lblRating"]"
+                        ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                        HideAtMedia="(min-width:  1280px)"
+                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="170">
+                <Template>
+                    <div class="mb-2">
+                        @{
+                            var currentRating = (context as MediaVM).Rating;
+                            <SfRating Value="@currentRating" ReadOnly="true"
+                                      ItemsCount="5"
+                                      Precision="PrecisionType.Full" />
+                        }
+                    </div>
+                </Template>
+            </GridColumn>
+
+        </GridColumns>
+    </SfGrid>
+    <div class="mt-3 text-right">
+        <SfButton CssClass="e-primary e-round-corner" @onclick="SelectFile">Selecionar</SfButton>
+    </div>
+</div>
+
+<div id="spinner-container">
+    <SfSpinner @ref="SpinnerObj"
+               Label="@SpinnerLabel"
+               Type="@SpinnerType.Tailwind"
+               CssClass="e-spin-overlay">
+    </SfSpinner>
+</div>
+
+
+@code {
+    [Parameter] public List<PlaylistItemDto> AlreadyAddedFiles { get; set; } = new();
+    [Parameter] public int MediaTypePar { get; set; } = new();
+    [Parameter, EditorRequired] public int PlayListId { get; set; } = new();
+    [Parameter] public EventCallback<List<PlaylistItemDto>> OnFileSelected { get; set; }
+
+    protected string SpinnerLabel { get; set; } = "";
+
+    protected SfSpinner SpinnerObj;
+
+    private SfGrid<MediaVM> fileGrid;
+    private List<MediaVM> AllFiles { get; set; } = new();
+    private List<MediaVM> FilteredFiles { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Carregar todos os arquivos disponíveis
+        AllFiles = await LoadAvailableFilesAsync();
+
+        // Filtrar os arquivos que já estão associados à playlist
+        if (MediaTypePar == 2)
+        {
+            FilteredFiles = AllFiles
+                .Where(file => !AlreadyAddedFiles.Any(added => added.MediaId == file.Id) && !string.IsNullOrEmpty(file.FilePath))
+                .ToList();
+        }
+        else
+        {
+            FilteredFiles = AllFiles
+                .Where(file => !AlreadyAddedFiles.Any(added => added.MediaId == file.Id) && file.TipoMedia == 1)
+                .ToList();
+        }
+    }
+
+    private async Task<List<MediaVM>> LoadAvailableFilesAsync()
+    {
+        // Carregar arquivos disponíveis usando o MediaServiceWrapper
+        string userId;
+        string role;
+        var userDetails = await UserService.GetAuthenticatedUserDetails(AuthenticationStateProvider);
+        userId = userDetails.UserId;
+        role = userDetails.Role;
+        var mediaList = await MediaService.GetAllMedia_Async(userId, role);
+        return mediaList.ToList();
+    }
+
+    private async Task SelectFile()
+    {
+        var selectedFiles = await fileGrid.GetSelectedRecordsAsync();
+        if (selectedFiles.Any())
+        {
+            var playlistItems = selectedFiles.Select(file => new PlaylistItemDto
+            {
+                MediaId = file.Id,
+                Title = file.FileName,
+                PlaylistId = PlayListId,
+                MediaType = MediaTypePar == 1 ? MediaType.Video : MediaType.Audio,
+                ResourcePathOrUrl = MediaTypePar == 2 ? file.FilePath : file.FileUrl
+            }).ToList();
+
+            await OnFileSelected.InvokeAsync(playlistItems);
+        }
+    }
+}

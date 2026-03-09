@@ -1,0 +1,263 @@
+﻿@using Microsoft.Extensions.Localization
+
+@inherits IndexBase
+
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">Blazor Organiser</a><i class="fa fa-certificate"></i>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+
+    <BlazoredMenu IconClassToClose="oi oi-arrow-circle-top pt-3"
+                  IconClassToOpen="oi oi-arrow-circle-bottom pt-3">
+        <BlazoredMenuItem>
+            <NavLink  href="" Match="NavLinkMatch.All"><i class="fa fa-home" aria-hidden="true" /> Home </NavLink>
+        </BlazoredMenuItem>
+        <AuthorizeView Roles="User, Administrator">
+            <Authorized>
+                @if (IsAppConfigured())
+                {
+                    <BlazoredSubMenu Header="@localizerApp["frmLivros"]">
+                        <MenuTemplate>
+                            <BlazoredMenuItem Css="nav-item py-0 px-3">
+                                <NavLink href="Publicacoes">
+                                    <i class="fa fa-book" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["lblGestao"]
+                                </NavLink>
+                            </BlazoredMenuItem>
+                            <BlazoredMenuItem Css="nav-item py-1 px-3">
+                                <NavLink href="imagegallery">
+                                    <i class="fa fa-image" aria-hidden="true" />&nbsp; @localizerApp["lblGaleria"]
+                                </NavLink>
+                            </BlazoredMenuItem>
+                            <BlazoredMenuItem>
+                                <div>
+                                    <p class="dropdown-divider m-0" />
+                                </div>
+                            </BlazoredMenuItem>
+                            <BlazoredMenuItem Css="nav-item py-1">
+                                <NavLink href="/autores">
+                                    <i class="fa fa-user" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["mnuAutores"]
+                                </NavLink>
+                            </BlazoredMenuItem>
+
+                        </MenuTemplate>
+                    </BlazoredSubMenu>
+
+                    <BlazoredMenuItem>
+                        <div>
+                            <p class="dropdown-divider m-0" />
+                        </div>
+                    </BlazoredMenuItem>
+                    <BlazoredSubMenu Header="Média">
+                        <MenuTemplate>
+                            <BlazoredMenuItem Css="nav-item py-0 px-3">
+                                <NavLink href="Media">
+                                    <i class="fa fa-file-video-o" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["lblGestao"]
+                                </NavLink>
+                            </BlazoredMenuItem>
+                            <BlazoredMenuItem Css="nav-item py-1 px-3">
+                                <NavLink href="videogallery">
+                                    <i class="oi oi-image" aria-hidden="true" />@localizerApp["lblGaleria"]
+                                </NavLink>
+                            </BlazoredMenuItem>
+                        </MenuTemplate>
+                    </BlazoredSubMenu>
+                }
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="Administrator">
+            <Authorized>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredSubMenu Header="@localizerApp["TituloAcessos"]">
+                    <MenuTemplate>
+                        <BlazoredMenuItem Css="nav-item py-0 px-3">
+                            <NavLink href="admin/manageusers">
+                                <i class="oi oi-people" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["frmUsers"]
+                            </NavLink>
+                        </BlazoredMenuItem>
+                        <BlazoredMenuItem Css="nav-item py-1 px-3">
+                            <NavLink href="/identity/account/Manage">
+                                <i class="oi oi-dashboard" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["MsgManutencao"]
+                            </NavLink>
+                        </BlazoredMenuItem>
+                    </MenuTemplate>
+                </BlazoredSubMenu>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredSubMenu Header="Backup">
+                    <MenuTemplate>
+                        <BlazoredMenuItem Css="nav-item py-1 px-3">
+                            <NavLink href="/backupdatabase">
+                                <i class="fa fa-database" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["btnManutBD"]
+                            </NavLink>
+                        </BlazoredMenuItem>
+                        <BlazoredMenuItem Css="nav-item py-1 px-3">
+                            <NavLink href="/backupuploads/1">
+                                <i class="fa fa-file-pdf-o" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["TituloUploadsPublicacoes"]
+                            </NavLink>
+                            <NavLink href="/backupuploads/2">
+                                <i class="fa fa-file-movie-o" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["TituloUploadsMedia"]
+                            </NavLink>
+                            <NavLink href="/backupuploads/3">
+                                <i class="fa fa-image" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["TituloUploadsImagens"]
+                            </NavLink>
+                        </BlazoredMenuItem>
+                    </MenuTemplate>
+                </BlazoredSubMenu>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem Css="nav-item py-1">
+                    <NavLink href="/admin/managelookuptables">
+                        <i class="fa fa-cog" aria-hidden="true" />&nbsp;&nbsp;@localizerApp["MsgManutencao"]
+                    </NavLink>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem Css="nav-item py-1">
+                    <NavLink href="/admin/viewapplogs">
+                        <i class="fa fa-table" aria-hidden="true" />&nbsp;&nbsp;Logs
+                    </NavLink>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem Css="nav-item py-1">
+                    <NavLink href="/admin/filemanager">
+                        <i class="fa fa-folder-open" aria-hidden="true" />&nbsp;&nbsp;File Manager
+                    </NavLink>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem Css="nav-item py-1">
+                    <NavLink href="/admin/appsettings">
+                        <i class="fa fa-cog" aria-hidden="true" />&nbsp;&nbsp;Settings
+                    </NavLink>
+                </BlazoredMenuItem>
+                <BlazoredMenuItem>
+                    <div>
+                        <p class="dropdown-divider m-0" />
+                    </div>
+                </BlazoredMenuItem>
+
+            </Authorized>
+        </AuthorizeView>
+    </BlazoredMenu>
+</div>
+
+@code {
+
+    MenuBuilder MenuBuilder = new MenuBuilder();
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
+
+<style>
+    .separator {
+        border: 1px solid #FFFFFF;
+        opacity: 0.14;
+        width: 247px;
+        margin: 1rem;
+        margin-top: 0px;
+    }
+
+    ﻿.blazored-menu {
+        list-style: none;
+        display: block;
+        padding: 1rem 0;
+    }
+
+    .blazored-menu li.hidden {
+        display: none;
+    }
+
+    .blazored-menu li a {
+        display: block;
+        padding: .5rem .5rem;
+        color: #333;
+        cursor: pointer;
+    }
+
+        .blazored-menu li a:hover {
+            text-decoration: none;
+        }
+
+        .blazored-menu li a.active {
+            color: white;
+            background-image: linear-gradient(90deg, #71818e 0%, #122d42 70%);
+        }
+
+    .blazored-menu .disabled {
+        display: block;
+        padding: .5rem .75rem;
+        color: #d6d5d5;
+        cursor: not-allowed;
+    }
+
+    .blazored-sub-menu-header {
+        display: block;
+        color: #fff;
+        cursor: pointer;
+    }
+
+        .blazored-sub-menu-header span:hover {
+            text-decoration: none;
+        }
+
+        .blazored-sub-menu-header span {
+            display: block;
+            padding: .5rem .75rem;
+            position: relative;
+        }
+
+            .blazored-sub-menu-header span i {
+                position: absolute;
+                right: 0;
+            }
+
+        .blazored-sub-menu-header.open span {
+            padding-bottom: .5rem;
+        }
+
+    .blazored-sub-menu {
+        display: none;
+        padding: 0;
+        margin-left: 1rem;
+        list-style: none;
+    }
+
+    .blazored-sub-menu-header.open .blazored-sub-menu {
+        display: block;
+    }
+</style>

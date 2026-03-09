@@ -1,0 +1,660 @@
+﻿@page "/mp3player"
+
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Localization
+@using Web.Blazor.Services.ApiWrappers
+
+@inherits MediaPlayer
+@implements IDisposable
+@inject IMediaServiceWrapper mediaSvc
+@inject IWebHostEnvironment hostingEnvironment
+@inject IJSRuntime js
+@inject IStringLocalizer<App> L
+
+
+@attribute [Authorize]
+
+@if (mediaExtension.ToLower() == ".mp3" && !string.IsNullOrEmpty(SelectedRecord.FilePath))
+{
+    <div class="d-flex">
+        @*Animation when music is playing*@
+        <div class="container">
+            <div id="bars-animation" class="loader-container col-md-6 col-lg-6">
+                <div class="rectangle-1"></div>
+                <div class="rectangle-2"></div>
+                <div class="rectangle-3"></div>
+                <div class="rectangle-4"></div>
+                <div class="rectangle-5"></div>
+                <div class="rectangle-6"></div>
+                <div class="rectangle-5"></div>
+                <div class="rectangle-4"></div>
+                <div class="rectangle-3"></div>
+                <div class="rectangle-2"></div>
+                <div class="rectangle-1"></div>
+            </div>
+
+            @*When there's no music, show headphone image'*@
+            <div id="myImage" class="image-container">
+                <div>
+                    <img id="audioImage"
+                         src="@mp3CoverServerAddress" />
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-5" style="gap:15px;">
+                <SfButton ID="playerPlayBtn" style="font-size:15px; font-weight:400"
+                          CssClass="e-btn e-info button p-2"
+                          IconCss="fa fa-play fa-5x"
+                          @onclick="PlayAudio" Content="Play">
+                </SfButton>
+                <SfButton ID="playerPauseBtn" style="font-size:15px; font-weight:400"
+                          CssClass="e-btn e-info button p-2"
+                          IconCss="fa fa-pause fa-5x" Disabled="true"
+                          @onclick="PauseAudio" Content="Pause">
+                </SfButton>
+                <SfButton ID="playerStopBtn" style="font-size:15px; font-weight:400"
+                          CssClass="e-btn e-info button p-2"
+                          IconCss="fa fa-stop fa-3x" Disabled="true"
+                          @onclick="StopAudio" Content="Stop">
+                </SfButton>
+            </div>
+            <div class="mt-5">
+                <audio @ref="AudioReference" id="audioPlayer" preload="auto" controls>
+                    <source id="audioSource" src="@mp3FullPath" type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+            <br />
+            <div id="stateText" class="px-2"></div>
+        </div>
+        @if (!string.IsNullOrEmpty(mp3Title))
+        {
+            <div class="col-sm-12 col-md-6 col-lg-6 player">
+                <SfCard>
+                    <CardHeader ImageUrl="/images/information-icon.png" Title="@mp3Title" SubTitle="@mp3FirstArtist"></CardHeader>
+                    <CardContent EnableSeparator="true">
+                        <div class="row">
+                            <div class="col-3">
+                                <p>Album</p>
+                                <p>@L["Year"]</p>
+                                <p>@L["lblEditora"]</p>
+                            </div>
+                            <div class="col-9">
+                                <p class="font-weight-bold">@mp3Album</p>
+                                <p class="font-weight-bold">@mp3EditionYear</p>
+                                <p class="font-weight-bold">@mp3Pusblisher</p>
+                            </div>
+                        </div>
+                        <p>@L["Genres"]: </p>
+                        @if (mp3Genres is not null)
+                        {
+                            @foreach (var genero in mp3Genres)
+                            {
+                                <div class="font-weight-bold">
+                                    <SfTextBox Enabled="false" Value="@genero"></SfTextBox>
+                                </div>
+                            }
+                        }
+                        @if (sbWikiResponses.Count > 0)
+                        {
+                            string response = "";
+                            <br />
+                            <div>
+                                <div class="title">Wikipedia</div>
+                                <div class="underline"></div>
+                                <div class="py-2">
+                                    @L["References"] @SelectedRecord.Autor
+                                </div>
+                                <hr />
+
+                                @foreach (string item in sbWikiResponses)
+                                {
+                                    response += item;
+                                }
+                                <SfTextBox Value="@response" Multiline=true HtmlAttributes="htmlAttribute"
+                                           CssClass="input-control e-corner" />
+                            </div>
+                        }
+                    </CardContent>
+                </SfCard>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column p-2 align-content-center border border-danger">
+        <div class="error-message">@L["TitleCannotBeReproduced"] (@SelectedRecord.FormatoMedia)</div>
+    </div>
+    <hr />
+    <div class="d-flex flex-column p-2 align-content-center border border-info">
+        <SfCard>
+            <CardHeader ImageUrl="/images/media-player.png" Title="@L["AdditionalInformation"]"></CardHeader>
+            <CardContent EnableSeparator="true">
+                <p>
+                    Path:
+                    @if (!File.Exists(SelectedRecord.FilePath))
+                    {
+                        <span>@L["NotApplicable"]</span>
+                    }
+                    else
+                    {
+                        <span>&nbsp;@SelectedRecord.FilePath</span>
+                    }
+                </p>
+                <p>
+                    Url:
+                    @if (string.IsNullOrEmpty(SelectedRecord.FileUrl))
+                    {
+                        <span>@L["NotApplicable"]</span>
+                    }
+                    else
+                    {
+                        <span>&nbsp;@SelectedRecord.FileUrl</span>
+                    }
+                </p>
+            </CardContent>
+        </SfCard>
+    </div>
+}
+
+@code {
+    protected DotNetObjectReference<Mp3Player> mediaPlayer;
+    protected ElementReference AudioReference { get; set; }
+
+    private Dictionary<string, object> htmlAttribute { get; set; } = new Dictionary<string, object>()
+{
+            {"rows", "6" }
+    };
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            mediaPlayer = DotNetObjectReference.Create(this);
+            await js.InvokeVoidAsync("InitAudio", AudioReference, mediaPlayer);
+        }
+
+        // await base.OnAfterRenderAsync(firstRender);
+    }
+
+    [JSInvokable]
+    public async Task OnEnd()
+    {
+        mp3FullPath = "";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    void IDisposable.Dispose()
+    {
+        mediaPlayer?.Dispose();
+    }
+}
+
+<style type="text/css" scoped>
+    .e-play-icon {
+        content: '\e72d';
+    }
+
+    .player {
+        width: 100%;
+        height: auto;
+    }
+
+        .player img {
+            width: 100%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .player audio {
+            width: 300px;
+            outline: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+    .error-message {
+        text-align: center;
+        color: red;
+        font-weight: 300;
+        font-size: large;
+    }
+
+    .e-card .e-card-image {
+        background-image: url(/wwwroot/images/media-player.png);
+        background-color: yellow;
+        height: 160px;
+    }
+
+    .e-card .e-card-header .e-card-header-image {
+        height: 40px;
+        width: 40px;
+        object-fit: cover; /* Key property to fill the area */
+        box-shadow: 3px 4px #E8E8E8;
+        box-sizing: border-box;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: blueviolet;
+    }
+
+    .font-bold {
+        font-weight: bold;
+        font-style: italic;
+    }
+
+    #audioPlayer {
+        width: 100%;
+    }
+
+
+    #MyImage {
+        position: relative;
+        margin: 20px auto 0;
+        width: 100%;
+        max-width: 400px;
+        display: block;
+    }
+
+    #audioimage {
+        display: block;
+        position: relative;
+        width: 100%;
+    }
+
+    .e-pause-icon::before {
+        content: "\e757";
+    }
+
+    .e-stop-icon::before {
+        content: "\e711";
+    }
+
+    /*    .btn-container {
+                                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                            }
+                        */
+    .display-btn-play {
+        position: absolute;
+        transform: translate(-50%,-50%);
+        margin-right: -50%;
+        top: 20%;
+        left: 50%;
+    }
+
+        .display-btn-play:hover {
+            cursor: pointer;
+            transform: scale(1.05);
+            background: #FFF;
+            color: #ff564c;
+        }
+
+    .display-btn-pause {
+        position: absolute;
+        transform: translate(-50%,-50%);
+        margin-right: -50%;
+        top: 40%;
+        left: 50%;
+    }
+
+        .display-btn-pause:hover {
+            cursor: pointer;
+            transform: scale(1.1);
+            background: #FFF;
+            color: #000;
+        }
+
+    .display-btn-stop {
+        position: absolute;
+        transform: translate(-50%,-50%);
+        margin-right: -50%;
+        top: 60%;
+        left: 50%;
+    }
+
+        .display-btn-stop:hover {
+            cursor: pointer;
+            transform: scale(1.15);
+            background: #FFF;
+            color: #000;
+        }
+
+    .btn-toolbar a, .btn-group-vertical button {
+        width: 100%;
+        padding: 0px, 3px 0px 3px;
+    }
+
+    /*     Removes mute-button */
+    audio::-webkit-media-controls-mute-button {
+        display: none;
+    }
+
+    /*     Removes play-button    */
+    audio::-webkit-media-controls-play-button {
+        display: none;
+    }
+
+    /*   audio::-webkit-media-controls-play-button{
+                                    -webkit-appearance: media-play-button;
+                                    display: -webkit-flex;
+                                    width: 32px;
+                                    height: 16px;
+                                    background-color: red;
+                                    border:double;
+                                    color: yellow;
+                                }*/
+
+    .container-controls {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+    }
+
+    .playerControls {
+        border: 1px solid;
+        display: flex;
+        border-radius: 4px;
+        box-shadow: 0px, 4px, 20px, rgba(0, 0, 0, 0.8);
+    }
+
+    audio {
+        -webkit-transition: all 0.5s linear;
+        -moz-transition: all 0.5s linear;
+        -o-transition: all 0.5s linear;
+        transition: all 0.5s linear;
+        -moz-box-shadow: 2px 2px 4px 0px #006773;
+        -webkit-box-shadow: 2px 2px 4px 0px #006773;
+        box-shadow: 2px 2px 4px 0px #006773;
+        -moz-border-radius: 7px 7px 7px 7px;
+        -webkit-border-radius: 7px 7px 7px 7px;
+        border-radius: 7px 7px 7px 7px;
+    }
+
+        audio:hover, audio:focus, audio:active {
+            -webkit-box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+            -moz-box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+            box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+            -webkit-transform: scale(1.05);
+            -moz-transform: scale(1.05);
+            transform: scale(1.05);
+        }
+
+
+    /*buttons samples*/
+
+    .button {
+        width: 100%;
+        padding: 8px 16px;
+        height: 100%;
+        font-size: 18px;
+        text-align: center;
+        cursor: pointer;
+        outline: none;
+        color: #fff;
+        background-color: #04AA6D;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 9px #999 rgba(0,0, 0, 0.8);
+    }
+
+        .button:hover {
+            background-color: #3e8e41;
+        }
+
+        .button:active {
+            background-color: #3e8e41;
+            box-shadow: 0 5px #666;
+            animation: spin 1s linear;
+        }
+
+    @@keyframes spin {
+        20% {
+            transform: rotate(360deg);
+        }
+
+        50% {
+            transform: rotate(180deg);
+        }
+
+        100% {
+            transform: rotate(0deg);
+        }
+    }
+
+
+    /*image container*/
+    .image-container {
+        position: relative;
+        line-height: 40px;
+        height: 40px;
+        width: 320px;
+        top: -30%;
+        left: -10%;
+        margin: 200px auto 0;
+        display: flex;
+    }
+
+        .image-container img {
+            align-items: center;
+            display: block;
+            justify-content: center;
+            width: 400px;
+            height: 200px;
+            border-radius: 25px;
+            box-shadow: 5px 5px 5px #ccc;
+            border: 2px solid #fff;
+            -moz-box-shadow: 5px 5px 5px #ccc;
+            -webkit-box-shadow: 5px 5px 5px #ccc;
+        }
+
+    .center-image {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 50%;
+    }
+
+    /*/*loader container*/
+    .loader-container {
+        position: relative;
+        height: 40px;
+        width: 160px;
+        top: -20%;
+        margin: 200px auto 0;
+        display: none;
+    }
+
+        .loader-container > div {
+            position: relative;
+            display: inline-block;
+            background: #03A9F4;
+            height: 100%;
+            width: 10px;
+            margin: 0;
+            -webkit-animation: load 3s ease-in-out infinite;
+            animation: load 3s ease-in-out infinite;
+        }
+
+        .loader-container .rectangle-2 {
+            -webkit-animation-delay: 0.1s;
+            animation-delay: 0.1s;
+        }
+
+        .loader-container .rectangle-3 {
+            -webkit-animation-delay: 0.2s;
+            animation-delay: 0.2s;
+        }
+
+        .loader-container .rectangle-4 {
+            -webkit-animation-delay: 0.3s;
+            animation-delay: 0.3s;
+        }
+
+        .loader-container .rectangle-5 {
+            -webkit-animation-delay: 0.4s;
+            animation-delay: 0.4s;
+        }
+
+        .loader-container .rectangle-6 {
+            -webkit-animation-delay: 0.5s;
+            animation-delay: 0.5s;
+        }
+
+    @@-moz-keyframes load {
+        0%,
+        100% {
+            -moz-transform: scaleY(1);
+            background: #03A9F4;
+        }
+
+        16.67% {
+            -moz-transform: scaleY(3);
+            background: #FF5722;
+        }
+
+        33.33% {
+            -moz-transform: scaleY(1);
+            background: #FF5252;
+        }
+
+        50% {
+            -moz-transform: scaleY(3);
+            background: #E91E63;
+        }
+
+        66.67% {
+            -moz-transform: scaleY(1);
+            background: #9C27B0;
+        }
+
+        83.34% {
+            -moz-transform: scaleY(3);
+            background: #673AB7;
+        }
+    }
+
+    @@-webkit-keyframes load {
+        0%,
+        100% {
+            -webkit-transform: scaleY(1);
+            background: #03A9F4;
+        }
+
+        16.67% {
+            -webkit-transform: scaleY(3);
+            background: #FF5722;
+        }
+
+        33.33% {
+            -webkit-transform: scaleY(1);
+            background: #FF5252;
+        }
+
+        50% {
+            -webkit-transform: scaleY(3);
+            background: #E91E63;
+        }
+
+        66.67% {
+            -webkit-transform: scaleY(1);
+            background: #9C27B0;
+        }
+
+        83.34% {
+            -webkit-transform: scaleY(3);
+            background: #673AB7;
+        }
+    }
+
+    @@keyframes load {
+        0%,
+        100% {
+            transform: scaleY(1);
+            background: #03A9F4;
+        }
+
+        16.67% {
+            transform: scaleY(3);
+            background: #FF5722;
+        }
+
+        33.33% {
+            transform: scaleY(1);
+            background: #FF5252;
+        }
+
+        50% {
+            transform: scaleY(3);
+            background: #E91E63;
+        }
+
+        66.67% {
+            transform: scaleY(1);
+            background: #9C27B0;
+        }
+
+        83.34% {
+            transform: scaleY(3);
+            background: #673AB7;
+        }
+    }
+
+    /*Container 3D*/
+    .container-3d {
+        position: relative;
+        width: 360px;
+        height: 640px;
+        margin-top: 150px;
+        background: rgba(0, 0, 0, 0);
+        transform: rotate(-30deg) skew(25deg) scale(0.8);
+        transition: 0.5s;
+    }
+
+        .container-3d img {
+            position: absolute;
+            width: 100%;
+            transition: 0.5s;
+        }
+
+        .container-3d:hover img:nth-child(4) {
+            transform: translate(160px, -160px);
+            opacity: 1;
+        }
+
+        .container-3d:hover img:nth-child(3) {
+            transform: translate(120px, -120px);
+            opacity: 0.8;
+        }
+
+        .container-3d:hover img:nth-child(2) {
+            transform: translate(80px, -80px);
+            opacity: 0.6;
+        }
+
+        .container-3d:hover img:nth-child(1) {
+            transform: translate(40px, -40px);
+            opacity: 0.4;
+        }
+
+    .e-round-corner {
+        border-radius: 11px;
+    }
+
+    #Card {
+        height: 500px;
+    }
+</style>

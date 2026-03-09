@@ -1,0 +1,152 @@
+﻿@using Microsoft.Extensions.Localization
+@using static MediaOrganizerApp.Application.Enums.AppDefinitions
+
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+@inject IStringLocalizer<App> L
+
+@implements IDisposable
+@attribute [Authorize(Roles = "Admin")]
+
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@L["MSG_PreparandoDados"]" Size="50"
+           Type="SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+
+<SfCard ID="table-card">
+    <CardHeader Title="@cardTitle" ImageUrl="images/database-table-icon.png"></CardHeader>
+    <CardFooter>
+        <CardFooterContent>
+            <hr />
+            <div style="text-align:center;">
+                <SfButton CssClass="e-info e-round-corner p-2" IconCss="fas fa-cog"
+                          @onclick="@(e => NavigateToUrlAsync(tableParam!))" Content="@L["lblManutencao"]">
+                </SfButton>
+            </div>
+        </CardFooterContent>
+    </CardFooter>
+</SfCard>
+
+
+<SfDialog Target="#target"
+          Width="50%"
+          Height="85%"
+          IsModal="true"
+          ShowCloseIcon="false"
+          CloseOnEscape="true"
+          @bind-Visible="PdfViewerVisibility">
+    <DialogTemplates>
+        <Content>
+            @if (!string.IsNullOrEmpty(PdfFilePath))
+            {
+                <PdfViewer PdfPath="@PdfFilePath" />
+            }
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="CloseEditDialog">
+                    Voltar
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
+
+@code {
+    [Parameter] public string tableParam { get; set; }
+    [Parameter] public string cardContent { get; set; }
+    [Parameter] public string cardTitle { get; set; }
+    [Parameter] public string cardImage { get; set; }
+
+    protected DialogEffect Effects = DialogEffect.Zoom;
+
+    protected Modules modulo { get; set; }
+    protected string PdfFilePath { get; set; }
+
+    string PageTitle;
+    string TableToValidate;
+    string FkToValidate;
+
+    protected SfSpinner SpinnerObj;
+
+    protected bool PdfViewerVisibility { get; set; } = false;
+
+
+
+    protected Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
+{
+        {"overflow", "auto" }
+    };
+
+    // not async, javascript replaced
+    private void NavigateToUrlAsync(string tableName)
+    {
+        string url = GetUrl(tableName);
+        //        await JSRuntime.InvokeAsync<object>("open", url, "_blank");
+        navigationManager.NavigateTo(url);
+    }
+
+    public void CloseEditDialog()
+    {
+        switch (modulo)
+        {
+            case Modules.PdfViewer:
+                PdfViewerVisibility = false;
+                break;
+        }
+    }
+
+
+    private string GetUrl(string tableName)
+    {
+        PageTitle = cardTitle;
+        TableToValidate = "";
+        FkToValidate = "";
+
+        string SqlTable = tableName; // GetDataTableName(tableName);
+
+        switch (tableName.ToLower())
+        {
+            case "categoria":
+                TableToValidate = "Publicacao";
+                FkToValidate = "IdCategoria";
+                break;
+            case "editora":
+                TableToValidate = "Publicacao";
+                FkToValidate = "IdEditora";
+                break;
+            case "formato":
+                TableToValidate = "Publicacao";
+                FkToValidate = "IdFormato";
+
+                break;
+            case "localarquivo":
+                TableToValidate = "Publicacao";
+                FkToValidate = "IdLocalArquivo";
+
+                break;
+            case "formato_media":
+                TableToValidate = "Media";
+                FkToValidate = "idFormato_media";
+
+                break;
+        }
+
+        string url = $"/admin/adminpanel?" + $"DataTable={SqlTable}&PageTitle={PageTitle}&" +
+                     $"TableToValidate={TableToValidate}&FieldToValidate={FkToValidate}";
+
+        return url;
+    }
+
+    void IDisposable.Dispose()
+    {
+        SpinnerObj?.Dispose();
+    }
+}

@@ -1,0 +1,528 @@
+@page "/publicacoes"
+@attribute [StreamRendering]
+
+
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+
+@using MediaOrganizerApp.Application.DTOs
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+
+@inherits PublicacoesBase
+
+@attribute [Authorize]
+
+@inject Web.Blazor.Services.DocumentHelpers.PdfGeneratorService PdfGeneratorService
+
+@{
+    var Filtering = new
+    {@@operator = "contains",
+    };
+    var Tool = (new List<object>()
+{
+        "Search",
+        new ItemModel() {
+            PrefixIcon = "fa fa-times",
+            TooltipText = "Clear",
+            Align = ItemAlign.Right,
+            Id = "Clear"
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "e-download-icon",
+            Text = TituloListagemPublicacoes,
+            Id = "PLPDF"
+        },
+        new ItemModel()
+        {
+                Type = ItemType.Separator,
+        },
+        // new ItemModel() {
+        //     Align = ItemAlign.Left,
+        //     PrefixIcon = "fa fa-table",
+        //     Text = "Pdf Files on 'Desconhecida'",
+        //     Id = "FNOD"
+        // },
+        // new ItemModel() {
+        //     Align = ItemAlign.Left,
+        //     PrefixIcon = "fa fa-clone",
+        //     Text = TituloFicheirosPathErrada,
+        //     Id = "FWRP"
+        // }
+
+    }
+    );
+}
+
+<PageTitleComponent PageTitle="@(localizerApp["frmLivros"])" />
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+<SfProgressBar Type="ProgressType.Circular"
+               Visible="ProgressBarVisibility"
+               Value="20" Width="100px" Height="100px"
+               StartAngle="180" EndAngle="180" CornerRadius="CornerType.Round"
+               IsIndeterminate="true" Minimum="0" Maximum="100">
+    <ProgressBarAnimation Enable="true" Duration="2000" Delay="0"></ProgressBarAnimation>
+</SfProgressBar>
+
+@if (publicacoes is null)
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <div class="top-wrapper">
+            <div class="row">
+                <div class="col-md-4">
+                    <SfButton CssClass="e-btn e-success pl-2 pr-2 e-round-corner" IconCss="fa fa-plus"
+                              @onclick="NotifyAddingRecord">
+                        &nbsp;@(localizerApp["NewMsg"]) @(localizerApp["Record"])
+                    </SfButton>
+                </div>
+                <div class="col-md-4">
+                    <SfUploader ID="UploadFiles" @ref="@sfUploader" AutoUpload="true" MaxFileSize="60000000"
+                                DropArea=".control-fluid" AllowedExtensions=".pdf, .docx, .msg, .eml" AllowMultiple="true">
+                        <UploaderAsyncSettings SaveUrl="api/upload/savepdf2" ChunkSize="600000"
+                                               RemoveUrl="api/upload/removepdf" />
+                        <UploaderEvents OnChunkSuccess="@OnChunkSuccessHandler"
+                                        OnChunkFailure="OnChunkFailureHandler" OnUploadStart="OnUploadStartHandler"
+                                        OnActionComplete="@OnActionCompleteHandler"
+                                        Success="OnUpLoadSuccess"></UploaderEvents>
+                        <UploaderButtons Browse="Importar Pdf/Docx"/>
+                    </SfUploader>
+                </div>
+                <div class="col-lg-4"></div>
+                </div>
+        </div>
+        <div id="target" class=" h-100 table table-responsive overflow-auto table-striped">
+            <SfGrid @ref="gridObj"
+                    Width="100%"
+                    Height="auto"
+                    DataSource="@publicacoes"
+                    AllowFiltering="true"
+                    AllowGrouping="true"
+                    AllowPaging="true"
+                    EnableAltRow="true"
+                    AllowTextWrap="true"
+                    AllowSelection="true"
+                    AllowSorting="true"
+                    EnableStickyHeader="true"
+                    Toolbar="@Tool"
+                    RowHeight="26">
+                <GridPageSettings PageSize="10" PageCount="10" PageSizes="true" />
+                <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"
+                                       EnableToggle="true" />
+                <GridSortSettings AllowUnsort="false">
+                    <GridSortColumns>
+                        <GridSortColumn Field="Id" Direction="SortDirection.Descending"></GridSortColumn>
+                    </GridSortColumns>
+                </GridSortSettings>
+
+                <GridEvents ContextMenuItemClicked="OnContextMenuClick"
+                            CommandClicked="OnCommandClicked"
+                            OnRecordDoubleClick="OnRecordDoubleClick"
+                            OnToolbarClick="OnToolbarClick"
+                            RowSelected="OnRowSelected"
+                            TValue="PubsWithDescriptions" />
+                @*Included Mode and ImmediateModeDelay, replicate to all other grids in the solution?*@
+                @*<GridFilterSettings Mode="FilterBarMode.Immediate" ImmediateModeDelay=" 200" Type="Syncfusion.Blazor.Grids.FilterType.Menu" />*@
+                <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+                <GridColumns>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Id) HeaderText="ID#" IsPrimaryKey="true"
+                                Visible="true" AllowGrouping=false
+                                HideAtMedia="(min-width: 1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
+                    </GridColumn>
+                    <GridColumn Width="80" HideAtMedia="(min-width: 1280px)">
+                        <Template Context="PubRow">
+                            @{
+                                var pubmage = "";
+                                var imageSourceOnTheNet = false;
+                                try
+                                {
+                                    var currentRow = (PubRow as PubsWithDescriptions);
+                                    var imagemCapa = currentRow.ImagemCapa;
+                                    if (string.IsNullOrEmpty(currentRow.DigitalPath))
+                                    {
+                                        if (imagemCapa.ToLower().StartsWith("/image"))
+                                            imagemCapa = imagemCapa.Replace("/images", "images");
+                                        else if (imagemCapa.ToLower().StartsWith("http"))
+                                        {
+                                            imageSourceOnTheNet = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        imagemCapa = currentRow.ImagemCapa;
+                                    }
+
+                                    var imageSource = "";
+                                    if (!imageSourceOnTheNet)
+                                    {
+                                        imageSource = Path.Combine(hostingEnvironment.WebRootPath, imagemCapa);
+
+                                        if (!string.IsNullOrEmpty(currentRow.ImagemCapa))
+                                        {
+                                            if (!File.Exists(imageSource))
+                                                if (Path.GetExtension(currentRow.DigitalPath) != ".docx")
+                                                    pubmage = "/images/no-image-icon.png";
+                                                else
+                                                    pubmage = "/images/Word64.png";
+                                            else
+                                                pubmage = currentRow.ImagemCapa;
+                                        }
+                                        else
+                                        {
+                                            pubmage = "/images/No-image-available.png";
+                                        }
+                                    }
+                                    else // image source retrieved from net (Google Books Api)
+                                    {
+                                        pubmage = currentRow.ImagemCapa;
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    pubmage = "/images/warning.png";
+                                }
+                                <img class="p-1 e-round-corner" src="@pubmage" width="96" height="64" />
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Titulo) HeaderText=@(localizerApp["lblTitulo"])
+                                CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
+                                AllowGrouping=false
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="325"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Categoria) HeaderText=@(localizerApp["lblCategoria"])
+                                HideAtMedia="(min-width: 1280px)"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="140"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Formato) HeaderText=@(localizerApp["lblFormato"])
+                                HideAtMedia="(min-width: 1280px)"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="150"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Paginas)
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                AllowGrouping=false
+                                HeaderText="@(localizerApp["lblPaginas"])"
+                                HideAtMedia="(min-width: 1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" Width="120"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.AnoEdicao) ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                HeaderText="@(localizerApp["lblAnoEdicao"])"
+                                HideAtMedia="(min-width: 1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="100"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Rating) ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                HeaderText="@(localizerApp["lblRating"])"
+                                HideAtMedia="(min-width: 1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="150">
+                        <Template>
+                            <div class="mb-2">
+                                @{
+                                    var currentRating = (context as PubsWithDescriptions).Rating;
+                                    <SfRating Value="@currentRating" ReadOnly="true"
+                                              ItemsCount="5"
+                                              Precision="PrecisionType.Full" />
+                                }
+                            </div>
+                        </Template>
+
+                    </GridColumn>
+                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" AllowGrouping="false"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="140">
+                        <GridCommandColumns>
+                            <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                   {
+                                                       CssClass = "e-btn e-primary e-round",
+                                                       IconCss = "fa fa-edit"
+                                                   })">
+                            </GridCommandColumn>
+                            <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                   {
+                                                       CssClass = "e-btn e-danger e-round ",
+                                                       IconCss = "fa fa-trash"
+                                                   })">
+                            </GridCommandColumn>
+                            <GridCommandColumn Type=CommandButtonType.None Title="@localizerApp["LerPdf"]"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                   {
+                                                       CssClass = "e-btn e-success e-round",
+                                                       IconCss = "fa fa-file-pdf-o"
+                                                   })">
+                            </GridCommandColumn>
+                        </GridCommandColumns>
+                    </GridColumn>
+                </GridColumns>
+
+            </SfGrid>
+        </div>
+    </div>
+
+    <SfDialog Width="900px"
+              Height="800px"
+              IsModal="true"
+              MinHeight="700px"
+              ShowCloseIcon="false"
+              @bind-Visible="EditDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @SelectedRecord.Titulo (@SelectedRecord.Autor)
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <EditPublicacoes SelectedRecord="@SelectedRecord" CurrentCategory="@categoryBeforeEdition" blnEdit="@blnEdit" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord" Content="@(localizerApp["btnSalvar"])">
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="Voltar" Content="@(localizerApp["BtnSalir"])">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%" Height="85%" Target="#main"
+              IsModal="true" AllowDragging="true"
+              @bind-Visible="ReadPdfVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @SelectedRecord.Titulo @(SelectedRecord.AnoEdicao != "0" ? "(" + SelectedRecord?.AnoEdicao + ")" : "")
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                @* <PdfViewer  PdfPath="@PdfFilePath"/> *@
+                <ReadPDF PdfFile="@FileToView" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    @if (ShowEditButtonInPdfViewer)
+                    {
+                        <SfButton CssClass="e-btn e-success e-round-corner"
+                                  IconCss="fa fa-edit"
+                                  @onclick="EditPublication" Content="@(localizerApp["EditMsg"] + " " + localizerApp["lblPublicacao"])" />
+                    }
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times" Content="@(localizerApp["btnFechar"])"
+                              @onclick="FecharPdf" />
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=500></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%" Height="85%" Target="#main"
+              IsModal="true" AllowDragging="true"
+              @bind-Visible="ReadWordFileVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @SelectedRecord.Titulo
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                @if (!string.IsNullOrEmpty(FileToView))
+                {
+                    <DocumentEditor DocumentPath="@FileToView" />
+                }
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="EditPublication" Content="@(localizerApp["EditMsg"] + " " + localizerApp["lblPublicacao"])" />
+
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times" Content="@(localizerApp["btnFechar"])"
+                              @onclick="FecharWordViewer" />
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=500></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog @bind-Visible="@UpdateTablesVisibility"
+              Width="500px"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div class="text-wrap">
+                    @localizerApp["frmLivros"]: @SelectedRecord.Titulo
+                </div>
+            </Header>
+            <Content>
+                <div class="alert-danger">
+                    @(localizerApp["ConfirmarAtualizacao"])
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-edit"
+                              @onclick="ConfirmUpdateYes">
+                        &nbsp;@(localizerApp["Sim"])
+
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              IsPrimary="true"
+                              @onclick="ConfirmUpdateNo">
+                        &nbsp;@(localizerApp["Nao"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Target="#target"
+              Width="400px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ValidationErrorsVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="alert-warning">
+                    @(localizerApp["ErroGeral"])
+                </div>
+            </Header>
+            <Content>
+                <div class="border-warning">
+                    <div>
+                        @(localizerApp["frmLivros"]): @SelectedRecord.Titulo
+                        <br />
+                    </div>
+                    <div>
+                        @pubsCatalogadas.ToString() @(localizerApp["RegistosCatalogados"])
+                    </div>
+                    <div class="border-warning">
+                        <br />
+                        @(localizerApp["OperacaoCancelada"])
+                    </div>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-warning e-round-corner"
+                              @onclick="closeAlertBox" Content="@(localizerApp["btnFechar"])">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <ConfirmDeleteComponent AlertMessageType="AlertMessageType.Error"
+                            DialogTitle="@(localizerApp["DeleteMsg"] + " " + localizerApp["frmLivros"])"
+                            DialogSubTitle="@SelectedRecord.Titulo"
+                            ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
+                            Message="@SelectedRecord.Titulo"
+                            Visible="@DeleteRecordConfirmVisibility"
+                            OnConfirmationYes="ConfirmDeleteYes"
+                            OnConfirmationNo="ConfirmDeleteNo" />
+
+    <ValidateErrorComponent ValidationMessages="@ValidationMessages"
+                            DialogTitle="@localizerApp["DadosEmFalta"]"
+                            OnCloseDialog="closeErrorBox" Visible="@ErrorVisibility" />
+
+    <SfToast ID="toast_default" @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             Icon="icon-thumbs-up"
+             CssClass="@ToastCssClass"
+             Timeout="@ToastTimeOut" ShowCloseButton="true">
+        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+        <ToastButtons>
+            <ToastButton Content="@localizerApp["btnFechar"]" OnClick="@HideToast"></ToastButton>
+        </ToastButtons>
+    </SfToast>
+}
+
+@code {
+    private async Task GenerateListagemPdf()
+    {
+        if (publicacoes != null && publicacoes.Any())
+        {
+            var pdfStream = PdfGeneratorService.GeneratePublicacoesPdf(publicacoes.ToList());
+            FileToView = Convert.ToBase64String(pdfStream.ToArray());
+            ReadPdfVisibility = true;
+        }
+    }
+}
+
+<style>
+    .e-round-corner {
+        border-radius: 11px;
+    }
+
+    .icon-thumbs-up::before {
+        content: '\e682';
+    }
+
+    .icon-thumbs-down::before {
+        content: '\e614';
+    }
+
+    .e-attr-bold {
+        font-weight: bold;
+    }
+
+    .action-dropdown {
+        font-size: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .e-dropdownlist {
+            width: 100% !important;
+        }
+    }
+
+@*     .e-upload.e-control-wrapper, .e-bigger.e-small .e-upload.e-control-wrapper {
+        height: 300px;
+        width: 300px;
+    } *@
+
+    .e-upload .e-file-select-wrap .e-btn, .e-upload .e-upload-actions .e-btn, .e-bigger.e-small .e-upload .e-file-select-wrap .e-btn, .e-bigger.e-small .e-upload .e-upload-actions .e-btn {
+        font-family: cursive;
+        height: 40px;
+        background-color: aquamarine;
+        color: coral;
+    }
+
+
+
+@*     .e-upload .e-file-select-wrap .e-file-drop, .e-bigger.e-small .e-upload .e-file-select-wrap .e-file-drop {
+        font-size: 20px;
+        color: aqua;
+    }
+
+    .e-upload .e-upload-files .e-upload-file-list {
+        background-color: beige;
+    } *@
+</style>

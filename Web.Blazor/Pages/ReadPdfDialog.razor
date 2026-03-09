@@ -1,0 +1,86 @@
+﻿@using Microsoft.Extensions.Localization
+@using MediaOrganizerApp.Application.Enums
+
+@using Syncfusion.Blazor.SfPdfViewer
+@using Web.Blazor.Components
+
+@inject IStringLocalizer<App> localizerApp
+
+@if (OkToDisplay)
+{
+    <div>
+        <SfDialog @ref="PdfDialog" Width="100%" Height="800px"
+                  IsModal="true"
+                  Visible="@DialogVisibility"
+                  AllowDragging="true">
+            <DialogEvents Created="LoadDocument" />
+            <DialogTemplates>
+                <Header></Header>
+                <Content>
+                    <SfPdfViewer2 @ref="PdfViewerRef"
+                                  Width="1060px"
+                                  Height="800px" 
+                                  DocumentPath="@PdfFile">
+                    </SfPdfViewer2>
+                </Content>
+                <FooterTemplate>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              @onclick="CloseDialog"
+                              Content="@(localizerApp["btnFechar"])">
+                    </SfButton>
+                </FooterTemplate>
+            </DialogTemplates>
+            <DialogAnimationSettings Effect="@DialogEffect.FadeZoom" Duration=500 />
+        </SfDialog>
+    </div>
+}
+else
+{
+    <AlertMessage Message="Problem reading Pdf. Please check." MessageType="AlertMessageType.Error" />
+}
+@code {
+
+    protected bool OkToDisplay = true;
+    protected SfDialog PdfDialog;
+    protected SfPdfViewer2 PdfViewerRef;
+
+    [Parameter]
+    public string PdfFile { get; set; }
+    [Parameter]
+    public string PdfTitle { get; set; }
+    [Parameter]
+    public bool DialogVisibility { get; set; } 
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(PdfFile))
+        {
+            if(File.Exists(PdfFile))
+            {
+                OkToDisplay = File.Exists(PdfFile);
+            }
+        }
+    }
+
+    protected void LoadDocument()
+    {
+        if (!string.IsNullOrEmpty(PdfFile) && File.Exists(PdfFile))
+        {
+            // SfPdfViewer2 uses DocumentPath property directly
+        }
+    }
+
+    protected void CloseDialog()
+    {
+        OkToDisplay = false;
+        PdfTitle = "";
+        PdfFile = "";
+    }
+}
+
+<style>
+    #ControlRegion {
+        margin: 0 auto;
+        width: 750px;
+    }
+</style>

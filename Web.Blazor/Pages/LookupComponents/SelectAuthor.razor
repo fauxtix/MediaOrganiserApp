@@ -1,0 +1,123 @@
+﻿@page "/autores/selectauthor"
+@inject Microsoft.Extensions.Localization.IStringLocalizer<App> localizerApp
+@inject IAutorService autoresService
+
+@{
+    var Tool = (new List<object>()
+{
+        "Search",
+        new ItemModel() {
+            PrefixIcon = "fa fa-times",
+            TooltipText = "Clear",
+            Align = ItemAlign.Right,
+            Id = "Clear"
+        }
+    }
+    );
+}
+<SfDialog Width="500px" Height="700px" Visible="@ShowDialog">
+    <DialogTemplates>
+        <Header>
+            <h4>@(localizerApp["frmAutores"]) (@AuthorName)</h4>
+        </Header>
+        <Content>
+            <div class="col-lg-12 control-section">
+                <div id="target" class="content-wrapper">
+                    <div class="row">
+                        @*<div class="e-dddata">
+                                <h2>@(localizerApp["frmAutores"])</h2>
+                                <SfButton CssClass="e-btn e-success e-round-corner mt-1"
+                                          IconCss="fa fa-plus"
+                                          @onclick="NotifyAddingRecord">
+                                    &nbsp;&nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
+                                </SfButton>
+                            </div>*@
+                        <SfGrid @ref="gridObj"
+                                Width="100%"
+                                Height="100%"
+                                DataSource="@autores"
+                                AllowFiltering="false"
+                                AllowGrouping="false"
+                                Toolbar="@Tool"
+                                AllowPaging="false"
+                                AllowSorting="true"
+                                SelectedRowIndex="5"
+                                RowHeight="36"
+                                AllowTextWrap="false">
+                            <GridEvents RowSelected="OnRowSelected"
+                                        TValue="AutorDTO" />
+                            <GridColumns>
+                                <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="60">
+                                </GridColumn>
+                                <GridColumn Field=@nameof(AutorDTO.Id)
+                                            HeaderText="ID#"
+                                            IsPrimaryKey="true"
+                                            TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
+                                            Width="60"
+                                            HideAtMedia="(min-width: 700px)" />
+                                <GridColumn Field=@nameof(AutorDTO.Descricao)
+                                            ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                            HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
+                                            CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
+                                            Width="200" />
+                            </GridColumns>
+
+                        </SfGrid>
+                    </div>
+                </div>
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-primary e-round-corner"
+                          IconCss="fa fa-check"
+                          @onclick="OnAuthorSelected">
+                    &nbsp;Selecionar
+                </SfButton>
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="OnCancelSelection">
+                   &nbsp;@(localizerApp["BtnSalir"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
+
+@code {
+    protected AutorDTO SelectedRecord = new AutorDTO();
+    protected SfGrid<AutorDTO> gridObj;
+    protected IEnumerable<AutorDTO> autores;
+
+    [Parameter]
+    public EventCallback<AutorDTO> AuthorSelected { get; set; }
+    [Parameter] public bool ShowDialog { get; set; }
+    [Parameter] public string AuthorName { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        autores = await GetAllAuthors();
+    }
+
+    protected async Task<IEnumerable<AutorDTO>> GetAllAuthors()
+    {
+        var autList = await autoresService.GetAllAsync();
+        autList.OrderByDescending(p => p.Id).ToList();
+        return autList;
+    }
+
+    protected async Task OnAuthorSelected()
+    {
+        await AuthorSelected.InvokeAsync(SelectedRecord);
+    }
+
+    protected async Task OnCancelSelection()
+    {
+        await AuthorSelected.InvokeAsync(null);
+    }
+
+    public void OnRowSelected(RowSelectEventArgs<AutorDTO> args)
+    {
+        SelectedRecord = args.Data;
+    }
+}

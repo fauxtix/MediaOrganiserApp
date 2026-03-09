@@ -1,0 +1,56 @@
+﻿@using Microsoft.Extensions.Localization
+<SfDialog Target="#target"
+          Width="600px"
+          Height="300x"
+          MinHeight="250px"
+          IsModal="true"
+          ShowCloseIcon="false"
+          AllowDragging="true"
+          @bind-Visible="ErrorVisibility">
+    <DialogTemplates>
+        <Content>
+            <div class="modal-dialog modal-confirm">
+                <div class="modal-content">
+                    <div class="modal-header justify-content-center">
+                        <div class="icon-box">
+                            <i class="fa fa-warning"></i>
+                        </div>
+                        <div class="modal-body text-center">
+                            <h4 class="modal-title w-100">@L["TituloVerificar"]</h4>
+                        </div>
+                    </div>
+                    <div class="modal-body text-wrap">
+                        @if (ErrorListMsgs != null)
+                        {
+                            <br />
+                            foreach (string errorMsg in ErrorListMsgs)
+                            {
+                                <div class="px-2"> @(errorMsg)</div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-normal e-outline e-icon e-round-corner" IconCss="fa fa-times"
+                          @onclick="closeValidationErrorBox" Content="@L["btnFechar"]">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=500></DialogAnimationSettings>
+</SfDialog>
+
+@code {
+    [Parameter] public List<string> ErrorListMsgs { get; set; } = new List<string>();
+    [Parameter] public bool ErrorVisibility { get; set; } = false;
+    [Parameter] public DialogEffect Effects { get; set; } = DialogEffect.FadeZoom;
+
+    [Inject] public IStringLocalizer<App> L { get; set; }
+    public void closeValidationErrorBox()
+    {
+        ErrorVisibility = false;
+    }
+}

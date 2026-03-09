@@ -1,0 +1,23 @@
+﻿<div class="sidebar-footer" style="display:@(IsCollapsed? "none": "block")">
+    <div class="footer-box">
+        <div>
+            <img class="react-logo"
+                 src="/images/Blazor.png"
+                 alt="react" />
+        </div>
+        <div style="padding: 0 10px">
+            <span style="display: block; margin-bottom: 10px">
+                Organise It está disponível no GitHub
+            </span>
+            <div style="margin-bottom: 15px">
+                <a href="https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor" target="_blank">Dê uma espreitadela...</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsCollapsed { get; set; }
+
+}

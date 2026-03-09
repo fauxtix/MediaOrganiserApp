@@ -1,0 +1,16 @@
+﻿@inject AuthenticationStateProvider authenticationStateProvider
+@inject NavigationManager  navigationManager 
+
+<AuthorizeView>
+    <span>Welcome @context.User.FindFirst("FirstName").Value </span> &nbsp; <Syncfusion.Blazor.Buttons.SfButton Text="Logout" Click="Logout" class="mr-2"/>
+</AuthorizeView>
+
+@code {
+
+    private void Logout()
+    {
+        //var localStateProvider = (LocalAuthenticationStateProvider)authenticationStateProvider;
+        //await localStateProvider.LogoutAsync();
+        navigationManager.NavigateTo("/auth/login");
+    }
+}

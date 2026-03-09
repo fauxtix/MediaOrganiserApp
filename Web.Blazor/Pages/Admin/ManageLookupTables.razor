@@ -1,0 +1,83 @@
+﻿@page "/admin/managelookuptables"
+
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.DropDowns
+@using Web.Blazor.Pages.LookupTables
+
+@inject IStringLocalizer<App> L
+
+<div class="container-fluid">
+    <SfTab class="e-info" OverflowMode="OverflowMode.Scrollable">
+        <TabAnimationSettings>
+            <TabAnimationPrevious Effect="@PreviousEffect"></TabAnimationPrevious>
+            <TabAnimationNext Effect="@NextEffect"></TabAnimationNext>
+        </TabAnimationSettings>
+        <TabItems>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@L["TituloCategoriasPublicacoes"]"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mx-md-3">
+                        <CategoriasPublicacoes />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@L["frmEditoras"]"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mt-md-4 mx-md-3">
+                        <Editoras />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@L["frmFormatos"]"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mt-md-4 mx-md-3">
+                        <Formatos />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@L["frmLocaisArquivo"]"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mt-md-4 mx-md-3">
+                        <LocaisArquivo />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@L["TituloCategoriasMedia"]"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mt-md-4 mx-md-3">
+                        <CategoriasMedia />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="@(L["frmFormatos"] + " " + "Media")"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="mt-md-4 mx-md-3">
+                        <FormatosMedia />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+        </TabItems>
+    </SfTab>
+</div>
+@code {
+    private Syncfusion.Blazor.AnimationEffect PreviousEffect = Syncfusion.Blazor.AnimationEffect.SlideLeftIn;
+    private Syncfusion.Blazor.AnimationEffect NextEffect = Syncfusion.Blazor.AnimationEffect.SlideRightIn;
+}

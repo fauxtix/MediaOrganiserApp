@@ -1,0 +1,472 @@
+﻿@page "/media/playlists"
+
+@inherits Web.Blazor.Pages.BaseComponents.PlaylistsBase
+
+@using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Domain.Enums
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Navigations
+@using Web.Blazor.Components
+@using Web.Blazor.Components.Playlists
+
+@attribute [Authorize]
+
+<PageTitle>Playlists</PageTitle>
+<PageTitleComponent PageTitle="Playlists" WithBadge="false" PageSubTitle="" Css="title" />
+
+@if (isLoading)
+{
+    <LoadingData />
+}
+else
+{
+    <div class="button-container my-2">
+        <SfButton CssClass="e-btn e-success e-round-corner"
+                  IconCss="fa fa-plus" IsPrimary="true"
+                  @onclick="BeginCreatePlaylist">
+            &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
+        </SfButton>
+    </div>
+
+    <div id="target" class="container-fluid">
+        <SfGrid @ref="@gridObj"
+                Width="100%"
+                Height="auto"
+                DataSource="@playLists"
+                AllowFiltering="true"
+                AllowPaging="true"
+                AllowSorting="true"
+                EnableStickyHeader="true"
+                Toolbar="@(new List<object> { "Search" })"
+                RowHeight="26">
+
+            <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"></GridPageSettings>
+            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+
+            <GridEvents OnToolbarClick="OnToolbarClick"
+                        CommandClicked="OnCommandClicked"
+                        DetailDataBound="OnDetailDataBound"
+                        TValue="PlaylistDto" />
+
+            <GridColumns>
+                <GridColumn Field=@nameof(PlaylistDto.Id)
+                            HeaderText="ID#" IsPrimaryKey="true"
+                            AllowSorting="true" TextAlign="TextAlign.Center"
+                            Width="80"></GridColumn>
+
+                <GridColumn Field=@nameof(PlaylistDto.Name)
+                            HeaderText="Nome"
+                            TextAlign="TextAlign.Left"
+                            Width="250"></GridColumn>
+
+                <GridColumn Field=@nameof(PlaylistDto.Description)
+                            HeaderText="Descrição"
+                            ClipMode="ClipMode.EllipsisWithTooltip"
+                            TextAlign="TextAlign.Left"
+                            Width="300"></GridColumn>
+                <GridColumn Field=@nameof(PlaylistDto.MediaType)
+                            HeaderText="Tipo"
+                            ClipMode="ClipMode.EllipsisWithTooltip"
+                            TextAlign="TextAlign.Left"
+                            Width="100">
+                    <Template>
+                        <SfChip>
+                            <ChipItems>
+                                @{
+                                    string classe = "";
+                                    string icon = "";
+                                    string msg = "";
+                                    var currentRow = (context as PlaylistDto);
+                                    if (currentRow.MediaType == MediaType.Audio)
+                                    {
+                                        msg = "Audio";
+                                        classe = "e-info";
+                                        icon = "oi oi-audio e-round-corner";
+                                    }
+                                    else
+                                    {
+                                        msg = "Video";
+                                        classe = "e-success";
+                                        icon = "oi oi-video e-round-corner";
+                                    }
+                                    <ChipItem Text="@msg" LeadingIconCss="@icon" CssClass="@classe"></ChipItem>
+                                }
+                            </ChipItems>
+                        </SfChip>
+                    </Template>
+                </GridColumn>
+
+                <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
+                            HeaderText="Criada em"
+                            Format="dd/MM/yyyy"
+                            TextAlign="TextAlign.Center"
+                            Width="160"></GridColumn>
+
+                <GridColumn HeaderText="Ações"
+                            AllowFiltering="false"
+                            AllowSorting="false"
+                            TextAlign="TextAlign.Center"
+                            Width="220">
+                    <GridCommandColumns>
+                        <GridCommandColumn Type="CommandButtonType.Edit"
+                                           Title="@localizerApp["EditMsg"]"
+                                           ButtonOption="@(new CommandButtonOptions()
+                                           {
+                                               Content = "",
+                                               CssClass = "e-btn e-primary e-round",
+                                               IconCss = "fa fa-edit"
+                                           })">
+                    </GridCommandColumn>
+                    <GridCommandColumn Type="CommandButtonType.Delete"
+                                       Title="@localizerApp["DeleteMsg"]"
+                                       ButtonOption="@(new CommandButtonOptions()
+                                       {
+                                           Content = "",
+                                           CssClass = "e-btn e-danger e-round",
+                                           IconCss = "fa fa-trash"
+                                       })">
+                    </GridCommandColumn>
+                    <GridCommandColumn Type="CommandButtonType.None"
+                                       Title="@localizerApp["PlayMp3"]"
+                                       ButtonOption="@(new CommandButtonOptions()
+                                       {
+                                           Content = "",
+                                           CssClass = "e-btn e-info e-round",
+                                           IconCss = "fa fa-play"
+                                       })">
+                    </GridCommandColumn>
+                </GridCommandColumns>
+            </GridColumn>
+        </GridColumns>
+        <GridTemplates>
+            <DetailTemplate Context="playlistObj">
+                @{
+                        var playlist = playlistObj as PlaylistDto;
+                        if (playlist is null) return;
+
+                        var playlistId = playlist.Id;
+
+                        var isLoading = LoadingPlaylists.Contains(playlistId);
+
+                        // Lista do cache
+                        var itemsList = PlaylistItemsCache.ContainsKey(playlistId)
+                        ? PlaylistItemsCache[playlistId]
+                        : null;
+                    }
+
+                    <div class="p-2 w-75">
+                        <h5>Itens da Playlist</h5>
+                        <hr />
+                        <div class="button-container my-2">
+                            <SfButton CssClass="e-btn e-primary e-outline e-round-corner"
+                                      IconCss="fa fa-plus"
+                                      @onclick="() => OpenAddItemDialog(playlistId)">
+                                &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
+                            </SfButton>
+                        </div>
+
+                        @if (isLoading)
+                        {
+                            <div class="p-3">
+                                <span>Carregando...</span>
+                            </div>
+                        }
+                        else if (itemsList is null)
+                        {
+                            <div class="p-3">
+                                <span>Inicializando...</span>
+                            </div>
+                        }
+                        else if (!itemsList.Any())
+                        {
+                            <div class="alert alert-info">
+                                @localizerApp["TituloNoDataToShow"]
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="container-fluid">
+                                <SfGrid DataSource="@itemsList"
+                                        Width="100%"
+                                        AllowPaging="true"
+                                        AllowRowDragAndDrop="true"
+                                        AllowSorting="true"
+                                        AllowFiltering="true">
+                                    <GridRowDropSettings TargetID="@($"playlistItemsGrid-{playlistId}")" />
+
+                                    <GridPageSettings PageSize="5" PageCount="5" PageSizes="true"></GridPageSettings>
+                                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+                                    <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple">
+                                    </GridSelectionSettings>
+                                    <GridEvents CommandClicked="OnDetailDeleteCommandClicked"
+                                                TValue="PlaylistItemDto" 
+                                                RowDragStarting="RowDragStartingHandler" 
+                                                RowDropping="RowDroppingHandler" 
+                                                RowDropped="RowDroppedHandler" />
+                                    <GridColumns>
+                                        <GridColumn Field=@nameof(PlaylistItemDto.Id)
+                                                    HeaderText="ID#" Visible="false" IsPrimaryKey="true"
+                                                    Width="10" />
+                                        <GridColumn Field=@nameof(PlaylistItemDto.Title)
+                                                    HeaderText="@localizerApp["lblTitulo"]"
+                                                    Width="250" />
+                                        <GridColumn Field=@nameof(PlaylistItemDto.Author)
+                                                    HeaderText="@localizerApp["lblAutor"]"
+                                                    Width="200" />
+                                        <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
+                                                    HeaderText="@localizerApp["TipoFicheiro"]"
+                                                    Width="200">
+                                            <Template>
+                                                <SfChip>
+                                                    <ChipItems>
+                                                        @{
+                                                            var currentRow = (context as PlaylistItemDto);
+                                                            string msg = "";
+                                                            string classe = "";
+                                                            string icon = "";
+                                                            var audio = currentRow.MediaType == MediaOrganizerApp.Domain.Enums.MediaType.Audio;
+                                                            if (audio)
+                                                            {
+                                                                msg = "Mp3";
+                                                                classe = "e-primary e-round-corner";
+                                                                icon = "oi oi-audio";
+                                                            }
+                                                            else
+                                                            {
+                                                                msg = "Vídeo";
+                                                                classe = "e-success e-round-corner";
+                                                                icon = "oi oi-video";
+                                                            }
+                                                        }
+                                                        <ChipItem Text="@msg" CssClass="@classe"></ChipItem>
+                                                    </ChipItems>
+                                                </SfChip>
+                                            </Template>
+                                        </GridColumn>
+                                        <GridColumn Field=@nameof(PlaylistItemDto.TrackTime)
+                                                    HeaderText="@localizerApp["TrackTime"]"
+                                                    Width="100" />
+                                        <GridColumn HeaderText="Ações"
+                                                    AllowFiltering="false"
+                                                    AllowSorting="false"
+                                                    TextAlign="TextAlign.Center"
+                                                    Width="120">
+                                            <GridCommandColumns>
+                                                <GridCommandColumn Type="CommandButtonType.Delete"
+                                                                   Title="Apagar"
+                                                                   ButtonOption="@(new CommandButtonOptions()
+                                                                   {
+                                                                       Content = "",
+                                                                       CssClass = "e-btn e-danger e-round",
+                                                                       IconCss = "fa fa-trash"
+                                                                   })">
+                                        </GridCommandColumn>
+                                    </GridCommandColumns>
+                                </GridColumn>
+                            </GridColumns>
+                        </SfGrid>
+                    </div>
+                                        }
+                    </div>
+                </DetailTemplate>
+            </GridTemplates>
+        </SfGrid>
+    </div>
+}
+
+<SfToast @ref="ToastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         CssClass="@ToastCssClass"
+         Timeout="@ToastTimeOut"
+         ShowCloseButton="true">
+    <ToastPosition X="right" Y="bottom"></ToastPosition>
+</SfToast>
+
+<div id="spinner-container">
+    <SfSpinner @ref="SpinnerObj"
+               Label="@localizerApp["LoadingMsg"]"
+               Type="@SpinnerType.Tailwind"
+               CssClass="e-spin-overlay">
+    </SfSpinner>
+</div>
+
+@* Diálogo Criar/Editar playlist *@
+<SfDialog Width="35%"
+          Height="auto"
+          IsModal="true"
+          ShowCloseIcon="false"
+          EnableResize="true"
+          AllowDragging="true"
+          @bind-Visible="EditDialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div>
+                <h3>
+                    <img src="/images/media-documents-icon.png" width="32" height="32" />
+                    &nbsp;@(IsEditMode? localizerApp["EditMsg"] + " '" + EditModel.Name + "'" : localizerApp["NewMsg"] + " " + localizerApp["Record"])
+                </h3>
+            </div>
+        </Header>
+        <Content>
+            <div class="form-group">
+                <label>Nome</label>
+                <InputText class="form-control" @bind-Value="EditModel.Name" />
+            </div>
+            <div class="form-group">
+                <label>Tipo de Média</label>
+                <div class="radio-button-container">
+                    <SfRadioButton TValue="int" CssClass="e-info"
+                                   Label="Vídeo"
+                                   Value="1"
+                                   Name="mediaType"
+                                   @bind-Checked="EditModel.MediaType" />
+                    <SfRadioButton TValue="int" CssClass="e-info"
+                                   Label="Áudio"
+                                   Value="2"
+                                   Name="mediaType"
+                                   @bind-Checked="EditModel.MediaType" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Descrição</label>
+                <InputTextArea class="form-control" @bind-Value="EditModel.Description" rows="3" />
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-primary e-round-corner"
+                          IconCss="fa fa-edit" Content="@localizerApp["btnSalvar"]"
+                          @onclick="SavePlaylistAsync">
+                </SfButton>
+                <SfButton CssClass="e-outline e-round-corner"
+                          IconCss="fa fa-times" Content="@localizerApp["BtnSalir"]"
+                          @onclick="CancelEditPlaylist">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration="400"></DialogAnimationSettings>
+</SfDialog>
+
+
+
+@* Diálogo Detalhes *@
+@if (DetailsDialogVisibility && CurrentDetails is not null)
+{
+    <SfDialog Width="50%"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              EnableResize="true"
+              AllowDragging="true"
+              @bind-Visible="DetailsDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="font-weight-bold">
+                    @CurrentDetails.Name
+                </div>
+            </Header>
+            <Content>
+                <p>@CurrentDetails.Description</p>
+                <hr />
+                <ul class="list-group">
+                    @foreach (var item in CurrentDetails.Items.OrderBy(i => i.SortOrder))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@item.Title</span>
+                            <span class="badge badge-secondary">@item.MediaType</span>
+                        </li>
+                    }
+                </ul>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="CloseDetails">
+                        &nbsp;@localizerApp["BtnSalir"]
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration="400"></DialogAnimationSettings>
+    </SfDialog>
+}
+
+<SfDialog @bind-Visible="AddItemDialogVisibility" Width="50%"
+          Height="80%"
+          IsModal="true" ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>
+            <h3>Selecionar Arquivo</h3>
+        </Header>
+        <Content>
+            @{
+                if (DialogItems is null)
+                {
+                    <div class="p-3">
+                        <span>Carregando...</span>
+                    </div>
+                }
+            }
+            <MediaSelector AlreadyAddedFiles="@DialogItems"
+                           MediaTypePar="@((int)SelectedPlaylist.MediaType)"
+                           PlayListId="@SelectedPlaylist.Id"
+                           OnFileSelected="HandleFilesSelected" />
+        </Content>
+        <FooterTemplate>
+            <SfButton CssClass="e-danger" @onclick="CloseAddItemDialog">Cancelar</SfButton>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
+
+
+@* Diálogo de Confirmação de Exclusão *@
+<ConfirmDeleteComponent Visible="@DeleteRecordConfirmVisibility"
+                        AlertMessageType="AlertMessageType.Error"
+                        ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
+                        DialogTitle="@localizerApp["TituloApagarRegisto"]"
+                        Message="@SelectedPlaylist.Name"
+                        OnConfirmationYes="ConfirmDeleteYes"
+                        OnConfirmationNo="CloseDialogDelete" />
+@* Diálogo de Confirmação de Exclusão de item na playlist *@
+<ConfirmDeleteComponent Visible="@DeletePlaylistItemConfirmVisibility"
+                        AlertMessageType="AlertMessageType.Error"
+                        ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
+                        DialogTitle="@localizerApp["TituloApagarRegisto"]"
+                        Message="@(SelectedPlaylistItem.Title + " - " + @SelectedPlaylistItem.Author)"
+                        OnConfirmationYes="ConfirmDeletePlaylistItemYes"
+                        OnConfirmationNo="@(()=> @DeletePlaylistItemConfirmVisibility = false)" />
+
+@* Erros de validação *@
+<ValidateErrorComponent DialogEffect="DialogEffect.FlipXUp"
+                        DialogTitle="@ErrorTitle"
+                        Visible="@ErrorVisibility"
+                        OnCloseDialog="@(()=>ErrorVisibility=false)"
+                        ValidationMessages="@ValidationMessages" />
+
+<style>
+    .button-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .radio-button-container {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .e-radio-wrapper.e-info .e-radio:checked + label::before {
+        border-color: #2196f3;
+        background-color: blue;
+    }
+</style>

@@ -1,0 +1,280 @@
+﻿@page "/categoriasMedia"
+
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Navigations
+@using MediaOrganizerApp.Application.DTOs
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+@inherits CategoriasMediaBase
+
+@attribute [Authorize]
+@{
+    var Tool = (new List<object>()
+{
+        "Search",
+        new ItemModel() {
+            PrefixIcon = "fa fa-times",
+            TooltipText = "Clear",
+            Align = ItemAlign.Right,
+            Id = "Clear"
+        }
+    }
+    );
+}
+
+<div class="title">@(localizerApp["frmCategorias"]) (Media)</div>
+<div class="underline"></div>
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+@if (categorias == null || !categorias.Any())
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="mt-2 col-lg-12 control-section">
+        <div class="content-wrapper">
+            <div class="row">
+                <div class="e-dddata">
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-plus"
+                              @onclick="NotifyAddingRecord">
+                        &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
+                    </SfButton>
+                    <br /><br />
+                </div>
+                <hr>
+                <div id="target" class="table table-responsive overflow-auto table-striped">
+                    <SfGrid @ref="gridObj"
+                            DataSource="@categorias"
+                            AllowFiltering="false"
+                            Toolbar="@Tool"
+                            AllowGrouping="false"
+                            AllowPaging="true"
+                            AllowSorting="true"
+                            RowHeight="32"
+                            Width="70%"
+                            Height="100%"
+                            AllowTextWrap="true">
+                        <GridPageSettings PageSize="12" PageCount="12" PageSizes="true"></GridPageSettings>
+                        <GridEvents OnToolbarClick="OnToolbarClick"
+                                    CommandClicked="OnCommandClicked"
+                                    TValue="CategoryVM"></GridEvents>
+                        <GridTemplates>
+                            <DetailTemplate>
+                                <SfTab Height="240" HeaderPlacement="HeaderPosition.Top">
+                                    <TabItems>
+                                        <TabItem>
+                                            <ChildContent>
+                                                <TabHeader Text="@(localizerApp["MSG_PubsCatalogadas"])"></TabHeader>
+                                            </ChildContent>
+                                            <ContentTemplate>
+                                                @{
+                                                    var category = (context as CategoryVM);
+                                                    var MediaCatalogados = GetMediaCatalogadas(category.Id);
+                                                }
+                                                <div class="table table-striped p-3">
+                                                    <SfGrid Width="100%"
+                                                            DataSource="@MediaCatalogados"
+                                                            EnablePersistence="true"
+                                                            RowHeight="32"
+                                                            AllowSorting="true" AllowPaging="true">
+                                                        <GridPageSettings PageSize="8"></GridPageSettings>
+                                                        <GridColumns>
+                                                            <GridColumn Field=@nameof(MediaVM.Titulo) HeaderText="Título" Width="250"></GridColumn>
+                                                            <GridColumn Field=@nameof(MediaVM.NomeAutor) HeaderText="Autor" Width="150"></GridColumn>
+                                                            <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="Formato" Width="120"></GridColumn>
+                                                        </GridColumns>
+                                                    </SfGrid>
+                                                </div>
+                                            </ContentTemplate>
+                                        </TabItem>
+                                    </TabItems>
+
+                                </SfTab>
+                            </DetailTemplate>
+                        </GridTemplates>
+                        <GridColumns>
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="true" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="50">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                   {
+                                                                       CssClass = "e-btn e-primary e-round",
+                                                                       IconCss = "fa fa-edit",
+                                                                       IconPosition = @IconPosition.Left
+                                                                   })">
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                   {
+                                                                       CssClass = "e-btn e-danger e-round",
+                                                                       IconCss = "fa fa-trash",
+                                                                       IconPosition = @IconPosition.Left
+                                                                   })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
+                            <GridColumn Field=@nameof(CategoryVM.Id)
+                                        HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true"
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="50"></GridColumn>
+                            <GridColumn Field=@nameof(CategoryVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
+
+                        </GridColumns>
+                    </SfGrid>
+                </div>
+            </div>
+        </div>
+    </div>
+    <SfDialog Target="#target"
+              Width="450px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="EditDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="header">
+                    @if (blnEdit)
+                    {
+                        <p>@localizerApp["editionMsg"]&nbsp;@localizerApp["Record"]</p>
+                    }
+                    else
+                    {
+                        <p>@localizerApp["NewMsg"]&nbsp;@localizerApp["Record"]</p>
+                    }
+                </div>
+            </Header>
+            <Content>
+                <EditCategoriaPublicacao SelectedRecord="@SelectedCategory" blnEdit="@blnEdit" />
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord">
+                        &nbsp;@(localizerApp["btnSalvar"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="Voltar">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog @bind-Visible="@DeleteRecordConfirmVisibility"
+              Width="450px" Height="auto"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    @(localizerApp["lblCategoria"]): @SelectedCategory.Descricao
+                </div>
+            </Header>
+            <Content>
+                <div class="row">
+                    <div class="col-9">
+                        <AlertMessage Message="@(localizerApp["ConfirmarExclusao"])" MessageType="AlertMessageType.Error"></AlertMessage>
+                    </div>
+                    <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Apagar)" />
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="e-footer">
+                    <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-trash"
+                              @onclick="ConfirmDeleteYes">
+                        &nbsp;@(localizerApp["Sim"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="ConfirmDeleteNo">
+                        &nbsp;@(localizerApp["Nao"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog Target="#target"
+              Width="400px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ValidationErrorsVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="alert-warning">
+                    @(localizerApp["DadosEmFalta"]).
+                </div>
+            </Header>
+            <Content>
+                <div class="border-warning">
+                    <div>
+                        @(localizerApp["lblCategoria"]): @SelectedCategory.Descricao
+                        <br />
+                    </div>
+                    <div>
+                        Tem @mediaCatalogadas.ToString() @(localizerApp["RegistosCatalogados"]).
+                    </div>
+                    <AlertMessage Message="@(localizerApp["OperacaoCancelada"])" MessageType="AlertMessageType.Warning"></AlertMessage>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="button-container">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              @onclick="closeAlertBox">
+                        &nbsp;@(localizerApp["btnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Target="#target"
+              Width="600px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ErrorVisibility">
+        <DialogTemplates>
+            <Header>
+                @(localizerApp["DadosEmFalta"])
+            </Header>
+            <Content>
+                <AlertMessage Message="@sErrorMsgs" MessageType="AlertMessageType.Warning"></AlertMessage>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="closeErrorBox">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+}
+
+<SfToast @ref="ToastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         CssClass="@ToastCssClass"
+         Timeout="@ToastTimeOut"
+         ShowCloseButton="true">
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+</SfToast>

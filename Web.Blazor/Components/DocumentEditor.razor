@@ -1,0 +1,77 @@
+﻿@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.DocumentEditor
+@using System.IO
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+
+@inject ILogger<App> _logger
+
+<div class="document-options">
+    <SfButton CssClass="e-btn e-outline bg-info e-round-corner"
+              IconCss="fas fa-print"
+              OnClick="OnPrint"
+              Content="Print" />
+</div>
+<hr />
+<SfDocumentEditorContainer @ref="container"
+                           EnableToolbar=false
+                           DocumentEditorSettings="settings"
+                           Height="590px">
+    <DocumentEditorContainerEvents Created="OnLoad" />
+</SfDocumentEditorContainer>
+
+
+@code {
+    [Parameter] public string DocumentPath { get; set; } = string.Empty;
+
+    protected SfDocumentEditorContainer container;
+
+
+    DocumentEditorSettingsModel settings = new DocumentEditorSettingsModel() { PrintDevicePixelRatio = 2 };
+
+    protected override void OnInitialized()
+    {
+    }
+
+    protected override void OnParametersSet()
+    {
+    }
+
+    public void OnLoad(object args)
+    {
+        try
+        {
+            using (FileStream fileStream = new FileStream(DocumentPath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            {
+                WordDocument document = WordDocument.Load(fileStream, ImportFormatType.Docx);
+                string json = JsonSerializer.Serialize(document);
+                document.Dispose();
+                document = null;
+                SfDocumentEditor editor = container.DocumentEditor;
+                editor.OpenAsync(json);
+                json = null;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex.Message);
+            return;
+        }
+    }
+
+    protected async Task OnPrint(object args)
+    {
+        await container.DocumentEditor.PrintAsync();
+    }
+}
+
+<style type="text/css">
+    .document-options {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        align-items: flex-end;
+        margin-right: 10px;
+    }
+</style>

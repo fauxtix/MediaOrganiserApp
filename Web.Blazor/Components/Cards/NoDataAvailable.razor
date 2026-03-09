@@ -1,0 +1,85 @@
+﻿@page "/no-data"
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Buttons
+
+@if(Visible)
+{
+    
+<SfDialog Width="400px" IsModal="true" ShowCloseIcon="true" Visible="true" CssClass="custom-dialog">
+    <DialogTemplates>
+        <Header>
+            <h4>@CardTitle</h4>
+        </Header>
+        <Content>
+            <div class="custom-card">
+                <div class="custom-message">
+                    <p>There is currently no data to display. Please check back later.</p>
+                    <SfButton CssClass="close-btn" @onclick="NavigateToHome" Content="Close" />
+                </div>
+            </div>
+        </Content>
+    </DialogTemplates>
+</SfDialog>
+}
+
+@code {
+    [Inject] private NavigationManager NavigationManager { get; set; }
+    [Parameter] public string CardTitle { get; set; } = string.Empty;
+    [Parameter] public bool Visible { get; set; } = false;
+    private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
+
+<style>
+    .custom-dialog {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adding a more prominent shadow for the dialog */
+        border-radius: 10px; /* Rounded corners */
+    }
+
+    .custom-card {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adding a subtle shadow */
+        border-radius: 10px; /* Rounded corners */
+        padding: 20px;
+        background-color: #fff; /* White background */
+        margin-top: 10px; /* Adding some margin at the top */
+        text-align: center; /* Centering the text */
+    }
+
+    .custom-message {
+        background-color: #f8d7da; /* Soft red background */
+        border: 1px solid #f5c6cb; /* Soft red border */
+        color: #721c24; /* Dark red text */
+        padding: 20px;
+        border-radius: 10px; /* Rounded corners for the message box */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adding a subtle shadow to the message box */
+    }
+
+    .custom-message-heading {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .custom-message p {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .close-btn {
+        background-color: #007bff; /* Bootstrap primary color */
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px; /* Rounded corners */
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .close-btn:hover {
+            background-color: #0056b3; /* Darker shade of the primary color */
+        }
+</style>
+

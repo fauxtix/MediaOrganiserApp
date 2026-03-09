@@ -1,0 +1,171 @@
+﻿@page "/BackupDatabase"
+
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using Microsoft.Extensions.Configuration;
+@using Microsoft.Extensions.Localization;
+@using Microsoft.Extensions.Logging
+@using Web.Blazor.Components
+
+
+@inject IUtilitiesService utilities
+@inject IAppSettingsService AppSettingsService
+@inject NavigationManager navigationManager
+@inject IConfiguration _env
+@inject IStringLocalizer<App> localizerApp
+@inject ILogger<App> logger
+@inject IWebHostEnvironment _env
+
+<PageTitleComponent PageTitle="@localizerApp["BackupTitle"]" />
+
+
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["TituloProcessandoPedido"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+<div>
+    <SfDialog Width="450px"
+              Height="auto"
+              @bind-Visible="BackupDialogVisibility"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div class="text-wrap">@localizerApp["BackupTitle"]</div>
+            </Header>
+            <Content>
+                <div id="spinnerContainer"></div>
+                <div class="row">
+                    <div class="col-9">
+                        <AlertMessage Message="@localizerApp["MSG_ConfirmarOperacao"]"
+                                      MessageType="AlertMessageType.Warning"></AlertMessage>
+                    </div>
+                    <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Backup)" />
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-check"
+                              @onclick="btnBackup_Click">
+                        &nbsp;@localizerApp["Sim"]
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-normal e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="btnExit">
+                        &nbsp;@localizerApp["Nao"]
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="Syncfusion.Blazor.Popups.DialogEffect.FadeZoom" Duration=1000></DialogAnimationSettings>
+    </SfDialog>
+</div>
+<SfToast ID="toast_default" @ref="ToastObj"
+         Title="@localizerApp["BackupTitle"]"
+         Content="@ToastContent"
+         Icon="@ToastIcon"
+         CssClass="@ToastCssClass"
+         Timeout="5000" ShowCloseButton="false">
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+    <ToastButtons>
+        <ToastButton Content="@localizerApp["btnFechar"]"
+                     OnClick="@HideToast">
+        </ToastButton>
+    </ToastButtons>
+</SfToast>
+
+<AlertUserComponent Visibility="@AlertVisibility"
+                    Title="@localizerApp["BackupTitle"]"
+                    Message="@ToastContent"
+                    AlertMessageType="AlertMessageType.Success"
+                    XPosition="center"
+                    YPosition="center"
+                    OnCloseDialog="CloseDialog"
+                    DialogWidth="400"
+                    ShowRightSideIcon="true"
+                    MessageNote="@noteMessage" />
+
+
+
+@code {
+    protected ApplicationSettingsDto AppSettings;
+    protected SfToast ToastObj;
+    protected SfSpinner SpinnerObj;
+    protected string spinnerTarget { get; set; } = "#spinnerContainer";
+
+    protected bool BackupDialogVisibility { get; set; }
+    protected string ToastIcon = "e-icon-ThumbsUp";
+    protected bool AlertVisibility { get; set; } = false;
+    protected string noteMessage = string.Empty;
+
+
+    public string ToastContent { get; set; }
+    public string ToastCssClass { get; set; }
+
+    protected override void OnInitialized()
+    {
+        BackupDialogVisibility = true;
+    }
+
+    async Task btnBackup_Click()
+    {
+        await Task.Delay(200);
+        await SpinnerObj.ShowAsync();
+        AppSettings = await AppSettingsService.GetSettingsAsync();
+
+        string backupFolder = AppSettings.PastaBackupBD;
+        string wwwrootFolder = _env.WebRootPath;
+        var backupPath = Path.Combine(wwwrootFolder, "Files" + backupFolder);
+
+        bool backupOk = await utilities.BackupDatabase(backupPath);
+
+        await Task.Delay(200);
+        await SpinnerObj.HideAsync();
+
+        if (backupOk)
+        {
+            ToastContent = localizerApp["msgSuccess"];
+            ToastCssClass = "e-toast-success";
+            ToastIcon = "e-icon-ThumbsUp";
+            logger.LogInformation(ToastContent);
+            BackupDialogVisibility = false;
+        }
+        else
+        {
+            ToastContent = localizerApp["BackupDatabaseError"];
+            ToastCssClass = "e-toast-danger";
+            ToastIcon = "e-icon-ThumbsDown";
+            logger.LogError(ToastContent);
+
+        }
+        // StateHasChanged();
+        // await Task.Delay(1200);
+        AlertVisibility = true;
+        // await ToastObj.ShowAsync();
+        // await btnExit();
+
+    }
+
+    async Task btnExit()
+    {
+        BackupDialogVisibility = false;
+        StateHasChanged();
+        await Task.Delay(200);
+
+        navigationManager.NavigateTo("/");
+    }
+
+    private async Task HideToast()
+    {
+        await ToastObj.HideAsync();
+    }
+    private async Task CloseDialog()
+    {
+        AlertVisibility = false;
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        navigationManager.NavigateTo("/");
+    }
+}

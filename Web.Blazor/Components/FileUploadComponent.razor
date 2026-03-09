@@ -1,0 +1,80 @@
+﻿<div class="form-row">
+    <div class="form-group control-section">
+        <label class="col-form-label">Carrega imagem:</label>
+        <SfUploader ID="UploadFiles" AllowMultiple=false
+                    AllowedExtensions=".png,.jpeg,.jpg">
+            <UploaderEvents ValueChange="onChange" OnRemove="onRemove"></UploaderEvents>
+            <UploaderTemplates>
+                <Template Context="HttpContext">
+                    <table>
+                        <tr>
+                            <td>
+                                <img class="upload-image" alt="Preview Image @(HttpContext.Name)"
+                                     src="@(files.Count >0 ? files.Where(item=>item.Name == HttpContext.Name)?.FirstOrDefault()?.Path : string.Empty)">
+                            </td>
+                            <td>
+                                <div style="padding: 7px;">
+                                    <h5 title="@(HttpContext.Name)">@(HttpContext.Name)</h5>
+                                    <i>@(HttpContext.Size) Bytes</i>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <span class="e-icons e-file-remove-btn remove" id="removeIcon" title="Remover"></span>
+                    <span class="e-upload-icon e-icons e-file-remove-btn" title="Upload" id="iconUpload"
+                          @onclick="@uploadFile"></span>
+                </Template>
+            </UploaderTemplates>
+        </SfUploader>
+    </div>
+</div>
+
+@code {
+    [Inject] public HttpClient Http { get; set; }
+    public MultipartFormDataContent content;
+    public string responseStr;
+    public HttpResponseMessage filepath { get; set; }
+    List<fileInfo> files = new List<fileInfo>();
+
+    public class fileInfo
+    {
+        public string Path { get; set; }
+        public string Name { get; set; }
+        public double Size { get; set; }
+    }
+
+    public void onChange(Syncfusion.Blazor.Inputs.UploadChangeEventArgs args)
+    {
+        files = new List<fileInfo>();
+        foreach (var file in args.Files)
+        {
+            var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), "images");
+            var fullPath = Path.Combine(pathToSave, file.FileInfo.Name);
+            byte[] bytes = file.Stream.ToArray();
+            string base64 = Convert.ToBase64String(bytes);
+            files.Add(new fileInfo() { Path = @"data:image/" + file.FileInfo.Type + ";base64," + base64, Name = file.FileInfo.Name, Size = file.FileInfo.Size });
+            content = new MultipartFormDataContent {
+                    { new ByteArrayContent(file.Stream.GetBuffer()), "\"uploads\"", file.FileInfo.Name }
+                };
+        }
+    }
+
+    public async Task uploadFile(MouseEventArgs args)
+    {
+        //filepath = await ApiImagesWrapper.UploadImage(content):;
+        filepath = await Http.PostAsync("https://localhost:4000/api/Images/Save", content);
+        var filepath2 = await Http.PostAsync("https://localhost:4000/api/Images/Upload", content);
+        this.responseStr = await filepath.Content.ReadAsStringAsync();
+    }
+
+    public void onRemove(RemovingEventArgs args)
+    {
+        foreach (var removeFile in args.FilesData)
+        {
+            if (File.Exists(Path.Combine(@"\Images", removeFile.Name)))
+            {
+                File.Delete(Path.Combine(@"\Images\", removeFile.Name));
+            }
+        }
+    }
+}

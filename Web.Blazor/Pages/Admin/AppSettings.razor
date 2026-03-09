@@ -1,0 +1,408 @@
+@page "/admin/appsettings"
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Diagnostics
+@using Web.Blazor.Components
+@using Syncfusion.Blazor.FileManager
+
+<PageTitle>@L["menu-admin-main"]</PageTitle>
+<PageTitleComponent PageTitle="@L["menu-admin-main"]"></PageTitleComponent>
+@if (settings is null)
+{
+    <LoadingData />
+}
+else
+{
+
+    <SfBreadcrumb>
+        <BreadcrumbItems>
+            <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
+            <BreadcrumbItem Text="@L["TituloDefinicoes"]" Url="/admin/appsettings" />
+        </BreadcrumbItems>
+    </SfBreadcrumb>
+    <hr />
+
+    <div class="container">
+        <EditForm Model="@settings">
+            <SfTab>
+                <TabItems>
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="@L["TituloPastas"]" IconCss="e-folders"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            @* <SfMessage CssClass="rounded" Variant="MessageVariant.Filled" ContentAlignment="HorizontalAlign.Center"
+                                       Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false>Folders</SfMessage> *@
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>Downloads</h5></SfMessage>
+                                </div>
+                                <div class="col-md-6 col-sm-12 ">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloBackups"]</h5></SfMessage>
+                                </div>
+                            </div>
+                            <div class="row my-1">
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="Pdf's'" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="@L["btnManutBD"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                            </div>
+                            <div class="row my-1">
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsMedia" Placeholder="@L["TituloFormatoMedia"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.MediaDownloads))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["TituloUploadsPublicacoes"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12 ">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloArmazenamento"]</h5></SfMessage>
+                                </div>
+                                <div class="col-md-6 col-sm-12 ">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["lblImagens"]</h5></SfMessage>
+                                </div>
+                            </div>
+
+                            <div class="row my-1">
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-1" @bind-Value="settings.PastaPublicacoes" Placeholder="@L["mnuLivros"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.PublicationsFolder))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaImagens" Placeholder="@L["TituloAplicacao"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.ImagesFolder))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                            </div>
+                            <div class="row my-1">
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaListagens" Placeholder="@L["TituloListagens"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.ReportsFolder))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaImagensAutores" Placeholder="@L["TituloImagensAutores"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.AuthorImagesFolder))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+                            </div>
+                            <div class="row my-1">
+                                <div class="col-md-6"></div>
+                                <div class="col-md-4 col-sm-12">
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaImagensCapasLivros" Placeholder="@L["TituloImagensCapasLivros"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-2 col-sm-12 mt-4">
+                                    <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.BookImagesFolder))"><i class="fa fa-folder-open p-1"></i></SfButton>
+                                </div>
+
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="@L["TituloOtherSettings"]" IconCss="e-settings"></TabHeader>
+
+                        </ChildContent>
+                        <ContentTemplate>
+                            @* <SfMessage CssClass="rounded" Variant="MessageVariant.Filled" ContentAlignment="HorizontalAlign.Center"
+                                       Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false>Other Settings</SfMessage> *@
+
+                            <div class="row my-1">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloContactos"]</h5></SfMessage>
+                                    <SfTextBox class="form-control mt-1" @bind-Value="settings.AuthorMobile" Placeholder="@L["lblAutor"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    <SfTextBox class="form-control mt-1" @bind-Value="settings.SupportMail" Placeholder="@L["TituloEmailSuporte"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloOutrasDefinicoes"]</h5></SfMessage>
+
+                                    <SfNumericTextBox class="form-control mt-1" @bind-Value="settings.TempoNotifier" Min="1" Max="5" Width="30%"
+                                                      Placeholder="@L["TituloNotificationTime"]" " FloatLabelType="FloatLabelType.Always"></SfNumericTextBox>
+                                    <div class="row mt-2">
+                                        <div class="col-md-9 my-1">
+                                            <div class="form-label mt-2" style="color:black;font-size:small">@L["TituloFicheirosOrganizados"]</div>
+                                            <div class="form-label mt-2" style="color:black; font-size:small">@L["TituloRemoverImagemAposEdicao"]</div>
+                                        </div>
+                                        <div class="col-md-3 my-1">
+                                            <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.FicheirosOrganizados" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                            <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.RemoveImagemAposAlteracao" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloDefaultLanguage"]</h5></SfMessage>
+                                    <SfDropDownList TValue="string" CssClass="template"
+                                                    TItem="CountryModel"
+                                                    Placeholder="@L["lblEscolhaLinguagem"]"
+                                                    DataSource="@CountryData" Value="@selectedCulture">
+                                        <DropDownListTemplates TItem="CountryModel">
+                                            <ItemTemplate Context="langCtx">
+                                                <div>
+                                                    <img class="empImage" src="/images/@((langCtx as CountryModel).Pic).png" alt="país" />
+                                                    <div class="ename">@L[((langCtx as CountryModel).Text!)] </div>
+                                                </div>
+                                            </ItemTemplate>
+                                            <ValueTemplate Context="ctx">
+                                                <div class="dropdown-width" style="width:100%;height:100%;">
+                                                    <img class="value" src="/images/@((ctx as CountryModel).Pic).png" height="26" width="26" alt="país">
+                                                    <div class="name">@L[((ctx as CountryModel).Text!)] </div>
+                                                </div>
+                                            </ValueTemplate>
+                                        </DropDownListTemplates>
+                                        <DropDownListFieldSettings Value="ID" Text="Text"></DropDownListFieldSettings>
+                                        <DropDownListEvents TItem="CountryModel" TValue="string" ValueChange="OnSelected"></DropDownListEvents>
+                                    </SfDropDownList>
+                                </div>
+
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloChaveApi"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]"></SfTextBox>
+                                </div>
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+                </TabItems>
+            </SfTab>
+            <hr />
+            <div class="d-flex justify-content-center align-items-md-center my-3">
+                <SfButton CssClass="e-btn e-primary e-round-corner pl-2 pr-3" IconCss="fa fa-save" OnClick="UpdateSettings">@L["btnSalvar"]</SfButton>
+            </div>
+
+        </EditForm>
+    </div>
+}
+
+
+<SfDialog Width="50%"
+          Height="auto"
+          IsModal="true"
+          EnableResize="true"
+          AllowDragging="true"
+          CloseOnEscape="true"
+          ShowCloseIcon="false"
+          @bind-Visible="IsFileManagerVisible">
+    <DialogTemplates>
+        <Header>
+            <h5>@dialogTitle</h5>
+        </Header>
+        <Content>
+            <SfFileManager TValue="FileManagerDirectoryContent"
+                           AllowMultiSelection="false"
+                           Width="100%" Height="400px">
+                <FileManagerAjaxSettings Url="/api/FileManager/FileOperations"
+                                         UploadUrl="/api/FileManager/Upload"
+                                         DownloadUrl="/api/FileManager/Download"
+                                         GetImageUrl="/api/FileManager/GetImage">
+                </FileManagerAjaxSettings>
+                <FileManagerEvents TValue="FileManagerDirectoryContent"
+                                   FileSelection="FileSelection"></FileManagerEvents>
+            </SfFileManager>
+
+        </Content>
+        <FooterTemplate>
+            <SfButton CssClass="e-btn e-success e-round-corner"
+                      IconCss="fa fa-times p-1"
+                      @onclick="(() => IsFileManagerVisible = false)" Content="Confirmar">
+            </SfButton>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+</SfDialog>
+
+<SfToast ID="toast_custom" @ref="ToastObj" ShowProgressBar=true
+         Title="@ToastTitle" Icon="@ToastIcon"
+         Content="@ToastMessage"
+         CssClass="@ToastCss" Timeout="2000"
+         ShowCloseButton="true">
+    <ToastAnimationSettings>
+        <ToastShowAnimationSettings Effect="ToastEffect.FadeIn" Duration="600"></ToastShowAnimationSettings>
+        <ToastHideAnimationSettings Effect="ToastEffect.FadeOut" Duration="600"></ToastHideAnimationSettings>
+    </ToastAnimationSettings>
+    <ToastButtons>
+        <ToastButton Content="@L["btnFechar"]" OnClick="@HideToast"></ToastButton>
+    </ToastButtons>
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+</SfToast>
+
+<style type="text/css">
+    .container .e-message {
+        margin: 10px 0;
+        font-size: 3rem;
+    }
+
+        .container .e-message.rounded {
+            border-radius: 15px;
+        }
+
+    .e-round-corner {
+        border-radius: 10px;
+    }
+
+    .template.e-popup .e-list-item * {
+        display: block;
+        text-indent: 0;
+    }
+
+    .e-bigger:not(.bootstrap) .template .e-dropdownbase .e-list-item {
+        line-height: 42px;
+        height: 80px;
+    }
+
+    .e-bigger:not(.bootstrap) .template.e-popup .empImage {
+        margin: 10px 16px;
+    }
+
+    .bootstrap4 .template.e-popup .empImage {
+        margin: 0px 16px;
+    }
+
+    .bootstrap .ename {
+        font-size: 15px;
+        margin-top: 20px;
+        opacity: .87;
+        padding: 3px 0 20px;
+    }
+
+    .e-bigger.bootstrap .ename {
+        font-size: 12px;
+        padding-bottom: 15px;
+    }
+
+    .e-dialog .e-dlg-header {
+        color: #F0FFFF;
+        font-size: 20px;
+        font-weight: normal;
+    }
+
+    .e-dialog .e-dlg-content {
+        color: #F0FFFF;
+        font-size: 10px;
+        font-weight: normal;
+        line-height: normal;
+    }
+
+    .e-dlg-overlay {
+        background-color: slategray;
+        opacity: 0.6;
+    }
+
+    .e-dialog .e-dlg-header {
+        color: #F0FFFF;
+    }
+
+    .ename {
+        display: block !important;
+        opacity: .87;
+        font-size: 16px;
+        margin-top: 8px;
+    }
+
+    .name {
+        padding: 5px 42px;
+        opacity: .87;
+        line-height: 1.063em;
+    }
+
+    .empImage {
+        margin: 6px 16px;
+        float: left;
+        width: 25px;
+        height: 25px;
+    }
+
+    .value {
+        border-radius: 50%;
+        float: left;
+        margin-top: 2px;
+        margin-left: 2px;
+    }
+
+    .e-tab {
+        border: 5px solid steelblue;
+        padding: 5px;
+        gap: 5px;
+    }
+
+        .e-tab .e-tab-header .e-toolbar-items {
+            background: #9faed8;
+            border: 2px solid gray;
+        }
+
+        .e-tab .e-content .e-item {
+            color: #a78515;
+            font-size: 14px;
+        }
+
+        .e-tab .e-tab-header {
+            background: #badfba !important;
+            align-items: center;
+        }
+
+            .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
+                color: #badfba !important;
+                align-items: center;
+            }
+
+            .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+                background: #d1f6d1 !important;
+            }
+
+            .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
+            .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
+                background: #d1f6d1 !important;
+            }
+
+            .e-tab .e-tab-header .e-toolbar-item.e-active {
+                background: #d1f4d1;
+            }
+
+                .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+                .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
+                    color: steelblue !important;
+                    align-items: center;
+                }
+
+    .e-folders:before {
+        content: '\e760';
+    }
+
+    .e-settings:before {
+        content: '\<a href="#"></a>';
+    }
+
+</style>

@@ -1,0 +1,325 @@
+﻿@page "/locaisarquivo"
+@inherits LocaisArquivoBase
+
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Navigations
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+
+@attribute [Authorize]
+
+@{
+    var Tool = (new List<object>()
+{
+        "Search",
+        new ItemModel() {
+            PrefixIcon = "fa fa-times",
+            TooltipText = "Clear",
+            Align = ItemAlign.Right,
+            Id = "Clear"
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "e-download-icon",
+            Text = "Listagem",
+            Id = "FLPDF"
+        }
+
+    }
+         );
+}
+<div class="title">@(localizerApp["frmLocaisArquivo"])</div>
+<div class="underline"></div>
+<br />
+
+<div id="spinnerContainer"></div>
+
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+@if (locaisArquivo == null || !locaisArquivo.Any())
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="col-lg-12 control-section">
+        <div class="content-wrapper">
+            <div class="row">
+                <div class="e-dddata">
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-plus"
+                              IsPrimary="true"
+                              @onclick="NotifyAddingRecord">
+                        &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
+                    </SfButton>
+                    <br /><br />
+                </div>
+                <hr>
+                <div id="target">
+                    <div id="grid-container">
+                        <SfGrid @ref="gridObj"
+                                DataSource="@locaisArquivo"
+                                AllowFiltering="false"
+                                AllowGrouping="false"
+                                Toolbar="@Tool"
+                                AllowPaging="false"
+                                AllowSorting="true"
+                                RowHeight="32"
+                                Width="70%"
+                                Height="100%"
+                                AllowTextWrap="true">
+                            <GridPageSettings PageSize="9"></GridPageSettings>
+                            <GridEvents OnToolbarClick="OnToolbarClick"
+                                        CommandClicked="OnCommandClicked"
+                                        TValue="LocalArquivoVM"></GridEvents>
+                            <GridTemplates>
+                                <DetailTemplate>
+                                    <SfTab Height="240" HeaderPlacement="HeaderPosition.Top">
+                                        <TabItems>
+                                            <TabItem>
+                                                <ChildContent>
+                                                    <TabHeader Text="@(localizerApp["MSG_PubsCatalogadas"])"></TabHeader>
+                                                </ChildContent>
+                                                <ContentTemplate>
+                                                    @{
+                                                        var storage = (context as LocalArquivoVM);
+                                                        var PubsCatalogadas = GetPubsCatalogadas(storage.Id);
+                                                    }
+                                                    <div style="padding:25px">
+                                                        <SfGrid Width="100%" DataSource="@PubsCatalogadas">
+                                                            <GridEvents CommandClicked="OnPdfButtonClicked" TValue="PublicacoesVM"></GridEvents>
+                                                            <GridColumns>
+                                                                <GridColumn Field=@nameof(PublicacoesVM.Titulo) HeaderText="Título" Width="250"></GridColumn>
+                                                                <GridColumn Field=@nameof(PublicacoesVM.NomeAutor) HeaderText="Autor" Width="120"></GridColumn>
+                                                                <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" Width="100">
+                                                                    <GridCommandColumns>
+                                                                        <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["LerPdf"]"
+                                                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                                                       {
+                                                                                                           CssClass = "e-btn e-info e-round",
+                                                                                                           IconCss = "fa fa-file-pdf-o",
+                                                                                                           IconPosition = @IconPosition.Left
+                                                                                                       })">
+                                                                        </GridCommandColumn>
+                                                                    </GridCommandColumns>
+                                                                </GridColumn>
+                                                            </GridColumns>
+                                                        </SfGrid>
+                                                    </div>
+                                                </ContentTemplate>
+                                            </TabItem>
+                                        </TabItems>
+
+                                    </SfTab>
+                                </DetailTemplate>
+                            </GridTemplates>
+                            <GridColumns>
+                                <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="50px">
+                                    <GridCommandColumns>
+                                        <GridCommandColumn Type=CommandButtonType.Edit
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           CssClass = "e-btn e-primary e-round",
+                                                                           IconCss = "fa fa-edit",
+                                                                           IconPosition = @IconPosition.Left
+                                                                       })">
+                                        </GridCommandColumn>
+                                        <GridCommandColumn Type=CommandButtonType.Delete
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-danger e-round",
+                                                                           IconCss = "fa fa-trash",
+                                                                           IconPosition = @IconPosition.Left
+                                                                       })">
+                                        </GridCommandColumn>
+                                    </GridCommandColumns>
+                                </GridColumn>
+                                <GridColumn Field=@nameof(LocalArquivoVM.Id)
+                                            HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true"
+                                            TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="60"></GridColumn>
+                                <GridColumn Field=@nameof(LocalArquivoVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
+                                            TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
+                            </GridColumns>
+                        </SfGrid>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <SfDialog Target="#target"
+              Width="450px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="EditDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="header">
+                    @if (blnEdit)
+                    {
+                        <p>@localizerApp["editionMsg"]&nbsp;@localizerApp["Record"]</p>
+                    }
+                    else
+                    {
+                        <p>@localizerApp["NewMsg"]&nbsp;@localizerApp["Record"]</p>
+                    }
+                </div>
+            </Header>
+            <Content>
+                <EditLocalArquivo SelectedStoragePlace="@SelectedStoragePlace" blnEdit="@blnEdit" />
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord">
+                        &nbsp;@(localizerApp["btnSalvar"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="Voltar">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog @bind-Visible="@DeleteRecordConfirmVisibility"
+              Width="450px" Height="auto"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div class="text-wrap">
+                    @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
+                </div>
+            </Header>
+            <Content>
+                <div class="row">
+                    <div class="col-9">
+                        <AlertMessage Message="@(localizerApp["ConfirmarExclusao"])" MessageType="AlertMessageType.Error"></AlertMessage>
+                    </div>
+                    <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Apagar)" />
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="e-footer">
+                    <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-trash"
+                              @onclick="ConfirmDeleteYes">
+                        &nbsp;@(localizerApp["Sim"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="ConfirmDeleteNo">
+                        &nbsp;@(localizerApp["Nao"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog Target="#target"
+              Width="400px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ValidationErrorsVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="alert-warning">
+                    @localizerApp["DadosEmFalta"]
+                </div>
+            </Header>
+            <Content>
+                <div class="border-warning">
+                    <div>
+                        @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
+                        <br />
+                    </div>
+                    <div>
+                        @pubsCatalogadas.ToString()&nbsp;@(localizerApp["RegistosCatalogados"])
+                    </div>
+                    <div class="border-warning">
+                        <br />
+                        @(localizerApp["OperacaoCancelada"])
+                    </div>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="button-container">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              @onclick="closeAlertBox">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Target="#target"
+              Width="600px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ErrorVisibility">
+        <DialogTemplates>
+            <Header>
+                @(localizerApp["DadosEmFalta"])
+            </Header>
+            <Content>
+                <AlertMessage Message="@sErrorMsgs" MessageType="AlertMessageType.Warning"></AlertMessage>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="closeErrorBox">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%" Height="90%"
+              IsModal="true"
+              ShowCloseIcon="true"
+              CssClass="sidebar" AllowDragging="true"
+              @bind-Visible="ReadPdfVisibility">
+        <DialogTemplates>
+            <Header>
+                @PdfTitle
+            </Header>
+            <Content>
+                <ReadPDF PdfFile="@DigitalPath" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              @onclick="FecharPdf">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfToast @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="1500" ShowCloseButton="true">
+        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+    </SfToast>
+}

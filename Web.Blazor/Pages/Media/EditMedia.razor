@@ -1,0 +1,243 @@
+﻿@using Web.Blazor.Components
+@attribute [Authorize]
+
+@if (categoryList == null || formatList == null)
+{
+    <LoadingData />
+}
+else
+{
+    <div class="row">
+        <div class="form-group col-md-4">
+            <a class="d-block mb-4 h-100">
+                <div class="img-box">
+                    @if (!string.IsNullOrEmpty(SelectedRecord.CoverFile))
+                    {
+                        <img class="img-fluid img-thumbnail" alt="Imagem de capa"
+                             src="@SelectedRecord.CoverFile" />
+                    }
+                    else
+                    {
+                        <img alt="Novo registo" src="/images/mediaFiles.jpg" />
+                    }
+                </div>
+
+                <div class="control_wrapper mt-2">
+                    <div id="droparea-media-cover">
+                        <SfUploader @ref="sfUploaderCover"
+                                    AutoUpload="true"
+                                    DropArea=".control-fluid"
+                                    AllowedExtensions=".png, .gif, .jpg, .jpeg">
+                            <UploaderButtons Browse="@L["TituloUploadsImagens"]" />
+                            <UploaderEvents ValueChange="OnChangeCoverUpload"
+                                            Success="OnCoverUploadSuccess">
+                            </UploaderEvents>
+                        </SfUploader>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 ml-2 e-rte-content">
+                        <SfTextBox Enabled="true" Placeholder="@L["lblNotas"]"
+                                   Multiline="true"
+                                   HtmlAttributes="htmlAttribute"
+                                   CssClass="e-field e-corner"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.Notas">
+                        </SfTextBox>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="form-group col-md-8">
+            <EditForm Model="SelectedRecord">
+                <div class="d-flex justify-content-around align-items-center">
+                    @if (blnEdit)
+                    {
+                        <div class="p-2 flex-fill bd-highlight">
+                            <SfTextBox Enabled="false" Placeholder="ID#" Width="90px"
+                                       FloatLabelType="@FloatLabelType.Auto"
+                                       CssClass="form-control text-center e-corner"
+                                       Value="@SelectedRecord.Id.ToString()">
+                            </SfTextBox>
+                        </div>
+                    }
+                    <div class="p-2 flex-fill bd-highlight">
+                        <SfDatePicker Enabled="true" Placeholder="@L["msgData"]"
+                                      CssClass="input-control e-corner valign-middle text-center"
+                                      Format="dd/MM/yyyy"
+                                      Width="120px"
+                                      FloatLabelType="@FloatLabelType.Always"
+                                      @bind-Value="@SelectedRecord.DataMov">
+                        </SfDatePicker>
+                    </div>
+                    <div class="p-2 flex-fill bd-highlight">
+                        <SfTextBox Input="OnInput" Enabled="true"
+                                   Placeholder="@L["lblAnoEdicao"]" Width="80px"
+                                   CssClass="form-control text-center e-corner"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.AnoEdicao">
+                        </SfTextBox>
+                    </div>
+                </div>
+                <div class="e-card-content">
+                    <div>
+                        <SfTextBox Enabled="true" Placeholder="@L["lblTitulo"]"
+                                   CssClass="form-control e-corner font-weight-bold"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.FileName">
+                        </SfTextBox>
+                    </div>
+                    <div>
+                        <SfTextBox Enabled="true" Placeholder="@L["frmAutores"]"
+                                   CssClass="form-control e-corner font-italic"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.Autor">
+                        </SfTextBox>
+                    </div>
+                    <div style="float:right">
+                        <SfButton CssClass="e-btn e-success e-outline mr-1 mt-2 e-round-corner"
+                                  IconCss="fa fa-search"
+                                  @onclick="GetMediaInfo" Content="Info">
+                        </SfButton>
+                    </div>
+                </div>
+                <div class="row py-2 mr-1 mt-4">
+                    <div class="col-sm-12 col-md-6">
+                        <label style="font-size:14px;font-weight:bold;">@L["lblCategoria"]</label>
+                        <SfDropDownList CssClass="input-control" PopupHeight="450px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdGenero"
+                                        FilterBarPlaceholder="@L["TituloPesquisaCategorias"]"
+                                        FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                        TItem="CategoryVM" TValue="int" Placeholder="@L["lblCategoria"]" DataSource="@categoryList">
+                            <DropDownListEvents TItem="CategoryVM" TValue="int" ValueChange="onChangeCategory"></DropDownListEvents>
+                            <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                        </SfDropDownList>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
+                        <label style="font-size:14px;font-weight:bold;">@L["lblFormato"]</label>
+                        <SfDropDownList CssClass="input-control" PopupHeight="250px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdFormato_Media"
+                                        FilterBarPlaceholder="@L["TituloPesquisaFormatos"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                        TItem="FormatoMediaVM" TValue="int" Placeholder="@L["lblFormato"]" DataSource="@formatList">
+                            <DropDownListEvents TItem="FormatoMediaVM" TValue="int" ValueChange="onChangeFormat"></DropDownListEvents>
+                            <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                        </SfDropDownList>
+                    </div>
+                </div>
+
+
+                <div class="row bd-highlight">
+                    @if (SelectedRecord.Tempo is not null)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <SfTextBox Enabled="false" Placeholder="@L["msgDuracao"]" Width="120px"
+                                       CssClass="form-control text-center e-corner"
+                                       FloatLabelType="@FloatLabelType.Always"
+                                       @bind-Value="@SelectedRecord.Tempo">
+                            </SfTextBox>
+                        </div>
+                    }
+                    @if (SelectedRecord.Tamanho is not null)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <SfTextBox Enabled="false" Placeholder="@(L["msgTamanho"])" Width="120px"
+                                       CssClass="form-control text-center e-corner"
+                                       FloatLabelType="@FloatLabelType.Always"
+                                       @bind-Value="@SelectedRecord.Tamanho">
+                            </SfTextBox>
+                        </div>
+                    }
+                    <div class="col-md-12 col-lg-4 mt-1">
+                        <label class="label-size-md">@L["lblRating"]</label>
+                        <div class="mb-2">
+                            <SfRating @bind-Value="SelectedRecord.Rating"
+                                      ItemsCount="5"
+                                      Precision="PrecisionType.Full" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="d-flex justify-content-around align-items-center" style="gap:4px; margin-top:12px;">
+                            @* <div class="col-md-12 col-lg-6 mt-2"> *@
+                            <SfRadioButton TChecked="byte" Value="1" Label="@(L["msgTutorials"])" @bind-Checked="@(SelectedRecord.TipoMedia)"
+                                           CssClass="input-control" ValueChange="onMediaTypeChange" Name="Tipo"></SfRadioButton>
+                            <SfRadioButton TChecked="byte" Value="2" Label="Audio" Name="Tipo" @bind-Checked="@(SelectedRecord.TipoMedia)"
+                                           CssClass="input-control" ValueChange="onMediaTypeChange"></SfRadioButton>
+                            <SfRadioButton TChecked="byte" Value="3" Label="@(L["msgOtherTypes"])" Name="Tipo" @bind-Checked="@(SelectedRecord.TipoMedia)"
+                                           CssClass="input-control" ValueChange="onMediaTypeChange"></SfRadioButton>
+                        </div>
+                    </div>
+                    @if (blnEdit && mediaType != "")
+                    {
+                        <div class="col-md-12 col-lg-3 mt-2">
+                            <SfTextBox Enabled="false" class="form-control text-center" @bind-Value="@mediaType" />
+                        </div>
+                        <div class="col-md-12 col-lg-3"></div>
+                    }
+                </div>
+                <div hidden="@(!ShowStoredPathEntry)" class="row">
+                    <div class="col-md-10 e-rte-content">
+                        <SfTextBox Multiline="true" Enabled="@(string.IsNullOrEmpty(SelectedRecord.FileUrl))"
+                                   Placeholder="@L["lblLocalArquivo"]"
+                                   CssClass="e-field e-corner"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.FilePath">
+                        </SfTextBox>
+                    </div>
+                    @* @if (!string.IsNullOrEmpty(SelectedRecord.FilePath))
+                    {
+                        <div class="col-2 mt-2 py-3">
+                            <SfButton CssClass="e-btn e-normal e-round-corner"
+                                      IconCss="fa fa-search"
+                                      @onclick="CheckFileOnDisk" Content="?">
+                            </SfButton>
+                        </div>
+                    } *@
+                </div>
+                @* <div class="row">
+            <div class="col-md-10  e-rte-content">
+            <SfTextBox Enabled="@(string.IsNullOrEmpty(SelectedRecord.FilePath))" Placeholder="Url"
+            CssClass="form-control e-corner" ShowClearButton="true" OnChange="OnUrlChanged"
+            FloatLabelType="@FloatLabelType.Auto"
+            @bind-Value="@SelectedRecord.FileUrl">
+            </SfTextBox>
+            </div>
+            @if (!string.IsNullOrEmpty(SelectedRecord.FileUrl))
+            {
+            <div class="col-md-2 mt-4">
+            <SfButton CssClass="e-primary e-outline e-round-corner" IconCss="fa fa-youtube" @onclick="GetMetadata" Content="Get info" />
+            </div>
+            }
+            </div> *@
+
+            </EditForm>
+            <SfMessage Visible=@showAlertMessage Severity="MessageSeverity.Warning" ShowCloseIcon=true
+                       ShowIcon=true Variant="MessageVariant.Filled">
+                @alertMessage
+            </SfMessage>
+        </div>
+    </div>
+
+    <SfToast @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Icon="@ToastIcon"
+             Timeout="@ToastTimeOut"
+             ShowCloseButton="false">
+        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+    </SfToast>
+}
+<style>
+    .card-box {
+        padding: 5px;
+        -webkit-border-radius: 5px;
+        border-radius: 25px;
+        -moz-border-radius: 5px;
+        background-clip: padding-box;
+        margin-bottom: 0px;
+        background-color: floralwhite;
+        box-shadow: 0 0px 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0px 0 rgba(0, 0, 0, 0.02);
+    }
+
+</style>

@@ -1,0 +1,453 @@
+﻿@page "/imagegallery"
+@page "/imagegallery/{Categoria:int}"
+
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Microsoft.Extensions.Localization
+@using MediaOrganizerApp.Domain.Entities
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using Web.Blazor.Components.Cards
+@using Web.Blazor.Components
+
+@using Syncfusion.Blazor.DropDowns
+
+<!-- Page Content -->
+<div class="container e-container-style">
+    <div class="title">@localizerApp["lblGaleria"] (@localizerApp["frmLivros"])</div>
+    <div class="underline"></div>
+    <br />
+
+    <div id="spinnerContainer"></div>
+    <SfSpinner @ref="SpinnerObj"
+               Label="@localizerApp["LoadingMsg"]"
+               Type="@SpinnerType.Bootstrap4" Size="50"
+               CssClass="e-spin-overlay">
+    </SfSpinner>
+
+    @if (categoryList is not null)
+    {
+        <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
+        <div class="d-flex justify-content-start align-items-center mb-3" style="gap:16px;">
+            <div>
+                <SfDropDownList Enabled="@(!allCategories)" Width="350px"
+                                PopupWidth="350px" PopupHeight="450px" @bind-Value="@CatId" AllowFiltering="true"
+                                CssClass="custom-class e-corner"
+                                FilterBarPlaceholder="@localizerApp["TituloPesquisaCategorias"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                TItem="CategoryVM" TValue="int" Placeholder="@localizerApp["lblCategoria"]" DataSource="@categoryList">
+                    <DropDownListEvents TItem="CategoryVM" TValue="int" ValueChange="onChangeCategory"></DropDownListEvents>
+                    <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
+                </SfDropDownList>
+            </div>
+            <div>
+                <SfChip>
+                    <ChipItems>
+                        <ChipItem CssClass="e-info e-outline" Text="@PubsFilesCount"/>
+                    </ChipItems>
+                </SfChip>
+            </div>
+            <div>
+                <SfCheckBox @bind-Checked="allCategories" Label="@localizerApp["msgAll"]" @onchange="onAllCategories"
+                            LabelPosition="Syncfusion.Blazor.Buttons.LabelPosition.After" />
+            </div>
+        </div>
+    }
+    else
+    {
+        <NoDataAvailable CardTitle="Publications categories" Visible="@NoDataVisibility" />
+    }
+
+    <div class="row text-center text-lg-start">
+        @if (ImagePaths is not null)
+        {
+            var imageSourceOnInternet = false;
+            if (!allCategories)
+            {
+                foreach (var ImagePath in ImagePaths)
+                {
+                    imageSourceOnInternet = false;
+                    var pubImageDescription = ImagePath.Titulo;
+                    var pubImage = string.Empty;
+                    var imageCover = ImagePath.ImagemCapa;
+                    if (imageCover.ToLower().Contains("image"))
+                    {
+                        imageCover = imageCover.Replace("/images", "images");
+                    }
+                    else if (imageCover.ToLower().Contains("http"))
+                    {
+                        imageSourceOnInternet = true;
+                    }
+                    if (!imageSourceOnInternet)
+                        pubImage = Path.Combine(hostingEnvironment.WebRootPath, imageCover);
+                    else
+                    {
+                        pubImage = imageCover;
+                    }
+
+                    if (File.Exists(pubImage))
+                    {
+                        var imageName = Path.GetFileName(ImagePath.Titulo);
+                        <div class="col-lg-4 col-md-6 col-sm-12">
+                            <a class="d-block mb-4 h-100">
+                                <div class="img-box" style="max-width: fit-content; margin-inline: auto;">
+                                    <img class="img-fluid img-thumbnail"
+                                         @onclick="() => ShowPubDetail(ImagePath.Id)"
+                                         src="@fileService.DecodeImage(ImagePath.ImagemCapa)"
+                                         alt="">
+                                </div>
+                                <p class="small-text text-center">@imageName (@ImagePath.AnoEdicao)</p>
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-lg-4 col-md-6 col-sm-12">
+                            <a class="d-block mb-4 h-100">
+                                <div class="img-box">
+                                    <img class="img-fluid img-thumbnail"
+                                         @onclick="() => ShowPubDetail(ImagePath.Id)"
+                                         src="@(! imageSourceOnInternet? "images/no-image-available.png":imageCover)"
+                                         alt="">
+                                </div>
+                                <p class="small-text text-center">@Path.GetFileName(ImagePath.Titulo)  (@ImagePath.AnoEdicao)</p>
+                            </a>
+                        </div>
+                    }
+                }
+            }
+            else
+            {
+                @if (imageCategoryGroups != null)
+                {
+                    <SfAccordion ExpandMode="ExpandMode.Single" ExpandedIndices="ExpandItems">
+                        <AccordionAnimationSettings>
+                            <AccordionAnimationCollapse Effect="Syncfusion.Blazor.AnimationEffect.SlideDown"></AccordionAnimationCollapse>
+                            <AccordionAnimationExpand Effect="Syncfusion.Blazor.AnimationEffect.SlideUp"></AccordionAnimationExpand>
+                        </AccordionAnimationSettings>
+                        <AccordionItems>
+                            @foreach (var group in imageCategoryGroups)
+                            {
+                                <AccordionItem>
+                                    <HeaderTemplate>
+                                        @group.Key
+                                    </HeaderTemplate>
+                                    <ContentTemplate>
+                                        <div class="row">
+                                            @foreach (var image in group)
+                                            {
+                                                var pubImage = string.Empty;
+                                                var imageCover = image.ImagemCapa;
+                                                if (imageCover.ToLower().Contains("image"))
+                                                {
+                                                    imageCover = imageCover.Replace("/images", "images");
+                                                }
+                                                else if (imageCover.ToLower().Contains("http"))
+                                                {
+                                                    imageSourceOnInternet = true;
+                                                }
+                                                if (!imageSourceOnInternet)
+                                                    pubImage = Path.Combine(hostingEnvironment.WebRootPath, imageCover);
+                                                else
+                                                {
+                                                    pubImage = imageCover;
+                                                }
+
+                                                if (File.Exists(pubImage))
+                                                {
+                                                    var imageName = Path.GetFileName(image.Titulo);
+                                                    <div class="col-lg-3 col-md-4 col-6">
+                                                        <a class="d-block mb-4 h-100">
+                                                            <div class="img-box">
+                                                                <img class="img-fluid img-thumbnail"
+                                                                     @onclick="() => ShowPubDetail(image.Id)"
+                                                                     src="@fileService.DecodeImage(image.ImagemCapa)"
+                                                                     alt="">
+                                                            </div>
+                                                            <p class="small-text text-center">@imageName (@image.AnoEdicao)</p>
+                                                        </a>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="col-lg-3 col-md-4 col-6">
+                                                        <a class="d-block mb-4 h-100">
+                                                            <div class="img-box">
+                                                                <img class="img-fluid img-thumbnail"
+                                                                     @onclick="() => ShowPubDetail(image.Id)"
+                                                                     src="@(!imageSourceOnInternet? "/images/No-image-icon.png":imageCover)"
+                                                                     alt="">
+                                                            </div>
+                                                            <p class="small-text text-center">@Path.GetFileName(image.Titulo)  (@image.AnoEdicao)</p>
+                                                        </a>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </ContentTemplate>
+                                </AccordionItem>
+                            }
+                        </AccordionItems>
+                    </SfAccordion>
+                }
+            }
+        }
+    </div>
+</div>
+
+<SfDialog Width="900px"
+          Height="auto"
+          IsModal="true"
+          MinHeight="700px"
+          ShowCloseIcon="false"
+          @bind-Visible="ViewDialogVisibility">
+    <DialogTemplates>
+        <Content>
+            <PublicationDetail PublicationInfo="@SelectedRecord" TituloPublicacao="Consulta" />
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-outline e-large e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="CloseViewDialog">
+                    &nbsp;@(localizerApp["BtnSalir"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=500></DialogAnimationSettings>
+</SfDialog>
+
+<SfDialog Target="#target"
+          Width="400px"
+          Height="auto"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="ErrorDialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="modal-header">
+                @(localizerApp["msgNoPublications"])
+            </div>
+        </Header>
+        <Content>
+            <div class='dialogContent'><span class='dialogText'><pre>@ErrorMessage</pre></span></div>
+            <p class="text-info">@(localizerApp["OperacaoCancelada"]).</p>
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-outlinee-round-corner"
+                          @onclick="CloseErrorDialog">
+                    @(localizerApp["btnFechar"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=1200></DialogAnimationSettings>
+</SfDialog>
+
+
+@*@if (!CategoryWithImages)
+    {
+    <Aviso clsName="alert alert-warning" Exibir="@(!CategoryWithImages)">
+        <ChildContent>
+            <h6>Sem imagens para mostrar</h6>
+        </ChildContent>
+    </Aviso>
+    }*@
+
+
+
+@code {
+    protected IEnumerable<ImageCategoryLocations> ImagePaths;
+
+    [Inject]
+    public IPublicacaoService publicacoesService { get; set; }
+    [Inject]
+    public ICategoriasService categoriasService { get; set; }
+    [Inject]
+    public IStringLocalizer<App> localizerApp { get; set; }
+    [Inject]
+    public IFileService fileService { get; set; }
+    [Inject]
+    IWebHostEnvironment hostingEnvironment { get; set; }
+
+    [Parameter]
+    public int Categoria { get; set; } = 12;
+
+    protected SfSpinner SpinnerObj;
+
+    public PubsWithDescriptions SelectedRecord { get; set; } = new();
+
+    protected int CatId { get; set; }
+    protected bool CategoryWithImages = true;
+
+    private IEnumerable<CategoryVM> categoryList;
+
+    protected bool ViewDialogVisibility { get; set; } = false;
+    protected bool ErrorDialogVisibility { get; set; } = false;
+    protected string ErrorMessage { get; set; } = "";
+
+    public string PdfFilePath { get; set; }
+
+    public DialogEffect Effects = DialogEffect.FadeZoom;
+
+    public bool NoDataVisibility { get; set; } = false;
+    protected bool allCategories;
+
+    private List<IGrouping<string, ImageCategoryLocations>> imageCategoryGroups;
+
+    protected int[] ExpandItems = new int[] { 0 };
+
+    protected string PubsFilesCount { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        allCategories = false;
+        NoDataVisibility = false;
+
+        await GetCategoriesAsync();
+
+        if (categoryList is not null)
+        {
+            var mediaCategoryList = categoryList.ToList();
+            //mediaCategoryList.Insert(0, new CategoryVM { Id = 0, Descricao = localizerApp["msgAll"] });
+            categoryList = mediaCategoryList;
+            CatId = categoryList.Select(p => p.Id).FirstOrDefault();
+            await GetImagesAsync();
+        }
+        else
+        {
+            NoDataVisibility = true;
+        }
+    }
+
+    private async Task ShowPubDetail(int id)
+    {
+        if (id > 0)
+        {
+            SelectedRecord = await publicacoesService.GetByIdAsync_Extended(id);
+            ViewDialogVisibility = true;
+        }
+    }
+
+    private async Task onChangeCategory(Syncfusion.Blazor.DropDowns.ChangeEventArgs<int, CategoryVM> args)
+    {
+        if (!allCategories)
+        {
+            CatId = args.Value;
+            await GetImagesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetImagesAsync()
+    {
+        try
+        {
+            await Task.Delay(100);
+            await SpinnerObj.ShowAsync();
+            ImagePaths = await publicacoesService.GetImageLocations(CatId);
+            await SpinnerObj.HideAsync();
+
+            if (ImagePaths is null)
+            {
+                ErrorDialogVisibility = true;
+                ErrorMessage = "Sem imagens para mostrar. Verifique, p.f.";
+            }
+            //CategoryWithImages = true;
+            PubsFilesCount = $"{ImagePaths.Count()} {localizerApp["Files"]}";
+
+        }
+        catch
+        {
+            // No results
+            ImagePaths = null;
+            ErrorDialogVisibility = true;
+            ErrorMessage = "Sem imagens para mostrar. Verifique, p.f.";
+
+            //CategoryWithImages = false;
+        }
+    }
+
+    private async void onAllCategories(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        allCategories = (bool)args.Value == true;
+        if (allCategories)
+        {
+            CatId = 0;
+            await GetImagesAsync();
+            imageCategoryGroups = ImagePaths.GroupBy(img => img.Categoria).ToList();
+            imageCategoryGroups = imageCategoryGroups.OrderBy(p => p.Key).ToList();
+        }
+        else
+        {
+            CatId = categoryList.Select(p => p.Id).FirstOrDefault();
+            await GetImagesAsync();
+        }
+        StateHasChanged();
+    }
+    private async Task GetCategoriesAsync()
+    {
+        await Task.Delay(100);
+        await SpinnerObj.ShowAsync();
+
+        try
+        {
+            categoryList = await categoriasService.GetCategoriesWithPublications();
+
+            if (categoryList is null)
+            {
+                NoDataVisibility = true;
+                ErrorDialogVisibility = true;
+                ErrorMessage = "Sem videos para mostrar. Verifique, p.f.";
+            }
+            else
+            {
+                if (CatId == 0)
+                {
+                    categoryList = categoryList.OrderBy(p => p.DescricaoTipoCategoria).ToList();
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ErrorDialogVisibility = true;
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            await SpinnerObj.HideAsync();
+        }
+
+    }
+
+    private void CloseViewDialog()
+    {
+        ViewDialogVisibility = false;
+    }
+    private void CloseErrorDialog()
+    {
+        ErrorDialogVisibility = false;
+    }
+}
+
+<style>
+    /*     .e-accordion .e-acrdn-item .e-acrdn-header .e-toggle-icon .e-icons {
+                        color: black;
+                    }
+                 */
+    .e-accordion .e-acrdn-item.e-select > .e-acrdn-header {
+        background-color: whitesmoke !important;
+        text-align: left;
+        align-items:center;
+    }
+
+
+    .e-container-style {
+        background-color: #f0f0f0;
+    }
+
+    .e-round-corner {
+        border-radius: 10px;
+    }
+
+</style>

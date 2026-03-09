@@ -1,0 +1,728 @@
+﻿@page "/media"
+@inherits MediaBase
+
+@using MediaOrganizerApp.Domain.Entities
+
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Web.Blazor.Components
+@using Web.Blazor.Components.Playlists
+
+@attribute [Authorize]
+
+@{
+    var Filtering = new
+    {@@Operator = "contains"
+    };
+    var Tool = (new List<object>()
+{
+            "Search",
+            new ItemModel()
+            {
+                PrefixIcon = "fa fa-times",
+                TooltipText = localizerApp["btnLimpar"],
+                Align = ItemAlign.Right,
+                Id = "Clear"
+            },
+             new ItemModel()
+             {
+                Align = ItemAlign.Left,
+                PrefixIcon = "oi oi-audio",
+                Text = "Audio",
+                Id = "AUD"
+             },
+             new ItemModel()
+             {
+                Type = ItemType.Separator,
+             },
+             new ItemModel()
+             {
+                Align = ItemAlign.Left,
+                PrefixIcon = "oi oi-video",
+                Text = "Video",
+                Id = "VID"
+             },
+             new ItemModel()
+             {
+                Type = ItemType.Separator,
+             },
+             new ItemModel()
+             {
+                Align = ItemAlign.Left,
+                PrefixIcon = "fa fa-check",
+                Text = localizerApp["msgOtherTypes"],
+                Id = "OTHERS"
+             },
+             // new ItemModel()
+             // {
+             //    Align = ItemAlign.Left,
+             //    PrefixIcon = "fa fa-edit",
+             //    Text = localizerApp["msgUpdateCover"],
+             //    Id = "COVER"
+             // },
+             new ItemModel()
+             {
+                Type = ItemType.Separator,
+             },
+             new ItemModel()
+             {
+                Align = ItemAlign.Left,
+                PrefixIcon = "fa fa-refresh",
+                Text = localizerApp["msgAll"],
+                Id = "ALL"
+             },
+             new ItemModel()
+             {
+                Type = ItemType.Separator,
+             },
+             new ItemModel()
+             {
+                Align = ItemAlign.Left,
+                PrefixIcon = "e-download-icon",
+                Text = localizerApp["TituloListagem"],
+                Id = "MLPDF"
+             }
+        }
+     );
+}
+<PageTitle>Media</PageTitle>
+<PageTitleComponent PageTitle="Media" WithBadge=@showBadge PageSubTitle="@badgeCaption" Css="title" />
+
+@if (mediaFiles is null)
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="button-container my-2">
+        <SfButton CssClass="e-btn e-success e-round-corner"
+                  IconCss="fa fa-plus" IsPrimary="true"
+                  @onclick="NotifyAddingRecord">
+            &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;
+            <i class="fa fa-file" />
+        </SfButton>
+        <SfButton CssClass="e-btn e-primary e-round-corner-corner"
+                  IconCss="fa fa-plus"
+                  @onclick="NotifyAddingYoutubeRecord">
+            &nbsp;@(localizerApp["NewMsg"])&nbsp;(Youtube)&nbsp;&nbsp;
+            <i class="fa fa-youtube" />
+        </SfButton>
+        <SfButton CssClass="e-btn e-warning e-round-corner"
+                  IconCss="fa fa-plus"
+                  @onclick="@(()=>UploadMediaVisibility = true)">
+            &nbsp;@(localizerApp["NewMsg"])&nbsp;(Local)&nbsp;&nbsp;
+            <i class="fa fa-cloud-download" />
+        </SfButton>
+    </div>
+
+    <div id="target" class="container-fluid">
+        <div class="table table-striped table-hover">
+            <SfGrid @ref="gridObj"
+                    Width="100%"
+                    Height="auto"
+                    DataSource="@mediaFiles"
+                    AllowFiltering="true"
+                    AllowGrouping="true"
+                    AllowPaging="true"
+                    EnableAltRow="true"
+                    AllowTextWrap="true"
+                    AllowSelection="true"
+                    AllowSorting="true"
+                    EnableStickyHeader="true"
+                    Toolbar="@Tool"
+                    RowHeight="26">
+                <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"></GridPageSettings>
+                <GridSelectionSettings CheckboxOnly="true"
+                                       Type="Syncfusion.Blazor.Grids.SelectionType.Single"
+                                       Mode="Syncfusion.Blazor.Grids.SelectionMode.Row"
+                                       EnableSimpleMultiRowSelection="false"
+                                       EnableToggle="false" />
+                <GridSortSettings AllowUnsort="false">
+                    <GridSortColumns>
+                        <GridSortColumn Field="Id" Direction="SortDirection.Descending"></GridSortColumn>
+                    </GridSortColumns>
+                </GridSortSettings>
+
+
+                <GridEvents OnToolbarClick="OnToolbarClick"
+                            OnLoad="OnLoad"
+                            DataBound="DataBound"
+                            OnRecordDoubleClick="OnRecordDoubleClick"
+                            OnActionBegin="OnActionBegin"
+                            RowSelected="OnRowSelected"
+                            CommandClicked="OnCommandClicked"
+                            TValue="MediaVM"></GridEvents>
+                <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+
+                <GridColumns>
+                    <GridColumn Field=@nameof(MediaVM.Id)
+                                HeaderText="ID#" IsPrimaryKey="true" AllowSorting="true"
+                                AllowGrouping="false" HideAtMedia="(min-width: 1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
+                                Width="80"></GridColumn>
+                    <GridColumn Width="80" HideAtMedia="(min-width: 1280px)">
+                        <Template Context="ImageRow">
+                            @{
+                                var currentRow = (ImageRow as MediaVM);
+                                var mediaFormat = currentRow.FormatoMedia;
+                                var mediaImage = "";
+                                if (!string.IsNullOrEmpty(currentRow.CoverFile))
+                                {
+                                    var coverTmp = currentRow.CoverFile;
+                                    if (coverTmp.ToLower().StartsWith("http"))
+                                    {
+                                        Task.Delay(100);
+                                        SpinnerLabel = "Tentando aceder ao Api do Youtube";
+                                        SpinnerObj?.ShowAsync();
+                                    }
+                                    mediaImage = currentRow.CoverFile;
+                                    if (coverTmp.ToLower().StartsWith("http"))
+                                    {
+                                        Task.Delay(100);
+                                        SpinnerObj?.HideAsync();
+                                    }
+
+                                }
+                                else
+                                {
+                                    switch (mediaFormat.ToLower())
+                                    {
+                                        case "lp":
+                                            mediaImage = "/images/music-bg.jpg";
+                                            break;
+                                        case "cd":
+                                            mediaImage = "/images/music-icon2.png";
+                                            break;
+                                        case "a partir de url":
+                                            if (string.IsNullOrEmpty(currentRow.CoverFile))
+                                            {
+                                                if (currentRow.FileUrl.ToLower().Contains("youtube"))
+                                                {
+                                                    mediaImage = "/images/youtube64.png";
+                                                }
+                                                else
+                                                {
+                                                    mediaImage = "/images/Windows_Media_Player_10.png";
+                                                }
+                                            }
+                                            break;
+                                        case "armazenamento média":
+                                        case "download da internet":
+                                            mediaImage = "/images/mp3Image.png";
+                                            break;
+                                        case "dvd - filme":
+                                            mediaImage = "/images/dvd-image.jpg";
+                                            break;
+                                        default:
+                                            mediaImage = "/images/No-image-available.png";
+                                            break;
+                                    }
+                                }
+
+                                <img class="p-1 e-round-corner" src="@mediaImage" width="96" height="64" />
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn Field=@nameof(MediaVM.FileName) HeaderText="@(localizerApp["lblTitulo"])"
+                                CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="250"></GridColumn>
+                    <GridColumn Field=@nameof(MediaVM.Autor) HeaderText="@(localizerApp["lblAutor"])"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                HideAtMedia="(min-width:  1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="200"></GridColumn>
+
+                    <GridColumn HeaderText="@(localizerApp["lblTipoUtilizador"])" Width="110" HideAtMedia="(min-width: 1280px)">
+                        <Template>
+                            <SfChip>
+                                <ChipItems>
+                                    @{
+                                        var currentRow = (context as MediaVM);
+                                        var mediaFormatIsLP_or_CD_or_DVD = (currentRow.FormatoMedia.ToLower() == "cd" || currentRow.FormatoMedia.ToLower() == "lp" || currentRow.FormatoMedia.ToLower().StartsWith("dvd"));
+                                        string ext = "";
+                                        string msg = "";
+                                        string classe = "";
+                                        string icon = "";
+                                        if (!string.IsNullOrEmpty(currentRow.FilePath) && !mediaFormatIsLP_or_CD_or_DVD)
+                                        {
+                                            ext = Path.GetExtension(currentRow.FilePath).ToLower();
+                                            if (ext == ".mp3")
+                                            {
+                                                msg = "Mp3";
+                                                classe = "e-primary e-round-corner";
+                                                icon = "oi oi-audio";
+                                            }
+                                            else if (ext == ".mp4")
+                                            {
+                                                if (currentRow.IdFormato_Media == 1)
+                                                {
+                                                    msg = "Video";
+                                                    classe = "e-success";
+                                                    icon = "oi oi-video";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 2) // CD
+                                                {
+                                                    msg = "CD";
+                                                    classe = "e-primary";
+                                                    icon = "oi oi-audio";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 3) // LP
+                                                {
+                                                    msg = "LP";
+                                                    classe = "e-primary";
+                                                    icon = "oi oi-audio";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 4) // DVD
+                                                {
+                                                    msg = "DVD";
+                                                    classe = "e-primary";
+                                                    icon = "fa fa-compact disk";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 9) // outra
+                                                {
+                                                    msg = "Local";
+                                                    classe = "e-warning";
+                                                    icon = "fa fa-download";
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!string.IsNullOrEmpty(currentRow.FileUrl) && !mediaFormatIsLP_or_CD_or_DVD)
+                                            {
+                                                classe = "e-success";
+                                                msg = "Video";
+                                                icon = "oi oi-video";
+                                            }
+                                            else if (string.IsNullOrEmpty(currentRow.FileUrl) && mediaFormatIsLP_or_CD_or_DVD)
+                                            {
+                                                if (currentRow.IdFormato_Media == 3) // LP
+                                                {
+                                                    msg = "LP";
+                                                    classe = "e-primary";
+                                                    icon = "oi oi-audio";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 2) // CD
+                                                {
+                                                    msg = "CD";
+                                                    classe = "e-primary";
+                                                    icon = "oi oi-audio";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 4) // DVD
+                                                {
+                                                    msg = "DVD/Filme";
+                                                    classe = "e-warning";
+                                                    icon = "oi oi-video";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 5) //AUDIO - DVD
+                                                {
+                                                    msg = "DVD - Audio";
+                                                    classe = "e-warning";
+                                                    icon = "oi oi-audio";
+                                                }
+                                                else if (currentRow.IdFormato_Media == 9) //Local
+                                                {
+                                                    msg = "Locais";
+                                                    classe = "e-warning";
+                                                    icon = "fa fa-download";
+                                                }
+
+                                            }
+                                            else
+                                            {
+                                                classe = "e-primary e-round-corner";
+                                                msg = "Outro";
+                                                icon = "oi oi-media-stop";
+                                            }
+                                        }
+
+                                        <ChipItem Text="@msg" CssClass="@classe"></ChipItem>
+                                    }
+                                </ChipItems>
+                            </SfChip>
+                        </Template>
+                    </GridColumn>
+                    <GridColumn Field=@nameof(MediaVM.AnoEdicao) HeaderText="@(localizerApp["editionMsg"])"
+                                HideAtMedia="(min-width:  1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="100"></GridColumn>
+                    <GridColumn Field=@nameof(MediaVM.Genero) HeaderText="@(localizerApp["lblCategoria"])"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                HideAtMedia="(min-width:  1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="140"></GridColumn>
+                    <GridColumn Field=@nameof(MediaVM.Rating) HeaderText="@localizerApp["lblRating"]"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                HideAtMedia="(min-width:  1280px)"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="170">
+                        <Template>
+                            <div class="mb-2">
+                                @{
+                                    var currentRating = (context as MediaVM).Rating;
+                                    <SfRating Value="@currentRating" ReadOnly="true"
+                                              ItemsCount="5"
+                                              Precision="PrecisionType.Full" />
+                                }
+                            </div>
+                        </Template>
+                    </GridColumn>
+
+                    @* <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="@(localizerApp["lblFormato"])"
+                                HideAtMedia="(min-width:  1280px)"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="140"></GridColumn> *@
+                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" AllowGrouping="false"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="180">
+                        <GridCommandColumns>
+                            <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-primary e-round-corner",
+                                                                           IconCss = "fa fa-edit",
+                                                                           IconPosition = @IconPosition.Left
+                                                                       })">
+                            </GridCommandColumn>
+                            <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-danger e-round",
+                                                                           IconCss = "fa fa-trash",
+                                                                           IconPosition = @IconPosition.Left
+                                                                       })">
+                            </GridCommandColumn>
+                            <GridCommandColumn Type=CommandButtonType.None Title="Play"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                                           {
+                                                                               CssClass = "e-btn e-success e-round",
+                                                                               IconCss = "oi oi-media-play",
+                                                                               IconPosition = @IconPosition.Left
+                                                                           })">
+                            </GridCommandColumn>
+                            <GridCommandColumn Type=CommandButtonType.None Title="Info"
+                                               ButtonOption="@(new CommandButtonOptions()
+                                                               {
+                                                                   CssClass = "e-btn e-info e-round",
+                                                                   IconCss = "oi oi-info",
+                                                                   IconPosition = @IconPosition.Left
+                                                               })">
+                            </GridCommandColumn>
+                        </GridCommandColumns>
+                    </GridColumn>
+
+                </GridColumns>
+            </SfGrid>
+
+            <div id="spinner-container">
+                <SfSpinner @ref="SpinnerObj"
+                           Label="@SpinnerLabel"
+                           Type="@SpinnerType.Tailwind"
+                           CssClass="e-spin-overlay">
+                </SfSpinner>
+            </div>
+        </div>
+    </div>
+
+    <SfDialog Width="50%"
+              Height="auto"
+              IsModal="true"
+              MinHeight="50%"
+              EnableResize="true"
+              AllowDragging="true"
+              CloseOnEscape="true"
+              ShowCloseIcon="false"
+              @bind-Visible="Mp3CardInfoVisibility">
+        <DialogTemplates>
+            <Content>
+                <Mp3Detail SelectedRecord="@SelectedRecord" mediaFileName="SelectedRecord.FileName"></Mp3Detail>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.Mp3CardInfo)">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="50%"
+              Height="auto"
+              IsModal="true"
+              EnableResize="true"
+              AllowDragging="true"
+              CloseOnEscape="true"
+              ShowCloseIcon="false"
+              @bind-Visible="MediaCardInfoVisibility">
+        <DialogTemplates>
+            <Content>
+                <VideoDetail TituloVideo="@SelectedRecord.FileName" VideoInfo="@VideoDetail"></VideoDetail>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.MediaCardInfo)">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+
+
+    <SfDialog Width="900px"
+              Height="auto"
+              IsModal="true"
+              MinHeight="700px"
+              ShowCloseIcon="false"
+              @bind-Visible="EditMediaDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div>
+                    <h3><img src="/images/media-documents-icon.png" width="48" height="48" />&nbsp;&nbsp;@(blnEdit ? localizerApp["EditMsg"] + " ''" + SelectedRecord.FileName + "''" : localizerApp["NewMsg"] + " " + localizerApp["Record"])</h3>
+                </div>
+            </Header>
+            <Content>
+                <EditMedia SelectedRecord="@SelectedRecord" blnEdit="@blnEdit"  ShowStoredPathEntry="@showStoredPathEntry"/>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-primary e-round-corner"
+                              IconCss="fa fa-edit" Content="@localizerApp["btnSalvar"]"
+                              @onclick="AddOrSaveRecord">
+                    </SfButton>
+                     <SfButton CssClass="e-btn e-info e-round-corner pull-left"
+                          IconCss="fa fa-list"
+                          Disabled="@(!CanAddSelectedMediaToPlaylist)"
+                          @onclick="OpenAddToPlaylistDialog">&nbsp;Add to playlist
+              </SfButton>
+                    <SfButton CssClass="e-outline e-round-corner"
+                              IconCss="fa fa-times" Content="@localizerApp["BtnSalir"]"
+                              @onclick="()=>CloseDialog(DialogsVisibility.EditDialog)">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="50%"
+              Height="85%"
+              IsModal="true"
+              ShowCloseIcon="false"
+              EnableResize="true"
+              AllowDragging="true"
+              @bind-Visible="Mp3DialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="font-weight-bold" style="font-size:1.5rem;"><img src="images/mp3Image.png" width="48" height="48" />&nbsp;MP3 Player</div>
+            </Header>
+            <Content>
+                <Mp3Player SelectedRecord="@SelectedRecord" mediaFileName="@mediaFilename" mediaExtension="@mediaExtension" />
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-outline e-success e-round-corner" IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.Mp3Player)">
+                        &nbsp;@localizerApp["BtnSalir"]
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              EnableResize="true"
+              AllowDragging="true"
+              @bind-Visible="YouTubePlayerDialogVisibility">
+        <DialogTemplates>
+            <Content>
+                <YoutubePlayer SelectedRecord="@SelectedRecord" mediaFileName="@mediaFilename" mediaExtension="@mediaExtension" />
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-success e-round-corner" IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.YouTubePlayer)">
+                        &nbsp;@localizerApp["BtnSalir"]
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+
+
+    <SfDialog Target="#main"
+              Width="30%"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="YouTubeDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div>@CriarEditarMsg <span><i class="fa fa-youtube" /></span></div>
+            </Header>
+            <Content>
+                <EditYouTube SelectedRecord="@SelectedRecord" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-primary e-round-corner-corner" IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord">
+                        &nbsp;@(localizerApp["btnSalvar"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.Youtube)">
+                        &nbsp;@(localizerApp["BtnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="60%" Height="85%" Target="#Target"
+              IsModal="true"
+              AllowDragging="true"
+              ShowCloseIcon="true"
+              CloseOnEscape="false"
+              Visible="@ReadPdfVisibility">
+        <DialogTemplates>
+            <Content>
+                <ReadPDF PdfFile="@PdfFilePath" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              @onclick="FecharPdf">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfDialog Width="40%"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              EnableResize="true"
+              AllowDragging="true"
+              @bind-Visible="UploadMediaVisibility">
+        <DialogTemplates>
+            <Content>
+                <UploadMediaFiles OnEndUpload="ShowUploadResult" />
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-success e-round-corner" IconCss="fa fa-times"
+                              @onclick="()=>CloseDialog(DialogsVisibility.UploadFilesDialog)">
+                        &nbsp;@localizerApp["BtnSalir"]
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+
+
+    <AddMediaToPlaylistComponent Visible="@AddToPlaylistDialogVisibility"
+                             Media="@SelectedRecord"
+                             OnClose="CloseAddToPlaylistDialog"
+                             OnAdded="HandleMediaAddedToPlaylist" />
+
+    <ConfirmDeleteComponent Visible="@DeleteRecordConfirmVisibility"
+                            AlertMessageType="@AlertMessageType.Error"
+                            ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
+                            DialogTitle="@localizerApp["TituloApagarRegisto"]"
+                            Message="@SelectedRecord.FileName"
+                            OnConfirmationYes="ConfirmDeleteYes"
+                            OnConfirmationNo="()=>CloseDialog(DialogsVisibility.DeleteRecordConfirmation)" />
+
+
+    <AlertUserComponent AlertMessageType="AlertMessageType.Warning"
+                        Title="@AlertUserTitle" Message="@AlertUserMessage"
+                        Visibility="@AlertUserVisibility"
+                        OperationType="@AlertUserMessageType"
+                        OnCloseDialog="@(()=>AlertUserVisibility = false)" />
+
+    <ValidateErrorComponent DialogEffect="DialogEffect.FlipXUp"
+                            DialogTitle="@ErrorTitle"
+                            Visible="@ErrorVisibility"
+                            OnCloseDialog="@(()=>ErrorVisibility=false)"
+                            ValidationMessages="@ValidationMessages" />
+
+
+    <SfToast @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="@ToastTimeOut" ShowCloseButton="true">
+        <ToastPosition X="right" Y="top"></ToastPosition>
+    </SfToast>
+}
+
+<style>
+    .e-round-corner {
+        border-radius: 22px;
+    }
+
+    .circle {
+        width: 100px;         
+        height: 100px;        
+        background-color: red;
+        border-radius: 50%;
+        border: 2px solid black; 
+    }
+
+    .icon-advanced {
+        background: url('/wwwroot/images/mp3.svg');
+        background-repeat: no-repeat;
+        background-size: cover; /* stretch the background to cover the whole element */
+        /*
+                                                                                                           still inline, but has block features
+                                                                                                           meaning height and width can be set
+                                                                                                        */
+        display: inline-block;
+        height: 20px;
+        width: 20px;
+    }
+
+    .button-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 4px;
+    }
+
+    #apinner-container {
+        position: relative;
+        height: 550px;
+    }
+
+    .left-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .right-button {
+        /* margin-left: auto; */
+        float: right;
+        margin-right: 10px;
+    }
+
+    .e-attr-bold {
+        font-weight: bold;
+    }
+</style>

@@ -1,0 +1,108 @@
+﻿@using Microsoft.Extensions.Localization
+@using static MediaOrganizerApp.Application.Enums.AppDefinitions
+
+@inject IStringLocalizer<App> L
+
+<div class="container-fluid">
+    <SfDialog Width="@DialogWidth"
+              IsModal="true"
+              Visible="@Visibility"
+              CloseOnEscape="true"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div class="ml-2 font-weight-bold" style="font-size:1.1rem; color:@TitleColor">@Title</div>
+            </Header>
+            <Content>
+                <div class="row m-2">
+                    <div class="col-@cols">
+                        @if (!string.IsNullOrEmpty(MessageNote))
+                        {
+                            <div class="mb-2">
+                                <SfMessage Severity="@severity"
+                                           ShowIcon="false"
+                                           Variant="MessageVariant.Outlined"
+                                           ShowCloseIcon="false">
+                                    @MessageNote
+                                </SfMessage>
+                                <hr class="my-2" style="color:black" />
+                            </div>
+                        }
+                        <div>
+                            <SfMessage ShowIcon="true"
+                                       Severity="@severity">
+                                @(Message)
+                            </SfMessage>
+                        </div>
+                    </div>
+                    @if (ShowRightSideIcon)
+                    {
+                        <RightSideImageComponent Operation="@OperationType" />
+                    }
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="mb-3">
+                    <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="OnClose" Content="@L["btnOK"]">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogPositionData X="@XPosition" Y="@YPosition"></DialogPositionData>
+        <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+    </SfDialog>
+</div>
+
+@code {
+    [Parameter] public bool Visibility { get; set; } = false;
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string MessageNote { get; set; } = "";
+    [Parameter] public string DialogWidth { get; set; } = "25%";
+    [Parameter] public string XPosition { get; set; } = "center";
+    [Parameter] public string YPosition { get; set; } = "center";
+    [Parameter] public bool ShowRightSideIcon { get; set; } = true;
+    [Parameter] public AlertMessageType AlertMessageType { get; set; } = AlertMessageType.Info;
+    [Parameter] public OpcoesRegisto OperationType { get; set; } = OpcoesRegisto.Info;
+
+    [Parameter] public EventCallback OnCloseDialog { get; set; }
+
+    private DialogEffect Effects = DialogEffect.FadeZoom;
+
+    private string TitleColor { get; set; } = "cornflowerblue";
+    private int cols;
+
+    private MessageSeverity severity { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        cols = ShowRightSideIcon ? 9 : 12;
+        switch (AlertMessageType)
+        {
+            case AlertMessageType.Info:
+                TitleColor = "cornflowerblue";
+                severity = MessageSeverity.Info;
+                break;
+            case AlertMessageType.Warning:
+                TitleColor = "#9F6000";
+                severity = MessageSeverity.Warning;
+                break;
+            case AlertMessageType.Error:
+                TitleColor = "red";
+                severity = MessageSeverity.Error;
+                break;
+            default:
+                TitleColor = "cornflowerblue";
+                severity = MessageSeverity.Info;
+                break;
+        }
+    }
+
+    protected async Task OnClose()
+    {
+        await OnCloseDialog.InvokeAsync();
+    }
+
+}
+

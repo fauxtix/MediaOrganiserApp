@@ -1,0 +1,74 @@
+﻿/* customize the Tab */
+/*         .e-tab {
+                    background-color:aliceblue;
+                    /* border: 5px solid rgb(211, 211, 211); */
+}
+
+*/
+/* customize the header items */
+.e-tab .e-tab-header .e-toolbar-items {
+    height: 32px;
+}
+
+.e-tab .e-toolbar-item .e-title {
+    display: none;
+}
+
+/* customize the content items */
+/*         .e-tab .e-content .e-item {
+                                                        color: #a78515;
+                                                        font-size: 14px;
+                                                    }
+                                             */
+/* customize the header */
+.e-tab .e-tab-header {
+    height: 40px;
+}
+
+/* customize the header item icon */
+/*     .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
+                                                            color: #badfba !important;
+                                                        }
+                                             */
+/* customize the content */
+.e-tab .e-content {
+    background: #F0F0F0;
+}
+
+/* customize the tab item when hovering */
+/*         .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+                                                        background: #d1f6d1 !important;
+                                                    }
+                                             */
+/* customize the tab item popup icon when hovering. */
+/*         .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
+                                                    .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
+                                                        background: #d1f6d1 !important;
+                                                    }
+
+                                                    .e-tab .e-tab-header .e-toolbar-item.e-active {
+                                                        background: #d1f4d1;
+                                                    }
+
+                                                        .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+                                                        .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
+                                                            color: green !important;
+                                                        }
+                                             */
+/*     .e-toolbar .e-toolbar-items .e-toolbar-item:not(.e-separator),
+            .e-toolbar .e-toolbar-items .e-toolbar-item .e-tab-wrap {
+                height: 40px;
+                border: 2px solid rgb(211, 211, 211);
+            }
+         */
+.e-tab .e-tab-header .e-toolbar-items {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    vertical-align: middle;
+    height: 48px;
+    background: #F9F7F5;
+    gap: 4px;
+    border: 2px solid steelblue;
+    border-block-style:solid;
+}

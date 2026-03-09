@@ -1,0 +1,147 @@
+﻿@using MediaOrganizerApp.Domain.Entities
+
+@if (!string.IsNullOrEmpty(TituloVideo))
+{
+    <div class="title">Video Info</div>
+    <div class="underline"></div>
+    <br />
+
+    <SfCard>
+        <CardHeader Title="@TituloVideo" />           
+        <CardContent EnableSeparator="true">
+            <div class="py-2 my-2">
+                <SfTextBox Readonly="true" Value="@VideoInfo.ChannelTitle" FloatLabelType="FloatLabelType.Always" Placeholder="Canal"></SfTextBox>
+            </div>
+            @*<div>
+        <label class="label-primary py-2">Título</label>
+        <SfTextBox Multiline="true" Readonly="true" Value="@VideoInfo.Title"></SfTextBox>
+        </div>*@
+            <div class="py-2 my-2">
+                <SfTextBox @attributes="htmlAttribute"
+                           Multiline="true" Readonly="true"
+                           Value="@VideoInfo.Description"
+                           FloatLabelType="FloatLabelType.Always"
+                           Placeholder="Descrição"></SfTextBox>
+            </div>
+            <div class="py-2 my-2">
+                <SfTextBox Readonly="true" Value="@VideoInfo.PublicationDate.ToString()"
+                           FloatLabelType="FloatLabelType.Always" Placeholder="Publicado em"></SfTextBox>
+            </div>
+        </CardContent>
+    </SfCard>
+}
+
+@code {
+    [Parameter]
+    public YouTubeVideoDetails VideoInfo { get; set; }
+    [Parameter]
+    public string TituloVideo { get; set; }
+
+    private Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
+    {
+        {"rows", "15" }
+    };
+
+}
+
+<style type="text/css" scoped>
+    .e-card {
+        height: auto;
+        box-shadow: inset 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.4);
+    }
+    /* Tile view card customization */
+    .tile_layout.card-control-section .row.filter .tile_search {
+        justify-content: flex-end;
+    }
+
+    .tile_layout.card-control-section .row .e-card {
+        text-align: left;
+        margin: 2px;
+    }
+
+    .tile_layout.card-control-section .control-wrapper {
+        padding: 0 20px;
+    }
+
+    .tile_layout.card-control-section .row.filter {
+        margin: 0;
+    }
+
+    .tile_layout.card-control-section .e-card .e-card-actions a {
+        border: 1px solid;
+        display: block;
+        margin: auto;
+        width: 100px;
+        border-radius: inherit;
+    }
+
+    .tile_layout.card-control-section .row.filter .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        display: inline-flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .tile_layout.card-control-section .col-xs-3.col-sm-3.col-lg-3.col-md-3 col-sm-6 {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        margin: auto;
+        max-width: 190px;
+    }
+
+    *, ::after, ::before {
+        box-sizing: padding-box
+    }
+
+    .tile_layout.card-control-section .col-xs-6.col-sm-6.col-lg-6.col-md-6 {
+        width: 25%;
+    }
+
+    .card-control-section.tile_layout .e-card-layout {
+        max-width: 890px;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size:medium;
+        font-family: 'Segoe UI', Helvetica,;
+        font-weight: bold;
+        font-style:italic;
+    }
+
+/*     .e-card .e-card-header {
+        font-family: cursive;
+        font-style: italic;
+    }
+ */
+    .card-title {
+        font-size: 1.5vw;
+        word-break: keep-all !important;
+    }
+
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        padding-top: 5px;
+        font-size: 0.8vw;
+        font-family: Helvetica, 'Segoe UI';
+        font-style: italic
+    }
+
+    .e-card .e-card-content {
+        line-height: initial;
+        font-weight: normal;
+        padding-top: 2px;
+        font-size: 0.7vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+
+    .e-card .e-card-footer-content {
+        padding-top: 2px;
+        font-size: 0.8vw;
+        font-family: 'Segoe UI', Helvetica;
+        height: auto;
+        width: auto;
+    }
+</style>

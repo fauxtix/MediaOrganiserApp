@@ -1,0 +1,115 @@
+﻿@using Web.Blazor.Components
+
+@attribute [Authorize]
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@L["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+<div class="container-fluid">
+    <EditForm Model="SelectedAuthor">
+        <div class="row">
+            <div class="col-md-8">
+                @if (blnEdit)
+                {
+                    <div class="form-group">
+
+                        <SfTextBox Enabled="false" Placeholder="ID#" Width="60px"
+                                   FloatLabelType="@FloatLabelType.Auto" CssClass="center-text"
+                                   Value="@SelectedAuthor.Id.ToString()">
+                        </SfTextBox>
+                    </div>
+                }
+                <div class="form-group">
+                    <SfTextBox Enabled="true"
+                               Placeholder="@L["lblNomeAutor"]"
+                               CssClass="form-control font-weight-bold e-corner"
+                               FloatLabelType="@FloatLabelType.Auto"
+                               @bind-Value="@SelectedAuthor.Descricao">
+                    </SfTextBox>
+                </div>
+                <div class="mt-2">
+                    <SfDatePicker ID="TicketDate" Enabled="true" Format="dd-MM-yyyy" CssClass="input-control center-text"
+                                  Placeholder="@L["lblNascAutor"]"
+                                  FloatLabelType="@FloatLabelType.Always"
+                                  @bind-Value="@SelectedAuthor.DataNascimento"
+                                  Max="DateTime.Now"
+                                  Width="150px"
+                                  ShowClearButton="false">
+                    </SfDatePicker>
+                </div>
+                <div class="mt-2">
+                    <SfRichTextEditor Placeholder="@L["lblSobreAutor"]"
+                                      CssClass="e-field"
+                                      @bind-Value="@SelectedAuthor.Sobre">
+                        <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
+                    </SfRichTextEditor>
+                </div>
+                @if (!blnEdit)
+                {
+                    <div class="mt-2">
+                        <SfButton CssClass="e-primary" IsPrimary="true"
+                                  Content="Get data From Api" OnClick="GetAuthorDataFromApi" />
+                    </div>
+                }
+            </div>
+            <div class="col-md-4 text-center h-100">
+                @if (!string.IsNullOrEmpty(SelectedAuthor.ImagemAutor))
+                {
+                    <div class="img-box portrait">
+                        <img src=@SelectedAuthor.ImagemAutor alt=@SelectedAuthor.Descricao width="320" height="240" />
+                    </div>
+                }
+                else
+                {
+                    <div class="img-box portrait">
+                        <img src="images/No-image-available.png" alt="Não há imagem do Autor" width="80" height="80" />
+                    </div>
+
+                }
+                <div class="control_wrapper mt-2">
+                    <div id="droparea">
+                        <SfUploader @ref="@sfUploader" AutoUpload="true" DropArea=".control-fluid"
+                                    AllowedExtensions=".png, .gif, .jpg, .jpeg">
+                            <UploaderButtons Browse="@L["TituloImagensAutores"]" />
+                            <UploaderTemplates>
+
+                            </UploaderTemplates>
+                            <UploaderEvents ValueChange="OnChangeUpload"
+                                            Success="OnUpLoadSuccess"></UploaderEvents>
+                        </SfUploader>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+
+    <SfMessage Severity="MessageSeverity.Error"
+               ShowCloseIcon="true" ShowIcon="true"
+               Variant="MessageVariant.Text" Visible=@alertVisibility>@message</SfMessage>
+
+</div>
+
+<style>
+    .img-box.portrait {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        background-color: #f9f9f9;
+    }
+
+        .img-box.portrait img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+</style>

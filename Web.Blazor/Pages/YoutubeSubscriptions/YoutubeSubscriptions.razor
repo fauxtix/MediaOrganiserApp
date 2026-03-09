@@ -1,0 +1,55 @@
+﻿@page "/subscriptions"
+@using MediaOrganizerApp.Domain.Entities
+@using MediaOrganizerApp.Persistence.Services.Youtube
+@inject IYouTubeSubscriptionService SubscriptionsService
+@inject NavigationManager Navigation
+
+<h3>My YouTube Subscriptions</h3>
+
+@if (subscriptions == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul>
+        @foreach (var subscription in subscriptions)
+        {
+            <li>
+                @subscription.Title
+                <button @onclick="() => ShowVideos(subscription.ChannelId)">Show Videos</button>
+                @if (subscriptionVideos != null && currentChannelId == subscription.ChannelId)
+                {
+                    <ul>
+                        @foreach (var video in subscriptionVideos)
+                        {
+                            <li>
+                                <a href="https://www.youtube.com/watch?v=@video.VideoId" target="_blank">@video.VideoTitle</a>
+                                <p>@video.VideoDescription</p>
+                                <img src="@video.ThumbnailUrl" alt="Thumbnail" />
+                                <p>Published on: @video.PublishedAt</p>
+                            </li>
+                        }
+                    </ul>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IList<YouTubeSubscription> subscriptions;
+    private IList<YouTubeVideo> subscriptionVideos;
+    private string currentChannelId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        subscriptions = await SubscriptionsService.GetAndSaveSubscriptionsAsync();
+    }
+
+    private async Task ShowVideos(string channelId)
+    {
+        subscriptionVideos = await SubscriptionsService.GetVideosByChannelIdAsync(channelId);
+        currentChannelId = channelId;
+    }
+}

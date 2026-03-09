@@ -1,0 +1,26 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <a href="Identity/Account/Manage">Hello, @context.User.Identity.Name!</a>
+        <form method="post" action="Identity/Account/LogOut">
+            <button type="submit" class="buttonstyle"><img src="/images/Logout.png" alt="Logout"></button>    
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a href="Identity/Account/Register">Register</a>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .buttonstyle {
+        border: thin;
+        background-color: transparent;
+        padding-left: 15px;
+        
+        
+    }
+    .buttonstyle:focus{
+        outline:none
+    }
+
+</style>

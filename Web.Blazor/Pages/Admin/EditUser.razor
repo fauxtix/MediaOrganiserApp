@@ -1,0 +1,169 @@
+﻿@using Microsoft.AspNetCore.Components;
+@using Microsoft.AspNetCore.Identity;
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+
+@inherits Web.Blazor.Pages.Admin.CodeBehind.AdministrationBase
+
+@attribute [Authorize(Roles = "Administrator")]
+
+<div class="row">
+    <div class="col-12">
+        <SfCard>
+            <CardHeader Title="@SubTitleString" SubTitle=""></CardHeader>
+            <CardContent EnableSeparator="true">
+                <div class="container-fluid">
+                    <br />
+                    <EditForm Model="SelectedUser">
+                        <div class="form-row">
+                            <div class="form-group col-12">
+                                <div class="img-fluid">
+                                    <img src="images/blank-profile-picture.png" width="64" height="64" alt="Avatar">
+                                </div>
+@*                                 @if (SelectedUser.Id != "")
+                                {
+                                    <div class="form-row">
+                                        <div class="form-group col-12">
+                                            <SfTextBox Readonly="true"
+                                                       CssClass="e-input-group aligncenter e-corner"
+                                                       Value="@SelectedUser.Id"
+                                                       Placeholder="ID#"
+                                                       FloatLabelType="@FloatLabelType.Auto">
+                                            </SfTextBox>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-12">
+                                            <SfTextBox Readonly="true"
+                                                       CssClass="e-input-group aligncenter e-corner"
+                                                       Value="@userRoleId"
+                                                       Placeholder="Role ID#"
+                                                       FloatLabelType="@FloatLabelType.Always">
+                                            </SfTextBox>
+                                        </div>
+                                    </div>
+                                }
+ *@
+                                <div class="form-row">
+                                    <div class="form-group col-12">
+                                        <SfTextBox Readonly="@blnEdit"
+                                                   @bind-Value="@SelectedUser.UserName" Type="InputType.Email"
+                                                   FloatLabelType="@FloatLabelType.Auto"
+                                                   CssClass="e-input-group e-corner"
+                                                   Placeholder="@(LocalizerApp["lblUserName"])">
+                                        </SfTextBox>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-12">
+                                        <SfTextBox @bind-Value="@SelectedUser.Email"
+                                                   Type="InputType.Email"
+                                                   FloatLabelType="@FloatLabelType.Auto"
+                                                   CssClass="e-input-group e-corner"
+                                                   Placeholder="@(LocalizerApp["lblEmail"])">
+                                        </SfTextBox>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label class="e-input-group"> Role</label>
+                                        <SfDropDownList @ref="@ddlRoles" @bind-Value="@userRoleId"
+                                                        TItem="IdentityRole" TValue="string"
+                                                        Placeholder="Role" PopupHeight="auto" DataSource="@userRoles"
+                                                        CssClass="planner-dropdown" ShowClearButton="true">
+                                            <DropDownListEvents TItem="IdentityRole" TValue="string"
+                                                                ValueChange="@onRoleDdl_Change" OnClose="@onRoleDDL_Close"></DropDownListEvents>
+                                            <DropDownListFieldSettings Text="Name" Value="Id"></DropDownListFieldSettings>
+                                        </SfDropDownList>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <SfTextBox @bind-Value="@SelectedUser.PasswordHash"
+                                                   Type="InputType.Password"
+                                                   CssClass="e-input-group e-corner"
+                                                   FloatLabelType="@FloatLabelType.Auto"
+                                                   Placeholder="Password">
+                                        </SfTextBox>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </CardContent>
+        </SfCard>
+    </div>
+    @*<RightSideImageComponent Operation="@Operacao" />*@
+</div>
+
+@code {
+    [Parameter]
+    public IdentityUser SelectedUser { get; set; }
+    [Parameter]
+    public bool blnEdit { get; set; } = false;
+    [Parameter]
+    public string userRoleID { get; set; }
+
+    public string UserRoleId { get; set; }
+
+    protected string SubTitleString;
+    protected AppDefinitions.OpcoesRegisto Operacao;
+
+    protected override void OnInitialized()
+    {
+        userRoles = RoleManager.Roles.ToList();
+    }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        var selectedUserId = SelectedUser.Id;
+        userRoleId = await UserService.GetUserRoleId(selectedUserId);
+
+        if (blnEdit)
+        {
+            SubTitleString = $"{LocalizerApp["editionMsg"]} {LocalizerApp["lblUtilizador"]}";
+            Operacao = AppDefinitions.OpcoesRegisto.Gravar;
+        }
+        else
+        {
+            SubTitleString = $"{LocalizerApp["creationMsg"]} {LocalizerApp["lblUtilizador"]}";
+            Operacao = AppDefinitions.OpcoesRegisto.Inserir;
+        }
+        //StateHasChanged();
+    }
+    protected void onRoleDDL_Close(Syncfusion.Blazor.DropDowns.PopupEventArgs args)
+    {
+        var ddlValue = ddlRoles.Value;
+        userRoleId = ddlValue;
+
+        //args.Cancel = false;
+    }
+    protected void onRoleDdl_Change(ChangeEventArgs<string, IdentityRole> args)
+    {
+        if (args.ItemData != null)
+        {
+            CurrentUserRole = args.ItemData.Name;
+            if (CurrentUserRole != "User")
+            {
+                IsUserDoctor = false;
+            }
+            else
+            {
+                IsUserDoctor = true;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    protected void onDoctorsDDL_Close(Syncfusion.Blazor.DropDowns.PopupEventArgs args)
+    {
+        userRoleId = ddlRoles.Value;
+
+        //args.Cancel = false;
+    }
+}

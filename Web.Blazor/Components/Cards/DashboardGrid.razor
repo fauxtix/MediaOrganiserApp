@@ -1,0 +1,51 @@
+﻿@using Microsoft.Extensions.Localization
+
+<SfGrid DataSource="@Source"
+        AllowFiltering="false"
+        AllowSelection="true"
+        AllowGrouping="false"
+        AllowPaging="@Paging"
+        AllowSorting="true"
+        RowHeight="32"
+        AllowTextWrap="true">
+
+    @if (Paging)
+    {
+        <GridPageSettings PageSize="10" PageCount="10" PageSizes="false"></GridPageSettings>
+    }
+
+    <GridColumns>
+        <GridColumn Field=@nameof(SummaryDataDTO.Descricao)
+                    HeaderText="@localizerApp[LocalizerKey]" AllowSorting="true"
+                    Width="200"></GridColumn>
+        <GridColumn Field=@nameof(SummaryDataDTO.Contagem) HeaderText="Cnt."
+                    Width="80" TextAlign="TextAlign.Center"></GridColumn>
+    </GridColumns>
+</SfGrid>
+
+
+@code {
+
+    [Inject] public IStringLocalizer<App> localizerApp { get; set; }
+
+    [Parameter]
+    public IEnumerable<SummaryDataDTO> Source { get; set; }
+    [Parameter]
+    public string LocalizerKey { get; set; }
+    [Parameter]
+    public bool Paging { get; set; } = true;
+}
+
+<style>
+    .e-grid .e-headercell .e-headercelldiv {
+        background-color: steelblue;
+        color:white;
+        height:1.5rem !important;
+        font-size:14px;
+        font-weight:500;
+    }
+
+    .e-grid .e-altrow {
+        background-color: #f2f2f2;
+    }
+</style>

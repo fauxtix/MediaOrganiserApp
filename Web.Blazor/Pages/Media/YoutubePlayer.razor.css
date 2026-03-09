@@ -1,0 +1,236 @@
+﻿.e-play-icon {
+    content: '\e72d';
+}
+
+.player {
+    width: 300px;
+    height: 250px;
+}
+
+    .player img {
+        width: 300px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .player audio {
+        width: 300px;
+        outline: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+.error-message {
+    text-align: center;
+    color: red;
+    font-weight: 300;
+    font-size: large;
+}
+
+.e-card .e-card-image {
+    background-image: url(/wwwroot/images/media-player.png);
+    background-color: yellow;
+    height: 160px;
+}
+
+.e-card .e-card-header .e-card-header-image {
+    height: 48px;
+    width: 48px;
+}
+
+.e-card .e-card-header .e-card-header-caption .e-card-header-title {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+    font-size: 16px;
+    font-weight: 200;
+}
+
+.font-bold {
+    font-weight: bold;
+    font-style: italic;
+}
+
+#audioPlayer {
+    width: 100%;
+}
+
+#audioImage {
+    width: 100%;
+}
+
+#MyImage {
+    position: relative;
+    margin: 20px auto 0;
+    width: 100%;
+    max-width: 400px;
+}
+
+#audioImage {
+    display: block;
+    position: relative;
+    width: 100%;
+}
+
+.e-pause-icon::before {
+    content: "\e757";
+}
+
+.e-stop-icon::before {
+    content: "\e711";
+}
+
+.display-btn-play {
+    position: absolute;
+    transform: translate(-50%,-50%);
+    margin-right: -50%;
+    top: 20%;
+    left: 50%;
+}
+
+    .display-btn-play:hover {
+        cursor: pointer;
+        transform: scale(1.05);
+        background: #FFF;
+        color: #ff564c;
+    }
+
+.display-btn-pause {
+    position: absolute;
+    transform: translate(-50%,-50%);
+    margin-right: -50%;
+    top: 40%;
+    left: 50%;
+}
+
+    .display-btn-pause:hover {
+        cursor: pointer;
+        transform: scale(1.1);
+        background: #FFF;
+        color: #000;
+    }
+
+.display-btn-stop {
+    position: absolute;
+    transform: translate(-50%,-50%);
+    margin-right: -50%;
+    top: 60%;
+    left: 50%;
+}
+
+    .display-btn-stop:hover {
+        cursor: pointer;
+        transform: scale(1.15);
+        background: #FFF;
+        color: #000;
+    }
+
+.btn-toolbar a, .btn-group-vertical button {
+    width: 100%;
+    padding: 0px, 3px 0px 3px;
+}
+
+/*     Removes mute-button */
+audio::-webkit-media-controls-mute-button {
+    display: none;
+}
+
+/*     Removes play-button    */
+audio::-webkit-media-controls-play-button {
+    display: none;
+}
+
+/*   audio::-webkit-media-controls-play-button{
+            -webkit-appearance: media-play-button;
+            display: -webkit-flex;
+            width: 32px;
+            height: 16px;
+            background-color: red;
+            border:double;
+            color: yellow;
+        }*/
+
+.container-controls {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+
+.playerControls {
+    border: 1px solid;
+    display: flex;
+    border-radius: 4px;
+    box-shadow: 0px, 4px, 20px, rgba(0, 0, 0, 0.8);
+}
+
+audio {
+    -webkit-transition: all 0.5s linear;
+    -moz-transition: all 0.5s linear;
+    -o-transition: all 0.5s linear;
+    transition: all 0.5s linear;
+    -moz-box-shadow: 2px 2px 4px 0px #006773;
+    -webkit-box-shadow: 2px 2px 4px 0px #006773;
+    box-shadow: 2px 2px 4px 0px #006773;
+    -moz-border-radius: 7px 7px 7px 7px;
+    -webkit-border-radius: 7px 7px 7px 7px;
+    border-radius: 7px 7px 7px 7px;
+}
+
+    audio:hover, audio:focus, audio:active {
+        -webkit-box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+        -moz-box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+        box-shadow: 15px 15px 20px rgba(0,0, 0, 0.4);
+        -webkit-transform: scale(1.05);
+        -moz-transform: scale(1.05);
+        transform: scale(1.05);
+    }
+
+
+/*buttons samples*/
+
+.button {
+    width: 100%;
+    padding: 8px 16px;
+    height: 100%;
+    font-size: 18px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    color: #fff;
+    background-color: #04AA6D;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 9px #999 rgba(0,0, 0, 0.8);
+}
+
+    .button:hover {
+        background-color: #3e8e41;
+    }
+
+    .button:active {
+        background-color: #3e8e41;
+        box-shadow: 0 5px #666;
+        animation: spin 2s linear;
+    }
+
+
+@keyframes spin {
+    20% {
+        transform: rotate(360deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}

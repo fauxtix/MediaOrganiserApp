@@ -1,0 +1,116 @@
+﻿@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components.Layout.SideBar
+@inject NavigationManager _navigationManager
+@inject IStringLocalizer<App> Localizer
+
+<aside id="sidebar" class="sidebar break-point-sm has-bg-image @(_isCollapsed ? "collapsed" : "") @(_isToggled ? "toggled" : "")">
+    <a @onclick="BtnCollapseClicked" id="btn-collapse" class="sidebar-collapser"><i class="ri-arrow-left-s-line"></i></a>
+    <div class="image-wrapper">
+        @* <img src="assets/images/sidebar-bg.jpg" alt="sidebar background" /> *@
+    </div>
+    <div class="sidebar-layout">
+        <div class="sidebar-header">
+            <div class="pro-sidebar-logo">
+                <div>O</div>
+                <h5>Organise It!</h5>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <nav class="menu open-current-submenu">
+                <ul>
+                    <AuthorizeView Roles="User, Administrator">
+                        <Authorized>
+
+                            <li class="menu-header"><span> @Localizer["TituloAplicacao"]</span></li>
+                            @foreach (var menuItem in generalMenuItems)
+                            {
+                                <MenuItemComponent MenuItem="@menuItem" MenuItemClickCallback="MenuItemClick" />
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+
+                    <AuthorizeView Roles="Administrator">
+                        <Authorized>
+
+                            <li class="menu-header"><span>@Localizer["MnuHerramientas"]</span></li>
+
+                            @foreach (var menuItem in standardItems)
+                            {
+                                <MenuItemComponent MenuItem="@menuItem" MenuItemClickCallback="MenuItemClick" />
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+
+                </ul>
+            </nav>
+        </div>
+
+        <SidebarFooterComponent IsCollapsed="@_isCollapsed" />
+
+    </div>
+</aside>
+
+
+@code {
+    private bool _isCollapsed { get; set; } = false;
+    private bool _isToggled { get; set; } = false;
+
+    private List<MenuItem> standardItems;
+    private List<MenuItem> generalMenuItems;
+
+    protected override void OnInitialized()
+    {
+        var sidebarData = new SidebarData(Localizer); // Passa o localizer
+        standardItems = sidebarData.GetStandardMenuItems();
+        generalMenuItems = sidebarData.GetGeneralMenuItems();
+    }
+
+
+    public void BtnToggleClicked()
+    {
+        _isToggled = !_isToggled;
+        StateHasChanged();
+    }
+
+    public void BtnCollapseClicked()
+    {
+        _isCollapsed = !_isCollapsed;
+        generalMenuItems.ForEach(x => x.IsOpened = false);
+    }
+
+    public void MouseClickedInOverlay()
+    {
+        if (_isToggled)
+            _isToggled = false;
+        generalMenuItems.ForEach(x => x.IsOpened = false);
+        StateHasChanged();
+    }
+
+    public void MouseClickedInContent()
+    {
+        generalMenuItems.ForEach(x => x.IsOpened = false);
+        StateHasChanged();
+    }
+
+    private void MenuItemClick(MenuItem menuItem)
+    {
+        if (menuItem.IsActive)
+        {
+            if (menuItem.HasChildMenuItems)
+                menuItem.IsOpened = !menuItem.IsOpened;
+            else if (_isCollapsed)
+                generalMenuItems.ForEach(x => x.IsOpened = false);
+
+            return;
+        }
+
+        generalMenuItems.ForEach(x => x.IsOpened = false);
+        standardItems.ForEach(x => x.IsOpened = false);
+        menuItem.IsOpened = true;
+
+        if (!menuItem.HasChildMenuItems && menuItem.Href != null)
+        {
+            _navigationManager.NavigateTo(menuItem.Href);
+        }
+    }
+}

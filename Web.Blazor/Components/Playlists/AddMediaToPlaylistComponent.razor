@@ -1,0 +1,253 @@
+@using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Domain.Enums
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Popups
+@using Web.Blazor.Services.ApiWrappers
+
+@inject PlaylistsClientService PlaylistsService
+@inject IStringLocalizer<App> localizerApp
+
+<SfDialog Width="30%"
+          Height="auto"
+          IsModal="true"
+          AllowDragging="true"
+          EnableResize="true"
+          CloseOnEscape="true"
+          ShowCloseIcon="false"
+          Visible="@Visible">
+    <DialogTemplates>
+        <Header>
+            <div class="font-weight-bold">
+                Add to playlist
+            </div>
+        </Header>
+
+        <Content>
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <SfMessage ShowIcon="true" Severity="MessageSeverity.Warning" ShowCloseIcon="true">
+                    @_error
+                </SfMessage>
+                <hr />
+            }
+
+            <div class="mb-2">
+                <div style="font-weight:600;">Media</div>
+                <div>@(Media?.FileName ?? "-")</div>
+                <div style="opacity:.8; font-size:.9rem;">
+                    @(GetMediaSourcePreview())
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label style="font-weight:600;">Playlist</label>
+
+                @* @key forces Syncfusion dropdown to re-render when datasource changes *@
+                <div @key="_dropDownKey">
+                    <SfDropDownList TItem="PlaylistDto" TValue="int"
+                                    Placeholder="Select a playlist..."
+                                    DataSource="@_playlists"
+                                    @bind-Value="@_selectedPlaylistId"
+                                    AllowFiltering="true"
+                                    FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                    PopupHeight="300px"
+                                    Enabled="@(!_isBusy)">
+                        <DropDownListFieldSettings Text="Name" Value="Id" />
+                    </SfDropDownList>
+                </div>
+
+                @if (!_isBusy && _playlists.Count == 0)
+                {
+                    <div class="mt-2 text-muted" style="font-size:.9rem;">
+                        No playlists returned by API.
+                    </div>
+                }
+            </div>
+        </Content>
+
+        <FooterTemplate>
+            <div class="d-flex" style="gap:8px; justify-content:flex-end;">
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          Disabled="@_isBusy"
+                          @onclick="CancelAsync">
+                    Cancel
+                </SfButton>
+
+                <SfButton CssClass="e-btn e-primary e-round-corner"
+                          IconCss="fa fa-check"
+                          IsPrimary="true"
+                          Disabled="@(_isBusy || !CanConfirm())"
+                          @onclick="ConfirmAsync">
+                    Confirm
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public MediaVM? Media { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnAdded { get; set; }
+
+    private bool _wasVisible;
+    private bool _isBusy;
+    private string? _error;
+
+    private List<PlaylistDto> _allPlaylists = new();
+    private List<PlaylistDto> _playlists = new();
+    private int _selectedPlaylistId;
+
+    private Guid _dropDownKey = Guid.NewGuid();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible && !_wasVisible)
+        {
+            _error = null;
+            _selectedPlaylistId = 0;
+            await LoadPlaylistsAsync();
+        }
+
+        _wasVisible = Visible;
+    }
+
+    private async Task LoadPlaylistsAsync()
+    {
+        try
+        {
+            _isBusy = true;
+
+            _allPlaylists = (await PlaylistsService.GetAllAsync())
+                .OrderBy(p => p.Name)
+                .ToList();
+
+            // IMPORTANT: if GetAllAsync failed, it returns empty without throwing.
+            if (_allPlaylists.Count == 0)
+            {
+                _error = "No playlists were returned. If you do have playlists, check the browser Network tab for the GET /Playlists call (status code, BaseUrl, ApiKey).";
+            }
+
+            // Keep it simple: show all playlists (avoid MediaType mismatches hiding items)
+            _playlists = _allPlaylists;
+
+            // Force rerender of dropdown
+            _dropDownKey = Guid.NewGuid();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading playlists: {ex.Message}";
+            _playlists = new();
+            _dropDownKey = Guid.NewGuid();
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private bool CanConfirm() =>
+        Media is not null &&
+        _selectedPlaylistId > 0 &&
+        !string.IsNullOrWhiteSpace(GetResourcePathOrUrl(Media));
+
+    private async Task ConfirmAsync()
+    {
+        if (Media is null)
+        {
+            _error = "No media selected.";
+            return;
+        }
+
+        if (_selectedPlaylistId <= 0)
+        {
+            _error = "Select a playlist.";
+            return;
+        }
+
+        var resource = GetResourcePathOrUrl(Media);
+        if (string.IsNullOrWhiteSpace(resource))
+        {
+            _error = "Media has no valid local path or URL.";
+            return;
+        }
+
+        try
+        {
+            _isBusy = true;
+            _error = null;
+
+            var items = await PlaylistsService.GetItemsAsync(_selectedPlaylistId);
+            if (items.Any(i => i.MediaId == Media.Id))
+            {
+                _error = "This media item is already in the selected playlist.";
+                return;
+            }
+
+            var dto = new PlaylistItemCreateDto
+            {
+                PlaylistId = _selectedPlaylistId,
+                MediaId = Media.Id,
+                MediaType = InferMediaType(Media),
+                ResourcePathOrUrl = resource,
+                Title = Media.FileName,
+                SortOrder = null
+            };
+
+            await PlaylistsService.AddItemAsync(_selectedPlaylistId, dto);
+
+            var playlistName = _allPlaylists.FirstOrDefault(p => p.Id == _selectedPlaylistId)?.Name ?? _selectedPlaylistId.ToString();
+            await OnAdded.InvokeAsync(playlistName);
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error adding item: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task CancelAsync() => await OnClose.InvokeAsync();
+
+    private static string GetResourcePathOrUrl(MediaVM media)
+    {
+        if (!string.IsNullOrWhiteSpace(media.FileUrl))
+            return media.FileUrl;
+
+        if (!string.IsNullOrWhiteSpace(media.FilePath))
+            return media.FilePath;
+
+        return string.Empty;
+    }
+
+    private static MediaType InferMediaType(MediaVM media)
+    {
+        if (!string.IsNullOrWhiteSpace(media.FileUrl) || (media.FilePath?.StartsWith("http", StringComparison.OrdinalIgnoreCase) ?? false))
+            return MediaType.Video;
+
+        var ext = Path.GetExtension(media.FilePath ?? "");
+        if (string.Equals(ext, ".mp3", StringComparison.OrdinalIgnoreCase))
+            return MediaType.Audio;
+
+        return MediaType.Audio;
+    }
+
+    private string GetMediaSourcePreview()
+    {
+        if (Media is null) return string.Empty;
+        if (!string.IsNullOrWhiteSpace(Media.FileUrl)) return Media.FileUrl;
+        if (!string.IsNullOrWhiteSpace(Media.FilePath)) return Media.FilePath;
+        return string.Empty;
+    }
+}

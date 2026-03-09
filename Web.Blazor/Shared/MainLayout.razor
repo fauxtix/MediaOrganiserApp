@@ -1,0 +1,470 @@
+﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.Extensions.Configuration;
+@using System.Globalization
+@using Web.Blazor.Components
+@using Web.Blazor.Services.Common
+@using Microsoft.Extensions.Logging;
+
+@inherits LayoutComponentBase
+@inject NavigationManager navigationManager
+
+@* <Syncfusion.Blazor.Popups.SfDialogProvider />
+ *@
+<AuthorizeView>
+    <Authorized>
+        <div class="sidebar">
+            <NavMenuBlazored />
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<div class="main">
+    <ErrorBoundary @ref=_errorBoundary Context="ex">
+        <ChildContent>
+            <AuthorizeView>
+                <NotAuthorized>
+                    <div class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-dark border-bottom box-shadow mb-3">
+                        <h5 class="mt-0 mr-md-auto brand">Organise It!</h5>
+                        <div class="top-row px-2 auth bg-dark border-bottom box-shadow" style="z-index:1111;padding-top:0px">
+                            @* <div class="d.flex justify-content-around">
+                            <CultureSwitcher />
+                            </div> *@
+                            <nav class="my-2 my-md-0 mr-sm-3">
+                                <a class="oi oi-account-login bg-dark ml-2 mr-2" href="/identity/account/login">&nbsp;Login</a>
+                                <a class="oi oi-people " href="/identity/account/register">&nbsp;&nbsp;Registo</a>
+                            </nav>
+                        </div>
+                    </div>
+                    <section class="showcase">
+                        <div class="video-container">
+                            <video src="/videos/index-video.mov" autoplay muted loop></video>
+                        </div>
+                        <div class="container page-content">
+                            <div class="row">
+                                <div class="col-6">
+                                    <img class="img-2 shadow p-3 mb-5 bg-white rounded" src="images/publicacoes_6.jpg" />
+                                </div>
+                                <div class="col-6">
+                                    <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                         src="images/publicacoes_7.jpg" />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <img class="img-2 shadow p-3 mb-5 bg-white" src="images/audioimage.jpg" />
+                                </div>
+                                <div class="col-6">
+                                    <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                         src="images/videoimage.jpg" />
+                                </div>
+                            </div>
+                            <div class="mt-1 text-center text-muted">
+                                Copyright © 2023 - Fausto Luís
+                            </div>
+                            <div class="row mt-1">
+                                <div class="col-lg-4 ml-auto text-center mb-5 mb-lg-0">
+                                    <i class="fa fa-phone fa-3x mb-2 text-muted"></i>
+                                    <div>@authorMobile</div>
+                                </div>
+                                <div class="col-lg-4 mr-auto text-center">
+                                    <i class="fa fa-envelope fa-3x mb-2 text-muted"></i>
+                                    @*Make sure to change the email address in BOTH the anchor text and the link target below!*@
+                                    <a class="d-block" href="mailto:fauxtix.luix@hotmail.com">fauxtix.luix@hotmail.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section id="about">
+                        <h1>Acerca do Organise It!</h1>
+                        <p>
+                            Esta aplicação permite-lhe organizar uma série de 'coisas':
+                            <hr />
+                            <div class="container-fluid">
+                                <div class="row justify-content-lg-center">
+                                    <div class="col-auto col-md-3 d-flex justify-content-center">
+                                        <ul class="py-1">
+                                            <li>Livros</li>
+                                            <li>Documentos em papel</li>
+                                            <li>LP's</li>
+                                            <li>CD's</li>
+                                            <li>DVD's</li>
+                                            <li>PDF's</li>
+                                            <li>Ficheiros Word</li>
+                                            <li class="list-unstyled py-2">== com player ==</li>
+                                            <li>Vídeos (MP4)</li>
+                                            <li>MP3</li>
+                                            <li>...</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </p>
+
+                        <h2>Sigam-me nas redes sociais</h2>
+
+                        <div class="social">
+                            <a href="https://www.facebook.com/fauxtix?locale=pt_PT" target="_blank"><i class="fa fa-facebook fa-2x"></i></a>
+                            <a href="https://github.com/fauxtix" target="_blank"><i class="fa fa-github fa-2x"></i></a>
+                            <a href="https://linkedin.com/in/fausto-luis-489388211" target="_blank"><i class="fa fa-linkedin fa-2x"></i></a>
+                        </div>
+                    </section>
+                </NotAuthorized>
+                <Authorized>
+                    <div class="d.flex justify-content-end align-items-end g-2 navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-transparent border-bottom box-shadow mb-0">
+                        <div class="top-row px-2 auth border-bottom box-shadow" style="z-index:1111;padding-top:0px">
+                            <div class="pl-2 pr-2 font-weight-bold"><i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()</div>
+                            <div class="pl-2 pr-2 font-weight-bold"><i class="fa fa-user pr-2"></i>@userName</div>
+                            <nav class="my-2 my-md-0 mr-sm-3 font-weight-bold nav-button">
+                                <a class="fa fa-sign-out ml-2 text-right" href="/identity/account/logout">&nbsp;&nbsp;&nbsp;Logout</a>
+                            </nav>
+                        </div>
+                    </div>
+                    <div class="content px-1">
+                        @Body
+                    </div>
+
+                </Authorized>
+            </AuthorizeView>
+        </ChildContent>
+        <ErrorContent>
+            <div class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-dark border-bottom box-shadow mb-3">
+                <h5 class="mt-0 mr-md-auto brand">Organise It!</h5>
+                <div class="top-row px-2 auth bg-dark border-bottom box-shadow" style="z-index:1111;padding-top:0px">
+                    @* <div class="d.flex justify-content-around">
+                    <CultureSwitcher />
+                    </div> *@
+                    <nav class="my-2 my-md-0 mr-sm-3">
+                        <a class="oi oi-account-login bg-dark ml-2 mr-2" href="/identity/account/login">&nbsp;Login</a>
+                        <a class="oi oi-people " href="/identity/account/register">&nbsp;&nbsp;Registo</a>
+                    </nav>
+                </div>
+            </div>
+            <section class="showcase">
+                <div class="video-container">
+                    <video src="/videos/index-video.mov" autoplay muted loop></video>
+                </div>
+                <div class="container page-content">
+                    <div class="row">
+                        <div class="col-6">
+                            <img class="img-2 shadow p-3 mb-5 bg-white rounded" src="images/publicacoes_6.jpg" />
+                        </div>
+                        <div class="col-6">
+                            <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                 src="images/publicacoes_7.jpg" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <img class="img-2 shadow p-3 mb-5 bg-white" src="images/audioimage.jpg" />
+                        </div>
+                        <div class="col-6">
+                            <img class="img-2 shadow p-3 mb-5 bg-white rounded"
+                                 src="images/videoimage.jpg" />
+                        </div>
+                    </div>
+                    <div class="mt-1 text-center text-muted">
+                        Copyright © 2023 - Fausto Luís
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-lg-4 ml-auto text-center mb-5 mb-lg-0">
+                            <i class="fa fa-phone fa-3x mb-2 text-muted"></i>
+                            <div>@authorMobile</div>
+                        </div>
+                        <div class="col-lg-4 mr-auto text-center">
+                            <i class="fa fa-envelope fa-3x mb-2 text-muted"></i>
+                            @*Make sure to change the email address in BOTH the anchor text and the link target below!*@
+                            <a class="d-block" href="mailto:fauxtix.luix@hotmail.com">fauxtix.luix@hotmail.com</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="about">
+                <h1>Acerca do Organise It!</h1>
+                <p>
+                    Esta aplicação permite-lhe organizar uma série de 'coisas':
+                    <hr />
+                    <div class="container-fluid">
+                        <div class="row justify-content-lg-center">
+                            <div class="col-auto col-md-3 d-flex justify-content-center">
+                                <ul class="py-1">
+                                    <li>Livros</li>
+                                    <li>Documentos em papel</li>
+                                    <li>LP's</li>
+                                    <li>CD's</li>
+                                    <li>DVD's</li>
+                                    <li>PDF's</li>
+                                    <li>Ficheiros Word</li>
+                                    <li class="list-unstyled py-2">== com player ==</li>
+                                    <li>Vídeos (MP4)</li>
+                                    <li>MP3</li>
+                                    <li>...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </p>
+
+                <h2>Sigam-me nas redes sociais</h2>
+
+                <div class="social">
+                    <a href="https://www.facebook.com/fauxtix?locale=pt_PT" target="_blank"><i class="fa fa-facebook fa-2x"></i></a>
+                    <a href="https://github.com/fauxtix" target="_blank"><i class="fa fa-github fa-2x"></i></a>
+                    <a href="https://linkedin.com/in/fausto-luis-489388211" target="_blank"><i class="fa fa-linkedin fa-2x"></i></a>
+                </div>
+            </section>
+            <div class="d.flex justify-content-end align-items-end g-2 navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-transparent border-bottom box-shadow mb-0">
+                <div class="top-row px-2 auth border-bottom box-shadow" style="z-index:1111;padding-top:0px">
+                    <div class="pl-2 pr-2 font-weight-bold"><i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()</div>
+                    <div class="pl-2 pr-2 font-weight-bold"><i class="fa fa-user pr-2"></i>@userName</div>
+                    <nav class="my-2 my-md-0 mr-sm-3 font-weight-bold nav-button">
+                        <a class="fa fa-sign-out ml-2 text-right" href="/identity/account/logout">&nbsp;&nbsp;&nbsp;Logout</a>
+                    </nav>
+                    <nav class="my-2 my-md-0 mr-sm-1 font-weight-bold nav-button bg-dark">
+                        <a class="fa fa-cog ml-1 text-right" href="/admin/appsettings2">&nbsp;&nbsp;Settings</a>
+                    </nav>
+                </div>
+            </div>
+            <div class="content px-1">
+                @Body
+            </div>
+            <ErrorBoundaryContent OnHandle="ResetErrorBoundary" Error="ex" />
+
+        </ErrorContent>
+    </ErrorBoundary>
+
+</div>
+
+@code {
+    [CascadingParameter] protected Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject] ILogger<MainLayout> Logger { get; set; }
+    [Inject] IConfiguration _env { get; set; }
+    [Inject] public NavigationManager Navigation { get; set; }
+    [Inject] public IAppSettingsService AppSettingsService { get; set; }
+    [Inject] public IHttpContextAccessor HttpContextAccessor { get; set; }
+
+    protected string defaultCulture;
+
+    protected string authorMobile;
+    protected string userName;
+
+    protected string currentCultureAbbreviation = "...";
+
+    private ErrorBoundary? _errorBoundary;
+    protected override async Task OnInitializedAsync()
+    {
+
+        try
+        {
+            var authState = await AuthenticationStateTask;
+            userName = authState.User.Identity.Name;
+            authorMobile = _env["AuthorMobile"];
+
+            var cultureCookie = HttpContextAccessor.HttpContext?
+                .Request.Cookies[CookieRequestCultureProvider.DefaultCookieName];
+
+            if (string.IsNullOrEmpty(cultureCookie))
+            {
+                var settings = await AppSettingsService.GetSettingsAsync();
+                defaultCulture = settings.DefaultLanguage ?? "pt";
+                var uri = new Uri(Navigation.Uri)
+                    .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+                var query = $"?culture={Uri.EscapeDataString(defaultCulture)}&" +
+                            $"redirectUri={Uri.EscapeDataString(uri)}";
+
+                Navigation.NavigateTo($"/Culture/SetCulture{query}", forceLoad: true);
+            }
+            else
+            {
+                var currentCulture = CookieRequestCultureProvider.ParseCookieValue(cultureCookie);
+                var cultureInfo = CultureInfo.GetCultureInfo(currentCulture.Cultures.FirstOrDefault().Value);
+                currentCultureAbbreviation = cultureInfo.TwoLetterISOLanguageName;
+            }
+
+        }
+        catch (Exception exc)
+        {
+            Logger.LogCritical(exc.Message);
+        }
+
+    }
+
+    private void ResetErrorBoundary()
+    {
+        _errorBoundary.Recover();
+    }
+
+
+}
+
+<style>
+
+    :root {
+        --primary-color: #3a4052;
+        --text-color: white;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    ul {
+        color: var(--text-color);
+        list-style-type: square;
+        padding: 0 3px;
+        margin: 0;
+        text-align: left;
+    }
+
+    li {
+        background-repeat: no-repeat;
+        background-position: 100% .4em;
+        padding-right: .6em;
+    }
+
+
+    .sidebar {
+        width: 300px;
+        min-width: 300px;
+    }
+
+    .imagetitle {
+        flex-basis: auto;
+        margin-top: 0;
+        padding: 0;
+        display: compact;
+        width: 100%;
+        height: 5%;
+        object-fit: cover;
+    }
+
+    .img-2 {
+        display: block;
+        width: 85%;
+        height: 85%;
+        max-width: 85%;
+        object-fit: cover;
+        box-shadow: inset;
+    }
+
+    div > nav a {
+        font-size: larger;
+        font-weight: bolder;
+        display: block;
+    }
+
+        div > nav a:hover {
+            font-weight: normal;
+            background-color: transparent;
+            font-display: block;
+        }
+
+    .showcase {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #fff;
+        padding: 0 20px;
+    }
+
+
+    .video-container {
+        position: absolute;
+        top: 50px;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--primary-color) url('./https://traversymedia.com/downloads/cover.jpg') no-repeat center;
+    }
+
+        .video-container video {
+            min-width: 100%;
+            min-height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+
+        .video-container:after {
+            content: '';
+            z-index: 1;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.5);
+            position: absolute;
+        }
+
+    .page-content {
+        z-index: 2;
+    }
+
+    #about {
+        padding: 40px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+        #about p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        #about h2 {
+            margin: 30px 0;
+            color: var(--primary-color);
+        }
+
+    .social a {
+        margin: 0 5px;
+    }
+
+    .logo-image {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-top: -6px;
+    }
+
+    .brand {
+        font-weight: bold;
+        font-size: 24px;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 2px 2px 2px 2px;
+    }
+
+    .navbar nav a {
+        color: white !important;
+        border-width: 0;
+    }
+
+        .navbar nav a:hover {
+            background-color: steelblue;
+            border-width: 1px;
+        }
+
+    .nav-button {
+        /* display: block; */
+        width: 115px;
+        height: auto;
+        background: #4E9CAF;
+        padding: 4px;
+        text-align: center;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        line-height: 25px;
+    }
+</style>

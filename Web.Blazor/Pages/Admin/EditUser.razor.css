@@ -1,0 +1,52 @@
+﻿.user {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+}
+
+
+.imgcontainer img {
+    height: 100px; /* set a default height*/
+    margin-top: -15px; /* move image up fo 15px */
+    border: 1px solid black; /* define a border */
+    border-radius: 50%; /* make the image rounded, this works only with square images*/
+}
+
+.imgcontainer {
+    display: flex; /* change display */
+    justify-content: center; /* align to the center the image */
+    /* NOTE : there is a lot of other way to align the image to the center, you can use the one that you prefer*/
+}
+
+.e-card {
+    margin: auto;
+    border-radius: 10px;
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.125);
+}
+
+.tile_layout.card-control-section .row .e-card {
+    text-align: left;
+    margin: 2px;
+}
+
+.tile_layout.card-control-section .row.filter .tile_search {
+    justify-content: flex-end;
+}
+
+.e-card .e-card-header .e-card-header-caption .e-card-header-title {
+    justify-content: flex-end;
+    font-size: large;
+    font-family: 'Segoe UI', Helvetica,;
+    font-weight: bold;
+}
+
+.e-card .e-card-content {
+    padding-top: 1px;
+    font-family: Arial, Helvetica, sans-serif, 'Segoe UI';
+    height: auto;
+    width: auto;
+}

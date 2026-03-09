@@ -1,0 +1,186 @@
+﻿@page "/admin/appsettings2"
+@using Syncfusion.Blazor.Navigations
+
+@inject Microsoft.AspNetCore.Components.NavigationManager UriHelper
+<div class="control-section">
+    <div class="row">
+        <div class="col-md-3">
+            <SfTreeView TValue="TreeItem" SortOrder="Syncfusion.Blazor.Navigations.SortOrder.Ascending">
+                <TreeViewFieldsSettings DataSource="@TreeDataSource"
+                                        Id="NodeId" Text="NodeText" Expanded="Expanded" Child="@("Child")"
+                                        IconCss="Icon" ImageUrl="ImageUrl" />
+                <TreeViewEvents TValue="TreeItem" NodeClicked="NodeClickedHandler"></TreeViewEvents>
+            </SfTreeView>
+        </div>
+        <div class="col-md-5">
+            @if (nodeOption == "downloads")
+            {
+                <div class="card-box">
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="Pdf's'" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsMedia" Placeholder="Media files" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.MediaDownloads))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                </div>
+            }
+            @if (nodeOption == "backups")
+            {
+                <div class="card-box">
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="Database" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="Uploads" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                </div>
+            }
+            @if (nodeOption == "storage")
+            {
+                <div class="card-box">
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="Database" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                    <div class="input-content">
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="Uploads" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+
+
+</div>
+
+
+@code {
+    // Specifies the DataSource value for TreeView component.
+    List<TreeItem> TreeDataSource = new List<TreeItem>();
+
+    protected string eventName;
+    protected string nodeOption;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        TreeDataSource.Add(new TreeItem
+            {
+                NodeId = "01",
+                NodeText = "Folders",
+                Icon = "folder",
+                Child = new List<TreeItem>()
+            {
+                new TreeItem { NodeId = "01-01", NodeText = "Downloads", Icon = "audio" },
+                new TreeItem { NodeId = "01-02", NodeText = "Backups", Icon = "audio" },
+                new TreeItem { NodeId = "01-03", NodeText = "Storage", Icon = "audio" },
+                new TreeItem { NodeId = "01-04", NodeText = "Imges", Icon = "audio" },
+            }
+            });
+        TreeDataSource.Add(new TreeItem
+            {
+                NodeId = "02",
+                NodeText = "OtherSettings",
+                Icon = "folder",
+                Child = new List<TreeItem>()
+            {
+                new TreeItem { NodeId = "02-01", NodeText = "Contacts", Icon = "video" },
+                new TreeItem { NodeId = "02-02", NodeText = "Other definitions", Icon = "video" },
+                new TreeItem { NodeId = "02-03", NodeText = "Idiom", Icon = "video" },
+                new TreeItem { NodeId = "02-04", NodeText = "Api Key", Icon = "video" },
+            },
+            });
+    }
+
+    public void NodeClickedHandler(NodeClickEventArgs args)
+    {
+        eventName = args.Name.ToLower();
+        nodeOption = args.NodeData.Text.ToLower();
+    }
+
+    class TreeItem
+    {
+        public string NodeId { get; set; }
+        public string NodeText { get; set; }
+        public string Icon { get; set; }
+        public string ImageUrl { get; set; }
+        public bool Expanded { get; set; }
+        public bool Selected { get; set; }
+        public List<TreeItem> Child;
+    }
+}
+
+<style>
+    .card-box {
+        padding: 15px;
+        -webkit-border-radius: 5px;
+        border-radius: 25px;
+        -moz-border-radius: 5px;
+        background-clip: padding-box;
+        margin-bottom: 5px;
+        background-color: #ffffff;
+        box-shadow: 0 0px 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0px 0 rgba(0, 0, 0, 0.02);
+    }
+    .input-content{
+        display:flex;
+        background-color: steelblue;
+        color:white;
+        font-size: 18px;
+        justify-content:space-between;
+        align-items:center;
+        gap: 5px;
+    }
+
+    .e-treeview .e-list-img {
+        width: 25px;
+        height: 25px;
+    }
+    /* Loading sprite image for TreeView */
+    .e-treeview .e-list-icon {
+        background-repeat: no-repeat;
+        background-image: url("css/treeview/images/file_Icons.png");
+        height: 20px;
+    }
+        /* Specify the Icon positions based upon class name */
+        .e-treeview .e-list-icon.folder {
+            background-position: -197px -552px
+        }
+
+        .e-treeview .e-list-icon.docx {
+            background-position: -197px -20px
+        }
+
+        .e-treeview .e-list-icon.ppt {
+            background-position: -197px -48px
+        }
+
+        .e-treeview .e-list-icon.pdf {
+            background-position: -197px -104px
+        }
+
+        .e-treeview .e-list-icon.images {
+            background-position: -197px -132px
+        }
+
+        .e-treeview .e-list-icon.zip {
+            background-position: -197px -188px
+        }
+
+        .e-treeview .e-list-icon.audio {
+            background-position: -197px -244px
+        }
+
+        .e-treeview .e-list-icon.video {
+            background-position: -197px -272px
+        }
+
+        .e-treeview .e-list-icon.exe {
+            background-position: -197px -412px
+        }
+</style>
