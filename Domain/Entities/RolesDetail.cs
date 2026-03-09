@@ -1,0 +1,8 @@
+namespace MediaOrganizerApp.Domain.Entities
+{
+    public class RolesDetail
+    {
+        public int Id { get; set; }
+        public string Role { get; set; }
+    }
+}
