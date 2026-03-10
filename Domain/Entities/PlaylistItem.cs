@@ -8,6 +8,7 @@ namespace MediaOrganizerApp.Domain.Entities
         public int Id { get; set; }
 
         public int PlaylistId { get; set; }
+        public int MediaId { get; set; }
 
         public MediaType MediaType { get; set; }
 

@@ -11,7 +11,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Repositories
 
         Task<Playlist?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-        Task<Playlist> InsertAsync(Playlist playlist, CancellationToken cancellationToken = default);
+        Task<int?> InsertAsync(Playlist playlist, CancellationToken cancellationToken = default);
 
         Task UpdateAsync(Playlist playlist, CancellationToken cancellationToken = default);
 

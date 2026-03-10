@@ -65,12 +65,12 @@ namespace Web.Blazor.Services.ApiWrappers
             {
                 using var result = await _httpClient.PostAsJsonAsync(_uri, dto);
                 result.EnsureSuccessStatusCode();
-                return await result.Content.ReadFromJsonAsync<int>();
+                return await result.Content.ReadFromJsonAsync<int?>();
             }
             catch (Exception exc)
             {
                 _logger.LogError($"Playlists - Erro ao criar playlist: {exc.Message}");
-                throw;
+                return -1;
             }
         }
 
@@ -120,7 +120,6 @@ namespace Web.Blazor.Services.ApiWrappers
                 throw;
             }
         }
-
         public async Task<PlaylistItemDto?> GetItemByIdAsync(int playlistId, int itemId)
         {
             var uri = $"{_uri}/{playlistId}/items/{itemId}";
@@ -135,14 +134,14 @@ namespace Web.Blazor.Services.ApiWrappers
             }
         }
 
-        public async Task<PlaylistItemDto?> AddItemAsync(int playlistId, PlaylistItemCreateDto dto)
+        public async Task<int?> AddItemAsync(int playlistId, PlaylistItemCreateDto dto)
         {
             var uri = $"{_uri}/{playlistId}/items";
             try
             {
                 using var result = await _httpClient.PostAsJsonAsync(uri, dto);
                 result.EnsureSuccessStatusCode();
-                return await result.Content.ReadFromJsonAsync<PlaylistItemDto>();
+                return await result.Content.ReadFromJsonAsync<int?>();
             }
             catch (Exception exc)
             {

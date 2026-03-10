@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Google.Apis.YouTube.v3.Data;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using PlaylistItem = MediaOrganizerApp.Domain.Entities.PlaylistItem;
 
 namespace MediaOrganiserApp.Persistence.Repositories.SqlServerRepository
 {
@@ -52,25 +54,28 @@ namespace MediaOrganiserApp.Persistence.Repositories.SqlServerRepository
         /// <summary>
         /// Insere um novo item de playlist e devolve a entidade tal como ficou na BD.
         /// </summary>
-        public async Task<PlaylistItem> InsertAsync(PlaylistItem item, CancellationToken cancellationToken = default)
+        public async Task<int?> InsertAsync(PlaylistItem item, CancellationToken cancellationToken = default)
         {
             const string sp = "usp_PlaylistItem_Insert";
+            var p = new DynamicParameters();
+            p.Add("@PlaylistId", item.PlaylistId, dbType: DbType.Int32);
+            p.Add("@MediaType", item.MediaType, dbType: DbType.Int32);
+            p.Add("@MediaId", item.MediaId, dbType: DbType.Int32);
+            p.Add("@ResourcePathOrUrl", item.ResourcePathOrUrl, dbType: System.Data.DbType.String);
+            p.Add("@Title", item.Title, dbType: System.Data.DbType.String);
+            p.Add("@SortOrder", item.SortOrder, dbType: System.Data.DbType.Int32);
+            p.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
 
             using (var connection = _context.CreateConnection())
             {
-                var result = await connection.QuerySingleAsync<PlaylistItem>(
-                    sp,
-                    new
-                    {
-                        PlaylistId = item.PlaylistId,
-                        MediaType = (int)item.MediaType,
-                        ResourcePathOrUrl = item.ResourcePathOrUrl,
-                        Title = item.Title,
-                        SortOrder = item.SortOrder == 0 ? (int?)null : item.SortOrder // se 0, deixamos a SP calcular
-                    },
+                var result = await connection.ExecuteAsync(
+                    sp, param: p,
                     commandType: CommandType.StoredProcedure);
 
-                return result;
+                var _id = p.Get<int>("@Id");
+
+                return _id;
             }
         }
 
@@ -107,11 +112,45 @@ namespace MediaOrganiserApp.Persistence.Repositories.SqlServerRepository
             }
         }
 
-        public Task UpdateOrderAsync(int playlistId, IEnumerable<PlaylistItemOrderUpdateDto> items, CancellationToken cancellationToken = default)
+        public async Task UpdateOrderAsync(int playlistId, IEnumerable<PlaylistItemOrderUpdateDto> items, CancellationToken cancellationToken = default)
         {
+            const string sp = "usp_PlaylistItem_UpdateOrder";
 
-            // TODO seem as stored procedure and implement this method
-            throw new System.NotImplementedException();
+            var table = new DataTable();
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("SortOrder", typeof(int));
+
+            foreach (var item in items)
+                table.Rows.Add(item.Id, item.SortOrder);
+
+            var p = new DynamicParameters();
+            p.Add("@PlaylistId", playlistId, dbType: DbType.Int32);
+            p.Add("@Items", table.AsTableValuedParameter("dbo.PlaylistItemOrderUpdateType"));
+
+            using (var connection = _context.CreateConnection())
+            {
+                var command = new CommandDefinition(
+                    sp,
+                    p,
+                    commandType: CommandType.StoredProcedure,
+                    cancellationToken: cancellationToken);
+
+                await connection.ExecuteAsync(command);
+            }
+        }
+        public async Task<IEnumerable<PlaylistItemDto>> GetItemDtosByPlaylistIdAsync(int playlistId, CancellationToken cancellationToken = default)
+        {
+            const string sp = "usp_PlaylistItem_GetByPlaylistId_WithMediaInfo";
+
+            using (var connection = _context.CreateConnection())
+            {
+                var result = await connection.QueryAsync<PlaylistItemDto>(
+                    sp,
+                    new { PlaylistId = playlistId },
+                    commandType: CommandType.StoredProcedure);
+
+                return result;
+            }
         }
     }
 }

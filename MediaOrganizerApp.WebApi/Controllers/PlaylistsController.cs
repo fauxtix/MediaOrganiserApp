@@ -55,19 +55,29 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
         // POST: api/playlists
         [HttpPost]
-        public async Task<ActionResult<PlaylistDto>> Create(
+        public async Task<ActionResult<int?>> Create(
             [FromBody] PlaylistCreateDto dto,
             CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            var entity = _mapper.Map<Playlist>(dto);
-            var created = await _playlistService.CreateAsync(entity, cancellationToken);
-            var resultDto = _mapper.Map<PlaylistDto>(created);
+                var entity = _mapper.Map<Playlist>(dto);
+                var createdId = await _playlistService.CreateAsync(entity, cancellationToken);
+                var createdPlayList = await _playlistService.GetByIdAsync(createdId ?? 0, cancellationToken);
 
-            // devolve 201 Created com Location header
-            return CreatedAtAction(nameof(GetById), new { id = resultDto.Id }, resultDto);
+                // devolve 201 Created com Location header
+                var createdDto = _mapper.Map<PlaylistDto>(createdPlayList);
+                //CreatedAtAction(nameof(GetById), new { id = createdId }, createdDto);
+                return Ok(createdId);
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         // PUT: api/playlists/{id}
@@ -115,14 +125,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
             int playlistId,
             CancellationToken cancellationToken)
         {
-            // opcional: validar se a playlist existe
             var playlist = await _playlistService.GetByIdAsync(playlistId, cancellationToken);
             if (playlist == null)
                 return NotFound($"Playlist with id {playlistId} not found.");
 
-            var items = await _playlistItemService.GetByPlaylistIdAsync(playlistId, cancellationToken);
-            var dtos = _mapper.Map<IEnumerable<PlaylistItemDto>>(items);
-
+            var dtos = await _playlistItemService.GetItemDtosByPlaylistIdAsync(playlistId, cancellationToken);
             return Ok(dtos);
         }
 
@@ -147,7 +154,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
         // POST: api/playlists/{playlistId}/items
         [HttpPost("{playlistId:int}/items")]
-        public async Task<ActionResult<PlaylistItemDto>> AddItem(
+        public async Task<ActionResult<int?>> AddItem(
             int playlistId,
             [FromBody] PlaylistItemCreateDto dto,
             CancellationToken cancellationToken)
@@ -165,14 +172,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var entity = _mapper.Map<PlaylistItem>(dto);
 
             // Se SortOrder for null no DTO (e 0 no entity), a SP calcula o próximo
-            var created = await _playlistItemService.AddAsync(entity, cancellationToken);
+            var createdId = await _playlistItemService.AddAsync(entity, cancellationToken);
+            var createdPlayList = await _playlistItemService.GetByIdAsync(createdId ?? 0, cancellationToken);
+            var resultDto = _mapper.Map<PlaylistItemDto>(createdPlayList);
 
-            var resultDto = _mapper.Map<PlaylistItemDto>(created);
+            return Ok(createdId);
 
-            return CreatedAtAction(
-                nameof(GetItemById),
-                new { playlistId = playlistId, itemId = resultDto.Id },
-                resultDto);
         }
 
         // PUT: api/playlists/{playlistId}/items/{itemId}
@@ -199,6 +204,29 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             await _playlistItemService.UpdateAsync(existing, cancellationToken);
 
+            return NoContent();
+        }
+
+        [HttpPut("UpdateSortOrder")]
+        public async Task<IActionResult> UpdateSortOrder([FromBody] IEnumerable<PlaylistItemDto> itemsListDto,
+          CancellationToken cancellationToken)
+        {
+            var items = itemsListDto?.ToList() ?? [];
+            if (items.Count == 0)
+                return BadRequest("Items list is required.");
+
+            var playlistIds = items.Select(x => x.PlaylistId).Distinct().ToArray();
+            if (playlistIds.Length != 1 || playlistIds[0] <= 0)
+                return BadRequest("All items must belong to the same playlist and have a valid PlaylistId.");
+
+            if (items.Any(x => x.Id <= 0))
+                return BadRequest("All items must have a valid Id.");
+
+            var updates = items
+                .Select(x => new PlaylistItemOrderUpdateDto { Id = x.Id, SortOrder = x.SortOrder })
+                .ToList();
+
+            await _playlistItemService.UpdateOrderAsync(playlistIds[0], updates, cancellationToken);
             return NoContent();
         }
 

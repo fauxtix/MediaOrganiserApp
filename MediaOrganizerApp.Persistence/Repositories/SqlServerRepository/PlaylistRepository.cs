@@ -51,22 +51,24 @@ namespace MediaOrganiserApp.Persistence.Repositories.SqlServerRepository
         /// <summary>
         /// Insere uma nova playlist e devolve a entidade tal como ficou na BD.
         /// </summary>
-        public async Task<Playlist> InsertAsync(Playlist playlist, CancellationToken cancellationToken = default)
+        public async Task<int?> InsertAsync(Playlist playlist, CancellationToken cancellationToken = default)
         {
             const string sp = "usp_Playlist_Insert";
+            var p = new DynamicParameters();
+            p.Add("@Name", playlist.Name, dbType: DbType.String);
+            p.Add("@Description", playlist.Description, dbType: System.Data.DbType.String);
+            p.Add("@MediaType", playlist.MediaType, dbType: DbType.Int32);
+            p.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
             using (var connection = _context.CreateConnection())
             {
-                var result = await connection.QuerySingleAsync<Playlist>(
-                    sp,
-                    new
-                    {
-                        Name = playlist.Name,
-                        Description = playlist.Description
-                    },
+                var result = await connection.ExecuteAsync(
+                    sp, param: p,
                     commandType: CommandType.StoredProcedure);
 
-                return result;
+                var _id = p.Get<int>("@Id");
+
+                return _id;
             }
         }
 
@@ -82,7 +84,8 @@ namespace MediaOrganiserApp.Persistence.Repositories.SqlServerRepository
                     {
                         Id = playlist.Id,
                         Name = playlist.Name,
-                        Description = playlist.Description
+                        Description = playlist.Description,
+                        MediaType = playlist.MediaType
                     },
                     commandType: CommandType.StoredProcedure);
             }

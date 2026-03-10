@@ -1,4 +1,5 @@
-﻿using MediaOrganizerApp.Application.Interfaces.Repositories;
+﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using System;
@@ -11,10 +12,12 @@ namespace MediaOrganiserApp.Application.Services.Playlists
     public class PlaylistService : IPlaylistService
     {
         private readonly IPlaylistRepository _playlistRepository;
+        private readonly IPlaylistItemRepository _itemRepository;
 
-        public PlaylistService(IPlaylistRepository playlistRepository)
+        public PlaylistService(IPlaylistRepository playlistRepository, IPlaylistItemRepository itemRepository)
         {
             _playlistRepository = playlistRepository;
+            _itemRepository = itemRepository;
         }
 
         public Task<IEnumerable<Playlist>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -27,7 +30,7 @@ namespace MediaOrganiserApp.Application.Services.Playlists
             return _playlistRepository.GetByIdAsync(id, cancellationToken);
         }
 
-        public async Task<Playlist> CreateAsync(Playlist playlist, CancellationToken cancellationToken = default)
+        public async Task<int?> CreateAsync(Playlist playlist, CancellationToken cancellationToken = default)
         {
             if (playlist == null)
                 throw new ArgumentNullException(nameof(playlist));
@@ -35,8 +38,6 @@ namespace MediaOrganiserApp.Application.Services.Playlists
             if (string.IsNullOrWhiteSpace(playlist.Name))
                 throw new ArgumentException("Playlist name is required.", nameof(playlist));
 
-            // CreatedAt/UpdatedAt são tratados na BD via DEFAULT, mas
-            // se quiseres manter coerência no domínio, podes setar aqui também.
             return await _playlistRepository.InsertAsync(playlist, cancellationToken);
         }
 
@@ -50,7 +51,7 @@ namespace MediaOrganiserApp.Application.Services.Playlists
 
             if (string.IsNullOrWhiteSpace(playlist.Name))
                 throw new ArgumentException("Playlist name is required.", nameof(playlist));
-
+            playlist.UpdatedAt = DateTime.UtcNow;
             await _playlistRepository.UpdateAsync(playlist, cancellationToken);
         }
 

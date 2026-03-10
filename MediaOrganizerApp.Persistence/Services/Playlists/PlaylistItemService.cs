@@ -1,4 +1,5 @@
-﻿using MediaOrganizerApp.Application.Interfaces.Repositories;
+﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.Domain.Enums;
@@ -38,7 +39,7 @@ namespace MediaOrganiserApp.Application.Services.Playlists
             return _itemRepository.GetByIdAsync(id, cancellationToken);
         }
 
-        public async Task<PlaylistItem> AddAsync(PlaylistItem item, CancellationToken cancellationToken = default)
+        public async Task<int?> AddAsync(PlaylistItem item, CancellationToken cancellationToken = default)
         {
             if (item == null)
                 throw new ArgumentNullException(nameof(item));
@@ -93,6 +94,23 @@ namespace MediaOrganiserApp.Application.Services.Playlists
                 throw new ArgumentException("Id must be greater than zero.", nameof(id));
 
             await _itemRepository.DeleteAsync(id, cancellationToken);
+        }
+
+
+        public async Task<IEnumerable<PlaylistItemDto>> GetItemDtosByPlaylistIdAsync(int playlistId, CancellationToken cancellationToken = default)
+        {
+            if (playlistId <= 0)
+                throw new ArgumentException("PlaylistId must be greater than zero.", nameof(playlistId));
+
+            return await _itemRepository.GetItemDtosByPlaylistIdAsync(playlistId, cancellationToken);
+        }
+
+        public async Task UpdateOrderAsync(int playlistId, IEnumerable<PlaylistItemOrderUpdateDto> items, CancellationToken cancellationToken = default)
+        {
+            if (playlistId <= 0)
+                throw new ArgumentException("PlaylistId must be greater than zero.", nameof(playlistId));
+
+            await _itemRepository.UpdateOrderAsync(playlistId, items, cancellationToken);
         }
     }
 }

@@ -250,7 +250,8 @@ namespace Web.Blazor.Pages.BaseComponents
                     var createDto = new PlaylistCreateDto
                     {
                         Name = EditModel.Name,
-                        Description = EditModel.Description
+                        Description = EditModel.Description,
+                        MediaType = EditModel.MediaType,                        
                     };
                     int? createdId = await PlaylistsService.CreateAsync(createDto);
                     if (createdId <= 0)
