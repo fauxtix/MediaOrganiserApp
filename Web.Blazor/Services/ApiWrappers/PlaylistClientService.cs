@@ -176,7 +176,7 @@ namespace Web.Blazor.Services.ApiWrappers
             catch (Exception exc)
             {
                 _logger.LogError(exc, $"Playlists - Erro ao atualizar Ordem da lista: {exc.Message}");
-                throw;
+                return false;
             }
         }
 
