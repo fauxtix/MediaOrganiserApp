@@ -351,7 +351,7 @@ namespace Web.Blazor.Services.ApiWrappers
             string openLibraryBaseUrl = "https://openlibrary.org/";
             string searchUrl = $"{openLibraryBaseUrl}/search/authors.json?q={Uri.EscapeDataString(authorName)}";
             string authorBio;
-            string authorPhotoUrl = "images/NoImage_48.png";
+            string authorPhotoUrl = "images/NoPhoto.png";
 
             if (string.IsNullOrWhiteSpace(authorName))
             {

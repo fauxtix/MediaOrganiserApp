@@ -459,10 +459,18 @@ namespace Web.Blazor.Pages.BaseComponents
             NavigationManager.NavigateTo("/admin/managelookuptables");
         }
 
+        protected string StripHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return string.Empty;
+
+            return System.Text.RegularExpressions.Regex
+                .Replace(html, "<.*?>", string.Empty)
+                .Trim();
+        }
         protected async Task HideToast()
         {
             await ToastObj.HideAsync();
         }
-
     }
 }

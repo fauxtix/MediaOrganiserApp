@@ -134,8 +134,18 @@ namespace Web.Blazor.Pages.LookupTables
             {
                 var authorName = SelectedAuthor.Descricao;
                 authorDetails = await AutoresService.GetAuthorDetails(authorName);
+                if (string.IsNullOrEmpty(authorDetails.bio))
+                {
+                    message = "Não foi possível obter detalhes do autor.";
+                    alertVisibility = true;
+                    StateHasChanged();
+                    await Task.Delay(20);
+                    await SpinnerObj.HideAsync();
+                    return;
+                }
                 SelectedAuthor.Sobre = authorDetails.bio;
-                SelectedAuthor.ImagemAutor = authorDetails.photo;
+                if (SelectedAuthor.ImagemAutor != authorDetails.photo && SelectedAuthor.ImagemAutor.ToLower().Contains("no"))
+                    SelectedAuthor.ImagemAutor = authorDetails.photo;
                 await Task.Delay(20);
                 await SpinnerObj.HideAsync();
 

@@ -3,9 +3,9 @@
 @attribute [Authorize]
 
 <div id="spinnerContainer"></div>
-<SfSpinner @ref="SpinnerObj"
-           Label="@L["LoadingMsg"]"
-           Type="@SpinnerType.Bootstrap4"
+<SfSpinner @ref="SpinnerObj" 
+           Label="@L["LoadingMsg"]" 
+           Type="@SpinnerType.Tailwind"
            CssClass="e-spin-overlay">
 </SfSpinner>
 
@@ -48,13 +48,13 @@
                         <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
                     </SfRichTextEditor>
                 </div>
-                @if (!blnEdit)
+@*                 @if (!blnEdit)
                 {
-                    <div class="mt-2">
+ *@                    <div class="mt-2">
                         <SfButton CssClass="e-primary" IsPrimary="true"
                                   Content="Get data From Api" OnClick="GetAuthorDataFromApi" />
                     </div>
-                }
+                @* } *@
             </div>
             <div class="col-md-4 text-center h-100">
                 @if (!string.IsNullOrEmpty(SelectedAuthor.ImagemAutor))

@@ -206,6 +206,16 @@ else
                                     HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
                                     CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
                                     Width="250" />
+                        <GridColumn HeaderText="@(localizerApp["lblSobreAutor"])"
+                                    AllowSorting="false"
+                                    Width="250">
+                            <Template Context="rowObj">
+                                @{
+                                    var row = (AutorDTO)rowObj;
+                                }
+                                @StripHtml(row.Sobre)
+                            </Template>
+                        </GridColumn>      
                     </GridColumns>
                 </SfGrid>
             </div>
