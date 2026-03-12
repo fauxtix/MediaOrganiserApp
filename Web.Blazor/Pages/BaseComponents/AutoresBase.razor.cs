@@ -7,6 +7,7 @@ using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
 using Web.Blazor.Services.DocumentHelpers;
+using Web.Blazor.Utilities;
 
 namespace Web.Blazor.Pages.BaseComponents
 {
@@ -461,12 +462,7 @@ namespace Web.Blazor.Pages.BaseComponents
 
         protected string StripHtml(string? html)
         {
-            if (string.IsNullOrWhiteSpace(html))
-                return string.Empty;
-
-            return System.Text.RegularExpressions.Regex
-                .Replace(html, "<.*?>", string.Empty)
-                .Trim();
+            return TextSanitizer.StripHtml(html);
         }
         protected async Task HideToast()
         {

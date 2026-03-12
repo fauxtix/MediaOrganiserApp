@@ -24,7 +24,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.Api
         List<string> RegistoComErros(AutorDTO autor);
 
         Task<AuthorModel> GetAuthorInfo_Api(string nomeAutor);
-        Task<(string bio, string photo)> GetAuthorDetails(string authorName);
+        Task<(string bio, string photo, string birthDate)> GetAuthorDetails(string authorName);
         Task<string> TranslateWithMyMemoryAsync(string text, string sourceLang, string targetLang);
 
         //Task<IEnumerable<AutorDTO>> Query(string where = null);

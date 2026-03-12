@@ -346,16 +346,17 @@ namespace Web.Blazor.Services.ApiWrappers
             return default;
         }
 
-        public async Task<(string bio, string photo)> GetAuthorDetails(string authorName)
+        public async Task<(string bio, string photo, string birthDate)> GetAuthorDetails(string authorName)
         {
             string openLibraryBaseUrl = "https://openlibrary.org/";
             string searchUrl = $"{openLibraryBaseUrl}/search/authors.json?q={Uri.EscapeDataString(authorName)}";
             string authorBio;
+            string authorBirthDate = "";
             string authorPhotoUrl = "images/NoPhoto.png";
 
             if (string.IsNullOrWhiteSpace(authorName))
             {
-                return ("", "");
+                return ("", "", "");
             }
 
             try
@@ -364,13 +365,29 @@ namespace Web.Blazor.Services.ApiWrappers
 
                 if (searchResult.GetProperty("numFound").GetInt32() == 0)
                 {
-                    return ("", "");
+                    return ("Sem Biografia disponível", "", "");
                 }
 
                 string authorKey = searchResult.GetProperty("docs")[0].GetProperty("key").GetString();
 
                 string authorDetailsUrl = $"{openLibraryBaseUrl}/authors/{authorKey}.json";
                 var authorDetails = await GetJsonAsync(authorDetailsUrl);
+
+                if (authorDetails.TryGetProperty("birth_date", out JsonElement birthDateElement))
+                {
+                    if (birthDateElement.ValueKind == JsonValueKind.String)
+                    {
+                        authorBirthDate = birthDateElement.GetString();
+                        if(authorBirthDate.Length == 4) // year only
+                        {
+                            authorBirthDate = "01/01/" + authorBirthDate;
+                        }
+                    }
+                    else
+                    {
+                        authorBirthDate = DateTime.MinValue.ToString("dd/MM/yyyy");
+                    }
+                }
 
                 if (authorDetails.TryGetProperty("bio", out JsonElement bioElement))
                 {
@@ -411,13 +428,13 @@ namespace Web.Blazor.Services.ApiWrappers
 
                 string translatedBio = await TranslateWithMyMemoryAsync(authorBio, "en", "pt");
                 translatedBio = RemoveRepeatedBio(translatedBio);
-                return (translatedBio, authorPhotoUrl);
+                return (translatedBio, authorPhotoUrl, authorBirthDate);
 
             }
             catch (Exception exc)
             {
                 _logger.LogError($"Erro ao obter detalhes do autor ({authorName}) da API Open Library. Exception: {exc.Message}");
-                return ("", ""); // the given key (bio) does not exist
+                return ("", "", ""); // the given key (bio) does not exist
             }
         }
 

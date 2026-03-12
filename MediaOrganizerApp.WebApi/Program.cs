@@ -4,6 +4,7 @@ using MediaOrganizerApp.Application.Mappings;
 using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using MediaOrganizerApp.WebApi.Middlewares;
+using MediaOrganizerApp.WebApi.Services;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -47,6 +48,23 @@ public class Program
         // Google Authentication removido - não necessário para esta API
 
         builder.Services.AddPersistenceInfrastructure();
+
+        // HttpClient used by AI providers (e.g., Ollama local HTTP API).
+        builder.Services.AddHttpClient();
+
+        // AI fallback services (server-side). Used only when external metadata APIs fail.
+        // Provider selection:
+        // - Ai:Provider = "OpenAI" (default)
+        // - Ai:Provider = "Ollama" (local)
+        var aiProvider = builder.Configuration["Ai:Provider"];
+        if (string.Equals(aiProvider, "Ollama", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Services.AddScoped<IAiAuthorProfileService, OllamaAuthorProfileService>();
+        }
+        else
+        {
+            builder.Services.AddScoped<IAiAuthorProfileService, AiAuthorProfileService>();
+        }
 
         var app = builder.Build();
 

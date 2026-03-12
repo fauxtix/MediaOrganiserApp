@@ -9,6 +9,8 @@ using Syncfusion.Blazor.Spinner;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Utilities;
 using Path = System.IO.Path;
 namespace Web.Blazor.Pages.LookupTables
 {
@@ -21,6 +23,7 @@ namespace Web.Blazor.Pages.LookupTables
 
         [Inject] Microsoft.Extensions.Localization.IStringLocalizer<App> L { get; set; }
         [Inject] IAutorService AutoresService { get; set; }
+        [Inject] AiClientService AiClientService { get; set; }
         [Inject] NavigationManager NavigationManager { get; set; }
         [Inject] IConfiguration Configuration { get; set; }
         [Inject] ILogger<App> Logger { get; set; }
@@ -39,8 +42,11 @@ namespace Web.Blazor.Pages.LookupTables
 
         protected SfSpinner SpinnerObj;
 
+        protected string? aiNotes;
+        protected double? aiConfidence;
+
         public string[] Items = new string[] { "Open", "|", "Delete", "Download", "Rename", "|", "Details", "Custom" };
-        protected (string bio, string photo) authorDetails;
+        protected (string bio, string photo, string birthDate) authorDetails;
 
         protected override void OnInitialized()
         {
@@ -127,25 +133,67 @@ namespace Web.Blazor.Pages.LookupTables
                 return;
             }
 
+            aiNotes = null;
+            aiConfidence = null;
+
             await Task.Delay(20);
             await SpinnerObj?.ShowAsync();
 
             try
             {
                 var authorName = SelectedAuthor.Descricao;
+                var authorHasImage = !SelectedAuthor.ImagemAutor.ToLower().Contains("image") || 
+                              !SelectedAuthor.ImagemAutor.ToLower().Contains("photo");
+
                 authorDetails = await AutoresService.GetAuthorDetails(authorName);
-                if (string.IsNullOrEmpty(authorDetails.bio))
+                if (!blnEdit && !string.IsNullOrEmpty(authorDetails.photo))
                 {
-                    message = "Não foi possível obter detalhes do autor.";
+                    SelectedAuthor.ImagemAutor = authorDetails.photo;
+                }
+                else if (blnEdit && SelectedAuthor.ImagemAutor != authorDetails.photo && !authorHasImage)
+                {
+                    SelectedAuthor.ImagemAutor = authorDetails.photo;
+                }
+
+                if (SelectedAuthor.DataNascimento is null)
+                {
+                    if (!string.IsNullOrEmpty(authorDetails.birthDate))
+                    {
+                        SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
+                    }
+                }
+                if (authorDetails.bio.ToLower().Contains("sem")) // TODO => localize "sem biografia" check
+                {
+                    // External API first; AI fallback only when external returns empty bio.
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName);
+
+                    if (!string.IsNullOrWhiteSpace(ai?.Bio))
+                    {
+                        SelectedAuthor.Sobre = ai.Bio;
+                        aiNotes = ai.Notes;
+                        aiConfidence = ai.Confidence;
+
+                        message = "Bio gerada por AI (fallback).";
+                        alertVisibility = true;
+                        StateHasChanged();
+                        await Task.Delay(20);
+                        await SpinnerObj.HideAsync();
+                        return;
+                    }
+
+                    message = "Não foi possível obter detalhes do autor (API e AI).";
                     alertVisibility = true;
                     StateHasChanged();
                     await Task.Delay(20);
                     await SpinnerObj.HideAsync();
                     return;
                 }
-                SelectedAuthor.Sobre = authorDetails.bio;
-                if (SelectedAuthor.ImagemAutor != authorDetails.photo && SelectedAuthor.ImagemAutor.ToLower().Contains("no"))
-                    SelectedAuthor.ImagemAutor = authorDetails.photo;
+                SelectedAuthor.Sobre = TextSanitizer.StripHtml(authorDetails.bio);
+                aiNotes = null;
+                aiConfidence = null;
+
+                if (!string.IsNullOrWhiteSpace(authorDetails.birthDate))
+                    SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
                 await Task.Delay(20);
                 await SpinnerObj.HideAsync();
 
