@@ -9,6 +9,7 @@ using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Popups;
 using System.Globalization;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
+using Web.Blazor.Pages.Publications;
 
 namespace Web.Blazor.Pages.Publications
 {
@@ -78,6 +79,9 @@ namespace Web.Blazor.Pages.Publications
         protected string authorToSearch = string.Empty;
         protected bool dataReceivedFromGoogle = false;
 
+        protected string? aiNotes;
+        protected double? aiConfidence;
+
         protected int pubId;
 
         protected ApplicationSettingsDto AppSettings;
@@ -85,32 +89,40 @@ namespace Web.Blazor.Pages.Publications
 
         protected override async Task OnInitializedAsync()
         {
-            AppSettings = await AppSettingsService.GetSettingsAsync();
-
             alertUser = false;
             alertMessage = string.Empty;
             authorToSearch = string.Empty;
+            aiNotes = null;
+            aiConfidence = null;
 
-            var authors = await autoresService.GetAllAsync();
+            var appSettingsTask = AppSettingsService.GetSettingsAsync();
+            var authorsTask = autoresService.GetAllAsync();
+            var formatsTask = formatosService.GetAllAsync();
+            var locaisTask = locaisArquivoService.GetAllAsync();
+            var publishersTask = editorasService.GetAllAsync();
+            var categoriesTask = categoriasService.GetAllAsync(CategoryType.Publicacoes);
+
+            await Task.WhenAll(appSettingsTask, authorsTask, formatsTask, locaisTask, publishersTask, categoriesTask);
+
+            AppSettings = await appSettingsTask;
+
+            var authors = await authorsTask;
             authorList = authors is not null ? authors.OrderBy(p => p.Descricao).ToList() : null;
 
-            var formats = await formatosService.GetAllAsync();
+            var formats = await formatsTask;
             formatList = formats is not null ? formats.OrderBy(p => p.Descricao).ToList() : null;
 
-            var locais = await locaisArquivoService.GetAllAsync();
+            var locais = await locaisTask;
             storageList = locais is not null ? locais.OrderBy(p => p.Descricao).ToList() : null;
 
-            var publishers = await editorasService.GetAllAsync();
+            var publishers = await publishersTask;
             editorList = publishers is not null ? publishers.OrderBy(p => p.Descricao).ToList() : null;
 
-            var categories = await categoriasService.GetAllAsync(CategoryType.Publicacoes);
+            var categories = await categoriesTask;
             categoryList = categories is not null ? categories.OrderBy(p => p.Descricao).ToList() : null;
 
-
-            if (authorList is null || formatList is null || storageList is null || publishers is null || categoryList is null)
-            {
+            if (authorList is null || formatList is null || storageList is null || editorList is null || categoryList is null)
                 AppConfigured = false;
-            }
 
             Extensions = blnEdit ? ".png, .gif, .jpg, .jpeg" : ".pdf";
             downloadsFolder = config.GetValue<string>("AppSettings:PastaDownloadsPdf");
@@ -382,9 +394,9 @@ namespace Web.Blazor.Pages.Publications
 
 
 
-        protected async Task HandleApiResponse(PubsWithDescriptions resp)
+        protected async Task HandleApiResponse(GoogleBooksSearchResult resp)
         {
-            if (resp is not null)
+            if (resp?.Record is not null)
             {
                 string yesMsg = localizerApp["Sim"];
                 string noMsg = localizerApp["Nao"];
@@ -418,7 +430,11 @@ namespace Web.Blazor.Pages.Publications
 
                 SearchApiVisibility = false;
                 dataReceivedFromGoogle = true;
-                SelectedRecord = resp;
+
+                aiNotes = resp.AiNotes;
+                aiConfidence = resp.AiConfidence;
+
+                SelectedRecord = resp.Record;
                 CoverImage = SelectedRecord.ImagemCapa;
 
                 StateHasChanged();

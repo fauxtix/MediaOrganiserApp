@@ -52,6 +52,10 @@ public class Program
         // HttpClient used by AI providers (e.g., Ollama local HTTP API).
         builder.Services.AddHttpClient();
 
+// AI services
+builder.Services.AddHttpClient<OllamaBookSummaryService>();
+builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
+
         // AI fallback services (server-side). Used only when external metadata APIs fail.
         // Provider selection:
         // - Ai:Provider = "OpenAI" (default)

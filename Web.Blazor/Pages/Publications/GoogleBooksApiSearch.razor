@@ -5,14 +5,25 @@
 @using System.Globalization
 @using System.Text
 @using Web.Blazor.Components
+@using Syncfusion.Blazor.Spinner
 
 <div class="container-fluid">
+    <SfSpinner @ref="spinner" Label="@localizerApp["MSG_PreparandoDados"]" Visible="false" />
+
+    @if (showAiProgress)
+    {
+        <div class="e-message e-info mt-2">
+            <div class="e-msg-content">@aiProgressMessage</div>
+        </div>
+    }
+
     <div class="form-row mt-1">
         <SfTextBox Enabled="true" Placeholder="@localizerApp["lblTitulo"]"
                    CssClass="form-control font-weight-bold e-corner"
                    ShowClearButton="true"
                    FloatLabelType="@FloatLabelType.Always"
-                   @bind-Value="@ApiRecord.Titulo">
+                   @bind-Value="@titleToSearch"
+                   Readonly="@isBusy">
         </SfTextBox>
     </div>
     <div>
@@ -20,7 +31,8 @@
                    CssClass="form-control font-weight-bold e-corner"
                    ShowClearButton="true"
                    FloatLabelType="@FloatLabelType.Always"
-                   @bind-Value="@authorToSearch">
+                   @bind-Value="@authorToSearch"
+                   Readonly="@isBusy">
         </SfTextBox>
     </div>
     <hr />
@@ -28,8 +40,8 @@
         <SfButton CssClass="e-success text-color-white e-round-corner mr-3"
                   IconCss="fa fa-search"
                   Content="Search"
-                  Disabled="@(string.IsNullOrWhiteSpace(ApiRecord.Titulo) && string.IsNullOrWhiteSpace(authorToSearch))"
-                  @onclick="(async () => await GetBookInfo(ApiRecord.Titulo, authorToSearch))" />
+                  Disabled="@(isBusy || (string.IsNullOrWhiteSpace(titleToSearch) && string.IsNullOrWhiteSpace(authorToSearch)))"
+                  @onclick="(async () => await GetBookInfo(titleToSearch, authorToSearch))" />
     </div>
 </div>
 
@@ -54,20 +66,35 @@
     [Inject] public IPublicacaoService PubsService { get; set; }
     [Inject] public IAutorService autoresService { get; set; }
     [Inject] public IGoogleBooksService GoogleBooksService { get; set; }
+    [Inject] public Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient { get; set; }
+    [Inject] public Web.Blazor.Services.Common.InternetConnectivityService Internet { get; set; }
     [Inject] public ILogger<App> _logger { get; set; }
     [Inject] public IUtilitiesService utilitiesService { get; set; }
-    [Inject] public SfDialogService DialogService { get; set; }
 
     [Parameter]
     public PubsWithDescriptions ApiRecord { get; set; }
     [Parameter]
-    public EventCallback<PubsWithDescriptions> OnGoogleResponse { get; set; }
+    public EventCallback<Web.Blazor.Pages.Publications.GoogleBooksSearchResult> OnGoogleResponse { get; set; }
 
     protected string authorToSearch = string.Empty;
+    protected string titleToSearch = string.Empty;
     protected bool alertUser = false;
     protected string alertMessage = string.Empty;
     protected string noteMessage = string.Empty;
     int authorId = 0;
+
+    private bool showAiProgress;
+    private string aiProgressMessage = string.Empty;
+
+    private string? lastAiNotes;
+    private double? lastAiConfidence;
+    private bool lastAiUsed;
+
+    private const double AiConfidenceThreshold = 0.7;
+    private const int AiMaxAttempts = 1;
+
+    private SfSpinner? spinner;
+    private bool isBusy;
 
 
     protected override void OnInitialized()
@@ -75,7 +102,21 @@
         alertUser = false;
         alertMessage = string.Empty;
         noteMessage = string.Empty;
-        authorToSearch = string.Empty;
+
+        // Keep local fields editable, but start them with the current record values
+        // so opening the dialog pre-fills from the parent form (original behavior).
+        authorToSearch = ApiRecord?.Autor ?? string.Empty;
+        titleToSearch = ApiRecord?.Titulo ?? string.Empty;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // When the dialog is (re)opened we get new parameters; only overwrite the local
+        // fields if the user hasn't typed anything yet.
+        if (string.IsNullOrWhiteSpace(titleToSearch))
+            titleToSearch = ApiRecord?.Titulo ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(authorToSearch))
+            authorToSearch = ApiRecord?.Autor ?? string.Empty;
     }
 
     protected async Task GetBookInfo(string bookTitle, string author)
@@ -86,8 +127,46 @@
             alertMessage = "Preencha critérios de pesquisa, p.f.";
             return;
         }
+
+        if (isBusy)
+            return;
+
+        isBusy = true;
+        if (spinner is not null)
+            await spinner.ShowAsync();
+
         try
         {
+            lastAiUsed = false;
+            lastAiNotes = null;
+            lastAiConfidence = null;
+
+            var hasInternet = await Internet.HasInternetAsync();
+            if (!hasInternet)
+            {
+                // No internet: skip GoogleBooksApi (requires internet) and try the local AI directly.
+                var ai = await TryGetAiBookAsync(bookTitle, author);
+                if (ai is not null)
+                {
+                    ApplyAiBookToRecord(ai, bookTitle, author);
+
+                    noteMessage = "Internet unavailable. Used local AI (Ollama) to generate the summary.";
+                    await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
+                    {
+                        Record = ApiRecord,
+                        AiNotes = lastAiNotes,
+                        AiConfidence = lastAiConfidence,
+                        UsedAi = true,
+                        UsedOfflineFallback = true
+                    });
+                    return;
+                }
+
+                alertUser = true;
+                alertMessage = "Internet indisponível. Não foi possível consultar a Google Books API.";
+                return;
+            }
+
             var titles = (await PubsService.GetPubsByTitle(bookTitle)).ToList();
             if (titles.Count > 0)
             {
@@ -105,13 +184,29 @@
                 if (bookInfo is null)
                 {
                     alertUser = true;
-                    alertMessage = localizerApp["msgNoResults"] ;
+                    alertMessage = localizerApp["msgNoResults"];
                     return;
                 }
             }
 
             if (bookInfo.items is null || bookInfo.items.Length == 0)
             {
+                // Situation 1: Google Books has no results. Try AI fallback to at least fill the summary.
+                var ai = await TryGetAiBookAsync(bookTitle, author);
+                if (ai is not null)
+                {
+                    ApplyAiBookToRecord(ai, bookTitle, author);
+
+                    await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
+                    {
+                        Record = ApiRecord,
+                        AiNotes = lastAiNotes,
+                        AiConfidence = lastAiConfidence,
+                        UsedAi = true
+                    });
+                    return;
+                }
+
                 alertUser = true;
                 alertMessage = localizerApp["msgNoResults"];
                 return;
@@ -152,6 +247,10 @@
                         {
                             booksImages.Add(bookitem.imageLinks.thumbnail);
                         }
+                        else
+                        {
+                            booksImages.Add("images/NoPhoto.png");
+                        }
 
                         if (bookitem.title is not null)
                         {
@@ -189,8 +288,8 @@
                             alertUser = true;
                             StringBuilder sbTitles = new();
                             foreach (var item in booksTitles)
-                            { 
-                                
+                            {
+
                                 sbTitles.AppendLine($"'{item}',");
                             }
                             var titlesFound = sbTitles.ToString().Trim();
@@ -253,6 +352,15 @@
                     bookDescription = !string.IsNullOrEmpty(translatedAboutText) ? translatedAboutText : bookDescription;
                     ApiRecord.Resumo = bookDescription;
                 }
+                else
+                {
+                    // Situation 2: Google Books found the book but lacks description. Try AI for summary only.
+                    var aiSummary = await TryGetAiSummaryAsync(bookTitle, author);
+                    if (!string.IsNullOrWhiteSpace(aiSummary))
+                    {
+                        ApiRecord.Resumo = aiSummary;
+                    }
+                }
 
                 if (!string.IsNullOrEmpty(bookPublishDate))
                 {
@@ -260,7 +368,6 @@
                     {
                         bookPublishDate = bookPublishDate + "-01-01";
                     }
-
                     if (DataFormat.IsValidDate(bookPublishDate))
                     {
                         ApiRecord.DataMovimento = DateTime.Parse(bookPublishDate);
@@ -270,6 +377,10 @@
                 if (!string.IsNullOrEmpty(bookImage))
                 {
                     ApiRecord.ImagemCapa = bookImage;
+                }
+                else
+                {
+                    ApiRecord.ImagemCapa = "images/NoPhoto.png"; 
                 }
 
                 if (authorId == 0)
@@ -289,7 +400,13 @@
                 ApiRecord.Paginas = int.Parse(bookItemPages) > 0 ? int.Parse(bookItemPages) : 0;
                 ApiRecord.Preco = (decimal)salePrice > 0 ? (decimal)salePrice : 0;
 
-                await OnGoogleResponse.InvokeAsync(ApiRecord);
+                await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
+                {
+                    Record = ApiRecord,
+                    AiNotes = lastAiUsed ? lastAiNotes : null,
+                    AiConfidence = lastAiUsed ? lastAiConfidence : null,
+                    UsedAi = lastAiUsed
+                });
             }
 
         }
@@ -307,6 +424,135 @@
             alertUser = true;
             alertMessage = $"Erro ao consultar api da Google. Confirme, pf";
             _logger.LogError($"Erro ao consultar api da Google. Confirme, pf. ({ex.Message})");
+        }
+        finally
+        {
+            if (spinner is not null)
+                await spinner.HideAsync();
+            isBusy = false;
+        }
+    }
+
+    private async Task<string?> TryGetAiSummaryAsync(string title, string author)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return null;
+
+            showAiProgress = true;
+            aiProgressMessage = "AI - Searching for a book description...";
+            await InvokeAsync(StateHasChanged);
+
+            var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, "pt");
+            if (resp is null || string.IsNullOrWhiteSpace(resp.Summary))
+                return null;
+
+            lastAiNotes = resp.Notes;
+            lastAiConfidence = resp.Confidence;
+            lastAiUsed = true;
+            return resp.Summary;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating book description.");
+            return null;
+        }
+        finally
+        {
+            showAiProgress = false;
+            aiProgressMessage = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<MediaOrganizerApp.Application.DTOs.AiBookSummaryResponseDto?> TryGetAiBookAsync(string title, string author)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return null;
+
+            showAiProgress = true;
+            aiProgressMessage = "AI - Searching for book metadata/description...";
+            await InvokeAsync(StateHasChanged);
+
+            var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, "pt");
+            if (resp is null)
+                return null;
+
+            lastAiNotes = resp.Notes;
+            lastAiConfidence = resp.Confidence;
+            lastAiUsed = true;
+            return resp;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating book metadata.");
+            return null;
+        }
+        finally
+        {
+            showAiProgress = false;
+            aiProgressMessage = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ApplyAiBookToRecord(MediaOrganizerApp.Application.DTOs.AiBookSummaryResponseDto ai, string bookTitle, string author)
+    {
+        ApiRecord.Titulo = string.IsNullOrWhiteSpace(ai.Title) ? bookTitle : ai.Title;
+
+        if (!string.IsNullOrWhiteSpace(ai.Author))
+        {
+            ApiRecord.Autor = ai.Author;
+        }
+        else if (!string.IsNullOrWhiteSpace(author))
+        {
+            ApiRecord.Autor = author;
+        }
+
+        authorToSearch = ApiRecord.Autor;
+
+        if (!string.IsNullOrWhiteSpace(ai.Summary))
+            ApiRecord.Resumo = ai.Summary;
+
+        if (!string.IsNullOrWhiteSpace(ai.Category))
+        {
+            var iCategoria = utilitiesService.GetPkValueFromTable("Categoria", "Id", "Descricao", ai.Category);
+            if (iCategoria == 0)
+                iCategoria = utilitiesService.GetPkValueFromTable("Categoria", "Id", "Descricao", "Desconhecida");
+            ApiRecord.IdCategoria = iCategoria;
+        }
+
+        if (ai.Pages is not null && ai.Pages.Value > 0)
+            ApiRecord.Paginas = ai.Pages.Value;
+
+        if (ai.Price is not null && ai.Price.Value > 0)
+            ApiRecord.Preco = ai.Price.Value;
+
+        if (!string.IsNullOrWhiteSpace(ai.CoverImageUrl))
+            ApiRecord.ImagemCapa = ai.CoverImageUrl;
+
+        if (!string.IsNullOrWhiteSpace(ai.PublishedDate))
+        {
+            var dateToParse = ai.PublishedDate;
+            if (dateToParse.Length == 4)
+                dateToParse += "-01-01";
+
+            if (DataFormat.IsValidDate(dateToParse))
+            {
+                ApiRecord.DataMovimento = DateTime.Parse(dateToParse);
+                ApiRecord.AnoEdicao = ApiRecord.DataMovimento.Year.ToString();
+            }
+        }
+
+        if (ApiRecord.IdFormato == 0)
+        {
+            var iFormato = utilitiesService.GetPkValueFromTable("Formato", "Id", "Descricao", "Capa dura");
+            if (iFormato == 0)
+                iFormato = utilitiesService.GetPkValueFromTable("Formato", "Id", "Descricao", "Desconhecido");
+            ApiRecord.IdFormato = iFormato;
         }
     }
 
@@ -342,6 +588,7 @@
         ApiRecord.Titulo = "";
         noteMessage = "";
         authorToSearch = "";
+        titleToSearch = "";
         alertUser = false;
     }
 

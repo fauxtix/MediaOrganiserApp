@@ -49,6 +49,9 @@ namespace Web.Blazor
             // AI wrapper used as fallback only when external metadata APIs fail (e.g., author profile).
             services.AddHttpClient<AiClientService>();
 
+            // AI wrapper for publication fallback (e.g., missing/resume/synopsis).
+            services.AddHttpClient<AiBookClientService>();
+
             services.AddHttpClient<ICategoriasService, CategoriasService>();
             services.AddHttpClient<IEditorasService, EditorasService>();
             services.AddHttpClient<IFormatosService, FormatosService>();
@@ -72,6 +75,8 @@ namespace Web.Blazor
 
             services.AddScoped<ITastyApiRecipesService, TastyApiRecipesService>();
             services.AddScoped<IAppSettingsService, WrapperAppSettings>();
+
+            services.AddHttpClient<InternetConnectivityService>();
 
             services.AddScoped<IUserService, UserService>();
 

@@ -198,6 +198,36 @@ namespace Web.Blazor.Pages.LookupTables
                 await SpinnerObj.HideAsync();
 
             }
+            catch (HttpRequestException)
+            {
+                // Network failure (e.g., offline). Try AI fallback directly.
+                try
+                {
+                    var authorName = SelectedAuthor.Descricao;
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName);
+
+                    if (!string.IsNullOrWhiteSpace(ai?.Bio))
+                    {
+                        SelectedAuthor.Sobre = ai.Bio;
+                        aiNotes = "Internet unavailable or external API unreachable. " + ai.Notes;
+                        aiConfidence = ai.Confidence;
+
+                        message = "Bio gerada por AI (offline/fallback).";
+                        alertVisibility = true;
+                    }
+                    else
+                    {
+                        message = "Internet indisponível e AI não devolveu bio.";
+                        alertVisibility = true;
+                    }
+                }
+                finally
+                {
+                    StateHasChanged();
+                    await Task.Delay(20);
+                    await SpinnerObj?.HideAsync();
+                }
+            }
             catch
             {
                 await Task.Delay(20);

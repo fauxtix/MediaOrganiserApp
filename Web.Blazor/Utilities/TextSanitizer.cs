@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Net;
 
 namespace Web.Blazor.Utilities;
 
@@ -12,6 +13,10 @@ public static partial class TextSanitizer
         if (string.IsNullOrWhiteSpace(html))
             return string.Empty;
 
-        return HtmlTagRegex().Replace(html, string.Empty).Trim();
+        // Decode HTML entities first (e.g., &nbsp;), then strip tags.
+        var decoded = WebUtility.HtmlDecode(html);
+        return HtmlTagRegex().Replace(decoded, string.Empty)
+            .Replace('\u00A0', ' ')
+            .Trim();
     }
 }

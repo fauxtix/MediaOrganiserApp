@@ -3,6 +3,7 @@ using MediaOrganizerApp.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace MediaOrganizerApp.WebApi.Controllers;
 
@@ -15,11 +16,13 @@ namespace MediaOrganizerApp.WebApi.Controllers;
 public sealed class AiController : ControllerBase
 {
     private readonly IAiAuthorProfileService _ai;
+    private readonly IAiBookSummaryService _books;
 
     
-    public AiController(IAiAuthorProfileService ai)
+    public AiController(IAiAuthorProfileService ai, IAiBookSummaryService books)
     {
         _ai = ai;
+        _books = books;
     }
 
     /// <summary>
@@ -38,6 +41,25 @@ public sealed class AiController : ControllerBase
             return BadRequest("Field 'name' is required.");
 
         var resp = await _ai.GetAuthorProfileAsync(request.Name, cancellationToken);
+        return Ok(resp);
+    }
+
+    /// <summary>
+    /// Generates a book summary/description using AI. Intended as fallback only when external metadata APIs lack a description.
+    /// </summary>
+    [HttpPost("book-summary")]
+    public async Task<ActionResult<AiBookSummaryResponseDto>> BookSummary(
+        [FromBody] AiBookSummaryRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+            return BadRequest("Request body is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest("Field 'title' is required.");
+
+        var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+        var resp = await _books.GetBookSummaryAsync(request.Title, request.Author, language, cancellationToken);
         return Ok(resp);
     }
 }
