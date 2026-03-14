@@ -867,6 +867,24 @@ namespace Web.Blazor.Pages.BaseComponents
                         ToastContent = $"Erro ao apagar ficheiro {SelectedRecord.FilePath} ({ex.Message}. Verifique, por favor)";
                     }
                 }
+                var coverFilePath = SelectedRecord.CoverFile;
+                if (!string.IsNullOrEmpty(coverFilePath))
+                {
+                    try
+                    {
+                        if (File.Exists(coverFilePath))
+                        {
+                            File.Delete(coverFilePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ToastTitle = localizerApp["deletionMsg"] + " Media";
+                        ToastCssClass = "e-toast-danger";
+                        ToastContent = $"Erro ao apagar ficheiro {coverFilePath} ({ex.Message}. Verifique, por favor)";
+                    }
+                }
+
 
                 DeleteRecordConfirmVisibility = false;
                 mediaFiles = await GetAllMediaFiles();

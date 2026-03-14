@@ -518,7 +518,7 @@ namespace Web.Blazor.Pages.Media
 
                 uploadedCoverFile = Path.Combine(pastaCapasMedia, file.FileInfo.Name);
 
-                if (File.Exists(uploadedCoverFile))
+                if (File.Exists(uploadedCoverFile) && !blnEdit)
                 {
                     SelectedRecord.CoverFile = $"images/media/{file.FileInfo.Name}";
                     StateHasChanged();
@@ -557,6 +557,138 @@ namespace Web.Blazor.Pages.Media
         public object[] Tools = new object[]{
         "InsertCode"
     };
+        /// <summary>
+        /// Populates media fields using AI when only title and author are present (for new records).
+        /// Does not affect existing edit logic.
+        /// </summary>
+        public async Task FillMediaInfoWithAI()
+        {
+            showAlertMessage = false;
+            alertMessage = "";
+            if (SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
+            {
+                showAlertMessage = true;
+                alertMessage = "Por favor preencha os campos Autor e Título";
+                StateHasChanged();
+                return;
+            }
+
+            isBusy = true;
+            busyStatusMessage = "A obter metadados via AI...";
+            mediaInfoCts?.Cancel();
+            mediaInfoCts?.Dispose();
+            mediaInfoCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
+
+            if (spinner is not null)
+                await spinner.ShowAsync();
+
+            try
+            {
+                var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+                var mediaTitle = SelectedRecord.FileName;
+                var artist = SelectedRecord.Autor;
+
+                // Try OMDb first
+                var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
+                if (dvdInfo != null)
+                {
+                    if (!string.IsNullOrEmpty(dvdInfo.Runtime))
+                        SelectedRecord.Tempo = MediaService.ConvertIOMDbTimeStringAsTime(dvdInfo.Runtime);
+                    if (!string.IsNullOrEmpty(dvdInfo.Released))
+                        SelectedRecord.DataMov = MediaService.ConvertIOMDbStringAsDate(dvdInfo.Released);
+                    if (!string.IsNullOrEmpty(dvdInfo.imdbRating))
+                        SelectedRecord.Rating = MediaService.ConvertIMDbRatingToFiveScale(dvdInfo.imdbRating);
+                    if (!string.IsNullOrEmpty(dvdInfo.Actors))
+                        SelectedRecord.Autor = dvdInfo.Actors;
+                    if (!string.IsNullOrEmpty(dvdInfo.Year))
+                        SelectedRecord.AnoEdicao = dvdInfo.Year;
+                    if (!string.IsNullOrEmpty(dvdInfo.Awards))
+                        SelectedRecord.Notas = dvdInfo.Awards;
+                    if (!string.IsNullOrEmpty(dvdInfo.Poster))
+                        SelectedRecord.CoverFile = dvdInfo.Poster;
+                    return;
+                }
+
+                // Try AlbumInfo next
+                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
+                if (artirstAndAlbumData.Titulo != null)
+                {
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Tempo))
+                        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.CoverFile))
+                        SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Notas))
+                        SelectedRecord.Notas = artirstAndAlbumData.Notas;
+                    return;
+                }
+
+                // If both fail, use AI
+                var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
+                if (ai is not null)
+                {
+                    if (!string.IsNullOrEmpty(ai.Tempo))
+                        SelectedRecord.Tempo = ai.Tempo;
+                    if (!string.IsNullOrEmpty(ai.CoverFile) && ai.CoverFile != "Unknown poster image")
+                        SelectedRecord.CoverFile = ai.CoverFile;
+                    if (!string.IsNullOrEmpty(ai.Notes))
+                        SelectedRecord.Notas = ai.Notes;
+                    if (!string.IsNullOrEmpty(ai.Runtime))
+                        SelectedRecord.Tempo = ai.Runtime;
+                    if (!string.IsNullOrEmpty(ai.Released))
+                    {
+                        if (DateTime.TryParse(ai.Released, out var releasedDate))
+                            SelectedRecord.DataMov = releasedDate;
+                    }
+                    if (!string.IsNullOrEmpty(ai.ImdbRating))
+                    {
+                        if (double.TryParse(ai.ImdbRating, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var rating))
+                            SelectedRecord.Rating = rating;
+                    }
+                    if (!string.IsNullOrEmpty(ai.Actors))
+                        SelectedRecord.Autor = ai.Actors;
+                    if (ai.Year != null)
+                    {
+                        var yearStr = ai.Year.ToString();
+                        if (!string.IsNullOrEmpty(yearStr))
+                            SelectedRecord.AnoEdicao = yearStr;
+                    }
+                    if (!string.IsNullOrEmpty(ai.Poster) && ai.Poster != "Unknown poster image")
+                        SelectedRecord.CoverFile = ai.Poster;
+
+                    var warningMsg = !string.IsNullOrEmpty(ai.Warnings) ? ai.Warnings : ai.Warning;
+                    if (!string.IsNullOrEmpty(warningMsg))
+                    {
+                        showAlertMessage = true;
+                        alertMessage = warningMsg;
+                    }
+                }
+                else
+                {
+                    showAlertMessage = true;
+                    alertMessage = "AI não devolveu qualquer resultado";
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                showAlertMessage = true;
+                alertMessage = "Operação cancelada.";
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error fetching AI media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
+                showAlertMessage = true;
+                alertMessage = "Erro ao obter metadados via AI.";
+            }
+            finally
+            {
+                if (spinner is not null)
+                    await spinner.HideAsync();
+                isBusy = false;
+                mediaInfoCts?.Dispose();
+                mediaInfoCts = null;
+                StateHasChanged();
+            }
+        }
     }
 
 }
