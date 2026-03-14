@@ -724,16 +724,19 @@ namespace Web.Blazor.Pages.BaseComponents
             var album = SelectedRecord.FileName;
             var artist = SelectedRecord.Autor;
             var isLPorCD = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 4;
-            if (isLPorCD)
-            {
-                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, album);
-                if (artirstAndAlbumData is not null)
-                {
-                    SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
-                    SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
-                    SelectedRecord.Notas = artirstAndAlbumData.Notas;
-                }
-            }
+
+            // comentado a pedido para não sobrepor dados que o utilizador possa ter corrigido ou adicionado manualmente e que não estejam errados, mesmo que a pesquisa ao API do Youtube traga resultados
+
+            //if (isLPorCD)
+            //{
+            //    var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, album);
+            //    if (artirstAndAlbumData is not null)
+            //    {
+            //        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
+            //        SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
+            //        SelectedRecord.Notas = artirstAndAlbumData.Notas;
+            //    }
+            //}
 
             InsertUpdateOk = await MediaService.UpdateMediaFile(SelectedRecord);
             ToastContent = InsertUpdateOk ? localizerApp["SuccessUpdate"] : localizerApp["FalhaGravacaoRegisto"];
