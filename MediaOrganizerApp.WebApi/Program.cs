@@ -5,6 +5,7 @@ using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
+using MediaOrganizerApp.WebApi.Hubs;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -51,6 +52,9 @@ public class Program
 
         // HttpClient used by AI providers (e.g., Ollama local HTTP API).
         builder.Services.AddHttpClient();
+
+        builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
+        builder.Services.AddSignalR();
 
 // AI services
 builder.Services.AddHttpClient<OllamaBookSummaryService>();
@@ -117,6 +121,9 @@ builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>(
         app.UseMiddleware<ApiKeyMiddleware>();
 
         app.MapControllers();
+        app.MapHub<MediaInfoProgressHub>("/media-info-progress"); // Ensure using directive
+// Add at top if missing:
+// using MediaOrganizerApp.WebApi.Hubs;
 
         app.Run();
     }

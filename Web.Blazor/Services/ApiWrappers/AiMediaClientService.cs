@@ -22,7 +22,7 @@ public sealed class AiMediaClientService
         _uri = $"{_env["BaseUrl"]}/Ai";
     }
 
-    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt")
+    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt", string? connectionId = null)
     {
         try
         {
@@ -32,7 +32,8 @@ public sealed class AiMediaClientService
                 {
                     Artist = artist,
                     Title = title,
-                    Language = language
+                    Language = language,
+                    ConnectionId = connectionId
                 });
 
             if (!resp.IsSuccessStatusCode)
@@ -47,7 +48,7 @@ public sealed class AiMediaClientService
         }
     }
 
-    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist, string title, string language = "pt", CancellationToken cancellationToken = default)
+    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -57,7 +58,8 @@ public sealed class AiMediaClientService
                 {
                     Artist = artist,
                     Title = title,
-                    Language = language
+                    Language = language,
+                    ConnectionId = connectionId
                 },
                 cancellationToken);
 

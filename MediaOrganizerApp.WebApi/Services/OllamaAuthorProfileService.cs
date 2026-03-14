@@ -19,40 +19,24 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
     private readonly string _model;
+    private readonly IPromptTemplateProvider _prompts;
 
-    public OllamaAuthorProfileService(HttpClient httpClient, IConfiguration config)
+    public OllamaAuthorProfileService(HttpClient httpClient, IConfiguration config, IPromptTemplateProvider prompts)
     {
         _httpClient = httpClient;
         _baseUrl = config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         _model = config["Ai:Ollama:Model"] ?? "llama3.2:1b";
+        _prompts = prompts;
     }
 
     public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
     {
-        var systemPrompt =
-            """
-            You generate short author profiles.
-
-            Requirements:
-            - If you are not confident about facts, say so in Notes and lower Confidence.
-            - Do NOT invent exact dates, awards, or long bibliographies.
-            - If the name is ambiguous (multiple candidates), mention ambiguity in Notes.
-            - If you find more than one plausible candidate, do NOT attempt to combine them into a single profile; instead, indicate the ambiguity in Notes and lower Confidence.
-            - Output MUST be valid JSON matching:
-              { "bio": string|null, "confidence": number|null, "notes": string|null }
-            """;
-
-        var userPrompt =
-            $"""
-            Author name: {name}
-
-            Language: {language}
-
-            Write a concise bio (2-6 sentences) in the language specified above.
-            """;
-
-        // Ollama /api/generate expects a single prompt string.
-        var prompt = $"{systemPrompt}\n\n{userPrompt}";
+        var template = await _prompts.GetTemplateAsync("author-profile.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["name"] = name,
+            ["language"] = language
+        });
 
         var payload = new OllamaGenerateRequest
         {

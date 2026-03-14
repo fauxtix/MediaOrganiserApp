@@ -79,6 +79,12 @@ namespace Web.Blazor.Pages.Media
         private bool showAlertMessage = false;
         private string alertMessage = "";
 
+        private string busyStatusMessage = "";
+        private bool isBusy;
+        private System.Threading.CancellationTokenSource? mediaInfoCts;
+
+        [Inject] public MediaInfoProgressClient ProgressClient { get; set; }
+
         protected bool fileVerified;
 
         protected override async Task OnInitializedAsync()
@@ -221,6 +227,9 @@ namespace Web.Blazor.Pages.Media
 
         protected async Task GetMediaInfo()
         {
+            await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressReceived += OnProgressReceived;
             if (string.IsNullOrWhiteSpace(SelectedRecord.FileName)
                || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
@@ -228,6 +237,12 @@ namespace Web.Blazor.Pages.Media
                 alertMessage = "Por favor preencha os campos Autor e Título";
                 return;
             }
+
+            isBusy = true;
+            busyStatusMessage = "";
+            mediaInfoCts?.Cancel();
+            mediaInfoCts?.Dispose();
+            mediaInfoCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
 
             if (spinner is not null)
                 await spinner.ShowAsync();
@@ -267,7 +282,7 @@ namespace Web.Blazor.Pages.Media
                         if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
                         {
                             var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage);
+                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
                             if (!string.IsNullOrWhiteSpace(ai?.Notes))
                                 SelectedRecord.Notas = ai.Notes;
                         }
@@ -275,8 +290,7 @@ namespace Web.Blazor.Pages.Media
                     else
                     {
                         var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
-                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, cts.Token);
+                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
                         if (ai is not null)
                         {
                             if (!string.IsNullOrWhiteSpace(ai.Notes) && (ai.Confidence ?? 0) >= 0.85)
@@ -308,7 +322,7 @@ namespace Web.Blazor.Pages.Media
                         if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
                         {
                             var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage);
+                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
                             if (!string.IsNullOrWhiteSpace(ai?.Notes))
                                 SelectedRecord.Notas = ai.Notes;
                         }
@@ -316,8 +330,7 @@ namespace Web.Blazor.Pages.Media
                     else
                     {
                         var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
-                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, cts.Token);
+                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
                         if (ai is not null)
                         {
                             if (!string.IsNullOrWhiteSpace(ai.Tempo))
@@ -341,14 +354,36 @@ namespace Web.Blazor.Pages.Media
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                showAlertMessage = true;
+                alertMessage = "Operação cancelada.";
+            }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error fetching media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
             }
-            finally { 
+            finally {
                 if (spinner is not null)
                     await spinner.HideAsync();
-                }
+                isBusy = false;
+                mediaInfoCts?.Dispose();
+                mediaInfoCts = null;
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+                await ProgressClient.StopAsync();
+                StateHasChanged();
+            }
+        }
+
+        private void OnProgressReceived(string message)
+        {
+            busyStatusMessage = message;
+            InvokeAsync(StateHasChanged);
+        }
+
+        private void CancelMediaInfo()
+        {
+            mediaInfoCts?.Cancel();
         }
 
 

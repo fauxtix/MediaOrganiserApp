@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Prompts\author-profile.prompt.txt" />
+    <None Remove="Prompts\book-summary-full.prompt.txt" />
+    <None Remove="Prompts\book-summary-only.prompt.txt" />
+    <None Remove="Prompts\media-metadata.prompt.txt" />
+    <None Remove="Prompts\media-notes.prompt.txt" />
     <None Remove="Reports_RDLC\rptAutoresGenerico.rdlc" />
     <None Remove="Reports_RDLC\rptAutoresSemPublicacoes.rdlc" />
     <None Remove="Reports_RDLC\rptAutores_Publicacoes.rdlc" />
@@ -85,11 +90,30 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Prompts\author-profile.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\book-summary-full.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\book-summary-only.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\media-metadata.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\media-notes.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="Google.Apis.Oauth2.v2" Version="1.68.0.1869" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.73.0.4022" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>

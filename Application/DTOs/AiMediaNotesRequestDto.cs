@@ -12,4 +12,6 @@ public sealed class AiMediaNotesRequestDto
 
     [JsonPropertyName("language")]
     public string? Language { get; set; }
+
+    public string? ConnectionId { get; set; }
 }

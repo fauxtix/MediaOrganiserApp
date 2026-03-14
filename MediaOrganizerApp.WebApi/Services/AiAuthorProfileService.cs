@@ -16,9 +16,11 @@ namespace MediaOrganizerApp.WebApi.Services;
 public sealed class AiAuthorProfileService : IAiAuthorProfileService
 {
     private readonly ChatClient _chat;
+    private readonly IPromptTemplateProvider _prompts;
 
-    public AiAuthorProfileService(IConfiguration config)
+    public AiAuthorProfileService(IConfiguration config, IPromptTemplateProvider prompts)
     {
+        _prompts = prompts;
         var apiKey = config["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Missing configuration key: OpenAI:ApiKey");
@@ -32,33 +34,16 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
 
     public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
     {
-        // Defensive prompt because external metadata APIs already failed.
-        // We want useful output but we do NOT want invented facts.
-        var system =
-            """
-            You generate short author profiles.
-
-            Requirements:
-            - If you are not confident about facts, say so in Notes and lower Confidence.
-            - Do NOT invent exact dates, awards, or long bibliographies.
-            - If the name is ambiguous (multiple candidates), mention ambiguity in Notes.
-            - Output MUST be valid JSON matching:
-              { "bio": string|null, "photoUrl": string|null, "confidence": number|null, "notes": string|null }
-            """;
-
-        var user =
-            $"""
-            Author name: {name}
-
-            Language: {language}
-
-            Write a concise bio (2-6 sentences) in the language specified above.
-            """;
+        var template = await _prompts.GetTemplateAsync("author-profile.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["name"] = name,
+            ["language"] = language
+        });
 
         var messages = new ChatMessage[]
         {
-            new SystemChatMessage(system),
-            new UserChatMessage(user),
+            new UserChatMessage(prompt),
         };
 
         var result = await _chat.CompleteChatAsync(messages, cancellationToken: cancellationToken);

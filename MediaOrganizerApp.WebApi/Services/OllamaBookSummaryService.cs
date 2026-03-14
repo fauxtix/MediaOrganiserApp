@@ -17,12 +17,14 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaBookSummaryService> _logger;
     private readonly IConfiguration _config;
+    private readonly IPromptTemplateProvider _prompts;
 
-    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config)
+    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts)
     {
         _httpClient = httpClient;
         _logger = logger;
         _config = config;
+        _prompts = prompts;
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
@@ -34,7 +36,13 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
-        var prompt = BuildPromptFull(title, author, language);
+        var template = await _prompts.GetTemplateAsync("book-summary-full.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["title"] = title,
+            ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
+        });
 
         return await ExecuteOllamaAsync(prompt, cancellationToken);
     }
@@ -45,7 +53,13 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         string language,
         CancellationToken cancellationToken)
     {
-        var prompt = BuildPromptSummaryOnly(title, author, language);
+        var template = await _prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["title"] = title,
+            ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
+        });
 
         return await ExecuteOllamaAsync(prompt, cancellationToken);
     }
@@ -106,68 +120,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         }
     }
 
-    private static string BuildPromptSummaryOnly(string title, string? author, string language)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("You are a bibliographic assistant.");
-        sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
-        sb.AppendLine("JSON schema: {\"title\":string,\"author\":string,\"summary\":string,\"confidence\":number,\"notes\":string}");
-        sb.AppendLine("Rules:");
-        sb.AppendLine("- summary: provide a plain-text book description/synopsis for the requested title, 600-1200 characters.");
-        sb.AppendLine("  Do NOT write instructional/meta text in summary (e.g., 'This is the actual book description').");
-        sb.AppendLine("  Do NOT put the book description or plot into 'notes'.");
-        sb.AppendLine("- If you don't know a field, set it to null (except summary, which can be empty string).");
-        sb.AppendLine("- Do not include HTML.");
-        sb.AppendLine("- notes: short meta-only message (<= 200 characters). Use notes ONLY for: title/author match uncertainty OR output/format issues.");
-        sb.AppendLine("  Do NOT include plot, synopsis, publisher, year, awards, or any extra bibliographic details in notes.");
-        sb.AppendLine("- If unsure, lower confidence and mention uncertainty briefly in notes.");
-        sb.AppendLine("- IMPORTANT: The response must be about the exact provided Title and Author.");
-        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'title' and 'author' (do not translate, do not normalize).");
-        sb.AppendLine("- If you are not fully sure about the match, you may still provide a best-effort summary, BUT:");
-        sb.AppendLine("  - Lower confidence." );
-        sb.AppendLine("  - Explain uncertainty briefly in notes (title/author match only)." );
-        sb.AppendLine("  - Do not invent detailed facts (publisher, year, awards, plot specifics) unless you are confident." );
-        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
-        sb.AppendLine();
-        sb.AppendLine("INPUT (must match exactly):");
-        sb.AppendLine($"Language: {language}");
-        sb.AppendLine($"Title: {title}");
-        sb.AppendLine($"Author: {(string.IsNullOrWhiteSpace(author) ? "(none)" : author)}");
-
-        return sb.ToString();
-    }
-
-    private static string BuildPromptFull(string title, string? author, string language)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("You are a bibliographic assistant.");
-        sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
-        sb.AppendLine("JSON schema: {\"title\":string,\"author\":string,\"category\":string,\"publishedDate\":string,\"pages\":number,\"coverImageUrl\":string,\"price\":number,\"summary\":string,\"confidence\":number,\"notes\":string}");
-        sb.AppendLine("Rules:");
-        sb.AppendLine("- summary: provide a plain-text book description/synopsis for the requested title, 600-1200 characters.");
-        sb.AppendLine("  Do NOT write instructional/meta text in summary (e.g., 'This is the actual book description').");
-        sb.AppendLine("  Do NOT put the book description or plot into 'notes'.");
-        sb.AppendLine("- If you don't know a field, set it to null (except summary, which can be empty string).");
-        sb.AppendLine("- Do not include HTML.");
-        sb.AppendLine("- notes: short meta-only message (<= 200 characters). Use notes ONLY for: title/author match uncertainty OR output/format issues.");
-        sb.AppendLine("  Do NOT include plot, synopsis, publisher, year, awards, or any extra bibliographic details in notes.");
-        sb.AppendLine("- If unsure, lower confidence and mention uncertainty briefly in notes.");
-        sb.AppendLine("- IMPORTANT: The response must be about the exact provided Title and Author.");
-        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'title' and 'author' (do not translate, do not normalize).");
-        sb.AppendLine("- If you are not fully sure about the match, you may still provide a best-effort output, BUT:");
-        sb.AppendLine("  - Lower confidence." );
-        sb.AppendLine("  - Explain uncertainty briefly in notes (title/author match only)." );
-        sb.AppendLine("  - Prefer null for unknown fields instead of guessing." );
-        sb.AppendLine("  - Do not invent detailed facts (publisher, year, awards, plot specifics) unless you are confident." );
-        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
-        sb.AppendLine();
-        sb.AppendLine("INPUT (must match exactly):");
-        sb.AppendLine($"Language: {language}");
-        sb.AppendLine($"Title: {title}");
-        sb.AppendLine($"Author: {(string.IsNullOrWhiteSpace(author) ? "(none)" : author)}");
-
-        return sb.ToString();
-    }
+    // Prompt text is stored as external templates under Prompts/.
 
     private static AiBookSummaryResponseDto? TryParseJsonContract(string text)
     {

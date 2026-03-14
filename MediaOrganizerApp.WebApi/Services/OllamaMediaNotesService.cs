@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using MediaOrganizerApp.WebApi.Hubs;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -17,26 +19,46 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaMediaNotesService> _logger;
     private readonly IConfiguration _config;
+    private readonly IPromptTemplateProvider _prompts;
 
-    public OllamaMediaNotesService(HttpClient httpClient, ILogger<OllamaMediaNotesService> logger, IConfiguration config)
+    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
+
+    public OllamaMediaNotesService(HttpClient httpClient, ILogger<OllamaMediaNotesService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
     {
         _httpClient = httpClient;
         _logger = logger;
         _config = config;
+        _prompts = prompts;
+        _hubContext = hubContext;
     }
 
     public async Task<AiMediaNotesResponseDto> GetMediaNotesAsync(
         string artist,
         string title,
         string language,
+        string? connectionId,
         CancellationToken cancellationToken)
     {
-        var prompt = BuildPromptMediaNotes(artist, title, language);
-        return await ExecuteOllamaAsync(prompt, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+        var template = await _prompts.GetTemplateAsync("media-notes.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["artist"] = artist,
+            ["title"] = title
+        });
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+        return result;
     }
 
-    private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, CancellationToken cancellationToken)
+    private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
+        void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
@@ -49,10 +71,24 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
 
         try
         {
+            // Progress: sending prompt
+            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Sending prompt to AI model...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+            }
+
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
+
+            // Progress: waiting for AI response
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Waiting for AI response...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
+            }
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -60,22 +96,50 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var json = Encoding.UTF8.GetString(bytes);
 
+            // Progress: parsing AI response
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Parsing AI response...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
+            }
+
             var text = TryExtractOllamaResponseText(json);
             if (string.IsNullOrWhiteSpace(text))
                 return new AiMediaNotesResponseDto { Notes = string.Empty, Confidence = 0, Warnings = "Empty LLM response." };
 
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(connectionId))
+                {
+                    LogProgress("Done!");
+                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
+                }
                 return parsed;
+            }
 
             var extractedJson = TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
                 parsed = TryParseJsonContract(extractedJson);
                 if (parsed is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(connectionId))
+                    {
+                        LogProgress("Done!");
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    }
                     return parsed;
+                }
             }
 
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Done!");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+            }
             return new AiMediaNotesResponseDto
             {
                 Notes = string.Empty,
@@ -86,34 +150,16 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating media notes using Ollama.");
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress($"Error: {ex.Message}");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, $"Error: {ex.Message}");
+            }
             return new AiMediaNotesResponseDto { Notes = string.Empty, Confidence = 0, Warnings = ex.Message };
         }
     }
 
-    private static string BuildPromptMediaNotes(string artist, string title, string language)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("You are a media metadata assistant.");
-        sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
-        sb.AppendLine("JSON schema: {\"artist\":string,\"title\":string,\"notes\":string,\"confidence\":number,\"warnings\":string}");
-        sb.AppendLine("Rules:");
-        sb.AppendLine("- The response must be about the exact provided Author and Title.");
-        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'artist' and 'title' (do not translate, do not normalize).");
-        sb.AppendLine("- notes: plain-text liner notes / awards / key highlights, 300-800 characters.");
-        sb.AppendLine("  - For albums: mention genre/style; mention tracks only if confident.");
-        sb.AppendLine("  - For movies/films: mention major awards/nominations only if confident.");
-        sb.AppendLine("- Do NOT write instructional/meta text in notes (e.g., 'this is the notes').");
-        sb.AppendLine("- Do not include HTML.");
-        sb.AppendLine("- If unsure about the match: lower confidence, add a brief warning in 'warnings' (<= 200 chars), and keep notes generic.");
-        sb.AppendLine("- Do not invent specific awards, dates, record labels, publishers, track lists, cast, or plot specifics unless confident.");
-        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
-        sb.AppendLine();
-        sb.AppendLine("INPUT (must match exactly):");
-        sb.AppendLine($"Language: {language}");
-        sb.AppendLine($"Author: {artist}");
-        sb.AppendLine($"Title: {title}");
-        return sb.ToString();
-    }
+    // Prompt text is stored as external templates under Prompts/.
 
     private static AiMediaNotesResponseDto? TryParseJsonContract(string text)
     {

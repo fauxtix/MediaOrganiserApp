@@ -105,7 +105,7 @@ public sealed class AiController : ControllerBase
             return BadRequest("Field 'artist' is required.");
 
         var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-        var resp = await _media.GetMediaNotesAsync(request.Artist, request.Title, language, cancellationToken);
+        var resp = await _media.GetMediaNotesAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
         return Ok(resp);
     }
 
@@ -127,7 +127,7 @@ public sealed class AiController : ControllerBase
             return BadRequest("Field 'artist' is required.");
 
         var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-        var resp = await _mediaMetadata.GetMediaMetadataAsync(request.Artist, request.Title, language, cancellationToken);
+        var resp = await _mediaMetadata.GetMediaMetadataAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
         return Ok(resp);
     }
 }

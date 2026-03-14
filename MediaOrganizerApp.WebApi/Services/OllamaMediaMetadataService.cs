@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using MediaOrganizerApp.WebApi.Hubs;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -21,26 +23,46 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaMediaMetadataService> _logger;
     private readonly IConfiguration _config;
+    private readonly IPromptTemplateProvider _prompts;
 
-    public OllamaMediaMetadataService(HttpClient httpClient, ILogger<OllamaMediaMetadataService> logger, IConfiguration config)
+    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
+
+    public OllamaMediaMetadataService(HttpClient httpClient, ILogger<OllamaMediaMetadataService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
     {
         _httpClient = httpClient;
         _logger = logger;
         _config = config;
+        _prompts = prompts;
+        _hubContext = hubContext;
     }
 
     public async Task<AiMediaMetadataResponseDto> GetMediaMetadataAsync(
         string artist,
         string title,
         string language,
+        string? connectionId,
         CancellationToken cancellationToken)
     {
-        var prompt = BuildPromptMediaMetadata(artist, title, language);
-        return await ExecuteOllamaAsync(prompt, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+        var template = await _prompts.GetTemplateAsync("media-metadata.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["artist"] = artist,
+            ["title"] = title
+        });
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+        return result;
     }
 
-    private async Task<AiMediaMetadataResponseDto> ExecuteOllamaAsync(string prompt, CancellationToken cancellationToken)
+    private async Task<AiMediaMetadataResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
+        void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
@@ -53,6 +75,13 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
         try
         {
+            // Progress: sending prompt
+            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Sending prompt to AI model...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+            }
+
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
@@ -61,11 +90,25 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(80));
 
+            // Progress: waiting for AI response
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Waiting for AI response...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
+            }
+
             using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
             response.EnsureSuccessStatusCode();
 
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
             var json = Encoding.UTF8.GetString(bytes);
+
+            // Progress: parsing AI response
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Parsing AI response...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
+            }
 
             var text = TryExtractOllamaResponseText(json);
             if (string.IsNullOrWhiteSpace(text))
@@ -74,7 +117,17 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             // Attempt parse as-is.
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(connectionId))
+                {
+                    LogProgress("Done!");
+                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    // Show warnings/errors as final progress message
+                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
+                }
                 return parsed;
+            }
 
             // Attempt recovery by normalizing common JSON issues.
             var normalized = TryNormalizeJson(text);
@@ -82,7 +135,14 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             {
                 parsed = TryParseJsonContract(normalized);
                 if (parsed is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(connectionId))
+                    {
+                        LogProgress("Done!");
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    }
                     return parsed;
+                }
             }
 
             var extractedJson = TryExtractFirstJsonObject(text);
@@ -90,17 +150,32 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             {
                 parsed = TryParseJsonContract(extractedJson);
                 if (parsed is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(connectionId))
+                    {
+                        LogProgress("Done!");
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    }
                     return parsed;
+                }
 
                 normalized = TryNormalizeJson(extractedJson);
                 if (!string.IsNullOrWhiteSpace(normalized))
                 {
                     parsed = TryParseJsonContract(normalized);
                     if (parsed is not null)
+                    {
+                        await _hubContext.Clients.All.SendAsync("ReceiveProgress", null, "Done!");
                         return parsed;
+                    }
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Done!");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+            }
             return new AiMediaMetadataResponseDto
             {
                 Confidence = 0,
@@ -109,15 +184,23 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         }
         catch (OperationCanceledException)
         {
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("AI request timed out or was canceled.");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "AI request timed out or was canceled.");
+            }
             return new AiMediaMetadataResponseDto { Confidence = 0, Warnings = "AI request timed out or was canceled." };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating media metadata using Ollama.");
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress($"Error: {ex.Message}");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, $"Error: {ex.Message}");
+            }
             return new AiMediaMetadataResponseDto { Confidence = 0, Warnings = ex.Message };
         }
-
-        // not reached
     }
 
     private static string? TryNormalizeJson(string text)
@@ -142,38 +225,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         return s.Trim();
     }
 
-    private static string BuildPromptMediaMetadata(string artist, string title, string language)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("You are a media metadata assistant.");
-        sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
-        sb.AppendLine("JSON schema: {\"artist\":string,\"title\":string,\"runtime\":string,\"released\":string,\"imdbRating\":string,\"actors\":string,\"year\":string,\"poster\":string,\"tempo\":string,\"coverFile\":string,\"notes\":string,\"confidence\":number,\"warnings\":string}");
-        sb.AppendLine("Rules:");
-        sb.AppendLine("- The response must be about the exact provided Author and Title.");
-        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'artist' and 'title' (do not translate, do not normalize).");
-        sb.AppendLine("- Use EXACTLY the JSON schema keys and casing shown above. Do not add extra keys (e.g., do not output 'MediaType').");
-        sb.AppendLine("- Do not duplicate keys in the JSON object.");
-        sb.AppendLine("- Do not include HTML.");
-        sb.AppendLine("- Do NOT write instructional/meta text as data.");
-        sb.AppendLine("- You do NOT have browsing or external database access. Do not guess facts.");
-        sb.AppendLine("- Only output non-null factual fields (actors/runtime/released/imdbRating/year/poster/tempo/coverFile) if you are highly confident they are correct for the exact title.");
-        sb.AppendLine("- If you are not highly confident about a factual field: set it to null and add a short reason to 'warnings'.");
-        sb.AppendLine("- Do NOT claim a work is based on/inspired by a novel/book/true story or name a source author unless that exact source information was provided in the INPUT.");
-        sb.AppendLine("- Prefer movie/film-style fields when the title looks like a film and album-style fields when the title looks like an album.");
-        sb.AppendLine("  - Movies/films: runtime/released/imdbRating/actors/year/poster/notes.");
-        sb.AppendLine("  - Albums: tempo/coverFile/notes.");
-        sb.AppendLine("- If you don't know a field with confidence, set it to null.");
-        sb.AppendLine("- notes: plain text, 300-800 characters; awards/highlights only if confident.");
-        sb.AppendLine("- notes must be generic and must NOT include specific names/dates/credits unless they were present in the INPUT.");
-        sb.AppendLine("- If unsure about the match: lower confidence and put a brief warning in 'warnings' (<= 200 chars). Keep content generic.");
-        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
-        sb.AppendLine();
-        sb.AppendLine("INPUT (must match exactly):");
-        sb.AppendLine($"Language: {language}");
-        sb.AppendLine($"Author: {artist}");
-        sb.AppendLine($"Title: {title}");
-        return sb.ToString();
-    }
+    // Prompt text is stored as external templates under Prompts/.
 
     private static AiMediaMetadataResponseDto? TryParseJsonContract(string text)
     {

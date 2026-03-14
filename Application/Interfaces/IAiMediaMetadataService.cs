@@ -10,5 +10,6 @@ public interface IAiMediaMetadataService
         string artist,
         string title,
         string language,
+        string? connectionId,
         CancellationToken cancellationToken);
 }
