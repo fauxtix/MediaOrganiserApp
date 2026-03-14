@@ -52,6 +52,9 @@ namespace Web.Blazor
             // AI wrapper for publication fallback (e.g., missing/resume/synopsis).
             services.AddHttpClient<AiBookClientService>();
 
+            // AI wrapper for media fallback (e.g., missing awards/liner notes).
+            services.AddHttpClient<AiMediaClientService>();
+
             services.AddHttpClient<ICategoriasService, CategoriasService>();
             services.AddHttpClient<IEditorasService, EditorasService>();
             services.AddHttpClient<IFormatosService, FormatosService>();

@@ -27,7 +27,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         _model = config["Ai:Ollama:Model"] ?? "llama3.2:1b";
     }
 
-    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
     {
         var systemPrompt =
             """
@@ -46,7 +46,9 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
             $"""
             Author name: {name}
 
-            Write a concise bio (2-6 sentences) in Portuguese (pt-PT).
+            Language: {language}
+
+            Write a concise bio (2-6 sentences) in the language specified above.
             """;
 
         // Ollama /api/generate expects a single prompt string.

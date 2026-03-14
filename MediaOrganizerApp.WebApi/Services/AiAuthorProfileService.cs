@@ -30,7 +30,7 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
         _chat = new ChatClient(model, apiKey);
     }
 
-    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
     {
         // Defensive prompt because external metadata APIs already failed.
         // We want useful output but we do NOT want invented facts.
@@ -50,7 +50,9 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
             $"""
             Author name: {name}
 
-            Write a concise bio (2-6 sentences) in Portuguese (pt-PT).
+            Language: {language}
+
+            Write a concise bio (2-6 sentences) in the language specified above.
             """;
 
         var messages = new ChatMessage[]

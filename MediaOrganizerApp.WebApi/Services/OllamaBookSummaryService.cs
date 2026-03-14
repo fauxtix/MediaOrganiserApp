@@ -34,7 +34,26 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
-        var prompt = BuildPrompt(title, author, language);
+        var prompt = BuildPromptFull(title, author, language);
+
+        return await ExecuteOllamaAsync(prompt, cancellationToken);
+    }
+
+    public async Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
+        string title,
+        string? author,
+        string language,
+        CancellationToken cancellationToken)
+    {
+        var prompt = BuildPromptSummaryOnly(title, author, language);
+
+        return await ExecuteOllamaAsync(prompt, cancellationToken);
+    }
+
+    private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
+        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
         var payload = new
         {
@@ -64,11 +83,20 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             if (parsed is not null)
                 return parsed;
 
+            // Attempt to recover when the model adds extra text around the JSON.
+            var extractedJson = TryExtractFirstJsonObject(text);
+            if (!string.IsNullOrWhiteSpace(extractedJson))
+            {
+                parsed = TryParseJsonContract(extractedJson);
+                if (parsed is not null)
+                    return parsed;
+            }
+
             return new AiBookSummaryResponseDto
             {
-                Summary = text.Trim(),
-                Confidence = 0.5,
-                Notes = "LLM output was not valid JSON; returning raw text."
+                Summary = string.Empty,
+                Confidence = 0,
+                Notes = $"LLM output was not valid JSON. Raw: {text.Trim()}"
             };
         }
         catch (Exception ex)
@@ -78,22 +106,65 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         }
     }
 
-    private static string BuildPrompt(string title, string? author, string language)
+    private static string BuildPromptSummaryOnly(string title, string? author, string language)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("You are a bibliographic assistant.");
+        sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
+        sb.AppendLine("JSON schema: {\"title\":string,\"author\":string,\"summary\":string,\"confidence\":number,\"notes\":string}");
+        sb.AppendLine("Rules:");
+        sb.AppendLine("- summary: provide a plain-text book description/synopsis for the requested title, 600-1200 characters.");
+        sb.AppendLine("  Do NOT write instructional/meta text in summary (e.g., 'This is the actual book description').");
+        sb.AppendLine("  Do NOT put the book description or plot into 'notes'.");
+        sb.AppendLine("- If you don't know a field, set it to null (except summary, which can be empty string).");
+        sb.AppendLine("- Do not include HTML.");
+        sb.AppendLine("- notes: short meta-only message (<= 200 characters). Use notes ONLY for: title/author match uncertainty OR output/format issues.");
+        sb.AppendLine("  Do NOT include plot, synopsis, publisher, year, awards, or any extra bibliographic details in notes.");
+        sb.AppendLine("- If unsure, lower confidence and mention uncertainty briefly in notes.");
+        sb.AppendLine("- IMPORTANT: The response must be about the exact provided Title and Author.");
+        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'title' and 'author' (do not translate, do not normalize).");
+        sb.AppendLine("- If you are not fully sure about the match, you may still provide a best-effort summary, BUT:");
+        sb.AppendLine("  - Lower confidence." );
+        sb.AppendLine("  - Explain uncertainty briefly in notes (title/author match only)." );
+        sb.AppendLine("  - Do not invent detailed facts (publisher, year, awards, plot specifics) unless you are confident." );
+        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
+        sb.AppendLine();
+        sb.AppendLine("INPUT (must match exactly):");
+        sb.AppendLine($"Language: {language}");
+        sb.AppendLine($"Title: {title}");
+        sb.AppendLine($"Author: {(string.IsNullOrWhiteSpace(author) ? "(none)" : author)}");
+
+        return sb.ToString();
+    }
+
+    private static string BuildPromptFull(string title, string? author, string language)
     {
         var sb = new StringBuilder();
         sb.AppendLine("You are a bibliographic assistant.");
         sb.AppendLine("Return ONLY valid JSON (no markdown, no code fences)." );
         sb.AppendLine("JSON schema: {\"title\":string,\"author\":string,\"category\":string,\"publishedDate\":string,\"pages\":number,\"coverImageUrl\":string,\"price\":number,\"summary\":string,\"confidence\":number,\"notes\":string}");
         sb.AppendLine("Rules:");
-        sb.AppendLine("- summary: plain text, 600-1200 characters.");
+        sb.AppendLine("- summary: provide a plain-text book description/synopsis for the requested title, 600-1200 characters.");
+        sb.AppendLine("  Do NOT write instructional/meta text in summary (e.g., 'This is the actual book description').");
+        sb.AppendLine("  Do NOT put the book description or plot into 'notes'.");
         sb.AppendLine("- If you don't know a field, set it to null (except summary, which can be empty string).");
         sb.AppendLine("- Do not include HTML.");
-        sb.AppendLine("- If unsure, lower confidence and mention uncertainty in notes.");
+        sb.AppendLine("- notes: short meta-only message (<= 200 characters). Use notes ONLY for: title/author match uncertainty OR output/format issues.");
+        sb.AppendLine("  Do NOT include plot, synopsis, publisher, year, awards, or any extra bibliographic details in notes.");
+        sb.AppendLine("- If unsure, lower confidence and mention uncertainty briefly in notes.");
+        sb.AppendLine("- IMPORTANT: The response must be about the exact provided Title and Author.");
+        sb.AppendLine("- Echo the EXACT input values in the JSON fields 'title' and 'author' (do not translate, do not normalize).");
+        sb.AppendLine("- If you are not fully sure about the match, you may still provide a best-effort output, BUT:");
+        sb.AppendLine("  - Lower confidence." );
+        sb.AppendLine("  - Explain uncertainty briefly in notes (title/author match only)." );
+        sb.AppendLine("  - Prefer null for unknown fields instead of guessing." );
+        sb.AppendLine("  - Do not invent detailed facts (publisher, year, awards, plot specifics) unless you are confident." );
+        sb.AppendLine("- Provide a confidence score between 0.0 and 1.0.");
         sb.AppendLine();
+        sb.AppendLine("INPUT (must match exactly):");
         sb.AppendLine($"Language: {language}");
         sb.AppendLine($"Title: {title}");
-        if (!string.IsNullOrWhiteSpace(author))
-            sb.AppendLine($"Author: {author}");
+        sb.AppendLine($"Author: {(string.IsNullOrWhiteSpace(author) ? "(none)" : author)}");
 
         return sb.ToString();
     }
@@ -108,6 +179,63 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         {
             return null;
         }
+    }
+
+    private static string? TryExtractFirstJsonObject(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        var start = text.IndexOf('{');
+        if (start < 0)
+            return null;
+
+        var depth = 0;
+        var inString = false;
+        var escape = false;
+
+        for (var i = start; i < text.Length; i++)
+        {
+            var ch = text[i];
+
+            if (inString)
+            {
+                if (escape)
+                {
+                    escape = false;
+                    continue;
+                }
+
+                if (ch == '\\')
+                {
+                    escape = true;
+                    continue;
+                }
+
+                if (ch == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (ch == '{')
+                depth++;
+            else if (ch == '}')
+                depth--;
+
+            if (depth == 0)
+                return text.Substring(start, i - start + 1);
+        }
+
+        return null;
     }
 
     private static string? TryExtractOllamaResponseText(string json)

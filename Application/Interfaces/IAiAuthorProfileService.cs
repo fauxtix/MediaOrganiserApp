@@ -10,5 +10,5 @@ namespace MediaOrganizerApp.Application.Interfaces;
 /// </summary>
 public interface IAiAuthorProfileService
 {
-    Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, CancellationToken cancellationToken = default);
+    Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default);
 }

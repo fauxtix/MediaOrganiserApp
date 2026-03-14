@@ -894,6 +894,9 @@
   <data name="MSG_PreparandoDados" xml:space="preserve">
     <value>Loading data...</value>
   </data>
+  <data name="MSG_AiLowConfidenceNoNotes" xml:space="preserve">
+    <value>The AI returned a warning (low confidence) and notes were not filled.</value>
+  </data>
   <data name="TituloMensagem" xml:space="preserve">
     <value>Message</value>
   </data>

@@ -10,4 +10,7 @@ public sealed class AiAuthorProfileRequestDto
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
 }

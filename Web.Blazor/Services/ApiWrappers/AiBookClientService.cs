@@ -40,4 +40,24 @@ public sealed class AiBookClientService
             return null;
         }
     }
+
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(string title, string? author, string language = "pt")
+    {
+        try
+        {
+            using var resp = await _httpClient.PostAsJsonAsync(
+                $"{_uri}/book-summary-only",
+                new AiBookSummaryRequestDto { Title = title, Author = author, Language = language });
+
+            if (!resp.IsSuccessStatusCode)
+                return null;
+
+            return await resp.Content.ReadFromJsonAsync<AiBookSummaryResponseDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating book summary (summary-only).");
+            return null;
+        }
+    }
 }

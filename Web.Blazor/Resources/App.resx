@@ -895,6 +895,9 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="MSG_PreparandoDados" xml:space="preserve">
     <value>Preparando dados</value>
   </data>
+  <data name="MSG_AiLowConfidenceNoNotes" xml:space="preserve">
+    <value>A IA devolveu um aviso (baixa confiança) e as notas não foram preenchidas.</value>
+  </data>
   <data name="TituloMensagem" xml:space="preserve">
     <value>Mensagem</value>
   </data>

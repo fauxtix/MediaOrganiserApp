@@ -28,13 +28,13 @@ public sealed class AiClientService
         _uri = $"{_env["BaseUrl"]}/Ai";
     }
 
-    public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(string name)
+    public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(string name, string language)
     {
         try
         {
             using var resp = await _httpClient.PostAsJsonAsync(
                 $"{_uri}/author-profile",
-                new AiAuthorProfileRequestDto { Name = name });
+                new AiAuthorProfileRequestDto { Name = name, Language = language });
 
             if (!resp.IsSuccessStatusCode)
                 return null;

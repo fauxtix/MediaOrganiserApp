@@ -10,4 +10,10 @@ public interface IAiBookSummaryService
         string? author,
         string language,
         CancellationToken cancellationToken);
+
+    Task<Application.DTOs.AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
+        string title,
+        string? author,
+        string language,
+        CancellationToken cancellationToken);
 }

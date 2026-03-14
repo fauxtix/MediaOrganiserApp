@@ -165,7 +165,7 @@ namespace Web.Blazor.Pages.LookupTables
                 if (authorDetails.bio.ToLower().Contains("sem")) // TODO => localize "sem biografia" check
                 {
                     // External API first; AI fallback only when external returns empty bio.
-                    var ai = await AiClientService.GetAuthorProfileAsync(authorName);
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
                     if (!string.IsNullOrWhiteSpace(ai?.Bio))
                     {
@@ -204,7 +204,7 @@ namespace Web.Blazor.Pages.LookupTables
                 try
                 {
                     var authorName = SelectedAuthor.Descricao;
-                    var ai = await AiClientService.GetAuthorProfileAsync(authorName);
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
                     if (!string.IsNullOrWhiteSpace(ai?.Bio))
                     {

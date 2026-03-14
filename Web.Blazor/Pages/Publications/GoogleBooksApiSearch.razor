@@ -90,9 +90,6 @@
     private double? lastAiConfidence;
     private bool lastAiUsed;
 
-    private const double AiConfidenceThreshold = 0.7;
-    private const int AiMaxAttempts = 1;
-
     private SfSpinner? spinner;
     private bool isBusy;
 
@@ -440,29 +437,51 @@
             if (string.IsNullOrWhiteSpace(title))
                 return null;
 
+            // Reset per-attempt AI flags so previous successes don't affect message visibility.
+            lastAiUsed = false;
+            lastAiNotes = null;
+            lastAiConfidence = null;
+
+            var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
             showAiProgress = true;
             aiProgressMessage = "AI - Searching for a book description...";
             await InvokeAsync(StateHasChanged);
 
-            var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, "pt");
-            if (resp is null || string.IsNullOrWhiteSpace(resp.Summary))
+            var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage);
+            if (resp is null)
+            {
+                aiProgressMessage = "AI - No response returned.";
+                await InvokeAsync(StateHasChanged);
                 return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(resp.Summary))
+            {
+                aiProgressMessage = $"AI - No summary returned. {resp.Notes}";
+                await InvokeAsync(StateHasChanged);
+                return null;
+            }
 
             lastAiNotes = resp.Notes;
             lastAiConfidence = resp.Confidence;
             lastAiUsed = true;
+
+            aiProgressMessage = string.IsNullOrWhiteSpace(resp.Notes)
+                ? "AI - Summary generated."
+                : $"AI - Summary generated. {resp.Notes}";
+            await InvokeAsync(StateHasChanged);
+
             return resp.Summary;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating book description.");
-            return null;
-        }
-        finally
-        {
-            showAiProgress = false;
-            aiProgressMessage = string.Empty;
+
+            aiProgressMessage = "AI - Error generating book description. Check logs.";
+            showAiProgress = true;
             await InvokeAsync(StateHasChanged);
+            return null;
         }
     }
 
@@ -473,29 +492,36 @@
             if (string.IsNullOrWhiteSpace(title))
                 return null;
 
+            var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
             showAiProgress = true;
             aiProgressMessage = "AI - Searching for book metadata/description...";
             await InvokeAsync(StateHasChanged);
 
-            var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, "pt");
+            var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage);
             if (resp is null)
                 return null;
 
             lastAiNotes = resp.Notes;
             lastAiConfidence = resp.Confidence;
             lastAiUsed = true;
+
+            aiProgressMessage = string.IsNullOrWhiteSpace(resp.Notes)
+                ? "AI - Data generated."
+                : $"AI - Data generated. {resp.Notes}";
+            showAiProgress = true;
+            await InvokeAsync(StateHasChanged);
+
             return resp;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating book metadata.");
-            return null;
-        }
-        finally
-        {
-            showAiProgress = false;
-            aiProgressMessage = string.Empty;
+
+            aiProgressMessage = "AI - Error generating book metadata. Check logs.";
+            showAiProgress = true;
             await InvokeAsync(StateHasChanged);
+            return null;
         }
     }
 

@@ -56,6 +56,12 @@ public class Program
 builder.Services.AddHttpClient<OllamaBookSummaryService>();
 builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
 
+builder.Services.AddHttpClient<OllamaMediaNotesService>();
+builder.Services.AddScoped<IAiMediaNotesService, OllamaMediaNotesService>();
+
+builder.Services.AddHttpClient<OllamaMediaMetadataService>();
+builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>();
+
         // AI fallback services (server-side). Used only when external metadata APIs fail.
         // Provider selection:
         // - Ai:Provider = "OpenAI" (default)
