@@ -142,8 +142,10 @@ namespace Web.Blazor.Pages.LookupTables
             try
             {
                 var authorName = SelectedAuthor.Descricao;
-                var authorHasImage = !SelectedAuthor.ImagemAutor.ToLower().Contains("image") || 
-                              !SelectedAuthor.ImagemAutor.ToLower().Contains("photo");
+                var authorHasImage = SelectedAuthor.ImagemAutor is not null && 
+                    (!SelectedAuthor.ImagemAutor.ToLower().Contains("image") ||
+                              !SelectedAuthor.ImagemAutor.ToLower().Contains("photo)")
+                    );
 
                 authorDetails = await AutoresService.GetAuthorDetails(authorName);
                 if (!blnEdit && !string.IsNullOrEmpty(authorDetails.photo))

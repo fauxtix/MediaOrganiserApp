@@ -246,7 +246,7 @@ namespace Web.Blazor.Pages.Publications
             }
         }
 
-        public async void OnChange(UploadChangeEventArgs args)
+        public async Task OnChange(UploadChangeEventArgs args)
         {
             string previousImagePath = string.Empty;
             string coverImageToReplace = string.Empty;
@@ -278,8 +278,10 @@ namespace Web.Blazor.Pages.Publications
                 if (string.IsNullOrEmpty(SelectedRecord.DigitalPath)) // not a digital file (pdf)
                 {
                     if (SelectedRecord.ImagemCapa.ToLower().StartsWith("http") ||
-                        string.IsNullOrEmpty(SelectedRecord.ImagemCapa) ||
-                            SelectedRecord.ImagemCapa.ToLower().Contains("available")) // image path contains "available" (no image available)
+                        SelectedRecord.ImagemCapa.ToLower().Contains("photo") ||
+                        SelectedRecord.ImagemCapa.ToLower().Contains("image") ||
+                        SelectedRecord.ImagemCapa.ToLower().StartsWith("file") || // local image file, but need to be replaced
+                        SelectedRecord.ImagemCapa.ToLower().Contains("available")) // image path contains "available" (no image available)
                     {
                         var subFolders = bookCoversDirectory.Split("\\");
                         string BookImagesDirectory = Path.Combine(env.WebRootPath, "Files", subFolders[1], subFolders[2]);
@@ -296,12 +298,11 @@ namespace Web.Blazor.Pages.Publications
                             }
                         }
 
-                        CoverImage = path;
+                        CoverImage = $"/Files/{subFolders[1]}/{subFolders[2]}/{uploadedFileName}";
                         var dirImagePos = BookImagesDirectory.IndexOf("Files");
                         SelectedRecord.ImagemCapa = Path.Combine(BookImagesDirectory.Substring(dirImagePos), uploadedFileName);
                         await objUploader.ClearAllAsync();
-
-                        StateHasChanged();
+                        await InvokeAsync(StateHasChanged);
 
                         return;
                     }
@@ -372,11 +373,13 @@ namespace Web.Blazor.Pages.Publications
                 if (path.ToLower().Contains("book")) // hard cover publication (book)
                 {
                     CoverImage = $"/images/bookhardcovers/{uploadedFileName}";
+                    SelectedRecord.ImagemCapa = CoverImage;
                 }
                 else // pdf
                 {
                     CoverImage = fileService.DecodeImage(path);
                     CoverImage = CoverImage.Replace(@"\\", @"\");
+                    SelectedRecord.ImagemCapa = CoverImage;
 
                 }
 
