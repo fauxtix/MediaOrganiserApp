@@ -227,6 +227,8 @@ namespace Web.Blazor.Pages.Media
 
         protected async Task GetMediaInfo()
         {
+            var shouldAIBeUsed= SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
+
             await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
             ProgressClient.ProgressReceived -= OnProgressReceived;
             ProgressClient.ProgressReceived += OnProgressReceived;
@@ -252,106 +254,90 @@ namespace Web.Blazor.Pages.Media
 
             try
             {
-                var isLPorCD = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
-
                 var mediaTitle = SelectedRecord.FileName;
                 var artist = SelectedRecord.Autor;
+                var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
-                if (SelectedRecord.IdFormato_Media == 4) // DVD
+                // Try external APIs first
+                bool notasFilled = !string.IsNullOrWhiteSpace(SelectedRecord.Notas);
+                bool anoEdicaoFilled = !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao);
+
+                // External API for Notas (example: OMDb, AlbumInfo, etc.)
+                if (!notasFilled)
                 {
                     var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
-                    if (dvdInfo is not null)
+                    if (dvdInfo != null && !string.IsNullOrEmpty(dvdInfo.Awards))
                     {
-                        if (dvdInfo.Runtime is not null)
-                        {
-                            SelectedRecord.Tempo = MediaService.ConvertIOMDbTimeStringAsTime(dvdInfo.Runtime);
-                        }
-                        if (dvdInfo.Released is not null)
-                        {
-                            SelectedRecord.DataMov = MediaService.ConvertIOMDbStringAsDate(dvdInfo.Released);
-                        }
-                        if (dvdInfo.imdbRating is not null)
-                        {
-                            SelectedRecord.Rating = MediaService.ConvertIMDbRatingToFiveScale(dvdInfo.imdbRating);
-                        }
-                        SelectedRecord.Autor = dvdInfo.Actors;
-                        SelectedRecord.AnoEdicao = dvdInfo.Year;
                         SelectedRecord.Notas = dvdInfo.Awards;
-                        SelectedRecord.CoverFile = dvdInfo.Poster;
-
-                        if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
-                        {
-                            var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
-                            if (!string.IsNullOrWhiteSpace(ai?.Notes))
-                                SelectedRecord.Notas = ai.Notes;
-                        }
+                        notasFilled = true;
                     }
                     else
                     {
-                        var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
-                        if (ai is not null)
+                        var albumInfo = await MediaService.GetAlbumInfo(artist, mediaTitle);
+                        if (albumInfo != null && !string.IsNullOrEmpty(albumInfo.Notas))
                         {
-                            if (!string.IsNullOrWhiteSpace(ai.Notes) && (ai.Confidence ?? 0) >= 0.85)
-                                SelectedRecord.Notas = ai.Notes;
-
-                            if (string.IsNullOrWhiteSpace(SelectedRecord.Notas)
-                                && !string.IsNullOrWhiteSpace(ai.Warnings))
-                            {
-                                showAlertMessage = true;
-                                alertMessage = (L["MSG_AiLowConfidenceNoNotes"].Value is { Length: > 0 } localized)
-                                    ? localized
-                                    : "AI: low confidence. Notes were not filled.";
-                            }
-
-                        // If OMDb failed, do not trust LLM for factual DVD metadata (common hallucination source).
-                        // Keep existing user-entered fields instead of overwriting with guessed data.
+                            SelectedRecord.Notas = albumInfo.Notas;
+                            notasFilled = true;
                         }
                     }
                 }
-                else if (isLPorCD)
-                {
-                    var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
-                    if (artirstAndAlbumData.Titulo is not null)
-                    {
-                        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
-                        SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
-                        SelectedRecord.Notas = artirstAndAlbumData.Notas;
 
-                        if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
-                        {
-                            var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                            var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
-                            if (!string.IsNullOrWhiteSpace(ai?.Notes))
-                                SelectedRecord.Notas = ai.Notes;
-                        }
+                // External API for AnoEdicao (example: OMDb, AlbumInfo, etc.)
+                if (!anoEdicaoFilled)
+                {
+                    var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
+                    if (dvdInfo != null && !string.IsNullOrEmpty(dvdInfo.Year))
+                    {
+                        SelectedRecord.AnoEdicao = dvdInfo.Year;
+                        anoEdicaoFilled = true;
                     }
                     else
                     {
-                        var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                        var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
-                        if (ai is not null)
+                        var albumInfo = await MediaService.GetAlbumInfo(artist, mediaTitle);
+                        if (albumInfo != null && !string.IsNullOrEmpty(albumInfo.AnoEdicao))
                         {
-                            if (!string.IsNullOrWhiteSpace(ai.Tempo))
-                                SelectedRecord.Tempo = ai.Tempo;
+                            SelectedRecord.AnoEdicao = albumInfo.AnoEdicao;
+                            anoEdicaoFilled = true;
+                        }
+                    }
+                }
 
-                            if (!string.IsNullOrWhiteSpace(ai.CoverFile))
-                                SelectedRecord.CoverFile = ai.CoverFile;
-
-                            if (!string.IsNullOrWhiteSpace(ai.Notes) && (ai.Confidence ?? 0) >= 0.85)
-                                SelectedRecord.Notas = ai.Notes;
-
-                            if (string.IsNullOrWhiteSpace(SelectedRecord.Notas)
-                                && !string.IsNullOrWhiteSpace(ai.Warnings))
+                // AI fallback for Notas
+                if (!notasFilled)
+                {
+                    var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
+                    if (ai == null)
+                    {
+                        showAlertMessage = true;
+                        alertMessage = L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.";
+                    }
+                    else
+                    {
+                        var notesValue = ai.Notes;
+                        if (!string.IsNullOrWhiteSpace(notesValue))
+                        {
+                            SelectedRecord.Notas = notesValue;
+                            if (!string.IsNullOrWhiteSpace(ai.Warnings))
                             {
                                 showAlertMessage = true;
-                                alertMessage = (L["MSG_AiLowConfidenceNoNotes"].Value is { Length: > 0 } localized)
-                                    ? localized
-                                    : "AI: low confidence. Notes were not filled.";
+                                alertMessage = ai.Warnings;
                             }
                         }
                     }
+                }
+
+                // AI fallback for AnoEdicao
+                if (!anoEdicaoFilled)
+                {
+                    var year = await AiMediaClient.GetMediaEditionYearAsync(
+                        artist,
+                        mediaTitle,
+                        mediaType,
+                        uiLanguage,
+                        ProgressClient.ConnectionId,
+                        mediaInfoCts.Token);
+                    if (!string.IsNullOrWhiteSpace(year))
+                        SelectedRecord.AnoEdicao = year;
                 }
             }
             catch (OperationCanceledException)
@@ -371,6 +357,14 @@ namespace Web.Blazor.Pages.Media
                 mediaInfoCts = null;
                 ProgressClient.ProgressReceived -= OnProgressReceived;
                 await ProgressClient.StopAsync();
+
+                // Show UI explanation if no notes were retrieved
+                if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
+                {
+                    showAlertMessage = true;
+                    alertMessage = L["NoNotesFound"] ?? "Nenhuma nota foi encontrada para este media.";
+                }
+
                 StateHasChanged();
             }
         }

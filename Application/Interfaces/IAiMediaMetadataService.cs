@@ -12,4 +12,12 @@ public interface IAiMediaMetadataService
         string language,
         string? connectionId,
         CancellationToken cancellationToken);
+
+    Task<string?> GetMediaEditionYearAsync(
+        string artist,
+        string title,
+        string mediaType,
+        string language,
+        string? connectionId,
+        CancellationToken cancellationToken);
 }

@@ -5,6 +5,7 @@ using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.Security;
 using MediaOrganizerApp.Application.Interfaces.Services.Validators;
 using MediaOrganizerApp.Application.Validators;
+using Web.Blazor.Components.Prompts;
 using Web.Blazor.Data;
 using Web.Blazor.Reporting.BusinessObjects;
 using Web.Blazor.Reporting.Helpers;
@@ -64,6 +65,9 @@ namespace Web.Blazor
             services.AddHttpClient<IUsersService, UsersService>();
             services.AddHttpClient<IPdfService, PdfService>();
             services.AddHttpClient<IMediaThumbnailsService, MediaThumbnailsService>();
+
+            services.AddHttpClient<PromptFilesService>();
+
             services.AddHttpClient<ILogService, WrapperAppLogs>();
 
             services.AddScoped<IFormService, FormService>();

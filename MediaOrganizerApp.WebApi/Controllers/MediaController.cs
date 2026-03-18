@@ -436,11 +436,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
 
                 string formattedTotalDuration = totalDuration.ToString(@"hh\:mm\:ss");
+                var releasedDate = albumInfo.Content.ReleaseDateUtc;
                 var albumData = new
                 {
                     albumInfo.Content.Name,
                     albumInfo.Content.ArtistMbid,
-                    albumInfo.Content.ReleaseDateUtc,
+                   releasedDate,
                     Tracks = tracksInfoRetrievedOk ? albumInfo.Content.Tracks
                         .Select(t => new
                         {
@@ -450,7 +451,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     Images = albumInfo.Content.Images.Select(i => i.AbsoluteUri).ToList()
                 };
 
-                var sourceTime = albumData.ReleaseDateUtc;
+                var sourceTime = releasedDate;
                 DateTime? targetTime = sourceTime?.DateTime;
                 var dataMov = sourceTime.HasValue ? targetTime.Value : DateTime.UtcNow;
 
@@ -477,7 +478,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     CoverFile = albumImage,
                     Titulo = album,
                     Tempo = formattedTotalDuration,
-                    AnoEdicao = dataMov.Year.ToString(),
+                    AnoEdicao = releasedDate?.Year.ToString() ?? "",
                     DataMov = dataMov,
                     Notas = sb.ToString(),
                 };

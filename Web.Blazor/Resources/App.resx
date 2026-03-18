@@ -1052,7 +1052,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
     <value>Nenhum ficheiro selecionado</value>
   </data>
   <data name="TituloSelecioneFicheiro" xml:space="preserve">
-    <value>Selecione ficheiro a carregar, por favor</value>
+    <value>Selecione ficheiro a carregar</value>
   </data>
   <data name="TituloUploadLocalFiles" xml:space="preserve">
     <value>Carregamento de ficheiros locais</value>
@@ -1149,5 +1149,11 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="TrackTime" xml:space="preserve">
     <value>Duração</value>
+  </data>
+  <data name="TituloEditorPrompts" xml:space="preserve">
+    <value>Editor de Prompts</value>
+  </data>
+  <data name="NoNotesFound" xml:space="preserve">
+    <value>Não foram encontradas Notas ao usar o LLM Ollama</value>
   </data>
 </root>

@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
-public sealed class AiMediaClientService
+public partial class AiMediaClientService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AiMediaClientService> _logger;
@@ -22,24 +22,32 @@ public sealed class AiMediaClientService
         _uri = $"{_env["BaseUrl"]}/Ai";
     }
 
-    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt", string? connectionId = null)
+    public async Task<AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var resp = await _httpClient.PostAsJsonAsync(
-                $"{_uri}/media-notes",
-                new AiMediaNotesRequestDto
-                {
-                    Artist = artist,
-                    Title = title,
-                    Language = language,
-                    ConnectionId = connectionId
-                });
+            var endpoint = $"{_uri}/media-notes"; 
+            var requestDto = new AiMediaNotesRequestDto
+            {
+                Artist = artist,
+                Title = title,
+                Language = language,
+                ConnectionId = connectionId
+            };
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                _httpClient,
+                endpoint,
+                requestDto,
+                cancellationToken);
 
             if (!resp.IsSuccessStatusCode)
+            {
+                var errorBody = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("AI - Media notes request failed. Status={StatusCode}. Body={Body}", (int)resp.StatusCode, errorBody);
                 return null;
+            }
 
-            return await resp.Content.ReadFromJsonAsync<MediaOrganizerApp.Application.DTOs.AiMediaNotesResponseDto>();
+            return await resp.Content.ReadFromJsonAsync<AiMediaNotesResponseDto>(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -48,7 +56,7 @@ public sealed class AiMediaClientService
         }
     }
 
-    public async Task<MediaOrganizerApp.Application.DTOs.AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
+    public async Task<AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
     {
         try
         {

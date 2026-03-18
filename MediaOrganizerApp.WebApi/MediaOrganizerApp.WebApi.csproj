@@ -10,8 +10,10 @@
     <None Remove="Prompts\author-profile.prompt.txt" />
     <None Remove="Prompts\book-summary-full.prompt.txt" />
     <None Remove="Prompts\book-summary-only.prompt.txt" />
+    <None Remove="Prompts\media-edition-year.prompt.txt" />
     <None Remove="Prompts\media-metadata.prompt.txt" />
     <None Remove="Prompts\media-notes.prompt.txt" />
+    <None Remove="Prompts\README.md" />
     <None Remove="Reports_RDLC\rptAutoresGenerico.rdlc" />
     <None Remove="Reports_RDLC\rptAutoresSemPublicacoes.rdlc" />
     <None Remove="Reports_RDLC\rptAutores_Publicacoes.rdlc" />
@@ -27,6 +29,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Prompts\media-edition-year.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\README.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Reports_RDLC\rptAutoresGenerico.rdlc">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>

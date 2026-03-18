@@ -113,6 +113,7 @@ public class Program
             ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
                 message.RequestUri != null && message.RequestUri.IsLoopback
         });
+
         builder.Services.AddSingleton<Web.Blazor.Services.Common.MediaInfoProgressClient>();
 
         builder.Services.AddScoped(sp =>

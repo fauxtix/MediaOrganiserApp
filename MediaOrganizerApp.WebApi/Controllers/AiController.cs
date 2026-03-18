@@ -19,14 +19,76 @@ public sealed class AiController : ControllerBase
     private readonly IAiBookSummaryService _books;
     private readonly IAiMediaNotesService _media;
     private readonly IAiMediaMetadataService _mediaMetadata;
+    private readonly ILogger _logger;
 
-    
+    /// <summary>
+    /// Lista todos os arquivos .txt e .md da pasta Prompts.
+    /// </summary>
+    [HttpGet("prompts")]
+    public IActionResult GetPromptFiles()
+    {
+        var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+        if (!Directory.Exists(promptsDir))
+            return Ok(Array.Empty<string>());
+        var files = Directory.GetFiles(promptsDir, "*.txt")
+            .Concat(Directory.GetFiles(promptsDir, "*.md"))
+            .Select(Path.GetFileName)
+            .ToList();
+        return Ok(files);
+    }
+
+    /// <summary>
+    /// Retorna o conteúdo do README.md da pasta Prompts.
+    /// </summary>
+    [HttpGet("prompts/readme")]
+    public IActionResult GetReadme()
+    {
+        var readmePath = Path.Combine(AppContext.BaseDirectory, "Prompts", "README.md");
+        if (!System.IO.File.Exists(readmePath))
+            return NotFound();
+        var content = System.IO.File.ReadAllText(readmePath);
+        return Content(content, "text/plain");
+    }
+
+    /// <summary>
+    /// Retorna o conteúdo de um arquivo de prompt (.txt ou .md) na pasta Prompts.
+    /// </summary>
+    [HttpGet("prompts/{filename}")]
+    public IActionResult GetPromptFile(string filename)
+    {
+        if (string.IsNullOrWhiteSpace(filename))
+            return BadRequest("Filename is required.");
+        var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+        var filePath = Path.Combine(promptsDir, filename);
+        if (!System.IO.File.Exists(filePath))
+            return NotFound();
+        var content = System.IO.File.ReadAllText(filePath);
+        return Content(content, "text/plain");
+    }
+
+
     public AiController(IAiAuthorProfileService ai, IAiBookSummaryService books, IAiMediaNotesService media, IAiMediaMetadataService mediaMetadata)
     {
         _ai = ai;
         _books = books;
         _media = media;
         _mediaMetadata = mediaMetadata;
+    }
+
+    /// <summary>
+    /// Salva o conteúdo de um arquivo de prompt (.txt ou .md) na pasta Prompts.
+    /// </summary>
+    [HttpPut("prompts/{filename}")]
+    public IActionResult SavePromptFile(string filename, [FromBody] string content)
+    {
+        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(content))
+            return BadRequest("Filename and content are required.");
+        var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+        if (!Directory.Exists(promptsDir))
+            Directory.CreateDirectory(promptsDir);
+        var filePath = Path.Combine(promptsDir, filename);
+        System.IO.File.WriteAllText(filePath, content);
+        return Ok();
     }
 
     /// <summary>
@@ -105,8 +167,17 @@ public sealed class AiController : ControllerBase
             return BadRequest("Field 'artist' is required.");
 
         var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-        var resp = await _media.GetMediaNotesAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
-        return Ok(resp);
+        try
+        {
+            var resp = await _media.GetMediaNotesAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
+            return Ok(resp);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating media notes for '{Artist}' - '{Title}'", request.Artist, request.Title); 
+            return BadRequest("Error generating media notes.");
+        }
     }
 
     /// <summary>
@@ -129,5 +200,33 @@ public sealed class AiController : ControllerBase
         var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
         var resp = await _mediaMetadata.GetMediaMetadataAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
         return Ok(resp);
+    }
+
+    /// <summary>
+    /// Generates only the edition year (Ano de Edição) for a media item using AI.
+    /// </summary>
+    [HttpPost("media-edition-year")]
+    public async Task<ActionResult<string>> MediaEditionYear(
+        [FromBody] MediaEditionYearRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+            return BadRequest("Request body is required.");
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest("Field 'title' is required.");
+        if (string.IsNullOrWhiteSpace(request.Artist))
+            return BadRequest("Field 'artist' is required.");
+
+        var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+        var year = await _mediaMetadata.GetMediaEditionYearAsync(
+            request.Artist,
+            request.Title,
+            request.MediaType,
+            language,
+            request.ConnectionId,
+            cancellationToken);
+        if (string.IsNullOrWhiteSpace(year))
+            return Ok("N/A");
+        return Ok(year);
     }
 }

@@ -1147,4 +1147,10 @@
   <data name="TrackTime" xml:space="preserve">
     <value>Durée</value>
   </data>
+  <data name="TituloEditorPrompts" xml:space="preserve">
+    <value>Éditeur de prompts</value>
+  </data>
+  <data name="NoNotesFound" xml:space="preserve">
+    <value>Aucune Note n'a été trouvée lors de l'utilisation du LLM Ollama</value>
+  </data>
 </root>

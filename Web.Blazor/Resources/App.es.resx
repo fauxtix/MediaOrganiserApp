@@ -1147,4 +1147,10 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TrackTime" xml:space="preserve">
     <value>Duración</value>
   </data>
+  <data name="TituloEditorPrompts" xml:space="preserve">
+    <value>Editor de prompts</value>
+  </data>
+  <data name="NoNotesFound" xml:space="preserve">
+    <value>No se han encontrado Notas al utilizar el LLM Ollama</value>
+  </data>
 </root>

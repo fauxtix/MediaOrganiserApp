@@ -394,4 +394,65 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
         return null;
     }
+
+    public async Task<string?> GetMediaEditionYearAsync(
+        string artist,
+        string title,
+        string mediaType,
+        string language,
+        string? connectionId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/2: Preparing AI prompt for edition year...", cancellationToken);
+        var template = await _prompts.GetTemplateAsync("media-edition-year.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["artist"] = artist,
+            ["title"] = title,
+            ["mediaType"] = mediaType
+        });
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/2: Sending prompt to AI model...", cancellationToken);
+        var year = await ExecuteOllamaEditionYearAsync(prompt, connectionId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(year))
+            return null;
+        // Extract only a 4-digit year or 'N/A' from the AI response
+        var match = System.Text.RegularExpressions.Regex.Match(year, @"\b(\d{4})\b");
+        if (match.Success)
+            return match.Value;
+        if (year.Trim().Equals("N/A", StringComparison.OrdinalIgnoreCase))
+            return "N/A";
+        return null;
+    }
+
+    private async Task<string?> ExecuteOllamaEditionYearAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
+    {
+        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
+        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        var payload = new { model, prompt, stream = false };
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+            {
+                Content = JsonContent.Create(payload)
+            };
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
+            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
+            response.EnsureSuccessStatusCode();
+            var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
+            var json = Encoding.UTF8.GetString(bytes);
+            var text = TryExtractOllamaResponseText(json);
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+            return text.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating media edition year using Ollama.");
+            return null;
+        }
+    }
 }

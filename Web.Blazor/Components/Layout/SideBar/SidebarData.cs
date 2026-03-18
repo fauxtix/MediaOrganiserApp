@@ -13,7 +13,7 @@ public class SidebarData
     }
     public List<MenuItem> GetStandardMenuItems()
     {
-        return new List<MenuItem>
+        var menu = new List<MenuItem>
         {
 
             new MenuItem(title: "Backup", icon: "fa fa-database", childMenuItems: new List<MenuItem>
@@ -33,9 +33,11 @@ public class SidebarData
 
             new MenuItem(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
             new MenuItem(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
-            new MenuItem(href: "/admin/viewapplogs", title: "Logs", icon: "fa fa-table"),
+            new MenuItem(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
+            new MenuItem(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
 
         };
+        return menu;
     }
 
     public List<MenuItem> GetGeneralMenuItems()

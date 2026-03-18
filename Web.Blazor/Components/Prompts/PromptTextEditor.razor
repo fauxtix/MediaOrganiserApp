@@ -1,0 +1,67 @@
+@using Microsoft.Extensions.Logging
+@using Syncfusion.Blazor.DocumentEditor
+@using System.IO
+@using Markdig
+@using Microsoft.AspNetCore.Components
+@inject ILogger<App> _logger
+@inject PromptFilesService PromptService
+
+<div class="document-options">
+    <SfButton CssClass="e-btn e-outline bg-success e-round-corner"
+              IconCss="fas fa-save"
+              OnClick="OnSave"
+              Content="Gravar" />
+    <SfButton CssClass="e-btn e-outline bg-secondary e-round-corner ml-2"
+              IconCss="fas fa-times"
+              OnClick="OnCancel"
+              Content="Cancelar" />
+</div>
+<hr />
+
+
+<SfRichTextEditor @ref="richTextEditor" Height="590px" @bind-Value="EditorContent">
+</SfRichTextEditor>
+
+
+@code {
+    [Parameter] public string FileContent { get; set; }
+    [Parameter] public string FileName { get; set; }
+
+    protected SfRichTextEditor richTextEditor;
+    private string EditorContent;
+
+    protected override void OnParametersSet()
+    {
+        EditorContent = FileContent;
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(FileName))
+            {
+                await PromptService.SavePromptFileAsync(FileName, EditorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Erro ao gravar o ficheiro: {ex.Message}");
+        }
+    }
+
+    private Task OnCancel()
+    {
+        return Task.CompletedTask;
+    }
+}
+
+<style type="text/css">
+    .document-options {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        align-items: flex-end;
+        margin-right: 10px;
+    }
+</style>

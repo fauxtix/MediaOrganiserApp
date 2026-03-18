@@ -1051,7 +1051,7 @@
     <value>No file selected</value>
   </data>
   <data name="TituloSelecioneFicheiro" xml:space="preserve">
-    <value>Please select a file to upload</value>
+    <value>Select a file to upload</value>
   </data>
   <data name="TituloUploadLocalFiles" xml:space="preserve">
     <value>Local files upload</value>
@@ -1148,5 +1148,11 @@
   </data>
   <data name="TrackTime" xml:space="preserve">
     <value>Duration</value>
+  </data>
+  <data name="TituloEditorPrompts" xml:space="preserve">
+    <value>Prompt Editor</value>
+  </data>
+  <data name="NoNotesFound" xml:space="preserve">
+    <value>No Notes were found when using the Ollama LLM</value>
   </data>
 </root>

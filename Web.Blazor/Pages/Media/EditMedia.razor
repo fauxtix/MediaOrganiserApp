@@ -101,7 +101,9 @@ else
                     <div style="float:right">
                         <SfButton CssClass="e-btn e-success e-outline mr-1 mt-2 e-round-corner"
                                   IconCss="fa fa-search"
-                                  @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)" Content="Info">
+                                  @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
+                                  Content="Info"
+                                  Enabled="@(blnEdit ? string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) || string.IsNullOrWhiteSpace(SelectedRecord.Notas) : true)">
                         </SfButton>
                     @if (isBusy)
                     {

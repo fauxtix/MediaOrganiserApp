@@ -1,8 +1,8 @@
-# Web API prompt templates (Ollama / OpenAI)
+## Web API prompt templates (Ollama / OpenAI)
 
 This folder contains **prompt templates** used by `MediaOrganizerApp.WebApi` AI fallback services.
 
-## Why templates (not hard-coded strings)
+### Why templates (not hard-coded strings)
 
 - Prompts need frequent iteration (format strictness, hallucination reduction, language rules).
 - Keeping them as files makes changes reviewable and easier to maintain.
@@ -11,12 +11,12 @@ This folder contains **prompt templates** used by `MediaOrganizerApp.WebApi` AI 
   - injecting variables (e.g., `language`, `title`, `author`)
   - enforcing timeouts / parsing / validation
 
-## How templates are loaded
+### How templates are loaded
 
 - Templates are loaded at runtime by a server-side provider and treated as **content files**.
 - They must be deployed alongside the Web API.
 
-## Template format
+### Template format
 
 - Templates are plain UTF-8 text files.
 - Use placeholders in `{braces}`.

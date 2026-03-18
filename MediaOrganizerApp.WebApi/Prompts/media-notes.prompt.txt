@@ -12,6 +12,7 @@ Rules:
 - If unsure about the match: lower confidence, add a brief warning in 'warnings' (<= 200 chars), and keep notes generic.
 - Do not invent specific awards, dates, record labels, publishers, track lists, cast, or plot specifics unless confident.
 - Provide a confidence score between 0.0 and 1.0.
+- IMPORTANT: Always return a complete, valid JSON object with all braces and fields. Never omit the closing brace. If you cannot find information, use empty strings or zero for fields, but always return valid JSON.
 
 INPUT (must match exactly):
 Language: {language}

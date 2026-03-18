@@ -50,13 +50,13 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
         });
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
-        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, artist, title, connectionId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
         return result;
     }
 
-    private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
+private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string artist, string title, string? connectionId, CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
@@ -110,6 +110,19 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
+                // Validate notes: must mention artist and title, and confidence should be reasonable
+                bool notesValid = !string.IsNullOrWhiteSpace(parsed.Notes)
+                    && parsed.Notes.IndexOf(parsed.Artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                    && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool confidenceLow = parsed.Confidence < 0.5;
+                if (notesValid && !confidenceLow)
+                {
+                    parsed.Warnings = string.Empty;
+                }
+                else
+                {
+                    parsed.Warnings = $"AI notes may not be accurate for '{parsed.Artist}' - '{parsed.Title}'.";
+                }
                 if (!string.IsNullOrWhiteSpace(connectionId))
                 {
                     LogProgress("Done!");
@@ -126,6 +139,19 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
                 parsed = TryParseJsonContract(extractedJson);
                 if (parsed is not null)
                 {
+                    // Validate notes: must mention artist and title, and confidence should be reasonable
+                    bool notesValid = !string.IsNullOrWhiteSpace(parsed.Notes)
+                        && parsed.Notes.IndexOf(parsed.Artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool confidenceLow = parsed.Confidence < 0.5;
+                    if (notesValid && !confidenceLow)
+                    {
+                        parsed.Warnings = string.Empty;
+                    }
+                    else
+                    {
+                        parsed.Warnings = $"AI notes may not be accurate for '{parsed.Artist}' - '{parsed.Title}'.";
+                    }
                     if (!string.IsNullOrWhiteSpace(connectionId))
                     {
                         LogProgress("Done!");
@@ -140,12 +166,33 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
                 LogProgress("Done!");
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
             }
-            return new AiMediaNotesResponseDto
+            // Attempt to recover 'notes' from malformed JSON
+            string notes = string.Empty;
+            var notesMatch = System.Text.RegularExpressions.Regex.Match(text, "\"notes\"\\s*:\\s*\"(.*?)\"");
+            if (notesMatch.Success)
             {
-                Notes = string.Empty,
-                Confidence = 0,
-                Warnings = $"LLM output was not valid JSON. Raw: {text.Trim()}"
-            };
+                notes = notesMatch.Groups[1].Value;
+                _logger.LogInformation($"Recovered notes from malformed JSON: {notes}");
+                bool notesValidMalformed = !string.IsNullOrWhiteSpace(notes)
+                    && notes.IndexOf(artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                    && notes.IndexOf(title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                return new AiMediaNotesResponseDto
+                {
+                    Notes = notes,
+                    Confidence = 0,
+                    Warnings = notesValidMalformed ? string.Empty : $"AI notes may not be accurate for '{artist}' - '{title}'."
+                };
+            }
+            else
+            {
+                _logger.LogWarning($"Could not recover notes from AI response: {text}");
+                return new AiMediaNotesResponseDto
+                {
+                    Notes = string.Empty,
+                    Confidence = 0,
+                    Warnings = "AI response could not be parsed. No notes available."
+                };
+            }
         }
         catch (Exception ex)
         {

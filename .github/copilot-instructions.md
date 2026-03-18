@@ -7,5 +7,8 @@
 - AI fallback for metadata (e.g., author profiles) should run only when external API lookup fails.
 - Always run a build after any code change.
 
+## Service Registration Guidelines
+- When registering new services that depend on HttpClient, always use `AddHttpClient` in the `AddServicesInfrastructure` method (ServiceRegistration.cs) and never register directly in `Program.cs`. Follow the pattern of other services in the project to avoid duplication and lifecycle issues.
+
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
