@@ -16,7 +16,6 @@ public interface IAiMediaMetadataService
     Task<string?> GetMediaEditionYearAsync(
         string artist,
         string title,
-        string mediaType,
         string language,
         string? connectionId,
         CancellationToken cancellationToken);

@@ -74,7 +74,19 @@
 @code {
     List<string> PromptFiles = new();
     string SelectedPromptFile;
-    string EditorContent;
+    private string _editorContent;
+    public string EditorContent
+    {
+        get => _editorContent;
+        set
+        {
+            if (_editorContent != value)
+            {
+                _editorContent = value;
+                Logger.LogInformation("EditorContent updated: {Content}", _editorContent);
+            }
+        }
+    }
     string ReadmeMd;
     protected SfToast ToastObj;
     protected string ToastTitle = "Prompt Editor";
@@ -140,6 +152,8 @@
     {
         try
         {
+            Logger.LogInformation("OnSave triggered. EditorContent: {Content}", EditorContent);
+
             if (!string.IsNullOrEmpty(SelectedPromptFile))
             {
                 await PromptService.SavePromptFileAsync(SelectedPromptFile, EditorContent);

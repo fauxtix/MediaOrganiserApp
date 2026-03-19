@@ -7,6 +7,7 @@ Rules:
 - notes: plain-text liner notes / awards / key highlights, 300-800 characters.
   - For albums: mention genre/style; mention tracks only if confident.
   - For movies/films: mention major awards/nominations only if confident.
+  - For LPs, CDs, or DVDs: ensure the response pertains to these formats and not songs.
 - Do NOT write instructional/meta text in notes.
 - Do not include HTML.
 - If unsure about the match: lower confidence, add a brief warning in 'warnings' (<= 200 chars), and keep notes generic.

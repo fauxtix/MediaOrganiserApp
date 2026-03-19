@@ -19,7 +19,17 @@ public sealed class AiController : ControllerBase
     private readonly IAiBookSummaryService _books;
     private readonly IAiMediaNotesService _media;
     private readonly IAiMediaMetadataService _mediaMetadata;
-    private readonly ILogger _logger;
+    private readonly ILogger<AiController> _logger;
+
+
+    public AiController(IAiAuthorProfileService ai, IAiBookSummaryService books, IAiMediaNotesService media, IAiMediaMetadataService mediaMetadata, ILogger<AiController> logger)
+    {
+        _ai = ai;
+        _books = books;
+        _media = media;
+        _mediaMetadata = mediaMetadata;
+        _logger = logger;
+    }
 
     /// <summary>
     /// Lista todos os arquivos .txt e .md da pasta Prompts.
@@ -67,28 +77,31 @@ public sealed class AiController : ControllerBase
     }
 
 
-    public AiController(IAiAuthorProfileService ai, IAiBookSummaryService books, IAiMediaNotesService media, IAiMediaMetadataService mediaMetadata)
-    {
-        _ai = ai;
-        _books = books;
-        _media = media;
-        _mediaMetadata = mediaMetadata;
-    }
-
     /// <summary>
     /// Salva o conteúdo de um arquivo de prompt (.txt ou .md) na pasta Prompts.
     /// </summary>
     [HttpPut("prompts/{filename}")]
     public IActionResult SavePromptFile(string filename, [FromBody] string content)
     {
-        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(content))
-            return BadRequest("Filename and content are required.");
-        var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
-        if (!Directory.Exists(promptsDir))
-            Directory.CreateDirectory(promptsDir);
-        var filePath = Path.Combine(promptsDir, filename);
-        System.IO.File.WriteAllText(filePath, content);
-        return Ok();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(content))
+                return BadRequest("Filename and content are required.");
+            var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+            if (!Directory.Exists(promptsDir))
+                Directory.CreateDirectory(promptsDir);
+            var filePath = Path.Combine(promptsDir, filename);
+            System.IO.File.WriteAllText(filePath, content);
+            _logger.LogInformation("Saving file: {FileName} with content length: {ContentLength}", filename, content.Length);
+            _logger.LogInformation("File path: {FilePath}", filePath);
+            return Ok();
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving file: {FileName}", filename);
+            return BadRequest("Error saving file.");
+        }
     }
 
     /// <summary>
@@ -175,7 +188,7 @@ public sealed class AiController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating media notes for '{Artist}' - '{Title}'", request.Artist, request.Title); 
+            _logger.LogError(ex, "Error generating media notes for '{Artist}' - '{Title}'", request.Artist, request.Title);
             return BadRequest("Error generating media notes.");
         }
     }
@@ -221,7 +234,6 @@ public sealed class AiController : ControllerBase
         var year = await _mediaMetadata.GetMediaEditionYearAsync(
             request.Artist,
             request.Title,
-            request.MediaType,
             language,
             request.ConnectionId,
             cancellationToken);

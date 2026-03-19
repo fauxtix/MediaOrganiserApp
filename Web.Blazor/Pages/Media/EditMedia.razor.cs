@@ -69,7 +69,6 @@ namespace Web.Blazor.Pages.Media
         SfCheckBox<bool> chkVisualizado;
 
         protected string ext { get; set; }
-        protected string mediaType { get; set; }
 
         private IEnumerable<FormatoMediaVM> formatList;
         private IEnumerable<CategoryVM> categoryList;
@@ -117,7 +116,6 @@ namespace Web.Blazor.Pages.Media
                 ext = fi.Extension.ToLower();
                 isMp3 = (ext == ".mp3");
                 isMp4 = (ext == ".mp4");
-                mediaType = isMp3 ? "MP3" : isMp4 ? "MP4" : "";
 
                 if (!string.IsNullOrEmpty(SelectedRecord.Tempo) && isMp3)
                 {
@@ -184,13 +182,11 @@ namespace Web.Blazor.Pages.Media
                     ext = "";
                     isMp3 = false;
                     isMp4 = false;
-                    mediaType = ""; // mediaFormat;
                 }
                 else
                 {
                     ext = ".mp4";
                     isMp4 = true;
-                    mediaType = "MP4";
                 }
 
                 mediaFilename = SelectedRecord.FileUrl;
@@ -203,7 +199,6 @@ namespace Web.Blazor.Pages.Media
                     ext = "";
                     isMp3 = false;
                     isMp4 = false;
-                    mediaType = "Outro";
 
                 }
                 else if (mediaFormat.ToLower() == "cd" || mediaFormat.ToLower() == "lp")
@@ -211,14 +206,12 @@ namespace Web.Blazor.Pages.Media
                     ext = "";
                     isMp3 = false;
                     isMp4 = false;
-                    mediaType = mediaFormat;
                 }
                 else
                 {
                     ext = "";
                     isMp3 = false;
                     isMp4 = false;
-                    mediaType = "Outro";
                 }
             }
 
@@ -227,7 +220,7 @@ namespace Web.Blazor.Pages.Media
 
         protected async Task GetMediaInfo()
         {
-            var shouldAIBeUsed= SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
+            var shouldAIBeUsed = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
 
             await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
             ProgressClient.ProgressReceived -= OnProgressReceived;
@@ -303,7 +296,7 @@ namespace Web.Blazor.Pages.Media
                 }
 
                 // AI fallback for Notas
-                if (!notasFilled)
+                if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
                 {
                     var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
                     if (ai == null)
@@ -332,7 +325,6 @@ namespace Web.Blazor.Pages.Media
                     var year = await AiMediaClient.GetMediaEditionYearAsync(
                         artist,
                         mediaTitle,
-                        mediaType,
                         uiLanguage,
                         ProgressClient.ConnectionId,
                         mediaInfoCts.Token);
@@ -349,7 +341,8 @@ namespace Web.Blazor.Pages.Media
             {
                 Logger.LogError(ex, "Error fetching media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
             }
-            finally {
+            finally
+            {
                 if (spinner is not null)
                     await spinner.HideAsync();
                 isBusy = false;
@@ -684,5 +677,4 @@ namespace Web.Blazor.Pages.Media
             }
         }
     }
-
 }

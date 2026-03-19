@@ -7,7 +7,7 @@ namespace Web.Blazor.Services.ApiWrappers;
 
 public partial class AiMediaClientService
 {
-    public async Task<string?> GetMediaEditionYearAsync(string artist, string title, string mediaType = "", string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
+    public async Task<string?> GetMediaEditionYearAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -18,7 +18,6 @@ public partial class AiMediaClientService
                 {
                     Artist = artist,
                     Title = title,
-                    MediaType = mediaType,
                     Language = language,
                     ConnectionId = connectionId
                 },

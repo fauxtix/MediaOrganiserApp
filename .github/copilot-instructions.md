@@ -12,3 +12,6 @@
 
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
+
+## AI Metadata Rules
+- AI responses for "Notes" must always pertain to LPs, CDs, or DVDs and should never describe songs. Ensure that AI-generated content aligns with these formats.

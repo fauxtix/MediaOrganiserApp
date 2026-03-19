@@ -398,7 +398,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     public async Task<string?> GetMediaEditionYearAsync(
         string artist,
         string title,
-        string mediaType,
         string language,
         string? connectionId,
         CancellationToken cancellationToken)
@@ -410,8 +409,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         {
             ["language"] = language,
             ["artist"] = artist,
-            ["title"] = title,
-            ["mediaType"] = mediaType
+            ["title"] = title
         });
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/2: Sending prompt to AI model...", cancellationToken);

@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -54,8 +53,41 @@ namespace Web.Blazor.Components.Prompts
 
         public async Task SavePromptFileAsync(string fileName, string content)
         {
+            _logger.LogInformation("Sending PUT request to save file: {FileName} with content length: {ContentLength}", fileName, content.Length);
+            _logger.LogInformation("Request URI: {RequestUri}", $"{_Uri}/prompts/{fileName}");
+
+            // Save to runtime folder via HTTP PUT
             var response = await _http.PutAsJsonAsync($"{_Uri}/prompts/{fileName}", content);
-            response.EnsureSuccessStatusCode();
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("File saved to runtime folder successfully.");
+            }
+            else
+            {
+                _logger.LogError("Failed to save file to runtime folder. Status: {StatusCode}", response.StatusCode);
+                throw new Exception("Failed to save file to runtime folder.");
+            }
+
+            // Save to original source folder
+            try
+            {
+                var sourceFolderPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Prompts");
+                var sourceFilePath = Path.Combine(sourceFolderPath, fileName);
+
+                if (!Directory.Exists(sourceFolderPath))
+                {
+                    Directory.CreateDirectory(sourceFolderPath);
+                }
+
+                await File.WriteAllTextAsync(sourceFilePath, content);
+                _logger.LogInformation("File saved to original source folder: {SourceFilePath}", sourceFilePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save file to original source folder.");
+                throw;
+            }
         }
     }
 }
