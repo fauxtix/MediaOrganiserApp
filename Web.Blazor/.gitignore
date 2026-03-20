@@ -11,6 +11,10 @@
 *.sln.docstates
 *.pdf
 *.zip
+*.mp4
+*.mp3
+*.docx
+*.xlsx
 Backup/
 bin/
 obj/
