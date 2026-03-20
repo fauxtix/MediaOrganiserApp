@@ -234,7 +234,8 @@ else
                                 HideAtMedia="(min-width:  1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="200"></GridColumn>
 
-                    <GridColumn HeaderText="@(localizerApp["lblTipoUtilizador"])" Width="110" HideAtMedia="(min-width: 1280px)">
+                    <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="@(localizerApp["lblTipoUtilizador"])" 
+                        Width="110" HideAtMedia="(min-width: 1280px)">
                         <Template>
                             <SfChip>
                                 <ChipItems>

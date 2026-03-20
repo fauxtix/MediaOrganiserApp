@@ -19,6 +19,7 @@ Rules:
 - notes: plain text, 300-800 characters; awards/highlights only if confident.
 - notes must be generic and must NOT include specific names/dates/credits unless they were present in the INPUT.
 - If unsure about the match: lower confidence and put a brief warning in 'warnings' (<= 200 chars). Keep content generic.
+- If you find that the title is in Portuguese and you don't have any match, try to translate the title in English, and retry. If evenough no match, write your conclusion in the the Warnings.
 - Provide a confidence score between 0.0 and 1.0.
 
 INPUT (must match exactly):
