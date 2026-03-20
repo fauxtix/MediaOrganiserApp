@@ -1155,4 +1155,16 @@
   <data name="NoNotesFound" xml:space="preserve">
     <value>No Notes were found when using the Ollama LLM</value>
   </data>
+  <data name="TituloSelecionar" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="TituloConfirmar" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="TituloSelecionarArquivo" xml:space="preserve">
+    <value>Select file</value>
+  </data>
+  <data name="TituloCriadoEm" xml:space="preserve">
+    <value>Date created</value>
+  </data>
 </root>

@@ -1153,4 +1153,16 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="NoNotesFound" xml:space="preserve">
     <value>No se han encontrado Notas al utilizar el LLM Ollama</value>
   </data>
+  <data name="TituloSelecionar" xml:space="preserve">
+    <value>Seleccionar</value>
+  </data>
+  <data name="TituloConfirmar" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="TituloSelecionarArquivo" xml:space="preserve">
+    <value>Seleccionar archivo</value>
+  </data>
+  <data name="TituloCriadoEm" xml:space="preserve">
+    <value>Fecha de creación</value>
+  </data>
 </root>

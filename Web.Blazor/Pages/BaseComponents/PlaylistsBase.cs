@@ -1,16 +1,12 @@
-﻿using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
-using MediaOrganizerApp.Application.DTOs;
+﻿using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Enums;
-using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.Domain.Enums;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
-using Syncfusion.EJ2.TreeMap;
 using Web.Blazor.Services.ApiWrappers;
 
 namespace Web.Blazor.Pages.BaseComponents

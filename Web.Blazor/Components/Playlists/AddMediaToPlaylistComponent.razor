@@ -73,17 +73,16 @@
             <div class="d-flex" style="gap:8px; justify-content:flex-end;">
                 <SfButton CssClass="e-btn e-outline e-round-corner"
                           IconCss="fa fa-times"
-                          Disabled="@_isBusy"
+                          Disabled="@_isBusy" Content="@localizerApp["btnCancelar"]"
                           @onclick="CancelAsync">
-                    Cancel
                 </SfButton>
 
                 <SfButton CssClass="e-btn e-primary e-round-corner"
                           IconCss="fa fa-check"
                           IsPrimary="true"
                           Disabled="@(_isBusy || !CanConfirm())"
+                          Content="@localizerApp["TituloConfirmar"]"
                           @onclick="ConfirmAsync">
-                    Confirm
                 </SfButton>
             </div>
         </FooterTemplate>

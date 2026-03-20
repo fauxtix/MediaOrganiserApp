@@ -26,8 +26,8 @@ else
     <div class="button-container my-2">
         <SfButton CssClass="e-btn e-success e-round-corner"
                   IconCss="fa fa-plus" IsPrimary="true"
+                  Content="@localizerApp["NewMsg"]"
                   @onclick="BeginCreatePlaylist">
-            &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
         </SfButton>
     </div>
 
@@ -58,17 +58,17 @@ else
                             Width="80"></GridColumn>
 
                 <GridColumn Field=@nameof(PlaylistDto.Name)
-                            HeaderText="Nome"
+                            HeaderText="@localizerApp["lblNomeAutor"]"
                             TextAlign="TextAlign.Left"
                             Width="250"></GridColumn>
 
                 <GridColumn Field=@nameof(PlaylistDto.Description)
-                            HeaderText="Descrição"
+                            HeaderText="@localizerApp["lblNomeEditora"]"
                             ClipMode="ClipMode.EllipsisWithTooltip"
                             TextAlign="TextAlign.Left"
                             Width="300"></GridColumn>
                 <GridColumn Field=@nameof(PlaylistDto.MediaType)
-                            HeaderText="Tipo"
+                            HeaderText="@localizerApp["lblTipoUtilizador"]"
                             ClipMode="ClipMode.EllipsisWithTooltip"
                             TextAlign="TextAlign.Left"
                             Width="100">
@@ -100,12 +100,12 @@ else
                 </GridColumn>
 
                 <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
-                            HeaderText="Criada em"
+                            HeaderText="@localizerApp["TituloCriadoEm"]"
                             Format="dd/MM/yyyy"
                             TextAlign="TextAlign.Center"
                             Width="160"></GridColumn>
 
-                <GridColumn HeaderText="Ações"
+                <GridColumn HeaderText=""
                             AllowFiltering="false"
                             AllowSorting="false"
                             TextAlign="TextAlign.Center"
@@ -114,36 +114,36 @@ else
                         <GridCommandColumn Type="CommandButtonType.Edit"
                                            Title="@localizerApp["EditMsg"]"
                                            ButtonOption="@(new CommandButtonOptions()
-                                           {
-                                               Content = "",
-                                               CssClass = "e-btn e-primary e-round",
-                                               IconCss = "fa fa-edit"
-                                           })">
-                    </GridCommandColumn>
-                    <GridCommandColumn Type="CommandButtonType.Delete"
-                                       Title="@localizerApp["DeleteMsg"]"
-                                       ButtonOption="@(new CommandButtonOptions()
-                                       {
-                                           Content = "",
-                                           CssClass = "e-btn e-danger e-round",
-                                           IconCss = "fa fa-trash"
-                                       })">
-                    </GridCommandColumn>
-                    <GridCommandColumn Type="CommandButtonType.None"
-                                       Title="@localizerApp["PlayMp3"]"
-                                       ButtonOption="@(new CommandButtonOptions()
-                                       {
-                                           Content = "",
-                                           CssClass = "e-btn e-info e-round",
-                                           IconCss = "fa fa-play"
-                                       })">
-                    </GridCommandColumn>
-                </GridCommandColumns>
-            </GridColumn>
-        </GridColumns>
-        <GridTemplates>
-            <DetailTemplate Context="playlistObj">
-                @{
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-primary e-round",
+                                                                           IconCss = "fa fa-edit"
+                                                                       })">
+                        </GridCommandColumn>
+                        <GridCommandColumn Type="CommandButtonType.Delete"
+                                           Title="@localizerApp["DeleteMsg"]"
+                                           ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-danger e-round",
+                                                                           IconCss = "fa fa-trash"
+                                                                       })">
+                        </GridCommandColumn>
+                        <GridCommandColumn Type="CommandButtonType.None"
+                                           Title="@localizerApp["PlayMp3"]"
+                                           ButtonOption="@(new CommandButtonOptions()
+                                                                       {
+                                                                           Content = "",
+                                                                           CssClass = "e-btn e-info e-round",
+                                                                           IconCss = "fa fa-play"
+                                                                       })">
+                        </GridCommandColumn>
+                    </GridCommandColumns>
+                </GridColumn>
+            </GridColumns>
+            <GridTemplates>
+                <DetailTemplate Context="playlistObj">
+                    @{
                         var playlist = playlistObj as PlaylistDto;
                         if (playlist is null) return;
 
@@ -161,10 +161,9 @@ else
                         <h5>Itens da Playlist</h5>
                         <hr />
                         <div class="button-container my-2">
-                            <SfButton CssClass="e-btn e-primary e-outline e-round-corner"
-                                      IconCss="fa fa-plus"
+                            <SfButton CssClass="e-btn e-success e-round-corner"
+                                      IconCss="fa fa-plus" Content="@localizerApp["NewMsg"]"
                                       @onclick="() => OpenAddItemDialog(playlistId)">
-                                &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
                             </SfButton>
                         </div>
 
@@ -202,9 +201,9 @@ else
                                     <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple">
                                     </GridSelectionSettings>
                                     <GridEvents CommandClicked="OnDetailDeleteCommandClicked"
-                                                TValue="PlaylistItemDto" 
-                                                RowDragStarting="RowDragStartingHandler" 
-                                                RowDropping="RowDroppingHandler" 
+                                                TValue="PlaylistItemDto"
+                                                RowDragStarting="RowDragStartingHandler"
+                                                RowDropping="RowDroppingHandler"
                                                 RowDropped="RowDroppedHandler" />
                                     <GridColumns>
                                         <GridColumn Field=@nameof(PlaylistItemDto.Id)
@@ -212,11 +211,11 @@ else
                                                     Width="10" />
                                         <GridColumn Field=@nameof(PlaylistItemDto.Title)
                                                     HeaderText="@localizerApp["lblTitulo"]"
-                                                    Width="250" />
+                                                    Width="350" />
                                         <GridColumn Field=@nameof(PlaylistItemDto.Author)
                                                     HeaderText="@localizerApp["lblAutor"]"
                                                     Width="200" />
-                                        <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
+                                        @*                                         <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
                                                     HeaderText="@localizerApp["TipoFicheiro"]"
                                                     Width="200">
                                             <Template>
@@ -246,30 +245,31 @@ else
                                                 </SfChip>
                                             </Template>
                                         </GridColumn>
+ *@        
                                         <GridColumn Field=@nameof(PlaylistItemDto.TrackTime)
                                                     HeaderText="@localizerApp["TrackTime"]"
-                                                    Width="100" />
-                                        <GridColumn HeaderText="Ações"
+                                                    Width="140" />
+                                        <GridColumn HeaderText=""
                                                     AllowFiltering="false"
                                                     AllowSorting="false"
                                                     TextAlign="TextAlign.Center"
                                                     Width="120">
                                             <GridCommandColumns>
                                                 <GridCommandColumn Type="CommandButtonType.Delete"
-                                                                   Title="Apagar"
+                                                                   Title=""
                                                                    ButtonOption="@(new CommandButtonOptions()
-                                                                   {
-                                                                       Content = "",
-                                                                       CssClass = "e-btn e-danger e-round",
-                                                                       IconCss = "fa fa-trash"
-                                                                   })">
-                                        </GridCommandColumn>
-                                    </GridCommandColumns>
-                                </GridColumn>
-                            </GridColumns>
-                        </SfGrid>
-                    </div>
-                                        }
+                                                                                                                       {
+                                                                                                                           Content = "",
+                                                                                                                           CssClass = "e-btn e-danger e-round",
+                                                                                                                           IconCss = "fa fa-trash"
+                                                                                                                       })">
+                                                </GridCommandColumn>
+                                            </GridCommandColumns>
+                                        </GridColumn>
+                                    </GridColumns>
+                                </SfGrid>
+                            </div>
+                        }
                     </div>
                 </DetailTemplate>
             </GridTemplates>
@@ -307,7 +307,7 @@ else
             <div>
                 <h3>
                     <img src="/images/media-documents-icon.png" width="32" height="32" />
-                    &nbsp;@(IsEditMode? localizerApp["EditMsg"] + " '" + EditModel.Name + "'" : localizerApp["NewMsg"] + " " + localizerApp["Record"])
+                    &nbsp;@(IsEditMode? localizerApp["EditMsg"] + " '" + EditModel.Name + "'" : localizerApp["NewMsg"])
                 </h3>
             </div>
         </Header>
@@ -320,12 +320,12 @@ else
                 <label>Tipo de Média</label>
                 <div class="radio-button-container">
                     <SfRadioButton TValue="int" CssClass="e-info"
-                                   Label="Vídeo"
+                                   Label="Video"
                                    Value="1"
                                    Name="mediaType"
                                    @bind-Checked="EditModel.MediaType" />
                     <SfRadioButton TValue="int" CssClass="e-info"
-                                   Label="Áudio"
+                                   Label="Audio"
                                    Value="2"
                                    Name="mediaType"
                                    @bind-Checked="EditModel.MediaType" />
@@ -333,7 +333,7 @@ else
             </div>
 
             <div class="form-group">
-                <label>Descrição</label>
+                <label>@localizerApp["rbtDescricao"]</label>
                 <InputTextArea class="form-control" @bind-Value="EditModel.Description" rows="3" />
             </div>
         </Content>
@@ -403,14 +403,14 @@ else
           IsModal="true" ShowCloseIcon="true">
     <DialogTemplates>
         <Header>
-            <h3>Selecionar Arquivo</h3>
+            <h3>@localizerApp["TituloSelecionarArquivo"]</h3>
         </Header>
         <Content>
             @{
                 if (DialogItems is null)
                 {
                     <div class="p-3">
-                        <span>Carregando...</span>
+                        <span>@localizerApp["LoadingMsg"]...</span>
                     </div>
                 }
             }
@@ -420,7 +420,10 @@ else
                            OnFileSelected="HandleFilesSelected" />
         </Content>
         <FooterTemplate>
-            <SfButton CssClass="e-danger" @onclick="CloseAddItemDialog">Cancelar</SfButton>
+            <SfButton IconCss="fa fa-times"
+                      CssClass="e-danger e-outline e-round-corner"
+                      Content="@localizerApp["btnCancelar"]"
+                      @onclick="CloseAddItemDialog" />
         </FooterTemplate>
     </DialogTemplates>
 </SfDialog>
