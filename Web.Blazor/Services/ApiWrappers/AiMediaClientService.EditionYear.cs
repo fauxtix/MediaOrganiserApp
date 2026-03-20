@@ -27,8 +27,8 @@ public partial class AiMediaClientService
                 return null;
 
             var year = await resp.Content.ReadAsStringAsync(cancellationToken);
-            // Expecting year as plain string (e.g., "1999") or "N/A"
-            return string.IsNullOrWhiteSpace(year) || year == "N/A" ? null : year.Trim();
+            var responseString = string.IsNullOrWhiteSpace(year) ? null : year.Trim();
+            return responseString;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

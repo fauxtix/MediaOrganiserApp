@@ -14,6 +14,7 @@ using System;
 using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.Common;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
+using MediaOrganizerApp.Application.Formatting;
 
 namespace Web.Blazor.Pages.Media
 {
@@ -328,6 +329,19 @@ namespace Web.Blazor.Pages.Media
                         uiLanguage,
                         ProgressClient.ConnectionId,
                         mediaInfoCts.Token);
+
+                    if(!string.IsNullOrWhiteSpace(year) && year == "N/A")
+                    {
+                        showAlertMessage = true;
+                        alertMessage = "No available Edition year returned from the API";
+                        return;
+                    }
+                    if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
+                    {
+                        showAlertMessage = true;
+                        alertMessage = $"The Edition year returned from the API is not valid {year}";
+                        return;
+                    }
                     if (!string.IsNullOrWhiteSpace(year))
                         SelectedRecord.AnoEdicao = year;
                 }

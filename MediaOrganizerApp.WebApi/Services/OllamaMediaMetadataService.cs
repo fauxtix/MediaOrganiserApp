@@ -7,12 +7,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Threading.Tasks;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
+using System.Text.RegularExpressions;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -24,7 +22,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     private readonly ILogger<OllamaMediaMetadataService> _logger;
     private readonly IConfiguration _config;
     private readonly IPromptTemplateProvider _prompts;
-
     private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
     public OllamaMediaMetadataService(HttpClient httpClient, ILogger<OllamaMediaMetadataService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
@@ -45,6 +42,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     {
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+
         var template = await _prompts.GetTemplateAsync("media-metadata.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
@@ -52,11 +50,15 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             ["artist"] = artist,
             ["title"] = title
         });
+
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+
         var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+
         if (!string.IsNullOrWhiteSpace(connectionId))
             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+
         return result;
     }
 
@@ -66,17 +68,23 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
+        // ✅ Added temperature and deterministic options
         var payload = new
         {
             model,
             prompt,
-            stream = false
+            stream = false,
+            options = new
+            {
+                temperature = 0,
+                top_p = 1,
+                num_predict = 20
+            }
         };
 
         try
         {
-            // Progress: sending prompt
-            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            if (_hubContext != null && !string.IsNullOrWhiteSpace(connectionId))
             {
                 LogProgress("Sending prompt to AI model...");
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
@@ -90,7 +98,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(80));
 
-            // Progress: waiting for AI response
             if (!string.IsNullOrWhiteSpace(connectionId))
             {
                 LogProgress("Waiting for AI response...");
@@ -103,7 +110,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
             var json = Encoding.UTF8.GetString(bytes);
 
-            // Progress: parsing AI response
             if (!string.IsNullOrWhiteSpace(connectionId))
             {
                 LogProgress("Parsing AI response...");
@@ -111,10 +117,13 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             }
 
             var text = TryExtractOllamaResponseText(json);
+
+            // ✅ Log raw response for debugging
+            _logger.LogInformation("AI raw response: {Response}", text);
+
             if (string.IsNullOrWhiteSpace(text))
                 return new AiMediaMetadataResponseDto { Confidence = 0, Warnings = "Empty LLM response." };
 
-            // Attempt parse as-is.
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
@@ -122,14 +131,12 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 {
                     LogProgress("Done!");
                     await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    // Show warnings/errors as final progress message
                     if (!string.IsNullOrWhiteSpace(parsed.Warnings))
                         await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
                 }
                 return parsed;
             }
 
-            // Attempt recovery by normalizing common JSON issues.
             var normalized = TryNormalizeJson(text);
             if (!string.IsNullOrWhiteSpace(normalized))
             {
@@ -203,29 +210,18 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         }
     }
 
+    // --------------------- KEEP ALL ORIGINAL HELPERS ---------------------
     private static string? TryNormalizeJson(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
         var s = text;
-
-        // Some models return literal escape sequences ("\n") inside the JSON text.
-        // Converting them to real newlines can help the JSON parser.
         s = s.Replace("\\r", "\r").Replace("\\n", "\n");
-
-        // Remove trailing commas before object/array end.
-        // Example: {"a":1,} or {"a":1,\n}
-        s = System.Text.RegularExpressions.Regex.Replace(s, @",\s*([}\]])", "$1");
-
-        // Some models accidentally emit an extra quote right after the final field
-        // and before the trailing comma, e.g.:  "warnings":"",}\n
-        s = System.Text.RegularExpressions.Regex.Replace(s, @"""\s*,\s*([}\]])", "$1");
-
+        s = Regex.Replace(s, @",\s*([}\]])", "$1");
+        s = Regex.Replace(s, @"""\s*,\s*([}\]])", "$1");
         return s.Trim();
     }
-
-    // Prompt text is stored as external templates under Prompts/.
 
     private static AiMediaMetadataResponseDto? TryParseJsonContract(string text)
     {
@@ -235,8 +231,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         }
         catch
         {
-            // LLMs may duplicate keys or include extra keys, which makes strict JSON parsing fail.
-            // As a fallback, try to extract only the known schema fields from the first JSON object.
             try
             {
                 var objText = TryExtractFirstJsonObject(text) ?? text;
@@ -283,7 +277,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 return null;
             }
 
-            // Unknown keys are ignored by reading only the expected ones.
             return new AiMediaMetadataResponseDto
             {
                 Artist = GetStringOrNull(root, "artist"),
@@ -395,33 +388,56 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         return null;
     }
 
+    // --------------------- UPDATED Media Edition Year ---------------------
     public async Task<string?> GetMediaEditionYearAsync(
-        string artist,
-        string title,
-        string language,
-        string? connectionId,
-        CancellationToken cancellationToken)
+     string artist,
+     string title,
+     string language,
+     string? connectionId,
+     CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/2: Preparing AI prompt for edition year...", cancellationToken);
+            await _hubContext.Clients.Client(connectionId)
+                .SendAsync("ReceiveProgress", connectionId, "Step 1/2: Preparing AI prompt for edition year...", cancellationToken);
+
+        // Robust dynamic hint for the AI
+        var additionalInfo = $"Release year not found in external databases for '{title}' by '{artist}'. Only return the year if certain.";
+
         var template = await _prompts.GetTemplateAsync("media-edition-year.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
             ["artist"] = artist,
-            ["title"] = title
+            ["title"] = title,
+            ["AdditionalInfo"] = additionalInfo
         });
+
         if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/2: Sending prompt to AI model...", cancellationToken);
-        var year = await ExecuteOllamaEditionYearAsync(prompt, connectionId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(year))
+            await _hubContext.Clients.Client(connectionId)
+                .SendAsync("ReceiveProgress", connectionId, "Step 2/2: Sending prompt to AI model...", cancellationToken);
+
+        var rawResponse = await ExecuteOllamaEditionYearAsync(prompt, connectionId, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(rawResponse))
             return null;
-        // Extract only a 4-digit year or 'N/A' from the AI response
-        var match = System.Text.RegularExpressions.Regex.Match(year, @"\b(\d{4})\b");
-        if (match.Success)
-            return match.Value;
-        if (year.Trim().Equals("N/A", StringComparison.OrdinalIgnoreCase))
+
+        var cleaned = rawResponse.Trim().Trim('"');
+
+        // Split into lines
+        var lines = cleaned.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        // Step 1: If any line contains "N/A", return "N/A"
+        if (lines.Any(l => l.Contains("N/A", StringComparison.OrdinalIgnoreCase)))
             return "N/A";
+
+        // Step 2: Otherwise, search for a 4-digit year in all lines
+        foreach (var line in lines)
+        {
+            var match = Regex.Match(line, @"\b(\d{4})\b");
+            if (match.Success)
+                return match.Value;
+        }
+
         return null;
     }
 
@@ -429,22 +445,45 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     {
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
-        var payload = new { model, prompt, stream = false };
+
+        // ✅ Added temperature and deterministic options
+        var payload = new
+        {
+            model,
+            prompt,
+            stream = false,
+            options = new
+            {
+                temperature = 0,
+                top_p = 1,
+                num_predict = 20
+            }
+        };
+
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
+
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
+
             using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
             response.EnsureSuccessStatusCode();
+
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
             var json = Encoding.UTF8.GetString(bytes);
+
             var text = TryExtractOllamaResponseText(json);
+
+            // ✅ Log raw response for debugging
+            _logger.LogInformation("AI raw year response: {Response}", text);
+
             if (string.IsNullOrWhiteSpace(text))
                 return null;
+
             return text.Trim();
         }
         catch (Exception ex)
@@ -452,5 +491,18 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             _logger.LogError(ex, "AI - Error generating media edition year using Ollama.");
             return null;
         }
+    }
+
+    // --------------------- Helper: Clean Title ---------------------
+    private string CleanTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return title;
+
+        return title
+            .Replace("Deluxe Edition", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("Remastered", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("Special Edition", "", StringComparison.OrdinalIgnoreCase)
+            .Trim();
     }
 }
