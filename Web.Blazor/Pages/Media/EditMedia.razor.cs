@@ -333,7 +333,7 @@ namespace Web.Blazor.Pages.Media
                     if(!string.IsNullOrWhiteSpace(year) && year == "N/A")
                     {
                         showAlertMessage = true;
-                        alertMessage = "No available Edition year returned from the API";
+                        alertMessage = "No available Edition year returned from external API/AI; try to find it in other sources.";
                         return;
                     }
                     if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
@@ -341,6 +341,7 @@ namespace Web.Blazor.Pages.Media
                         showAlertMessage = true;
                         alertMessage = $"The Edition year returned from the API is not valid {year}";
                         return;
+
                     }
                     if (!string.IsNullOrWhiteSpace(year))
                         SelectedRecord.AnoEdicao = year;
