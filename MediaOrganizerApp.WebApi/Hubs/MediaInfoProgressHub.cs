@@ -7,7 +7,6 @@ namespace MediaOrganizerApp.WebApi.Hubs;
 [AllowAnonymous]
 public class MediaInfoProgressHub : Hub
 {
-    // Client method: ReceiveProgress(string connectionId, string message)
     public async Task SendProgress(string connectionId, string message)
     {
         await Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, message);

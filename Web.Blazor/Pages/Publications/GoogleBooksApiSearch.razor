@@ -1,4 +1,4 @@
-﻿@using MediaOrganizerApp.Application.Formatting
+﻿﻿@using MediaOrganizerApp.Application.Formatting
 @using MediaOrganizerApp.Application.Interfaces.Services
 @using Microsoft.Extensions.Localization
 @using Microsoft.Extensions.Logging
@@ -52,7 +52,7 @@
                     Message="@alertMessage"
                     AlertMessageType="AlertMessageType.Info"
                     XPosition="right"
-                    YPosition="bottom"
+                    YPosition="top"
                     OnCloseDialog="CloseDialog"
                     DialogWidth="400"
                     ShowRightSideIcon="false"
@@ -229,11 +229,24 @@
                 var booksPages = new List<string>();
                 var booksItems = bookInfo.items;
 
+                string textSnippet = "";
+                foreach (var bookSearchInfoitem in booksItems)
+                {
+                    if (bookSearchInfoitem.searchInfo is not null)
+                    {
+                        if (!string.IsNullOrEmpty(bookSearchInfoitem.searchInfo.textSnippet))
+                        {
+                            textSnippet = bookSearchInfoitem.searchInfo.textSnippet;
+                            break;
+                        }
+                    }
+                }
+
                 foreach (var bookitem in booksItems.Select(v => v.volumeInfo))
                 {
                     if (bookitem is not null)
                     {
-                        var bookDesc = bookitem.description is not null ? bookitem.description : "";
+                        var bookDesc = bookitem.description is not null ? bookitem.description : !string.IsNullOrEmpty(textSnippet) ? textSnippet : "";
                         booksDescriptions.Add(bookDesc);
 
                         if (bookitem.authors is not null)
@@ -273,30 +286,37 @@
                 }
 
                 string englishAuthorName = "";
-                if (!string.IsNullOrEmpty(bookTitle))
-                {
-                    var titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == bookTitle.ToLower());
-                    if (string.IsNullOrEmpty(titleMatch))
-                    {
-                        englishAuthorName = await autoresService.TranslateWithMyMemoryAsync(bookTitle, "pt", "en");
-                        titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == englishAuthorName.ToLower());
-                        if (string.IsNullOrEmpty(titleMatch))
-                        {
-                            alertUser = true;
-                            StringBuilder sbTitles = new();
-                            foreach (var item in booksTitles)
-                            {
 
-                                sbTitles.AppendLine($"'{item}',");
-                            }
-                            var titlesFound = sbTitles.ToString().Trim();
-                            titlesFound = titlesFound.Remove(titlesFound.Length - 1);
-                            noteMessage = "No data returned. Below are the books found for the author";
-                            alertMessage = titlesFound;
-                            return;
-                        }
-                    }
-                }
+                // TODO revisit this code later. It was meant to handle the case where 
+                // user searches in Portuguese but Google Books only has English data, 
+                // but it ended up being more complex than expected and is currently disabled 
+                // to avoid breaking the main flow. 
+                // The AI fallback should mitigate most of the cases where this would be needed, so it's not a high priority.
+
+                // if (!string.IsNullOrEmpty(bookTitle))
+                // {
+                //     var titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == bookTitle.ToLower());
+                //     if (string.IsNullOrEmpty(titleMatch))
+                //     {
+                //         englishAuthorName = await autoresService.TranslateWithMyMemoryAsync(bookTitle, "pt", "en");
+                //         titleMatch = booksTitles?.FirstOrDefault(titleToCheck => titleToCheck.ToLower() == englishAuthorName.ToLower());
+                //         if (string.IsNullOrEmpty(titleMatch))
+                //         {
+                //             alertUser = true;
+                //             StringBuilder sbTitles = new();
+                //             foreach (var item in booksTitles)
+                //             {
+
+                //                 sbTitles.AppendLine($"'{item}',");
+                //             }
+                //             var titlesFound = sbTitles.ToString().Trim();
+                //             titlesFound = titlesFound.Remove(titlesFound.Length - 1);
+                //             noteMessage = "No data returned. Below are the books found for the author";
+                //             alertMessage = titlesFound;
+                //             return;
+                //         }
+                //     }
+                // }
 
                 string bookAuthor = "";
                 bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName);
@@ -377,7 +397,7 @@
                 }
                 else
                 {
-                    ApiRecord.ImagemCapa = "images/NoPhoto.png"; 
+                    ApiRecord.ImagemCapa = "images/NoPhoto.png";
                 }
 
                 if (authorId == 0)

@@ -122,6 +122,7 @@
 		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Application\MediaOrganizerApp.Application.csproj" />
 		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Domain\MediaOrganizerApp.Domain.csproj" />
 		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\MediaOrganizerApp.Persistence\MediaOrganizerApp.Persistence.csproj" />
+		<ProjectReference Include="..\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj" />
 		<ProjectReference Include="..\Web.Blazor.ReportObjects\Web.Blazor.Reporting.csproj" />
 	</ItemGroup>
 

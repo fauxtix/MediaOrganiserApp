@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using MediaOrganizerApp.WebApi.Hubs;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -18,13 +20,15 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     private readonly ILogger<OllamaBookSummaryService> _logger;
     private readonly IConfiguration _config;
     private readonly IPromptTemplateProvider _prompts;
+    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
-    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts)
+    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
     {
         _httpClient = httpClient;
         _logger = logger;
         _config = config;
         _prompts = prompts;
+        _hubContext = hubContext;
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
@@ -33,8 +37,18 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         string language,
         CancellationToken cancellationToken)
     {
-        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        return await GetBookSummaryAsync(title, author, language, null, cancellationToken);
+    }
+
+    public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
+        string title,
+        string? author,
+        string language,
+        string? connectionId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing book summary prompt...", cancellationToken);
 
         var template = await _prompts.GetTemplateAsync("book-summary-full.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -44,7 +58,15 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
-        return await ExecuteOllamaAsync(prompt, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+
+        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+
+        return result;
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
@@ -61,10 +83,11 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
-        return await ExecuteOllamaAsync(prompt, cancellationToken);
+        // Ensure cancellationToken is passed correctly
+        return await ExecuteOllamaAsync(prompt, null, cancellationToken);
     }
 
-    private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(string prompt, CancellationToken cancellationToken)
+    private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
@@ -84,20 +107,28 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             };
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("AI - Book summary request failed. Status={StatusCode}. Body={Body}", (int)response.StatusCode, errorBody);
+                return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = "Failed to generate book summary." };
+            }
 
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var json = Encoding.UTF8.GetString(bytes);
 
             var text = TryExtractOllamaResponseText(json);
             if (string.IsNullOrWhiteSpace(text))
+            {
+                _logger.LogWarning("AI - Empty response received from Ollama.");
                 return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = "Empty LLM response." };
+            }
 
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
                 return parsed;
 
-            // Attempt to recover when the model adds extra text around the JSON.
             var extractedJson = TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
@@ -106,12 +137,18 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                     return parsed;
             }
 
+            _logger.LogWarning("AI - LLM output was not valid JSON. Raw: {RawOutput}", text.Trim());
             return new AiBookSummaryResponseDto
             {
                 Summary = string.Empty,
                 Confidence = 0,
                 Notes = $"LLM output was not valid JSON. Raw: {text.Trim()}"
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("AI - Book summary request was canceled by the caller (timeout/user cancel). Prompt={Prompt}", prompt);
+            return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = "Request canceled." };
         }
         catch (Exception ex)
         {

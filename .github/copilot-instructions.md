@@ -5,10 +5,13 @@
 - User confirmed the proposed approach for adding an SfUploader-based cover image picker to EditMedia works.
 - User’s main pain point with external metadata APIs is low hit-rate (often can’t find authors), while LLM prompts usually return some response. User wants AI prompts (LLM) to replace some external metadata API calls, e.g., fetching author profiles via AI instead of Google Books/other APIs. 
 - AI fallback for metadata (e.g., author profiles) should run only when external API lookup fails.
-- Always run a build after any code change.
+- Always run a build after any code change to ensure correctness and functionality.
 
 ## Service Registration Guidelines
 - When registering new services that depend on HttpClient, always use `AddHttpClient` in the `AddServicesInfrastructure` method (ServiceRegistration.cs) and never register directly in `Program.cs`. Follow the pattern of other services in the project to avoid duplication and lifecycle issues.
+
+## SignalR Guidelines
+- Avoid modifying the UI for SignalR or Hubs-related operations. All SignalR-related work should be handled in the service layer, not the UI.
 
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
