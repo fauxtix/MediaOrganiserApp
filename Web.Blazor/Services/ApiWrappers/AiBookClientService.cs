@@ -1,8 +1,9 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.WebApi.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
+using System.Net;
 using System.Net.Http.Json;
-using MediaOrganizerApp.WebApi.Hubs;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
@@ -45,18 +46,36 @@ public sealed class AiBookClientService
         }
     }
 
-    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(string title, string? author, string language = "pt")
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(string title, string? author, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var resp = await _httpClient.PostAsJsonAsync(
-                $"{_uri}/book-summary-only",
-                new AiBookSummaryRequestDto { Title = title, Author = author, Language = language });
+            var endpoint = $"{_uri}/book-summary-only";
+
+            var requestDto = new AiBookSummaryRequestDto
+            {
+                Title = title,
+                Author = author,
+                Language = language,
+                ConnectionId = connectionId
+            };
+
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                   _httpClient,
+                   endpoint,
+                   requestDto,
+                   cancellationToken);
 
             if (!resp.IsSuccessStatusCode)
+            {
+                var errorBody = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("AI - Book summary request failed. Status={StatusCode}. Body={Body}", (int)resp.StatusCode, errorBody);
                 return null;
+            }
 
-            return await resp.Content.ReadFromJsonAsync<AiBookSummaryResponseDto>();
+            var aiResponse = await resp.Content.ReadFromJsonAsync<AiBookSummaryResponseDto>(cancellationToken);
+            return aiResponse;
+
         }
         catch (Exception ex)
         {

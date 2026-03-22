@@ -30,6 +30,9 @@ public sealed class AiBookSummaryResponseDto
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }
+    [JsonPropertyName("warnings")]
+    public string? Warnings { get; set; }
+
 
     [JsonPropertyName("notes")]
     public string? Notes { get; set; }

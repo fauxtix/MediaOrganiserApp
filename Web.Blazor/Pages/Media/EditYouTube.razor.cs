@@ -14,7 +14,6 @@ namespace Web.Blazor.Pages.Media
     public partial class EditYouTube
     {
         [Parameter, EditorRequired] public MediaVM SelectedRecord { get; set; }
-        [Parameter, EditorRequired] public int CurrentCategory { get; set; }
 
         [Inject] public ICategoriasService categoriasService { get; set; }
         [Inject] public IMediaServiceWrapper MediaService { get; set; }

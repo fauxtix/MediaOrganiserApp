@@ -1,12 +1,7 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
-using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
 
@@ -20,7 +15,6 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
     private readonly ILogger<OllamaMediaNotesService> _logger;
     private readonly IConfiguration _config;
     private readonly IPromptTemplateProvider _prompts;
-
     private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
     public OllamaMediaNotesService(HttpClient httpClient, ILogger<OllamaMediaNotesService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)

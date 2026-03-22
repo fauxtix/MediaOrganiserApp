@@ -173,7 +173,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-            var resp = await _books.GetBookSummaryOnlyAsync(request.Title, request.Author, language, cancellationToken);
+            var resp = await _books.GetBookSummaryOnlyAsync(request.Title, request.Author, language, request.ConnectionId, cancellationToken);
             return Ok(resp);
         }
 

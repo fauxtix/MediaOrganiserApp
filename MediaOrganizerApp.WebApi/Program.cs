@@ -122,8 +122,9 @@ builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>(
 
         app.MapControllers();
         app.MapHub<MediaInfoProgressHub>("/media-info-progress"); // Ensure using directive
-// Add at top if missing:
-// using MediaOrganizerApp.WebApi.Hubs;
+        app.MapHub<GoogleBooksProgressHub>("/books-info-progress"); // Ensure using directive
+                                                                  // Add at top if missing:
+                                                                  // using MediaOrganizerApp.WebApi.Hubs;
 
         app.Run();
     }

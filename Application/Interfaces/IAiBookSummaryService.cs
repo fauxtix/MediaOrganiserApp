@@ -1,3 +1,4 @@
+using MediaOrganizerApp.Application.DTOs;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,4 +17,11 @@ public interface IAiBookSummaryService
         string? author,
         string language,
         CancellationToken cancellationToken);
+
+    Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
+            string title,
+            string? author,
+            string language,
+            string? connectionId,
+             CancellationToken cancellationToken);
 }

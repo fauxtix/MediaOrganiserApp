@@ -80,15 +80,15 @@ else
                                        title="@SelectedRecord.Titulo">
                             </SfTextBox>
                         </div>
-                        @if (!blnEdit)
-                        {
+                        @* @if (!blnEdit)
+                        { *@
                             <div>
                                 <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
                                           IconCss="fa fa-search"
                                           Content="Google Books Api"
                                           @onclick="@(()=>SearchApiVisibility = true)" />
                             </div>
-                        }
+                        @* } *@
                     </div>
                     <div class="form-row mt-1">
                         <div class="col-4">

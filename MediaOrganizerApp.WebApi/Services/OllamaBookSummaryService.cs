@@ -20,9 +20,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     private readonly ILogger<OllamaBookSummaryService> _logger;
     private readonly IConfiguration _config;
     private readonly IPromptTemplateProvider _prompts;
-    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
+    private readonly IHubContext<GoogleBooksProgressHub> _hubContext;
 
-    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
+    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<GoogleBooksProgressHub> hubContext)
     {
         _httpClient = httpClient;
         _logger = logger;
@@ -87,8 +87,37 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         return await ExecuteOllamaAsync(prompt, null, cancellationToken);
     }
 
+    public async Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
+            string title,
+            string? author,
+            string language,
+            string? connectionId,
+             CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+
+        var template = await _prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
+        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        {
+            ["language"] = language,
+            ["title"] = title,
+            ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
+        });
+
+        if (!string.IsNullOrWhiteSpace(connectionId))
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+
+
+        // Ensure cancellationToken is passed correctly
+        return await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+    }
+
+
     private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
+        void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
+
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
         var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
 
@@ -101,10 +130,24 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
 
         try
         {
+
+            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Sending prompt to AI model...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+            }
+
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
+
+            // Progress: waiting for AI response
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                LogProgress("Waiting for AI response...");
+                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
+            }
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
@@ -127,23 +170,98 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
 
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
+            {
+                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Notes)
+                        && parsed.Notes.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                bool confidenceLow = parsed.Confidence < 0.5;
+                if (summaryValid && !confidenceLow)
+                {
+                    parsed.Warnings = string.Empty;
+                }
+                else
+                {
+                    parsed.Warnings = $"AI Summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
+                }
+                if (!string.IsNullOrWhiteSpace(connectionId))
+                {
+                    LogProgress("Done!");
+                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
+                }
                 return parsed;
+            }
 
             var extractedJson = TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
                 parsed = TryParseJsonContract(extractedJson);
+
                 if (parsed is not null)
+                {
+                    // Validate summary: must mention author and title, and confidence should be reasonable
+                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Notes)
+                        && parsed.Notes.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    bool confidenceLow = parsed.Confidence < 0.5;
+
+                    if (summaryValid && !confidenceLow)
+                    {
+                        parsed.Warnings = string.Empty;
+                    }
+                    else
+                    {
+                        parsed.Warnings = $"AI summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
+                    }
+                    if (!string.IsNullOrWhiteSpace(connectionId))
+                    {
+                        LogProgress("Done!");
+                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                    }
                     return parsed;
+                }
+
+                if (!string.IsNullOrWhiteSpace(connectionId))
+                {
+                    LogProgress("Done!");
+                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                }
+                string summary = "";
+                var summaryMatch = System.Text.RegularExpressions.Regex.Match(text, "\"notes\"\\s*:\\s*\"(.*?)\"");
+
+                if (summaryMatch.Success)
+                {
+                    summary = summaryMatch.Groups[1].Value;
+                    return new AiBookSummaryResponseDto
+                    {
+                        Warnings = $"LLM output may not be accurate for '{parsed.Author}' - '{parsed.Title}'. Raw: {text.Trim()}",
+                        Summary = string.Empty,
+                        Confidence = 0,
+                        Notes = summary
+                    };
+                }
+                else
+                {
+                    _logger.LogWarning($"Could not recover notes from AI response: {text}");
+                    return new AiBookSummaryResponseDto
+                    {
+                        Notes = string.Empty,
+                        Confidence = 0,
+                        Warnings = "AI response could not be parsed. No notes available."
+                    };
+                }
             }
 
-            _logger.LogWarning("AI - LLM output was not valid JSON. Raw: {RawOutput}", text.Trim());
             return new AiBookSummaryResponseDto
             {
-                Summary = string.Empty,
+                Notes = string.Empty,
                 Confidence = 0,
-                Notes = $"LLM output was not valid JSON. Raw: {text.Trim()}"
+                Warnings = "AI response could not be parsed. No summary available."
             };
+
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -157,7 +275,6 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         }
     }
 
-    // Prompt text is stored as external templates under Prompts/.
 
     private static AiBookSummaryResponseDto? TryParseJsonContract(string text)
     {
