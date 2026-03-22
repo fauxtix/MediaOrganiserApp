@@ -1168,4 +1168,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloCriadoEm" xml:space="preserve">
     <value>Data criação</value>
   </data>
+  <data name="TituloItensPlaylist" xml:space="preserve">
+    <value>Títulos</value>
+  </data>
 </root>

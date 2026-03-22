@@ -17,7 +17,7 @@ namespace MediaOrganizerApp.Application.DTOs
         public string? Title { get; set; }
         public string? Author { get; set; }
         public string TrackTime { get; set; }
-
+        public string CategoriaMedia { get; set; }
         public int SortOrder { get; set; }
     }
 }

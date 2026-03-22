@@ -1165,4 +1165,7 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TituloCriadoEm" xml:space="preserve">
     <value>Fecha de creación</value>
   </data>
+  <data name="TituloItensPlaylist" xml:space="preserve">
+    <value>Títulos</value>
+  </data>
 </root>

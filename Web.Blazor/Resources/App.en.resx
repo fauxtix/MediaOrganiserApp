@@ -727,7 +727,7 @@
     <value>Deletion of </value>
   </data>
   <data name="editionMsg" xml:space="preserve">
-    <value>Edition</value>
+    <value>Edit</value>
   </data>
   <data name="msgAll" xml:space="preserve">
     <value>All</value>
@@ -1166,5 +1166,8 @@
   </data>
   <data name="TituloCriadoEm" xml:space="preserve">
     <value>Date created</value>
+  </data>
+  <data name="TituloItensPlaylist" xml:space="preserve">
+    <value>Titles</value>
   </data>
 </root>

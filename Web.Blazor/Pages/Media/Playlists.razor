@@ -52,22 +52,23 @@ else
                         TValue="PlaylistDto" />
 
             <GridColumns>
-                <GridColumn Field=@nameof(PlaylistDto.Id)
+                @* <GridColumn Field=@nameof(PlaylistDto.Id)
                             HeaderText="ID#" IsPrimaryKey="true"
                             AllowSorting="true" TextAlign="TextAlign.Center"
-                            Width="80"></GridColumn>
+                            Width="80"></GridColumn> *@
 
                 <GridColumn Field=@nameof(PlaylistDto.Name)
                             HeaderText="@localizerApp["lblNomeAutor"]"
                             TextAlign="TextAlign.Left"
-                            Width="250"></GridColumn>
+                            CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold"}})"
+                            Width="200"></GridColumn>
 
                 <GridColumn Field=@nameof(PlaylistDto.Description)
-                            HeaderText="@localizerApp["lblNomeEditora"]"
+                            HeaderText="@localizerApp["rbtDescricao"]"
                             ClipMode="ClipMode.EllipsisWithTooltip"
                             TextAlign="TextAlign.Left"
                             Width="300"></GridColumn>
-                <GridColumn Field=@nameof(PlaylistDto.MediaType)
+                @* <GridColumn Field=@nameof(PlaylistDto.MediaType)
                             HeaderText="@localizerApp["lblTipoUtilizador"]"
                             ClipMode="ClipMode.EllipsisWithTooltip"
                             TextAlign="TextAlign.Left"
@@ -97,7 +98,7 @@ else
                             </ChipItems>
                         </SfChip>
                     </Template>
-                </GridColumn>
+                </GridColumn> *@
 
                 <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
                             HeaderText="@localizerApp["TituloCriadoEm"]"
@@ -157,8 +158,8 @@ else
                         : null;
                     }
 
-                    <div class="p-2 w-75">
-                        <h5>Itens da Playlist</h5>
+                    <div class="p-2 w-100">
+                        <h5>@localizerApp["TituloItensPlaylist"]</h5>
                         <hr />
                         <div class="button-container my-2">
                             <SfButton CssClass="e-btn e-success e-round-corner"
@@ -214,6 +215,9 @@ else
                                                     Width="350" />
                                         <GridColumn Field=@nameof(PlaylistItemDto.Author)
                                                     HeaderText="@localizerApp["lblAutor"]"
+                                                    Width="200" />
+                                        <GridColumn Field=@nameof(PlaylistItemDto.CategoriaMedia)
+                                                    HeaderText="@localizerApp["lblCategoria"]"
                                                     Width="200" />
                                         @*                                         <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
                                                     HeaderText="@localizerApp["TipoFicheiro"]"
@@ -472,4 +476,8 @@ else
         border-color: #2196f3;
         background-color: blue;
     }
+ .e-attr-bold {
+        font-weight: bold;
+    }
+
 </style>

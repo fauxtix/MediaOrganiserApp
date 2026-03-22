@@ -1165,4 +1165,7 @@
   <data name="TituloCriadoEm" xml:space="preserve">
     <value>Date de création</value>
   </data>
+  <data name="TituloItensPlaylist" xml:space="preserve">
+    <value>Titres</value>
+  </data>
 </root>

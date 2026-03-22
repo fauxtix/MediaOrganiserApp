@@ -108,7 +108,7 @@ else
                 <div class="col-lg-4"></div>
                 </div>
         </div>
-        <div id="target" class=" h-100 table table-responsive overflow-auto table-striped">
+        <div id="target" class="w-100 h-100 table table-responsive overflow-auto table-striped">
             <SfGrid @ref="gridObj"
                     Width="100%"
                     Height="auto"
@@ -206,13 +206,16 @@ else
                     <GridColumn Field=@nameof(PubsWithDescriptions.Titulo) HeaderText=@(localizerApp["lblTitulo"])
                                 CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
                                 AllowGrouping=false
-                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="325"></GridColumn>
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="280"></GridColumn>
+                    <GridColumn Field=@nameof(PubsWithDescriptions.Autor) HeaderText=@(localizerApp["lblAutor"])
+                                HideAtMedia="(min-width: 1280px)"
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="180"></GridColumn>
                     <GridColumn Field=@nameof(PubsWithDescriptions.Categoria) HeaderText=@(localizerApp["lblCategoria"])
                                 HideAtMedia="(min-width: 1280px)"
-                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="140"></GridColumn>
-                    <GridColumn Field=@nameof(PubsWithDescriptions.Formato) HeaderText=@(localizerApp["lblFormato"])
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="180"></GridColumn>
+                    @* <GridColumn Field=@nameof(PubsWithDescriptions.Formato) HeaderText=@(localizerApp["lblFormato"])
                                 HideAtMedia="(min-width: 1280px)"
-                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="150"></GridColumn>
+                                ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="130"></GridColumn> *@
                     <GridColumn Field=@nameof(PubsWithDescriptions.Paginas)
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
                                 AllowGrouping=false
@@ -226,7 +229,7 @@ else
                     <GridColumn Field=@nameof(PubsWithDescriptions.Rating) ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
                                 HeaderText="@(localizerApp["lblRating"])"
                                 HideAtMedia="(min-width: 1280px)"
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="150">
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="160">
                         <Template>
                             <div class="mb-2">
                                 @{
