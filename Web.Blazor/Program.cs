@@ -114,7 +114,8 @@ public class Program
                 message.RequestUri != null && message.RequestUri.IsLoopback
         });
 
-        builder.Services.AddSingleton<Web.Blazor.Services.Common.MediaInfoProgressClient>();
+        builder.Services.AddSingleton<Services.Common.MediaInfoProgressClient>();
+        builder.Services.AddSingleton<Services.Common.BooksInfoProgressClient>();
 
         builder.Services.AddScoped(sp =>
         {

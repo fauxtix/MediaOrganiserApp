@@ -5,21 +5,11 @@ namespace Web.Blazor.Services.ApiWrappers
 {
     public class GoogleBooksService : IGoogleBooksService
     {
-        private readonly HttpClient _httpClient;
         private readonly ILogger<AutorService> _logger;
-        private readonly IConfiguration _env;
-        private readonly string _Uri;
 
         public GoogleBooksService(HttpClient httpClient, ILogger<AutorService> logger, IConfiguration env)
         {
-            _httpClient = httpClient;
             _logger = logger;
-            _env = env;
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/GoogleBooks";
         }
 
         public async Task<GoogleBook> GetBookAsync(string bookTitle, string author)

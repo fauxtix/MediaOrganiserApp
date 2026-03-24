@@ -10,13 +10,6 @@
 <div class="container-fluid">
     <SfSpinner @ref="spinner" Label="@localizerApp["MSG_PreparandoDados"]" Visible="false" />
 
-    @if (showAiProgress)
-    {
-        <div class="e-message e-info mt-2">
-            <div class="e-msg-content">@aiProgressMessage</div>
-        </div>
-    }
-
     @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))
     {
         <div style="background:#e3f2fd;padding:8px;border-radius:4px;font-weight:bold;">
@@ -44,6 +37,13 @@
         </SfTextBox>
     </div>
     <hr />
+    @if (showAiProgress)
+    {
+        <div class="e-message e-info mt-2">
+            <div class="e-msg-content">@aiProgressMessage</div>
+        </div>
+    }
+
     <div class="row justify-content-end mt-2">
         <SfButton CssClass="e-success text-color-white e-round-corner mr-3"
                   IconCss="fa fa-search"

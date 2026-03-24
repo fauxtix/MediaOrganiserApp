@@ -29,13 +29,12 @@ namespace Web.Blazor.Pages.Publications
         // to avoid conflicts with music metadata retrieval that can happen at the same time.
         // If this works well we can consider refactoring the music metadata
         // retrieval to also use a progress client and unify the UI.
-        [Inject] public MediaInfoProgressClient ProgressClient { get; set; }
+        [Inject] public BooksInfoProgressClient ProgressClient { get; set; }
 
 
-        [Parameter]
-        public PubsWithDescriptions ApiRecord { get; set; }
-        [Parameter]
-        public EventCallback<GoogleBooksSearchResult> OnGoogleResponse { get; set; }
+        [Parameter] public bool  EditMode { get; set; }
+        [Parameter] public PubsWithDescriptions ApiRecord { get; set; }
+        [Parameter] public EventCallback<GoogleBooksSearchResult> OnGoogleResponse { get; set; }
 
         protected string authorToSearch = string.Empty;
         protected string titleToSearch = string.Empty;
@@ -140,19 +139,6 @@ namespace Web.Blazor.Pages.Publications
                     return;
                 }
 
-                //showAiProgress = true;
-                //StateHasChanged();
-                //var aiResp = await AiBookClient.GetBookSummaryOnlyAsync(bookTitle, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, ProgressClient.ConnectionId);
-
-
-                //var titles = (await PubsService.GetPubsByTitle(bookTitle)).ToList();
-                //if (titles.Count > 0)
-                //{
-                //    alertUser = true;
-                //    alertMessage = "Título já existe. Confirme, pf.";
-                //    return;
-                //}
-
                 string translatedTitle = "";
                 var bookInfo = await GoogleBooksService.GetBookAsync(bookTitle, author);
                 if (bookInfo is null)
@@ -162,10 +148,11 @@ namespace Web.Blazor.Pages.Publications
                     if (bookInfo is null)
                     {
                         var ai = await TryGetAiBookAsync(bookTitle, author);
+                        if(ai is not null)
+                        {
 
-                        alertUser = true;
-                        alertMessage = localizerApp["msgNoResults"];
-                        return;
+                        }
+
                     }
                 }
 
@@ -213,24 +200,24 @@ namespace Web.Blazor.Pages.Publications
                     var booksItems = bookInfo.items;
 
                     string textSnippet = "";
-                    foreach (var bookSearchInfoitem in booksItems)
+                    var AiDescription = "";
+                    if (booksItems[0].searchInfo == null) // may have more than one item, search the first one with data in the AI
+                                               // (second one may have data that don't correspond do the book we're interest in)
                     {
-                        if (bookSearchInfoitem.searchInfo is not null)
-                        {
-                            if (!string.IsNullOrEmpty(bookSearchInfoitem.searchInfo.textSnippet))
-                            {
-                                textSnippet = bookSearchInfoitem.searchInfo.textSnippet;
-                                break;
-                            }
-                        }
+                        AiDescription = await TryGetAiSummaryAsync(bookTitle, author) ;
                     }
 
                     foreach (var bookitem in booksItems.Select(v => v.volumeInfo))
                     {
                         if (bookitem is not null)
                         {
-                            var bookDesc = bookitem.description is not null ? bookitem.description : !string.IsNullOrEmpty(textSnippet) ? textSnippet : "";
-                            booksDescriptions.Add(bookDesc);
+                            var bookDesc = bookitem.description is not null ? 
+                                bookitem.description : 
+                                !string.IsNullOrEmpty(textSnippet) 
+                                ? textSnippet : 
+                                !string.IsNullOrEmpty(AiDescription) 
+                                ? AiDescription : "";
+                            booksDescriptions.Add(!string.IsNullOrEmpty(bookDesc) ? bookDesc : "N/A");
 
                             if (bookitem.authors is not null)
                                 booksAuthors.Add(bookitem.authors.FirstOrDefault());
@@ -302,15 +289,15 @@ namespace Web.Blazor.Pages.Publications
                     // }
 
                     string bookAuthor = "";
-                    bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName);
-                    if (bookAuthorNameIsInEnglish)
-                    {
-                        bookAuthor = booksAuthors.FirstOrDefault();
-                    }
-                    else
-                    {
+                    //bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName); // TODO - investigate, the result = 'x' (??)
+                    //if (bookAuthorNameIsInEnglish)
+                    //{
+                    //    bookAuthor = booksAuthors.FirstOrDefault();
+                    //}
+                    //else
+                    //{
                         bookAuthor = author;
-                    }
+                    //}
 
                     var bookCategory = bookInfo.items[0].volumeInfo.categories is not null ? bookInfo.items[0].volumeInfo.categories.FirstOrDefault() : "Desconhecida";
                     var bookDescription = booksDescriptions.Where(bd => bd is not null).FirstOrDefault();
@@ -323,7 +310,7 @@ namespace Web.Blazor.Pages.Publications
                     {
                         bookAuthor = bookAuthor.Replace("'", "");
                         var authorExist = await autoresService.AutorExiste(bookAuthor);
-                        var authorNameConverted = bookAuthorNameIsInEnglish ? ConvertToProperCase(bookAuthor) : author;
+                        var authorNameConverted = ConvertToProperCase(bookAuthor);
                         if (!authorExist)
                         {
                             await CreateAuthor(authorNameConverted);
@@ -450,7 +437,7 @@ namespace Web.Blazor.Pages.Publications
                 aiProgressMessage = "AI - Searching for a book description...";
                 await InvokeAsync(StateHasChanged);
 
-                var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage);
+                var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, ProgressClient.ConnectionId);
                 if (resp is null)
                 {
                     aiProgressMessage = "AI - No response returned.";
