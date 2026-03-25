@@ -94,11 +94,11 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 
 ## ⚙️ Tecnologias Utilizadas
 
-- **Frontend**: Blazor WebAssembly
+- **Frontend**: Blazor Server
 - **Backend**: ASP.NET Core Web API
 - **Base de Dados**: SQL Server
 - **Comunicação em Tempo Real**: SignalR
-- **Integração com IA**: OpenAI API para recuperação de metadados
+- **Integração com IA**: Ollama API para recuperação de metadados (local LLM)
 - **Autenticação**: ASP.NET Core Identity
 - **Registos**: Serilog
 - **Outras Ferramentas**: FluentValidation, AutoMapper
