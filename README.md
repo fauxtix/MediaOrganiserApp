@@ -16,7 +16,7 @@ This application is designed to streamline the organization, management, and ret
 ### 📚 Publications Management
 - **CRUD Operations**: Create, read, update, and delete publications with detailed metadata.
 - **Bulk Import/Upload**:
-  - Upload publications in bulk using CSV, Excel, or JSON files.
+  - Upload publications in bulk using Pdf, Excel, or Word files.
   - Automatic and manual data mapping for seamless integration.
   - Validation for required fields, duplicate detection, and error reporting.
 - **Search & Filter**: Advanced search capabilities by title, author, category, or keywords.
