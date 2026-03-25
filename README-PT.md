@@ -16,7 +16,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 ### 📚 Gestão de Publicações
 - **Operações CRUD**: Criar, consultar, atualizar e eliminar publicações com metadados detalhados.
 - **Importação/Upload em Massa**:
-  - Carregue publicações em massa utilizando ficheiros CSV, Excel ou JSON.
+  - Carregue publicações em massa utilizando ficheiros Pdf, Excel ou Word.
   - Mapeamento de dados automático e manual para integração sem falhas.
   - Validação de campos obrigatórios, deteção de duplicados e relatórios de erros.
 - **Pesquisa e Filtro**: Pesquisa avançada por título, autor, categoria ou palavras-chave.
