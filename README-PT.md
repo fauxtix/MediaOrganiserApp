@@ -4,7 +4,7 @@
 
 Já alguma vez sentiu frustração ao gerir os seus ficheiros multimédia, com centenas de ficheiros espalhados por diferentes discos ou dispositivos de armazenamento? Não seria ótimo tê-los organizados, facilitando a sua gestão?
 
-A Aplicação Media Organizer é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
+A Aplicação Media Organiser é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
 Também permite organizar coleções de livros, discos de vinil, CDs, DVDs e documentos escritos em papel (armários de arquivo, por exemplo).
 
 Esta aplicação foi concebida para simplificar a organização, gestão e pesquisa de dados multimédia e de publicações com uma interface intuitiva e um backend robusto.
