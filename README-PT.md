@@ -1,87 +1,160 @@
-[➡️ English version / Versão em Inglês](README.md)
+# 📚 Aplicação Media Organiser
 
-# MediaOrganizerApp
+[Versão em Inglês](README.md)
 
-Alguma vez sentiu frustração ao tentar gerir sessões incontáveis de media espalhadas por diferentes discos ou unidades de armazenamento? Não seria ótimo ter tudo organizado, permitindo uma gestão fácil?
+Já alguma vez sentiu frustração ao gerir os seus ficheiros multimédia, com centenas de ficheiros espalhados por diferentes discos ou dispositivos de armazenamento? Não seria ótimo tê-los organizados, facilitando a sua gestão?
 
-A Media Organiser App é uma aplicação para organizar a sua media (vídeos e ficheiros mp3) e documentos (PDFs e ficheiros Word). Também permite organizar coleções de livros, LPs, CDs, DVDs e documentos em papel (como arquivos e dossiês).
+A Aplicação Media Organizer é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
+Também permite organizar coleções de livros, discos de vinil, CDs, DVDs e documentos escritos em papel (armários de arquivo, por exemplo).
 
-# Demonstração
+Esta aplicação foi concebida para simplificar a organização, gestão e pesquisa de dados multimédia e de publicações com uma interface intuitiva e um backend robusto.
 
-https://github.com/fauxtix/MediaOrganiserApp.Backend/assets/49880538/7eb85ef6-0a38-4d9e-af2f-1c374fde4801
+---
 
-## Execução do Renderer e Web API (desenvolvimento)
+## ✨ Funcionalidades Principais
 
-Este projeto inclui dois serviços para a renderização de relatórios RDLC:
-- `ReportsRenderer` — serviço de renderização independente (pode gerar RDLC em PDF)
-- `MediaOrganizerApp.WebApi` — API principal que pode encaminhar a renderização para o serviço renderer
+### 📚 Gestão de Publicações
+- **Operações CRUD**: Criar, consultar, atualizar e eliminar publicações com metadados detalhados.
+- **Importação/Upload em Massa**:
+  - Carregue publicações em massa utilizando ficheiros CSV, Excel ou JSON.
+  - Mapeamento de dados automático e manual para integração sem falhas.
+  - Validação de campos obrigatórios, deteção de duplicados e relatórios de erros.
+- **Pesquisa e Filtro**: Pesquisa avançada por título, autor, categoria ou palavras-chave.
+- **Deteção de Duplicados**: Sinalização automática de publicações duplicadas com base em metadados.
+- **Relatórios**: Gerar relatórios detalhados sobre publicações, incluindo estatísticas por categoria, autor ou ano.
+- **Pesquisa na API Google Books**: Pesquisa integrada para metadados de livros usando a API Google Books.
 
-Abaixo estão os comandos exatos e dicas para desenvolvimento local.
+### 🖼️ Gestão de Média
+- **Upload de Ficheiros**: Carregamento de ficheiros (arrastar e largar) para imagens, PDFs, vídeos e áudios.
+  - **Acompanhamento de Progresso**: Barra de progresso em tempo real para uploads de ficheiros.
+- **Pré-visualização de Média**: Pré-visualizações integradas para tipos de ficheiros suportados.
+- **Ligar Média a Publicações**: Associar ficheiros multimédia a publicações específicas.
+- **Categorização e Etiquetagem**: Organize os ficheiros multimédia por categorias e etiquetas.
+- **Listas de Reprodução**: Criar, gerir e editar listas de reprodução para organizar ficheiros multimédia.
+  - **Tipos de Média**: Suporte para listas de reprodução de áudio e vídeo.
+  - **Detalhes da Lista de Reprodução**: Exibir nomes, descrições e ficheiros associados às listas de reprodução.
+- **Títulos de Página Dinâmicos**: As páginas de média agora incluem títulos dinâmicos com badges e subtítulos.
+- **Integração com YouTube**: Adicionar registos do YouTube diretamente na interface de gestão de média.
+- **Recuperação de Metadados com IA**: Obter metadados para ficheiros multimédia diretamente na interface.
+  - **Botão Obter Informações**: Permite aos utilizadores recuperar metadados para um ficheiro selecionado usando prompts de IA.
+  - **Atualizações de Estado**: Exibe progresso e alertas durante o processo de recuperação de metadados.
 
-Pré-requisitos
-- SDK do .NET instalado (os projetos exigem .NET 7 e .NET 10). Verifique com:
-  - `dotnet --info`
+### 📄 Gestão de Documentos
+- **Edição de Documentos**: Editar documentos Word (`.docx`) diretamente no navegador usando `SfDocumentEditor`.
+- **Impressão**: Imprimir documentos diretamente do editor.
+- **Estilos Personalizados**: Estilização melhorada para opções de documentos.
 
-Iniciar o serviço de renderização (renderer)
-(abra um terminal, mantenha-o em execução):
+### 🔄 Atualizações em Tempo Real
+- **Integração com SignalR**: Atualizações em tempo real para operações demoradas, como importações em massa ou recuperação de metadados.
 
-PowerShell
+### 🤖 IA de Apoio
+- **Recuperação de Metadados**: Obter automaticamente metadados (ex.: perfis de autores) usando IA quando as chamadas à API externa falham.
+- **Integração com Ollama**: Utilizado para gerar perfis de autores e metadados.
+  - **Perfis de Autores**: Obter informações detalhadas sobre autores usando prompts de IA.
+  - **Prompts Personalizáveis**: Suporte para consultas dinâmicas para resultados personalizados.
+
+### 📊 Analítica e Relatórios
+- **Estatísticas de Publicação**: Consultar estatísticas como o número de publicações por categoria, autor ou ano.
+- **Insights do Uso de Média**: Analisar a utilização de ficheiros multimédia e identificar ficheiros não utilizados ou desatualizados.
+- **Relatórios Personalizáveis**: Gerar relatórios em PDF ou Excel adaptados às suas necessidades.
+
+### 🔐 Gestão de Utilizadores e Autorização
+- **Controlo de Acesso Baseado em Funções**: Atribuir funções (Administrador, Editor, Visualizador) aos utilizadores.
+- **Perfis de Utilizador**: Gerir perfis de utilizador, incluindo detalhes pessoais e preferências.
+- **Registos de Atividade**: Acompanhar atividades dos utilizadores para responsabilidade.
+- **Autenticação**: Login seguro usando ASP.NET Core Identity com MFA opcional.
+
+---
+
+## 📂 Visão Geral das Páginas
+
+| Nome da Página             | Descrição                                                                 |
+|----------------------------|-------------------------------------------------------------------------|
+| **Início**                 | Painel com métricas principais e links rápidos.                        |
+| **Publicações**            | Gerir publicações, ver detalhes e realizar operações CRUD.             |
+| **Pesquisa Google Books**  | Pesquisar e recuperar metadados de livros usando a API Google Books.   |
+| **Média**                  | Carregar, pré-visualizar e gerir ficheiros multimédia.                 |
+| **Galeria de Vídeos**      | Navegar e gerir ficheiros de vídeo.                                    |
+| **Listas de Reprodução**   | Criar e gerir listas de reprodução para ficheiros multimédia.          |
+| **Backup da Base de Dados**| Fazer backup da base de dados.                                         |
+| **Backup de Publicações**  | Fazer backup de uploads de publicações.                               |
+| **Backup de Média**        | Fazer backup de uploads de média.                                     |
+| **Backup de Imagens**      | Fazer backup de uploads de imagens.                                   |
+| **Gerir Autores**          | Gerir informações de autores.                                         |
+| **Gerir Utilizadores**     | Gerir contas e funções de utilizadores.                               |
+| **Tabelas Auxiliares**     | Gerir dados auxiliares como autores, categorias e editores.           |
+| **Definições da Aplicação**| Configurar definições gerais da aplicação.                            |
+| **Gestor de Ficheiros**    | Gerir ficheiros e diretórios.                                         |
+| **Ver Registos**           | Ver registos da aplicação para depuração e monitorização.             |
+| **Editar Prompts**         | Editar prompts de IA para geração de metadados.                      |
+| **Relatórios**             | Gerar e descarregar relatórios para publicações e média.              |
+| **Gestão de Utilizadores** | Gerir funções, permissões e perfis de utilizadores.                   |
+
+---
+
+## ⚙️ Tecnologias Utilizadas
+
+- **Frontend**: Blazor WebAssembly
+- **Backend**: ASP.NET Core Web API
+- **Base de Dados**: SQL Server
+- **Comunicação em Tempo Real**: SignalR
+- **Integração com IA**: OpenAI API para recuperação de metadados
+- **Autenticação**: ASP.NET Core Identity
+- **Registos**: Serilog
+- **Outras Ferramentas**: FluentValidation, AutoMapper
+
+---
+
+## 🛠️ Instalação
+
+### Pré-requisitos
+1. **.NET SDK 10.0** instalado.
+2. **SQL Server** com a base de dados `Publicacoes_Prod`.
+3. **IIS** para implementação (opcional).
+4. **Node.js** (se utilizar bibliotecas JavaScript).
+
+### Configuração
+1. Clone o repositório:
 ```
-$env:ASPNETCORE_ENVIRONMENT = 'Development'
-dotnet run --project ./ReportsRenderer/ReportsRenderer.csproj
+   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
 ```
 
-Bash (Linux / macOS / WSL)
+2. Navegue até ao diretório da solução:
 ```
-export ASPNETCORE_ENVIRONMENT=Development
-dotnet run --project ./ReportsRenderer/ReportsRenderer.csproj
-```
-
-Iniciar a Web API
-(abra outro terminal):
-
-PowerShell
-```
-$env:ASPNETCORE_ENVIRONMENT = 'Development'
-# opcional: URL do renderer se não usar launchSettings/appsettings
-$env:RDLC_RENDERER_URL = 'http://localhost:5000/'
-dotnet run --project ./MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj
+   cd MediaOrganizerApp
 ```
 
-Bash
+3. Restaure as dependências:
 ```
-export ASPNETCORE_ENVIRONMENT=Development
-export RDLC_RENDERER_URL='http://localhost:5000/'
-dotnet run --project ./MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj
+   dotnet restore
 ```
 
-Utilizar o Visual Studio / perfis de lançamento
-- O projeto Web API contém `Properties/launchSettings.json` com `ASPNETCORE_ENVIRONMENT=Development` e `RDLC_RENDERER_URL` configurados para o perfil de desenvolvimento. Execute esse perfil na IDE para utilizar as mesmas configurações.
+4. Atualize o ficheiro `appsettings.json` com a sua string de conexão à base de dados.
 
-Verificar o fluxo de renderização
-- O renderer expõe `POST /api/render` — a Web API encaminha para este endpoint quando `RDLC_RENDERER_URL` está definido. Exemplo: inicie ambos os serviços e chame um endpoint que desencadeie um relatório (como `GET /api/report/publications`).
+5. Execute as migrações:
+```
+   dotnet ef database update
+```
 
-Resolução de problemas
-- NU1101: Unable to find `Microsoft.Reporting.NETCore`
-  - Certifique-se que consegue aceder ao `nuget.org`. Execute:
-    - `dotnet nuget locals all --clear`
-    - `dotnet restore ./ReportsRenderer/ReportsRenderer.csproj -v diag`
-  - Se estiver atrás de um feed corporativo, adicione o seu feed ao `NuGet.Config` ou inclua credenciais.
-  - Como solução temporária, o repositório inclui `ReportsRenderer/Lib/ReportingStubs.cs` (stubs de compilação). Remova esse ficheiro após restaurar o pacote oficial com sucesso.
+6. Inicie a aplicação:
+```
+   dotnet run
+```
 
-- Erros no arranque: RDLC não encontrado
-  - Certifique-se que os ficheiros RDLC estão em `ReportsRenderer/Reports_RDLC` ou defina a variável de ambiente `REPORTS_PATH` para a pasta onde estão os `.rdlc`.
-  - Exemplo: `export REPORTS_PATH=/caminho/para/Reports_RDLC` (bash) ou ` $env:REPORTS_PATH='C:\caminho\para\Reports_RDLC'` (PowerShell).
+---
 
-- Renderer inacessível / falha ao encaminhar pela API
-  - Confirme que o renderer está a correr e disponível no endereço base configurado em `RDLC_RENDERER_URL` (por defeito `http://localhost:5000/`).
-  - Use `curl -v http://localhost:5000/api/render` (POST com payload JSON) para testar a conectividade.
+## 📖 API e Integrações
 
-- Conflitos de portas
-  - Altere o `ASPNETCORE_URLS` ou atualize o `launchSettings.json` para utilizar portas diferentes. Verifique conflitos com `netstat` / `ss`.
+A solução fornece uma API RESTful para gerir publicações e média. Endpoints principais incluem:
 
-- Excepções em tempo de execução
-  - Inicie a Web API com `ASPNETCORE_ENVIRONMENT=Development` para ver a página de exceções do programador e para que os logs mostrem as stack traces completas.
-  - Consulte os logs da aplicação (Serilog) impressos na consola para erros a montante ao encaminhar para o renderer.
+- **Publicações**: `/api/publications`
+- **Média**: `/api/media`
+- **Utilizadores**: `/api/users`
 
-Se surgir um erro que não consegue resolver, cole o output completo da consola ou o comando que falhou (`dotnet restore -v diag`) / stack trace e eu analiso.
+### Integrações
+- **Armazenamento Externo**: Os ficheiros multimédia podem ser armazenados no Azure Blob Storage ou num sistema de ficheiros local.
+- **Recuperação de Metadados com IA**: Obter automaticamente metadados usando IA quando as APIs externas falham.
+
+---
+
+Este ficheiro foi atualizado para refletir as últimas funcionalidades, tecnologias e instruções de configuração da solução. Informe-me se precisar de mais ajustes!
