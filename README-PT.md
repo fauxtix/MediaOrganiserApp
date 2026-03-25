@@ -115,7 +115,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 ### Configuração
 1. Clone o repositório:
 ```
-   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+   git clone https://github.com/fauxtix/MediaOrganiserApp.git
 ```
 
 2. Navegue até ao diretório da solução:
