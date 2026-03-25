@@ -152,9 +152,6 @@ A solução fornece uma API RESTful para gerir publicações e média. Endpoints
 - **Utilizadores**: `/api/users`
 
 ### Integrações
-- **Armazenamento Externo**: Os ficheiros multimédia podem ser armazenados no Azure Blob Storage ou num sistema de ficheiros local.
+- **Armazenamento**: Os ficheiros multimédia são armazenados num sistema de ficheiros local.
 - **Recuperação de Metadados com IA**: Obter automaticamente metadados usando IA quando as APIs externas falham.
 
----
-
-Este ficheiro foi atualizado para refletir as últimas funcionalidades, tecnologias e instruções de configuração da solução. Informe-me se precisar de mais ajustes!
