@@ -28,7 +28,6 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 - **Upload de Ficheiros**: Carregamento de ficheiros (arrastar e largar) para imagens, PDFs, vídeos e áudios.
   - **Acompanhamento de Progresso**: Barra de progresso em tempo real para uploads de ficheiros.
 - **Pré-visualização de Média**: Pré-visualizações integradas para tipos de ficheiros suportados.
-- **Ligar Média a Publicações**: Associar ficheiros multimédia a publicações específicas.
 - **Categorização e Etiquetagem**: Organize os ficheiros multimédia por categorias e etiquetas.
 - **Listas de Reprodução**: Criar, gerir e editar listas de reprodução para organizar ficheiros multimédia.
   - **Tipos de Média**: Suporte para listas de reprodução de áudio e vídeo.
