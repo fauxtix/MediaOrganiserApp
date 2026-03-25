@@ -80,15 +80,19 @@ else
                                        title="@SelectedRecord.Titulo">
                             </SfTextBox>
                         </div>
-                        @* @if (!blnEdit)
-                        { *@
+                        @if (!blnEdit ||
+                                (
+                                    string.IsNullOrEmpty(SelectedRecord.Resumo) &&
+                                    string.IsNullOrEmpty(SelectedRecord.DigitalPath))
+                        )  @* Only on creation  or for Books if on edit mode *@
+                        {
                             <div>
                                 <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
                                           IconCss="fa fa-search"
                                           Content="Google Books Api"
-                                          @onclick="@(()=>SearchApiVisibility = true)" />
+                                          @onclick="@(() => SearchApiVisibility = true)" />
                             </div>
-                        @* } *@
+                        }
                     </div>
                     <div class="form-row mt-1">
                         <div class="col-4">
@@ -246,13 +250,13 @@ else
             </Header>
             <Content>
                 <GoogleBooksApiSearch ApiRecord="SelectedRecord" EditMode="@blnEdit"
-                                    OnGoogleResponse="HandleApiResponse" />
+                                      OnGoogleResponse="HandleApiResponse" />
             </Content>
             <FooterTemplate>
                 <div>
                     <SfButton CssClass="e-btn e-outline e-round-corner"
                               IconCss="fa fa-times"
-                              @onclick="@(()=>SearchApiVisibility = false)"
+                              @onclick="@(() => SearchApiVisibility = false)"
                               Content="@(localizerApp["BtnSalir"])">
                     </SfButton>
                 </div>

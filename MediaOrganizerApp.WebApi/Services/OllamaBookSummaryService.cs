@@ -161,7 +161,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var json = Encoding.UTF8.GetString(bytes);
 
-            var text = TryExtractOllamaResponseText(json);
+            var text = TryExtractOllamaResponseText(json, _logger);
             if (string.IsNullOrWhiteSpace(text))
             {
                 _logger.LogWarning("AI - Empty response received from Ollama.");
@@ -345,7 +345,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         return null;
     }
 
-    private static string? TryExtractOllamaResponseText(string json)
+    private static string? TryExtractOllamaResponseText(string json, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(json))
             return null;
@@ -354,11 +354,31 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
-                return response.GetString();
+            {
+                var responseText = response.GetString();
+
+                // Check if the response itself is a stringified JSON object
+                if (!string.IsNullOrWhiteSpace(responseText))
+                {
+                    try
+                    {
+                        using var innerDoc = JsonDocument.Parse(responseText);
+                        return innerDoc.RootElement.ToString();
+                    }
+                    catch (JsonException ex)
+                    {
+                        // Log the malformed JSON for debugging
+                        logger.LogWarning(ex, "Malformed stringified JSON in response: {ResponseText}", responseText);
+                        return responseText; // Return raw text if parsing fails
+                    }
+                }
+            }
         }
-        catch
+        catch (JsonException ex)
         {
-            // ignored
+            // Log the malformed JSON for debugging
+            logger.LogError(ex, "Malformed JSON encountered: {Json}", json);
+            return null;
         }
 
         // NDJSON fallback
@@ -371,9 +391,10 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
                     sb.Append(response.GetString());
             }
-            catch
+            catch (JsonException ex)
             {
-                // ignored
+                // Log each malformed line for debugging
+                logger.LogWarning(ex, "Malformed NDJSON line encountered: {Line}", line);
             }
         }
 

@@ -150,7 +150,7 @@ namespace Web.Blazor.Pages.Publications
                         var ai = await TryGetAiBookAsync(bookTitle, author);
                         if(ai is not null)
                         {
-
+                            // TODO completar
                         }
 
                     }
