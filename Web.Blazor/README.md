@@ -1,11 +1,11 @@
-# 📚 Media Organizer App
+# 📚 Media Organiser App
 
-[Versão em Português](README-PT.md) 
+[Versão em Português](README-PT.md)
 
-Have you ever felt frustrated with managing your media like hundreds of media scattered across different storage mediums/ hard disks? Wouldn't it be great to have it organised, allowing for easy management?
+Have you ever felt frustrated with managing your media like hundreds of media scattered across different storage mediums/ hard disks? Wouldn't it be great to have it organized, allowing for easy management?
 
-Media  Organiser App is an application to organise your media (Videos and mp3 files ) and Documents (Pdf's and Word documents). 
-It also allows you to organise collections of Books, LPs, CDs, DVDs and documents written on paper (filing cabinets, for example).
+Media Organizer App is an application to organize your media (Videos and MP3 files) and Documents (PDFs and Word documents).  
+It also allows you to organize collections of Books, LPs, CDs, DVDs, and documents written on paper (filing cabinets, for example).
 
 This application is designed to streamline the organization, management, and retrieval of media and publication data with a user-friendly interface and robust backend.
 
@@ -22,42 +22,36 @@ This application is designed to streamline the organization, management, and ret
 - **Search & Filter**: Advanced search capabilities by title, author, category, or keywords.
 - **Duplicate Detection**: Automatically flag duplicate publications based on metadata.
 - **Reports**: Generate detailed reports for publications, including statistics by category, author, or year.
+- **Google Books API Search**: Integrated search for book metadata using the Google Books API.
 
 ### 🖼️ Media Management
 - **File Uploads**: Drag-and-drop file uploads for images, PDFs, videos, and audio files.
+  - **Progress Tracking**: Real-time progress bar for file uploads.
 - **Preview Media**: Inline previews for supported file types.
 - **Link Media to Publications**: Associate media files with specific publications.
 - **Categorization & Tagging**: Organize media files by categories and tags.
-- **Storage Options**: Support for local file storage or integration with Azure Blob Storage.
+- **Playlists**: Create, manage, and edit playlists for organizing media files.
+  - **Media Types**: Support for audio and video playlists.
+  - **Playlist Details**: Display playlist names, descriptions, and associated media.
+- **Dynamic Page Titles**: Media pages now include dynamic titles with badges and subtitles.
+- **YouTube Integration**: Add YouTube records directly from the media management interface.
+- **AI Metadata Retrieval**: Fetch metadata for media files directly from the UI.
+  - **Get Info Button**: Allows users to retrieve metadata for a selected file using AI prompts.
+  - **Status Updates**: Displays progress and alerts during the metadata retrieval process.
 
-### 📖 Viewers
-#### 1. **PDF Viewer for Publications**
-- **Purpose**: View publication files directly in the browser without downloading them.
-- **Features**:
-  - Embed PDFs using `<iframe>` or `<object>` tags.
-  - Interactive PDF viewing with libraries like [PDF.js](https://mozilla.github.io/pdf.js/).
-  - Secure API endpoint to serve PDF files (e.g., `/api/publications/{id}/pdf`).
+### 📄 Document Management
+- **Document Editing**: Edit Word documents (`.docx`) directly in the browser using `SfDocumentEditor`.
+- **Printing**: Print documents directly from the editor.
+- **Custom Styles**: Enhanced styling for document options.
 
-#### 2. **Media Viewer**
-- **MP4 Viewer**:
-  - Play MP4 videos using the `<video>` HTML tag.
-  - Full playback controls (play, pause, volume, fullscreen).
-  - Secure API endpoint to serve MP4 files (e.g., `/api/media/{id}/mp4`).
-- **MP3 Viewer**:
-  - Play MP3 audio files using the `<audio>` HTML tag.
-  - Full playback controls (play, pause, volume).
-  - Secure API endpoint to serve MP3 files (e.g., `/api/media/{id}/mp3`).
+### 🔄 Real-Time Updates
+- **SignalR Integration**: Real-time progress updates for long-running operations like bulk imports or metadata retrieval.
 
-#### 3. **Media Options**
-- **New Media Record**:
-  - Create new media records from scratch with metadata (e.g., title, description, category).
-  - Upload media files directly through the interface.
-- **YouTube Integration**:
-  - Add YouTube videos using the YouTube API.
-  - Fetch metadata (e.g., title, description, thumbnail) automatically.
-- **Local MP3 Files**:
-  - Import MP3 files from local storage.
-  - Automatically categorize and tag imported files.
+### 🤖 AI Fallback
+- **Metadata Retrieval**: Automatically fetch metadata (e.g., author profiles) using AI when external API calls fail.
+- **Ollama Integration**: Utilized for generating author profiles and metadata.
+  - **Author Profiles**: Fetches detailed author information using AI prompts.
+  - **Customizable Prompts**: Supports dynamic queries for personalized results.
 
 ### 📊 Analytics & Reporting
 - **Publication Statistics**: View statistics such as the number of publications by category, author, or year.
@@ -70,91 +64,87 @@ This application is designed to streamline the organization, management, and ret
 - **Activity Logs**: Track user activities for accountability.
 - **Authentication**: Secure login using ASP.NET Core Identity with optional MFA.
 
-### 🌐 API & Integrations
-- **RESTful API**: Expose endpoints for managing publications, media, and users.
-- **External Integrations**: Import/export data from external systems or APIs.
-- **Customizable Endpoints**: Extend the API for specific organizational needs.
+---
+
+## 📂 Pages Overview
+
+| Page Name                  | Description                                                                 |
+|----------------------------|-----------------------------------------------------------------------------|
+| **Home**                   | Dashboard with key metrics and quick links.                               |
+| **Publications**           | Manage publications, view details, and perform CRUD operations.            |
+| **GoogleBooksApiSearch**   | Search and retrieve book metadata using Google Books API.                  |
+| **Media**                  | Upload, preview, and manage media files.                                   |
+| **Video Gallery**          | Browse and manage video files.                                             |
+| **Playlists**              | Create and manage playlists for media files.                               |
+| **Backup Database**        | Backup the database.                                                       |
+| **Backup Publications**    | Backup publication uploads.                                                |
+| **Backup Media**           | Backup media uploads.                                                      |
+| **Backup Images**          | Backup image uploads.                                                      |
+| **Manage Authors**         | Manage author information.                                                 |
+| **Manage Users**           | Manage user accounts and roles.                                            |
+| **Lookup Tables**          | Manage auxiliary data like authors, categories, and publishers.            |
+| **Application Settings**   | Configure application-wide settings.                                       |
+| **File Manager**           | Manage files and directories.                                              |
+| **View Logs**              | View application logs for debugging and monitoring.                        |
+| **Edit Prompts**           | Edit AI prompts for metadata generation.                                   |
+| **Reports**                | Generate and download reports for publications and media.                  |
+| **User Management**        | Manage user roles, permissions, and profiles.                              |
 
 ---
 
-## 🗂️ Pages Overview
-
-| Page Name          | Description                                                                 |
-|--------------------|-----------------------------------------------------------------------------|
-| **Home**           | Dashboard with key metrics and quick links.                               |
-| **Publications**   | Manage publications, view details, and perform CRUD operations.            |
-| **Media**          | Upload, preview, and manage media files.                                   |
-| **Lookup Tables**  | Manage auxiliary data like authors, categories, and publishers.            |
-| **Reports**        | Generate and download reports for publications and media.                  |
-| **User Management**| Manage user roles, permissions, and profiles.                              |
-
----
-
-## 📥 Import Publications Feature
-
-### **Purpose**
-The **Import Publications** feature allows users to upload and import publication data in bulk, saving time and ensuring data consistency. This feature is critical for efficiently populating the system with large datasets.
-
-### **Detailed Functionalities**
-1. **File Upload**:
-   - Supported formats: CSV, Excel (XLSX), JSON.
-   - Drag-and-drop support for convenience.
-   - Validation of file format and structure.
-
-2. **Data Mapping**:
-   - Automatic mapping of file columns to database fields.
-   - Manual mapping interface for unmatched columns.
-   - Save mapping templates for future imports.
-
-3. **Data Validation**:
-   - Validate required fields, data types, and constraints.
-   - Detect and flag duplicates based on title, author, or metadata.
-   - Provide detailed error reporting with row numbers.
-
-4. **Preview & Confirmation**:
-   - Display a preview of the data to be imported.
-   - Require user confirmation before proceeding.
-
-5. **Bulk Import**:
-   - Process data in batches for large datasets.
-   - Display progress tracking during the import process.
-
-6. **Error Handling**:
-   - Log errors for troubleshooting.
-   - Allow partial imports for valid records.
-
-7. **Post-Import Actions**:
-   - Notify users upon successful import.
-   - Record import activity in audit logs.
-   - Optionally link imported publications to media files.
-
----
-
-## 🛠️ Technologies Used
+## ⚙️ Technologies Used
 
 - **Frontend**: Blazor WebAssembly
 - **Backend**: ASP.NET Core Web API
 - **Database**: SQL Server
 - **ORM**: Dapper
+- **Real-Time Communication**: SignalR
+- **AI Integration**: OpenAI API for metadata fallback
 - **Authentication**: ASP.NET Core Identity
 - **Logging**: Serilog
 - **Other Tools**: FluentValidation, AutoMapper
 
 ---
 
-## 🔐 User Roles & Authorization
+## 🛠️ Installation
 
-| Role       | Permissions                                                                 |
-|------------|-----------------------------------------------------------------------------|
-| **Admin**  | Full access to all features, including user management and system settings. |
-| **Editor** | Manage publications and media files.                                        |
-| **Viewer** | Read-only access to publications and media.                                 |
+### Prerequisites
+1. **.NET SDK 10.0** installed.
+2. **SQL Server** with the `Publicacoes_Prod` database.
+3. **IIS** for deployment (optional).
+4. **Node.js** (if using JavaScript libraries).
 
-Authorization is implemented using **ASP.NET Core Identity** with role-based access control.
+### Setup
+1. Clone the repository:
+```
+   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+```
+
+2. Navigate to the solution directory:
+```
+   cd MediaOrganizerApp
+```
+
+3. Restore dependencies:
+```
+   dotnet restore
+```
+
+4. Update the `appsettings.json` file with your database connection string.
+
+5. Run the migrations:
+```
+   dotnet ef database update
+```
+
+6. Start the application:
+```
+   dotnet run
+```
 
 ---
 
-## 🌐 API REST & Integrations
+## 📖 API & Integrations
 
 The solution provides a RESTful API for managing publications and media. Key endpoints include:
 
@@ -164,9 +154,10 @@ The solution provides a RESTful API for managing publications and media. Key end
 
 ### Integrations
 - **External Storage**: Media files can be stored in Azure Blob Storage or a local file system.
-- **Reports**: Integration with the `ReportsRenderer` project for generating PDF and Excel reports.
+- **AI Metadata Fallback**: Automatically fetch metadata using AI when external APIs fail.
 
 ---
+
 ## 🔐 User Roles & Authorization
 
 ### **User Roles**
@@ -288,27 +279,38 @@ The **Backup Options** feature ensures data integrity and disaster recovery. Adm
 ## ⚙️ Installation
 
 ### Prerequisites
-1. **.NET SDK 7.0 or 10.0** installed.
+1. **.NET SDK 10.0** installed.
 2. **SQL Server** with the `Publicacoes_Prod` database.
 3. **IIS** for deployment (optional).
 4. **Node.js** (if using JavaScript libraries).
 
 ### Setup
 1. Clone the repository:
-git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+```
+   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+```
 
 2. Navigate to the solution directory:
-cd MediaOrganizerApp
+```
+   cd MediaOrganizerApp
+```
 
 3. Restore dependencies:
-dotnet restore
+```
+   dotnet restore
+```
 
 4. Update the `appsettings.json` file with your database connection string.
-5. Run the migrations
 
-6. Start the application
-dotnet run
+5. Run the migrations:
+```
+   dotnet ef database update
+```
 
+6. Start the application:
+```
+   dotnet run
+```
 
 ---
 
@@ -318,13 +320,19 @@ We welcome contributions! To contribute:
 1. Fork the repository.
    
 2. Create a new branch:
-git checkout -b feature/your-feature-name
+```
+   git checkout -b feature/your-feature-name
+```
 
 3. Commit your changes:
-git commit -m "Add your message here"
+```
+   git commit -m "Add your message here"
+```
 
 4. Push to your branch:
-git push origin feature/your-feature-name
+```
+   git push origin feature/your-feature-name
+```
 
 5. Open a pull request.
 
@@ -372,12 +380,16 @@ _Add screenshots here to showcase the application._
 ### 3. Set Up SQL Server Users
 1. Open SQL Server Management Studio.
 2. Create a new login for the application
+```
 CREATE LOGIN MediaAppUser WITH PASSWORD = 'YourSecurePassword';
+```
 
 3. Map the login to the `Publicacoes_Prod` database
+```
 USE Publicacoes_Prod; 
 CREATE USER MediaAppUser FOR LOGIN MediaAppUser; 
 EXEC sp_addrolemember 'db_owner', 'MediaAppUser';
+```
 
 ### 4. Configure HTTPS with a Trusted Certificate
 1. Open IIS Manager and select the site.
@@ -392,6 +404,3 @@ EXEC sp_addrolemember 'db_owner', 'MediaAppUser';
 # Demo
 
 https://github.com/fauxtix/MediaOrganiserApp.Backend/assets/49880538/7eb85ef6-0a38-4d9e-af2f-1c374fde4801
-
-
-

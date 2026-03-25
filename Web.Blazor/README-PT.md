@@ -1,10 +1,10 @@
-# 📚 Media Organizer App
+# 📚 Aplicação Media Organiser
 
-[English version](README.md)
+[Versão em Inglês](README.md)
 
 Já alguma vez sentiu frustração ao gerir os seus ficheiros multimédia, com centenas de ficheiros espalhados por diferentes discos ou dispositivos de armazenamento? Não seria ótimo tê-los organizados, facilitando a sua gestão?
 
-A Aplicação Media Organizer App é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros mp3) e documentos (PDFs e documentos Word).
+A Aplicação Media Organizer é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
 Também permite organizar coleções de livros, discos de vinil, CDs, DVDs e documentos escritos em papel (armários de arquivo, por exemplo).
 
 Esta aplicação foi concebida para simplificar a organização, gestão e pesquisa de dados multimédia e de publicações com uma interface intuitiva e um backend robusto.
@@ -19,113 +19,142 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
   - Carregue publicações em massa utilizando ficheiros CSV, Excel ou JSON.
   - Mapeamento de dados automático e manual para integração sem falhas.
   - Validação de campos obrigatórios, deteção de duplicados e relatórios de erros.
-- **Pesquisa & Filtro**: Pesquisa avançada por título, autor, categoria ou palavras-chave.
+- **Pesquisa e Filtro**: Pesquisa avançada por título, autor, categoria ou palavras-chave.
 - **Deteção de Duplicados**: Sinalização automática de publicações duplicadas com base em metadados.
 - **Relatórios**: Gerar relatórios detalhados sobre publicações, incluindo estatísticas por categoria, autor ou ano.
+- **Pesquisa na API Google Books**: Pesquisa integrada para metadados de livros usando a API Google Books.
 
 ### 🖼️ Gestão de Média
 - **Upload de Ficheiros**: Carregamento de ficheiros (arrastar e largar) para imagens, PDFs, vídeos e áudios.
-- **Pré-visualização de Media**: Pré-visualizações integradas para tipos de ficheiros suportados.
-- **Ligar Media a Publicações**: Associar ficheiros multimédia a publicações específicas.
+  - **Acompanhamento de Progresso**: Barra de progresso em tempo real para uploads de ficheiros.
+- **Pré-visualização de Média**: Pré-visualizações integradas para tipos de ficheiros suportados.
+- **Ligar Média a Publicações**: Associar ficheiros multimédia a publicações específicas.
 - **Categorização e Etiquetagem**: Organize os ficheiros multimédia por categorias e etiquetas.
-- **Opções de Armazenamento**: Suporte para armazenamento local de ficheiros.
+- **Listas de Reprodução**: Criar, gerir e editar listas de reprodução para organizar ficheiros multimédia.
+  - **Tipos de Média**: Suporte para listas de reprodução de áudio e vídeo.
+  - **Detalhes da Lista de Reprodução**: Exibir nomes, descrições e ficheiros associados às listas de reprodução.
+- **Títulos de Página Dinâmicos**: As páginas de média agora incluem títulos dinâmicos com badges e subtítulos.
+- **Integração com YouTube**: Adicionar registos do YouTube diretamente na interface de gestão de média.
+- **Recuperação de Metadados com IA**: Obter metadados para ficheiros multimédia diretamente na interface.
+  - **Botão Obter Informações**: Permite aos utilizadores recuperar metadados para um ficheiro selecionado usando prompts de IA.
+  - **Atualizações de Estado**: Exibe progresso e alertas durante o processo de recuperação de metadados.
 
-### 📖 Visualizadores
-#### 1. **Visualizador de PDF para Publicações**
-- **Propósito**: Ver ficheiros de publicações diretamente no navegador sem ter de os descarregar.
-- **Funcionalidades**:
-  - Incorporar PDFs usando as tags `<iframe>` ou `<object>`.
-  - Visualização interativa de PDFs com bibliotecas como [PDF.js](https://mozilla.github.io/pdf.js/).
-  - Endpoint API seguro para servir ficheiros PDF (ex: `/api/publications/{id}/pdf`).
+### 📄 Gestão de Documentos
+- **Edição de Documentos**: Editar documentos Word (`.docx`) diretamente no navegador usando `SfDocumentEditor`.
+- **Impressão**: Imprimir documentos diretamente do editor.
+- **Estilos Personalizados**: Estilização melhorada para opções de documentos.
 
-#### 2. **Visualizador de Média**
-- **Visualizador MP4**:
-  - Reproduzir vídeos MP4 usando a tag HTML `<video>`.
-  - Controlos completos de reprodução (tocar, pausar, volume, ecrã inteiro).
-  - Endpoint API seguro para servir ficheiros MP4 (ex: `/api/media/{id}/mp4`).
-- **Visualizador MP3**:
-  - Reproduzir ficheiros MP3.
-  - Controlos completos de reprodução (tocar, pausar, volume).
-  - Endpoint API seguro para servir ficheiros MP3 (ex: `/api/media/{id}/mp3`).
+### 🔄 Atualizações em Tempo Real
+- **Integração com SignalR**: Atualizações em tempo real para operações demoradas, como importações em massa ou recuperação de metadados.
 
-#### 3. **Opções de Media**
-- **Novo Registo de Media**:
-  - Criar novos registos multimédia do zero com metadados (ex: título, descrição, categoria).
-  - Fazer upload de ficheiros multimédia diretamente na interface.
-- **Integração com YouTube**:
-  - Adicionar vídeos do YouTube usando a API do YouTube.
-  - Obtenção automática de metadados (ex: título, descrição, miniatura).
-- **Ficheiros MP3 Locais**:
-  - Importar ficheiros MP3 do armazenamento local.
-  - Categorização e etiquetagem automática dos ficheiros importados.
+### 🤖 IA de Apoio
+- **Recuperação de Metadados**: Obter automaticamente metadados (ex.: perfis de autores) usando IA quando as chamadas à API externa falham.
+- **Integração com Ollama**: Utilizado para gerar perfis de autores e metadados.
+  - **Perfis de Autores**: Obter informações detalhadas sobre autores usando prompts de IA.
+  - **Prompts Personalizáveis**: Suporte para consultas dinâmicas para resultados personalizados.
 
-### 📊 Analítica & Relatórios
+### 📊 Analítica e Relatórios
 - **Estatísticas de Publicação**: Consultar estatísticas como o número de publicações por categoria, autor ou ano.
-- **Insights do uso de Media**: Analisar a utilização de ficheiros multimédia e identificar ficheiros não utilizados ou desatualizados.
+- **Insights do Uso de Média**: Analisar a utilização de ficheiros multimédia e identificar ficheiros não utilizados ou desatualizados.
 - **Relatórios Personalizáveis**: Gerar relatórios em PDF ou Excel adaptados às suas necessidades.
 
-### 🔐 Gestão de Utilizadores & Autorização
-- **Autenticação Segura**: Integração com sistemas de autenticação modernos, incluindo OAuth2, autenticação por dois fatores, etc.
-- **Gestão de Perfis**: Gestão de perfis de utilizador com permissões e papéis personalizáveis (ex: Administrador, Editor, Utilizador).
-- **Gestão de Equipas e Colaborações**: Gestão de múltiplos utilizadores com funções diferentes dentro da aplicação e possibilidade de colaboração na organização dos ficheiros.
----
-### 🛠️ Tecnologias Utilizadas
-- **Frontend**: [Blazor WebAssembly](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor), [MudBlazor](https://mudblazor.com/) (UI), [HTML5](https://developer.mozilla.org/docs/Web/HTML), [CSS3](https://developer.mozilla.org/docs/Web/CSS)
-- **Backend**: [ASP.NET Core Web API](https://learn.microsoft.com/aspnet/core/web-api), [Entity Framework Core](https://docs.microsoft.com/ef/core/), [SQLite](https://www.sqlite.org/index.html) ou SQL Server
-- **Armazenamento de Ficheiros**: Suporte integrado para armazenamento local e possibilidade de integração futura com armazenamento na cloud.
-- **Segurança**: Autenticação JWT, proteção de endpoints API, cifragem de passwords.
-
-### 🚀 Primeiro Passos
-
-#### 1. Pré-requisitos
-- [.NET 7 SDK ou superior](https://dotnet.microsoft.com/en-us/download)
-- [Node.js](https://nodejs.org/) (se quiser modificar ficheiros JS/css)
-- Editor como [Visual Studio Code](https://code.visualstudio.com/) ou [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
-
-#### 2. Clone o Repositório
-
-```bash
-git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
-cd MediaOrganiserApp.Web.Blazor
-```
-
-#### 3. Executar a Solução
-
-```bash
-dotnet build
-dotnet run --project src/MediaOrganiserApp.Web.Blazor
-```
-
-#### 4. Aceder à Aplicação
-
-Abra o navegador e aceda a `https://localhost:5001` ou ao endereço indicado no terminal.
-
-### 📝 Plano de Desenvolvimento
-
-- [ ] Adicionar suporte a armazenamento em nuvem (ex: Azure Blob Storage)
-- [ ] Implementar notificações em tempo real (SignalR)
-- [ ] Traduções para mais idiomas (contribuições são bem-vindas!)
-- [ ] App móvel (Xamarin ou MAUI)
-
-### 👥 Contribuir
-
-Contribuições são bem-vindas! Por favor:
-1. Fork este projeto
-2. Crie uma branch (`git checkout -b feat/novo-recurso`)
-3. Commit as suas alterações (`git commit -am 'Adiciona novo recurso'`)
-4. Push a branch (`git push origin feat/novo-recurso`)
-5. Abra um Pull Request
-
-Leia o [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) e o [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
-
-### ⚖️ Licença
-
-Distribuído sob licença MIT. Veja [LICENSE](LICENSE) para mais informações.
-
-### 📧 Contacto
-
-Se tiver questões ou sugestões, abra um issue ou contacte fauxtix@gmail.com.
+### 🔐 Gestão de Utilizadores e Autorização
+- **Controlo de Acesso Baseado em Funções**: Atribuir funções (Administrador, Editor, Visualizador) aos utilizadores.
+- **Perfis de Utilizador**: Gerir perfis de utilizador, incluindo detalhes pessoais e preferências.
+- **Registos de Atividade**: Acompanhar atividades dos utilizadores para responsabilidade.
+- **Autenticação**: Login seguro usando ASP.NET Core Identity com MFA opcional.
 
 ---
 
-Desenvolvido com ❤️ por [fauxtix](https://github.com/fauxtix)
+## 📂 Visão Geral das Páginas
+
+| Nome da Página             | Descrição                                                                 |
+|----------------------------|-------------------------------------------------------------------------|
+| **Início**                 | Painel com métricas principais e links rápidos.                        |
+| **Publicações**            | Gerir publicações, ver detalhes e realizar operações CRUD.             |
+| **Pesquisa Google Books**  | Pesquisar e recuperar metadados de livros usando a API Google Books.   |
+| **Média**                  | Carregar, pré-visualizar e gerir ficheiros multimédia.                 |
+| **Galeria de Vídeos**      | Navegar e gerir ficheiros de vídeo.                                    |
+| **Listas de Reprodução**   | Criar e gerir listas de reprodução para ficheiros multimédia.          |
+| **Backup da Base de Dados**| Fazer backup da base de dados.                                         |
+| **Backup de Publicações**  | Fazer backup de uploads de publicações.                               |
+| **Backup de Média**        | Fazer backup de uploads de média.                                     |
+| **Backup de Imagens**      | Fazer backup de uploads de imagens.                                   |
+| **Gerir Autores**          | Gerir informações de autores.                                         |
+| **Gerir Utilizadores**     | Gerir contas e funções de utilizadores.                               |
+| **Tabelas Auxiliares**     | Gerir dados auxiliares como autores, categorias e editores.           |
+| **Definições da Aplicação**| Configurar definições gerais da aplicação.                            |
+| **Gestor de Ficheiros**    | Gerir ficheiros e diretórios.                                         |
+| **Ver Registos**           | Ver registos da aplicação para depuração e monitorização.             |
+| **Editar Prompts**         | Editar prompts de IA para geração de metadados.                      |
+| **Relatórios**             | Gerar e descarregar relatórios para publicações e média.              |
+| **Gestão de Utilizadores** | Gerir funções, permissões e perfis de utilizadores.                   |
+
+---
+
+## ⚙️ Tecnologias Utilizadas
+
+- **Frontend**: Blazor WebAssembly
+- **Backend**: ASP.NET Core Web API
+- **Base de Dados**: SQL Server
+- **Comunicação em Tempo Real**: SignalR
+- **Integração com IA**: OpenAI API para recuperação de metadados
+- **Autenticação**: ASP.NET Core Identity
+- **Registos**: Serilog
+- **Outras Ferramentas**: FluentValidation, AutoMapper
+
+---
+
+## 🛠️ Instalação
+
+### Pré-requisitos
+1. **.NET SDK 10.0** instalado.
+2. **SQL Server** com a base de dados `Publicacoes_Prod`.
+3. **IIS** para implementação (opcional).
+4. **Node.js** (se utilizar bibliotecas JavaScript).
+
+### Configuração
+1. Clone o repositório:
+```
+   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+```
+
+2. Navegue até ao diretório da solução:
+```
+   cd MediaOrganizerApp
+```
+
+3. Restaure as dependências:
+```
+   dotnet restore
+```
+
+4. Atualize o ficheiro `appsettings.json` com a sua string de conexão à base de dados.
+
+5. Execute as migrações:
+```
+   dotnet ef database update
+```
+
+6. Inicie a aplicação:
+```
+   dotnet run
+```
+
+---
+
+## 📖 API e Integrações
+
+A solução fornece uma API RESTful para gerir publicações e média. Endpoints principais incluem:
+
+- **Publicações**: `/api/publications`
+- **Média**: `/api/media`
+- **Utilizadores**: `/api/users`
+
+### Integrações
+- **Armazenamento Externo**: Os ficheiros multimédia podem ser armazenados no Azure Blob Storage ou num sistema de ficheiros local.
+- **Recuperação de Metadados com IA**: Obter automaticamente metadados usando IA quando as APIs externas falham.
+
+---
+
+Este ficheiro foi atualizado para refletir as últimas funcionalidades, tecnologias e instruções de configuração da solução. Informe-me se precisar de mais ajustes!
