@@ -28,7 +28,6 @@ This application is designed to streamline the organization, management, and ret
 - **File Uploads**: Drag-and-drop file uploads for images, PDFs, videos, and audio files.
   - **Progress Tracking**: Real-time progress bar for file uploads.
 - **Preview Media**: Inline previews for supported file types.
-- **Link Media to Publications**: Associate media files with specific publications.
 - **Categorization & Tagging**: Organize media files by categories and tags.
 - **Playlists**: Create, manage, and edit playlists for organizing media files.
   - **Media Types**: Support for audio and video playlists.
