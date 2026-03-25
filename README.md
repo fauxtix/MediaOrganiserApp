@@ -94,12 +94,12 @@ This application is designed to streamline the organization, management, and ret
 
 ## ⚙️ Technologies Used
 
-- **Frontend**: Blazor WebAssembly
+- **Frontend**: Blazor Server
 - **Backend**: ASP.NET Core Web API
 - **Database**: SQL Server
 - **ORM**: Dapper
 - **Real-Time Communication**: SignalR
-- **AI Integration**: OpenAI API for metadata fallback
+- **AI Integration**: Ollama API for metadata fallback (local)
 - **Authentication**: ASP.NET Core Identity
 - **Logging**: Serilog
 - **Other Tools**: FluentValidation, AutoMapper
