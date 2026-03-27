@@ -25,7 +25,7 @@ This folder contains **prompt templates** used by `MediaOrganizerApp.WebApi` AI 
 
 Common placeholders used in this solution:
 
-- `{language}`: UI language code (e.g., `pt`, `en`)
+- `{language}`: UI language code (e.g., `pt`, `en`, `es`, `fr`)
 - `{artist}` / `{title}`: media prompts
 - `{author}` / `{bookTitle}`: book prompts
 - `{name}`: author-profile prompts

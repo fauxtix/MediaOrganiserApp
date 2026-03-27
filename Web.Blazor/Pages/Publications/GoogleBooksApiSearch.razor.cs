@@ -152,7 +152,6 @@ namespace Web.Blazor.Pages.Publications
                         {
                             // TODO completar
                         }
-
                     }
                 }
 
@@ -164,7 +163,7 @@ namespace Web.Blazor.Pages.Publications
                     {
                         ApplyAiBookToRecord(ai, bookTitle, author);
 
-                        await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
+                        await OnGoogleResponse.InvokeAsync(new GoogleBooksSearchResult
                         {
                             Record = ApiRecord,
                             AiNotes = lastAiNotes,
@@ -201,8 +200,8 @@ namespace Web.Blazor.Pages.Publications
 
                     string textSnippet = "";
                     var AiDescription = "";
-                    if (booksItems[0].searchInfo == null) // may have more than one item, search the first one with data in the AI
-                                               // (second one may have data that don't correspond do the book we're interest in)
+                    if (booksItems[0].searchInfo == null) // may have more than one item (?!), search the first one with data in the AI
+                                               // (second one may have data that don't match the book we're interested in)
                     {
                         AiDescription = await TryGetAiSummaryAsync(bookTitle, author) ;
                     }
@@ -289,14 +288,17 @@ namespace Web.Blazor.Pages.Publications
                     // }
 
                     string bookAuthor = "";
-                    //bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName); // TODO - investigate, the result = 'x' (??)
+
+                    // TODO - investigate, the result = 'x' (??)
+
+                    //bool bookAuthorNameIsInEnglish = !string.IsNullOrEmpty(englishAuthorName); 
                     //if (bookAuthorNameIsInEnglish)
                     //{
                     //    bookAuthor = booksAuthors.FirstOrDefault();
                     //}
                     //else
                     //{
-                        bookAuthor = author;
+                    bookAuthor = author;
                     //}
 
                     var bookCategory = bookInfo.items[0].volumeInfo.categories is not null ? bookInfo.items[0].volumeInfo.categories.FirstOrDefault() : "Desconhecida";
@@ -474,7 +476,7 @@ namespace Web.Blazor.Pages.Publications
             }
         }
 
-        private async Task<MediaOrganizerApp.Application.DTOs.AiBookSummaryResponseDto?> TryGetAiBookAsync(string title, string author)
+        private async Task<AiBookSummaryResponseDto?> TryGetAiBookAsync(string title, string author)
         {
             try
             {
@@ -514,7 +516,7 @@ namespace Web.Blazor.Pages.Publications
             }
         }
 
-        private void ApplyAiBookToRecord(MediaOrganizerApp.Application.DTOs.AiBookSummaryResponseDto ai, string bookTitle, string author)
+        private void ApplyAiBookToRecord(AiBookSummaryResponseDto ai, string bookTitle, string author)
         {
             ApiRecord.Titulo = string.IsNullOrWhiteSpace(ai.Title) ? bookTitle : ai.Title;
 
@@ -612,6 +614,5 @@ namespace Web.Blazor.Pages.Publications
             titleToSearch = "";
             alertUser = false;
         }
-
     }
 }

@@ -4,6 +4,8 @@
 @using Syncfusion.Blazor.Popups
 @using Syncfusion.Blazor.DropDowns
 @using Web.Blazor.Utilities
+@using Ganss.Xss
+@using Markdig
 
 @inject PromptFilesService PromptService
 @inject IStringLocalizer<App> localizerApp
@@ -100,12 +102,31 @@
             var files = await PromptService.GetPromptFilesAsync();
             PromptFiles = files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).ToList();
             var readme = await PromptService.GetReadmeContentAsync();
-            // Render markdown as HTML using Markdig
             // Render markdown as HTML using Markdig with advanced extensions
-            var pipeline = new Markdig.MarkdownPipelineBuilder().Build();
-            // Normalize line endings for Markdig
-            ReadmeMd = Markdig.Markdown.ToHtml(readme?.Replace("\r\n", "\n") ?? "", pipeline);
-        }
+            var pipeline = new Markdig.MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+
+            // Normalize line endings and convert to HTML
+            var raw = readme?.Replace("\r\n", "\n") ?? string.Empty;
+            var html = Markdig.Markdown.ToHtml(raw, pipeline);
+
+            // Sanitize HTML using Ganss.XSS HtmlSanitizer
+            var sanitizer = new HtmlSanitizer();
+            // Allow common attributes used by Markdown output
+            sanitizer.AllowedAttributes.Add("target");
+            sanitizer.AllowedAttributes.Add("rel");
+            sanitizer.AllowedAttributes.Add("class");
+            // Allow common URL schemes
+            sanitizer.AllowedSchemes.Add("http");
+            sanitizer.AllowedSchemes.Add("https");
+            sanitizer.AllowedSchemes.Add("mailto");
+
+            var safe = sanitizer.Sanitize(html);
+
+        // Wrap in a container for styling
+        ReadmeMd = $"<article class=\"markdown-body\">{safe}</article>";        }
+
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading prompt files or README.md"); 
@@ -194,104 +215,216 @@
 }
 
 <style>
+/* ===== Layout ===== */
 
-    .dropdown-row {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-    .dropdown-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-    .dropdown-container {
-        width: 400px;
-    }
+.edit-prompts-main {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ===== LEFT: Prompt Editor ===== */
+
+.prompt-editor-pane {
+    flex: 0 0 40%;
+    min-width: 0;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+    padding-right: 1rem;
+}
+
+.prompt-header-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-container {
+    width: 400px;
+}
+
+.prompt-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* ===== RIGHT: README ===== */
+
+.readme-pane {
+    flex: 0 0 60%;
+    min-width: 0;
+    height: calc(100vh - 64px);
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 2rem;
+    box-sizing: border-box;
+    overflow: auto;
+    scroll-behavior: smooth;
+}
+
+/* ===== Markdown Styling (GitHub-like) ===== */
+
+.readme-pane .markdown-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #24292f;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Headings */
+.readme-pane .markdown-body h1,
+.readme-pane .markdown-body h2 {
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.3em;
+}
+
+.readme-pane .markdown-body h1 { font-size: 2em; margin-top: 1.2em; }
+.readme-pane .markdown-body h2 { font-size: 1.5em; margin-top: 1.2em; }
+.readme-pane .markdown-body h3 { font-size: 1.25em; margin-top: 1em; }
+.readme-pane .markdown-body h4 { font-size: 1em; }
+.readme-pane .markdown-body h5 { font-size: 0.875em; }
+.readme-pane .markdown-body h6 { font-size: 0.85em; color: #57606a; }
+
+.readme-pane .markdown-body h1,
+.readme-pane .markdown-body h2,
+.readme-pane .markdown-body h3,
+.readme-pane .markdown-body h4,
+.readme-pane .markdown-body h5,
+.readme-pane .markdown-body h6 {
+    margin-bottom: 0.5em;
+    font-weight: 600;
+}
+
+/* Text */
+.readme-pane .markdown-body p {
+    margin: 0.8em 0;
+}
+
+/* Lists */
+.readme-pane .markdown-body ul,
+.readme-pane .markdown-body ol {
+    padding-left: 2em;
+    margin: 0.8em 0;
+}
+
+.readme-pane .markdown-body li {
+    margin: 0.3em 0;
+}
+
+/* Links */
+.readme-pane .markdown-body a {
+    color: #0969da;
+    text-decoration: none;
+}
+
+.readme-pane .markdown-body a:hover {
+    text-decoration: underline;
+}
+
+/* Inline code */
+.readme-pane .markdown-body code {
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 0.2em 0.4em;
+    border-radius: 6px;
+    font-size: 85%;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+}
+
+/* Code blocks */
+.readme-pane .markdown-body pre {
+    background-color: #0d1117;
+    color: #c9d1d9;
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1em 0;
+}
+
+.readme-pane .markdown-body pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Tables */
+.readme-pane .markdown-body table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    width: 100%;
+}
+
+.readme-pane .markdown-body th,
+.readme-pane .markdown-body td {
+    border: 1px solid #d0d7de;
+    padding: 8px 12px;
+}
+
+.readme-pane .markdown-body th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+}
+
+/* Blockquotes */
+.readme-pane .markdown-body blockquote {
+    border-left: 4px solid #d0d7de;
+    padding: 0 1em;
+    color: #57606a;
+    margin: 1em 0;
+}
+
+/* HR */
+.readme-pane .markdown-body hr {
+    border: none;
+    border-top: 1px solid #d0d7de;
+    margin: 2em 0;
+}
+
+/* Images */
+.readme-pane .markdown-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ===== Responsive ===== */
+
+@@media (max-width: 900px) {
+
     .edit-prompts-main {
-        display: flex;
-        flex-direction: row;
-        gap: 1.5rem;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    .prompt-editor-pane {
-        flex: 1 1 0;
-        min-width: 0;
-        height: calc(100vh - 64px);
-        display: flex;
         flex-direction: column;
+        gap: 1rem;
     }
+
+    .prompt-editor-pane,
     .readme-pane {
-        flex: 1 1 0;
-        min-width: 0;
-        height: calc(100vh - 64px);
-        background: #f8f9fa;
-        border-radius: 6px;
-        padding: 1em;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        overflow: auto;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        padding-right: 0;
+        border-right: none;
     }
-    .document-options {
-        display: flex;
-        justify-content: flex-end;
-        gap: 5px;
-        align-items: flex-end;
-        margin-right: 10px;
+
+    .readme-pane {
+        padding: 1.25rem;
+    }
+
+    .dropdown-container {
+        width: 100%;
     }
 
     .prompt-header-row {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0;
-    }
-    .prompt-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .readme-pane h1,
-    .readme-pane h2,
-    .readme-pane h3,
-    .readme-pane h4,
-    .readme-pane h5,
-    .readme-pane h6 {
-        font-size: 1.2em;
-    }
-
-    .readme-pane p,
-    .readme-pane ul,
-    .readme-pane ol,
-    .readme-pane li {
-        font-size: 1em;
-    }
-
-
-@@media (max-width: 900px) {
-    .edit-prompts-main {
         flex-direction: column;
+        align-items: stretch;
         gap: 0.75rem;
     }
-    .prompt-editor-pane, .readme-pane {
-        max-width: 100%;
-        min-width: 0;
-        width: 100%;
-        height: auto;
+
+    .prompt-actions {
+        justify-content: flex-end;
     }
-    .dropdown-container {
-        width: 100%;
-        min-width: 0;
-    }
-    .readme-rich-text-editor {
-        height: 300px !important;
-    }
-}
-</style>
+}</style>
