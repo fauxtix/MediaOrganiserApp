@@ -101,7 +101,7 @@ else
                 <div class="table table-striped table-hover">
                     <SfGrid @ref="gridObj"
                             DataSource="@autores"
-                            AllowFiltering="false"
+                            AllowFiltering="true"
                             AllowGrouping="false"
                             Toolbar="@Tool"
                             AllowPaging="true"
@@ -200,11 +200,14 @@ else
                                     HideAtMedia="(min-width: 700px)"
                                     Width="60" />
                         <GridColumn Field=@nameof(AutorDTO.Descricao)
-                                    ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                    ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" 
+                                    AllowFiltering="true"
                                     HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
                                     CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
                                     Width="270" />
-                        <GridColumn HeaderText="@(localizerApp["lblSobreAutor"])"
+                        <GridColumn HeaderText="@(localizerApp["lblSobreAutor"])" 
+                                    Field=@nameof(AutorDTO.Sobre)
+                                    AllowFiltering="true"
                                     AllowSorting="false">
                             <Template Context="rowObj">
                                 @{

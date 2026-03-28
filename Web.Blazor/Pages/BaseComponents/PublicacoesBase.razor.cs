@@ -1640,7 +1640,7 @@ namespace Web.Blazor.Pages.BaseComponents
             AutorDTO autor = new AutorDTO()
             {
                 Descricao = nomeAutor,
-                Sobre = localizerApp["msgUploadAuthor_AboutMsg"] + " " + DateTime.Now.ToShortDateString(),
+                Sobre = "",
                 ImagemAutor = Path.Combine("images", "NoImage_48.png"),
                 DataNascimento = null
             };

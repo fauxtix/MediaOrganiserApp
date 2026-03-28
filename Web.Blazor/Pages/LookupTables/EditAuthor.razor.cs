@@ -161,12 +161,35 @@ namespace Web.Blazor.Pages.LookupTables
                 {
                     if (!string.IsNullOrEmpty(authorDetails.birthDate))
                     {
-                        SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
+                        if (authorDetails.birthDate.Length == 5)
+                        {
+                            SelectedAuthor.DataNascimento = new DateTime(DateTime.Parse(authorDetails.birthDate.Substring(0, 4)).Year, 1, 1);
+                        }
+                        else if (authorDetails.birthDate.Length == 4)
+                        {
+                            SelectedAuthor.DataNascimento = new DateTime(DateTime.Parse(authorDetails.birthDate).Year, 1, 1);
+                        }
+                        else
+                        {
+                            SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
+                        }
                     }
                 }
                 if (authorDetails.bio.ToLower().Contains("sem")) // TODO => localize "sem biografia" check
                 {
                     // External API first; AI fallback only when external returns empty bio.
+                    if(SelectedAuthor.Sobre is not null && 
+
+                        !string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
+                    {
+                        message = "já existe Bio para o Autor. AI não foi consultada.";
+                        alertVisibility = true;
+                        StateHasChanged();
+                        await Task.Delay(20);
+                        await SpinnerObj.HideAsync();
+                        return;
+                    }
+
                     var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
                     if (!string.IsNullOrWhiteSpace(ai?.Bio))

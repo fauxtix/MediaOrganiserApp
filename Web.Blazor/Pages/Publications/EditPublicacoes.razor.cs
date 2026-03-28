@@ -55,6 +55,7 @@ namespace Web.Blazor.Pages.Publications
 
         private SfCheckBox<bool> chkLido;
         private bool PdfVisibility = false;
+        private bool AuthorVisibility = false;
         private bool SearchApiVisibility = false;
         protected DialogEffect Effects = DialogEffect.FadeZoom;
 
@@ -450,7 +451,7 @@ namespace Web.Blazor.Pages.Publications
             AutorDTO autor = new AutorDTO()
             {
                 Descricao = sNomeAutor,
-                Sobre = localizerApp["msgUploadAuthor_AboutMsg"] + " " + DateTime.Now.ToShortDateString(),
+                Sobre = "",
                 ImagemAutor = "",
                 DataNascimento = null
             };

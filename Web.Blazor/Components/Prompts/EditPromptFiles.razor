@@ -215,26 +215,53 @@
 }
 
 <style>
+/* ===== HARD RESET (override Syncfusion / dark inheritance) ===== */
+
+.readme-pane,
+.readme-pane * {
+    background-color: #ffffff !important;
+    color: #24292f !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
 /* ===== Layout ===== */
 
 .edit-prompts-main {
     display: flex;
     flex-direction: row;
     gap: 1.5rem;
-    width: 100%;
+    /* Account for the gap so children 60%+40% fill the area without leaving unused space */
+    width: calc(100% - 1.5rem);
     box-sizing: border-box;
+    /* Prevent the page from scrolling; let inner panes manage their own scrolling */
+    height: calc(100vh - 64px);
+    overflow: hidden;
+    max-width: 100%;
+    align-items: stretch;
+}
+
+/* Ensure direct children can't force the flex container wider */
+.edit-prompts-main > * {
+    min-width: 0;
+    box-sizing: border-box;
+    /* Keep editor content visible; if necessary allow internal scrolling */
+    overflow: visible;
 }
 
 /* ===== LEFT: Prompt Editor ===== */
 
 .prompt-editor-pane {
-    flex: 0 0 40%;
+    /* Left pane: 60% of the container */
+    flex: 0 0 60%;
     min-width: 0;
     height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;
     border-right: 1px solid #e5e7eb;
-    padding-right: 1rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    box-sizing: border-box;
 }
 
 .prompt-header-row {
@@ -245,151 +272,176 @@
 }
 
 .dropdown-container {
-    width: 400px;
+    /* Limit to available space so it doesn't force horizontal scroll */
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
 }
 
 .prompt-actions {
+    margin-left:10px;
     display: flex;
     gap: 0.5rem;
+    justify-content: flex-end;
     align-items: center;
 }
 
 /* ===== RIGHT: README ===== */
 
 .readme-pane {
-    flex: 0 0 60%;
+    /* Right pane: 40% of the container */
+    flex: 0 0 40%;
     min-width: 0;
     height: calc(100vh - 64px);
-    background: #ffffff;
+    padding: 1rem 1rem;
+    /* Scroll only the README content vertically */
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 6px;
-    padding: 2rem;
     box-sizing: border-box;
-    overflow: auto;
-    scroll-behavior: smooth;
 }
 
-/* ===== Markdown Styling (GitHub-like) ===== */
+/* ===== Markdown Container ===== */
 
 .readme-pane .markdown-body {
+    /* Let content use the full pane width to avoid unused right-side space */
+    max-width: none;
+    width: 100%;
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.6;
-    color: #24292f;
-    max-width: 900px;
-    margin: 0 auto;
 }
 
-/* Headings */
-.readme-pane .markdown-body h1,
-.readme-pane .markdown-body h2 {
+/* ===== Headings ===== */
+
+.readme-pane h1,
+.readme-pane h2 {
     border-bottom: 1px solid #d0d7de;
     padding-bottom: 0.3em;
 }
 
-.readme-pane .markdown-body h1 { font-size: 2em; margin-top: 1.2em; }
-.readme-pane .markdown-body h2 { font-size: 1.5em; margin-top: 1.2em; }
-.readme-pane .markdown-body h3 { font-size: 1.25em; margin-top: 1em; }
-.readme-pane .markdown-body h4 { font-size: 1em; }
-.readme-pane .markdown-body h5 { font-size: 0.875em; }
-.readme-pane .markdown-body h6 { font-size: 0.85em; color: #57606a; }
+.readme-pane h1 { font-size: 2em; margin-top: 1.2em; }
+.readme-pane h2 { font-size: 1.5em; margin-top: 1.2em; }
+.readme-pane h3 { font-size: 1.25em; margin-top: 1em; }
+.readme-pane h4 { font-size: 1em; }
+.readme-pane h5 { font-size: 0.875em; }
+.readme-pane h6 { font-size: 0.85em; color: #57606a !important; }
 
-.readme-pane .markdown-body h1,
-.readme-pane .markdown-body h2,
-.readme-pane .markdown-body h3,
-.readme-pane .markdown-body h4,
-.readme-pane .markdown-body h5,
-.readme-pane .markdown-body h6 {
+.readme-pane h1,
+.readme-pane h2,
+.readme-pane h3,
+.readme-pane h4,
+.readme-pane h5,
+.readme-pane h6 {
     margin-bottom: 0.5em;
     font-weight: 600;
 }
 
-/* Text */
-.readme-pane .markdown-body p {
+/* ===== Text ===== */
+
+.readme-pane p {
     margin: 0.8em 0;
 }
 
-/* Lists */
-.readme-pane .markdown-body ul,
-.readme-pane .markdown-body ol {
+.readme-pane strong {
+    font-weight: 600;
+}
+
+/* ===== Lists ===== */
+
+.readme-pane ul,
+.readme-pane ol {
     padding-left: 2em;
     margin: 0.8em 0;
 }
 
-.readme-pane .markdown-body li {
+.readme-pane li {
     margin: 0.3em 0;
 }
 
-/* Links */
-.readme-pane .markdown-body a {
-    color: #0969da;
+/* ===== Links ===== */
+
+.readme-pane a {
+    color: #0969da !important;
     text-decoration: none;
 }
 
-.readme-pane .markdown-body a:hover {
+.readme-pane a:hover {
     text-decoration: underline;
 }
 
-/* Inline code */
-.readme-pane .markdown-body code {
-    background-color: rgba(175, 184, 193, 0.2);
+/* ===== Inline Code ===== */
+
+.readme-pane code {
+    background-color: #f6f8fa !important;
     padding: 0.2em 0.4em;
     border-radius: 6px;
     font-size: 85%;
     font-family: Consolas, Monaco, "Courier New", monospace;
 }
 
-/* Code blocks */
-.readme-pane .markdown-body pre {
-    background-color: #0d1117;
-    color: #c9d1d9;
+/* ===== Code Blocks ===== */
+
+.readme-pane pre {
+    background-color: #0d1117 !important;
+    color: #c9d1d9 !important;
     padding: 1em;
     border-radius: 6px;
     overflow-x: auto;
     margin: 1em 0;
 }
 
-.readme-pane .markdown-body pre code {
-    background: none;
+.readme-pane pre code {
+    background: none !important;
     padding: 0;
+    color: inherit !important;
 }
 
-/* Tables */
-.readme-pane .markdown-body table {
+/* ===== Tables ===== */
+
+.readme-pane table {
     border-collapse: collapse;
     margin: 1em 0;
     width: 100%;
 }
 
-.readme-pane .markdown-body th,
-.readme-pane .markdown-body td {
+.readme-pane th,
+.readme-pane td {
     border: 1px solid #d0d7de;
     padding: 8px 12px;
 }
 
-.readme-pane .markdown-body th {
-    background-color: #f6f8fa;
+.readme-pane th {
+    background-color: #f6f8fa !important;
     font-weight: 600;
 }
 
-/* Blockquotes */
-.readme-pane .markdown-body blockquote {
+/* ===== Blockquotes ===== */
+
+.readme-pane blockquote {
     border-left: 4px solid #d0d7de;
     padding: 0 1em;
-    color: #57606a;
+    color: #57606a !important;
     margin: 1em 0;
 }
 
-/* HR */
-.readme-pane .markdown-body hr {
+/* ===== Horizontal Rule ===== */
+
+.readme-pane hr {
     border: none;
     border-top: 1px solid #d0d7de;
     margin: 2em 0;
 }
 
-/* Images */
-.readme-pane .markdown-body img {
-    max-width: 100%;
-    height: auto;
+/* ===== Images (FIX BIG IMAGE ISSUE) ===== */
+
+.readme-pane img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 1rem 0;
+    border-radius: 6px;
 }
 
 /* ===== Responsive ===== */
@@ -406,12 +458,8 @@
         width: 100%;
         max-width: 100%;
         height: auto;
-        padding-right: 0;
         border-right: none;
-    }
-
-    .readme-pane {
-        padding: 1.25rem;
+        padding: 1rem;
     }
 
     .dropdown-container {
@@ -427,4 +475,5 @@
     .prompt-actions {
         justify-content: flex-end;
     }
-}</style>
+}
+</style>

@@ -5,6 +5,7 @@
 - User confirmed the proposed approach for adding an SfUploader-based cover image picker to EditMedia works.
 - User’s main pain point with external metadata APIs is low hit-rate (often can’t find authors), while LLM prompts usually return some response. User wants AI prompts (LLM) to replace some external metadata API calls, e.g., fetching author profiles via AI instead of Google Books/other APIs. 
 - AI fallback for metadata (e.g., author profiles) should run only when external API lookup fails.
+- When multiple plausible author candidates are found, choose the single candidate with the highest internal confidence and return only that candidate's profile; if only one candidate is found, return it normally. Explain ambiguity in Notes and lower Confidence. Use a 0.0–1.0 scale; thresholds: low confidence < 0.5, tie difference < 0.15 indicates ambiguity.
 - Always run a build after any code change to ensure correctness and functionality.
 
 ## Service Registration Guidelines
@@ -18,3 +19,6 @@
 
 ## AI Metadata Rules
 - AI responses for "Notes" must always pertain to LPs, CDs, or DVDs and should never describe songs. Ensure that AI-generated content aligns with these formats.
+
+## Prompt and Modification Guidelines
+- Do not modify the solution or files. Only update prompts and provide suggestions. Do not invent tasks or actions modifying the repo.
