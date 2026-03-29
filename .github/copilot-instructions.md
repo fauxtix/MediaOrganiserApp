@@ -14,6 +14,10 @@
 ## SignalR Guidelines
 - Avoid modifying the UI for SignalR or Hubs-related operations. All SignalR-related work should be handled in the service layer, not the UI.
 
+## UI Implementation Guidelines
+- Apply requested UI changes directly without presenting multiple options. For example, ensure cards are the same height, images fill the container, and titles are clamped to two lines.
+- When rendering author/book UI, prioritize styling of book cover images (thumbnails). Treat the author's portrait as unimportant for book-card layout; it's okay if the author's portrait is cropped. Focus component changes on book image styling (thumbnail sizing, object-fit, card layout).
+
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
 

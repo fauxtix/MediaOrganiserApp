@@ -1,0 +1,273 @@
+@using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Microsoft.AspNetCore.Components
+@using System.Collections.Concurrent
+@using System.Threading
+@inject IGoogleBooksService GoogleBooksService
+@inject ILogger<AuthorBooks> Logger
+
+<div class="author-books-component">
+    @if (string.IsNullOrWhiteSpace(AuthorName))
+    {
+        <div class="text-muted">Nenhum autor selecionado.</div>
+    }
+    else if (booksLoading)
+    {
+        <div class="text-muted">Carregando livros...</div>
+    }
+    else
+    {
+        var fn = FilteredBooks.ToList();
+        if (fn.Any())
+        {
+            <div>
+                <p class="font-weight-bolder mt-2" style="font-size:18px;">List of books</p>
+                <hr />
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || booksLoading || TotalPages <= 1)">Anterior</button>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">Seguinte</button>
+                </div>
+                <div class="text-muted small">Página @currentPage de @TotalPages</div>
+            </div>
+
+            <div class="books-grid" style="--cols:@(Math.Max(1, Math.Min(PageSize, PagedBooks.Count()))); --min-width:140px;">
+                @foreach (var b in PagedBooks)
+                {
+                    <div class="book-item mb-2">
+                        <div class="book-card h-100">
+                            <div class="img-box portrait book-thumb">
+                                <img src="@(string.IsNullOrWhiteSpace(b.Thumbnail) ? "images/NoPhoto.png" : b.Thumbnail)" alt="@b.Title" />
+                            </div>
+                            <div class="book-body p-2 d-flex flex-column">
+                                <a class="book-title" href="@($"https://books.google.com/books?id={b.Id}")" target="_blank" rel="noopener noreferrer">@b.Title</a>
+                                <div class="book-meta text-muted small mt-2">@b.PublishedDate</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end align-items-center mt-2">
+                <div class="text-muted small">Página @currentPage de @TotalPages</div>
+            </div>
+        }
+        else
+        {
+            <div class="text-muted">Nenhum livro encontrado.</div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? AuthorName { get; set; }
+
+    [Parameter]
+    public int PageSize { get; set; } = 4;
+
+    private List<GoogleBookInfo>? books;
+    private bool booksLoading;
+    private int currentPage = 1;
+
+    private IEnumerable<GoogleBookInfo> FilteredBooks => (books ?? Enumerable.Empty<GoogleBookInfo>()).Where(b =>
+        !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
+
+    private int TotalPages
+    {
+        get
+        {
+            var count = FilteredBooks.Count();
+            if (count == 0) return 1;
+            return (int)Math.Ceiling(count / (double)PageSize);
+        }
+    }
+
+    private IEnumerable<GoogleBookInfo> PagedBooks => FilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // reset paging if author changed
+        currentPage = 1;
+        await LoadBooksAsync();
+    }
+
+    private void NextPage()
+    {
+        if (booksLoading) return;
+        if (TotalPages <= 1) return;
+        if (currentPage < TotalPages) currentPage++;
+    }
+
+    private void PrevPage()
+    {
+        if (booksLoading) return;
+        if (TotalPages <= 1) return;
+        if (currentPage > 1) currentPage--;
+    }
+
+    // simple in-memory cache to reduce repeated failing lookups
+    private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items)> _booksCache = new();
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+
+    private async Task LoadBooksAsync()
+    {
+        books = null;
+        if (string.IsNullOrWhiteSpace(AuthorName)) return;
+
+        // Try cache first
+        if (_booksCache.TryGetValue(AuthorName!, out var cached))
+        {
+            if (DateTime.UtcNow - cached.fetchedAt < CacheTtl)
+            {
+                books = cached.items;
+                StateHasChanged();
+                return;
+            }
+            else
+            {
+                // remove stale entry
+                _booksCache.TryRemove(AuthorName!, out _);
+            }
+        }
+
+        booksLoading = true;
+        try
+        {
+            const int maxAttempts = 3;
+            int attempt = 0;
+            List<GoogleBookInfo>? resultList = null;
+
+            while (attempt < maxAttempts)
+            {
+                attempt++;
+                try
+                {
+                    var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!, 40, 0);
+                    resultList = result?.ToList() ?? new List<GoogleBookInfo>();
+                    // if we got any results or a valid empty result, break
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Attempt {Attempt} failed fetching Google Books for author {Author}", attempt, AuthorName);
+                    // small backoff
+                    await Task.Delay(250 * attempt);
+                }
+            }
+
+            books = resultList ?? new List<GoogleBookInfo>();
+
+            // store in cache (even empty) to avoid hammering API for a short period
+            _booksCache[AuthorName!] = (DateTime.UtcNow, books);
+        }
+        finally
+        {
+            booksLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+
+<style>
+    /* Card shell - visual framing moved to the image container so image fills its box */
+    .book-card {
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
+    .book-body {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .books-grid {
+        display: grid;
+        gap: 0.75rem;
+        /* create up to --cols equal columns (capped by PageSize and actual items). */
+        grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+        align-items: stretch;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Responsive fallbacks: cap columns on smaller screens */
+    @@media (max-width: 992px) {
+        .books-grid {
+        grid-template-columns: repeat(min(3, var(--cols)), 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .books-grid {
+        grid-template-columns: repeat(min(2, var(--cols)), 1fr);
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .books-grid { grid-template-columns: 1fr; }
+    }
+
+    .book-item { /* optional wrapper */ }
+
+    /* Portrait image box matching AuthorReadOnly styling */
+    /* Book thumbnail box: use aspect-ratio close to typical book covers so cover fill crops less */
+    /* Image container: border, shadow and radius are applied here so the card body does not clip the image layout.
+       This ensures the image fills the container while the card keeps consistent height. */
+    .img-box.portrait.book-thumb {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        aspect-ratio: 2 / 3; /* typical book cover ratio */
+        max-height: 200px; /* reduced thumbnail height */
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+        background-color: #f9f9f9;
+    }
+
+    .img-box.portrait.book-thumb img {
+        width: 100%;
+        height: 100%;
+        /* show whole image without cropping */
+        object-fit: contain;
+        object-position: center;
+        background-color: #f9f9f9;
+        display: block;
+    }
+
+    /* Ensure all cards in a row have equal height */
+    .book-item {
+        display: flex;
+    }
+
+    .book-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto; /* take full height of the grid cell */
+    }
+
+    /* Title: clamp to exactly 2 lines visually but allow 1 line as well. Reserve space so cards have equal height. */
+    .book-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        line-height: 1.2;
+        /* Reserve height for two lines to keep cards uniform */
+        max-height: calc(1.2em * 2);
+        min-height: calc(1.2em * 2);
+    }
+
+    /* Ensure meta stays at bottom of the card body */
+    .book-meta {
+        margin-top: auto;
+    }
+</style>

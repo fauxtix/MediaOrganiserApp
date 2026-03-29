@@ -1,0 +1,257 @@
+@using MediaOrganizerApp.Application.DTOs
+@using Ganss.Xss
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Microsoft.AspNetCore.Components
+@inject IAutorService AutorService
+@inject IGoogleBooksService GoogleBooksService
+@inject ILogger<AuthorPreview> Logger
+
+<div class="author-preview">
+    @if (author == null)
+    {
+        <div class="text-muted">Autor não carregado.</div>
+    }
+    else
+    {
+        <div class="author-header-box mb-3 p-3 d-flex gap-3">
+            <div style="flex:0 0 240px;">
+                <div class="img-box portrait">
+                    @if (!string.IsNullOrWhiteSpace(author.ImagemAutor))
+                    {
+                        <img src="@author.ImagemAutor" alt="@author.Descricao" />
+                    }
+                    else
+                    {
+                        <img src="images/NoPhoto.png" alt="Sem imagem" />
+                    }
+                </div>
+            </div>
+            <div style="flex:1 1 auto;">
+                <h5 class="mb-1">@author.Descricao</h5>
+                <div class="author-sobre">
+                    @if (!string.IsNullOrWhiteSpace(sanitizedSobre))
+                    {
+                        @((MarkupString)sanitizedSobre)
+                    }
+                    else
+                    {
+                        <div class="text-muted">Sem descrição.</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (ShowBooks)
+        {
+            <div class="author-books mt-1">
+                <h6>Livros publicados</h6>
+                @if (booksLoading)
+                {
+                    <div class="text-muted">Carregando livros...</div>
+                }
+                else
+                {
+                    var fn = FilteredBooks.ToList();
+                    if (fn.Any())
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || booksLoading || TotalPages <= 1)">Anterior</button>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">Seguinte</button>
+                            </div>
+                            <div class="text-muted small">Página @currentPage de @TotalPages</div>
+                        </div>
+
+                        <div class="row">
+                            @foreach (var b in PagedBooks)
+                            {
+                                <div class="col-6 col-md-4 col-lg-3 mb-2">
+                                    <div class="book-card h-100">
+                                        <div class="book-thumbnail">
+                                            <img src="@b.Thumbnail" class="img-fluid" alt="@b.Title" />
+                                        </div>
+                                        <div class="book-body p-2">
+                                            <a href="@($"https://books.google.com/books?id={b.Id}")" target="_blank" rel="noopener noreferrer">@b.Title</a>
+                                            <div class="text-muted small">@b.PublishedDate</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-end align-items-center mt-2">
+                            <div class="text-muted small">Página @currentPage de @TotalPages</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Nenhum livro encontrado.</div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? AuthorId { get; set; }
+
+    [Parameter]
+    public AutorDTO? Author { get; set; }
+
+    [Parameter]
+    public bool ShowBooks { get; set; } = true;
+
+    private AutorDTO? author;
+    private string sanitizedSobre = string.Empty;
+
+    // Books
+    private List<BookInfo>? books;
+    private bool booksLoading;
+
+    // Paging
+    private int currentPage = 1;
+    private int pageSize = 4; // default: 4 per page (adjustable)
+
+    private IEnumerable<BookInfo> FilteredBooks => (books ?? Enumerable.Empty<BookInfo>()).Where(b =>
+        !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
+
+    private int TotalPages
+    {
+        get
+        {
+            var count = FilteredBooks.Count();
+            if (count == 0) return 1;
+            return (int)Math.Ceiling(count / (double)pageSize);
+        }
+    }
+
+    private IEnumerable<BookInfo> PagedBooks => FilteredBooks.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Author != null)
+        {
+            author = Author;
+        }
+        else if (AuthorId is not null && AuthorId > 0)
+        {
+            author = await AutorService.GetAuthorsById(AuthorId.Value);
+        }
+        else
+        {
+            author = null;
+        }
+
+        sanitizedSobre = SanitizeHtml(author?.Sobre);
+
+        if (ShowBooks)
+        {
+            await FetchBooksAsync(author?.Descricao);
+        }
+    }
+
+    private string SanitizeHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+        var sanitizer = new HtmlSanitizer();
+        sanitizer.AllowedAttributes.Add("class");
+        sanitizer.AllowedAttributes.Add("target");
+        sanitizer.AllowedAttributes.Add("rel");
+        sanitizer.AllowedSchemes.Add("http");
+        sanitizer.AllowedSchemes.Add("https");
+        return sanitizer.Sanitize(html);
+    }
+
+    private void NextPage()
+    {
+        if (booksLoading) return;
+        if (TotalPages <= 1) return;
+        if (currentPage < TotalPages) currentPage++;
+    }
+
+    private void PrevPage()
+    {
+        if (booksLoading) return;
+        if (TotalPages <= 1) return;
+        if (currentPage > 1) currentPage--;
+    }
+
+    private async Task FetchBooksAsync(string? authorName)
+    {
+        books = null;
+        currentPage = 1;
+        if (string.IsNullOrWhiteSpace(authorName)) return;
+
+        try
+        {
+            booksLoading = true;
+            var gb = await GoogleBooksService.GetBookAsync(string.Empty, authorName);
+            if (gb?.items is not null && gb.items.Length > 0)
+            {
+                books = gb.items.Select(i => new BookInfo
+                {
+                    Id = i.id,
+                    Title = i.volumeInfo?.title ?? "(sem título)",
+                    Authors = i.volumeInfo?.authors ?? Array.Empty<string>(),
+                    PublishedDate = i.volumeInfo?.publishedDate ?? string.Empty,
+                    Thumbnail = i.volumeInfo?.imageLinks?.thumbnail
+                }).ToList();
+            }
+            else
+            {
+                books = new List<BookInfo>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Erro ao obter livros do Google Books para autor {Author}", author?.Descricao);
+            books = new List<BookInfo>();
+        }
+        finally
+        {
+            booksLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private class BookInfo { public string? Id { get; set; } public string? Title { get; set; } public IEnumerable<string> Authors { get; set; } = Array.Empty<string>(); public string? PublishedDate { get; set; } public string? Thumbnail { get; set; } }
+}
+
+<style>
+.author-header-box {
+    border: 1px solid #e2e8f0; /* small border */
+    border-radius: 8px;
+    padding: 12px;
+    background: #ffffff;
+}
+
+.book-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.book-thumbnail {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    background: #f8fafc;
+}
+
+.book-thumbnail img {
+    max-width: 100%;
+    max-height: 140px;
+    object-fit: contain;
+}
+
+.book-body {
+    flex: 1 1 auto;
+}
+</style>

@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components
 @inject IAutorService AutorService
 @inject ILogger<AuthorReadOnly> Logger
+@using Web.Blazor.Components
+@using Web.Blazor.Components.Authors
 
 
 <div class="author-readonly card p-2">
@@ -13,36 +15,40 @@
     }
     else
     {
-        <div class="row">
-            <div class="col-md-4 text-center h-100">
-                @if (authorHasImage)
-                {
-                    <div class="img-box portrait">
-                        <img src="@author.ImagemAutor" width="320" height="240"
-                             alt="@author.Descricao" />
-                    </div>
-                }
-                else
-                {
-                    <div class="img-box portrait">
-                        <img src="images/NoPhoto.png" alt="Sem imagem" width="320" height="240" />
-                    </div>
-                }
-            </div>
-            <div class="col-md-8">
-                <h5 class="mb-1">@author.Descricao</h5>
-                <div class="author-sobre">
-                    @if (!string.IsNullOrWhiteSpace(sanitizedSobre))
+        <div class="author-header-box mb-3 p-3">
+            <div class="row">
+                <div class="col-md-4 text-center h-100">
+                    @if (authorHasImage)
                     {
-                        @((MarkupString)sanitizedSobre)
+                        <div class="img-box portrait">
+                            <img src="@author.ImagemAutor" width="320" height="240"
+                                 alt="@author.Descricao" />
+                        </div>
                     }
                     else
                     {
-                        <div class="text-muted">Sem descrição.</div>
+                        <div class="img-box portrait">
+                            <img src="images/NoPhoto.png" alt="Sem imagem" width="320" height="240" />
+                        </div>
                     }
+                </div>
+                <div class="col-md-8">
+                    <h5 class="mb-1">@author.Descricao</h5>
+                    <div class="author-sobre">
+                        @if (!string.IsNullOrWhiteSpace(sanitizedSobre))
+                        {
+                            @((MarkupString)sanitizedSobre)
+                        }
+                        else
+                        {
+                            <div class="text-muted">Sem descrição.</div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
+
+        <AuthorBooks AuthorName="@author.Descricao" PageSize="3" />
     }
 </div>
 
@@ -70,6 +76,8 @@
             authorHasImage = !string.IsNullOrWhiteSpace(author?.ImagemAutor) &&
                 !(author.ImagemAutor?.ToLower().Contains("no-image") ?? false) &&
                 !(author.ImagemAutor?.ToLower().Contains("noimage") ?? false);
+            // Book list is now handled by the reusable AuthorBooks component
+            // Keep backward compatibility: no local fetch required
         }
         catch (Exception ex)
         {
@@ -90,6 +98,8 @@
         sanitizer.AllowedSchemes.Add("https");
         return sanitizer.Sanitize(html);
     }
+
+    // Book list is handled by the separate AuthorBooks component
 }
 
 <style>
@@ -111,4 +121,39 @@
             max-height: 100%;
             object-fit: cover;
         }
+
+    .author-header-box {
+        border: 1px solid #e2e8f0; /* small border */
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+    }
+
+    .book-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
+
+    .book-thumbnail {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 8px;
+        background: #f8fafc;
+    }
+
+        .book-thumbnail img {
+            max-width: 100%;
+            max-height: 140px;
+            object-fit: contain;
+        }
+
+    .book-body {
+        flex: 1 1 auto;
+    }
 </style>
