@@ -10,6 +10,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
     {
         private readonly IAiAuthorProfileService _ai;
         private readonly IAiBookSummaryService _books;
+        private readonly IAiBooksService _aiBooks;
         private readonly IAiMediaNotesService _media;
         private readonly IAiMediaMetadataService _mediaMetadata;
         private readonly ILogger<AiController> _logger;
@@ -20,12 +21,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
         public AiController(
             IAiAuthorProfileService ai,
             IAiBookSummaryService books,
+            IAiBooksService aiBooks,
             IAiMediaNotesService media,
             IAiMediaMetadataService mediaMetadata,
             ILogger<AiController> logger)
         {
             _ai = ai;
             _books = books;
+            _aiBooks = aiBooks;
             _media = media;
             _mediaMetadata = mediaMetadata;
             _logger = logger;
@@ -175,6 +178,42 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
             var resp = await _books.GetBookSummaryOnlyAsync(request.Title, request.Author, language, request.ConnectionId, cancellationToken);
             return Ok(resp);
+        }
+
+        [HttpGet("author-books")]
+        public async Task<ActionResult<List<GoogleBookInfo>>> AuthorBooks(
+            string author,
+            string language = "pt",
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(author))
+                return BadRequest("author parameter is required");
+
+            try
+            {
+                // Call AI books service without passing a maxResults parameter; the
+                // service implementation will apply its own defaults and limits.
+                var books = await _aiBooks.GetBooksByAuthorAsync(author, language, cancellationToken);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating author books for {Author}", author);
+                return StatusCode(500, "Error generating author books");
+            }
+        }
+
+        [HttpGet("flags")]
+        public ActionResult<MediaOrganizerApp.Application.FeatureFlags> GetFlags()
+        {
+            return Ok(MediaOrganizerApp.WebApi.Services.FeatureFlagsStore.Get());
+        }
+
+        [HttpPut("flags")]
+        public ActionResult SetFlags([FromBody] MediaOrganizerApp.Application.FeatureFlags flags)
+        {
+            MediaOrganizerApp.WebApi.Services.FeatureFlagsStore.Set(flags);
+            return Ok();
         }
 
         [HttpPost("media-notes")]

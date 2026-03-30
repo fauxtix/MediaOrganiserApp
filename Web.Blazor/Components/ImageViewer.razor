@@ -1,0 +1,120 @@
+@using Microsoft.AspNetCore.Components
+
+@if (Visible)
+{
+    <div class="iv-overlay" @onclick="Close">
+        <div class="iv-dialog" @onclick:stopPropagation>
+
+            <!-- HEADER -->
+            <div class="iv-header">
+                <div class="iv-title">@Title</div>
+                <button class="iv-close" @onclick="Close">✕</button>
+            </div>
+
+            <!-- BODY -->
+            <div class="iv-body">
+                @if (!string.IsNullOrWhiteSpace(ImageUrl))
+                {
+                    <a class="d-block mb-4 h-100">
+                        <div class="img-box img-fluid">
+                            <img class="img img-responsive img-thumbnail"
+                            width="300" height="200"
+                                 alt="Imagem da publicação" src="@ImageUrl" />
+                        </div>
+                    </a>
+
+                    @* <img src="@ImageUrl" alt="@Title" class="iv-image" /> *@
+                }
+                else
+                {
+                    <div class="iv-placeholder">No image</div>
+                }
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Imagem";
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+
+    private async Task Close()
+    {
+        await VisibleChanged.InvokeAsync(false);
+    }
+}
+
+<style>
+    .iv-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    /* Dialog flexível */
+    .iv-dialog {
+        background: #0f172a;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    /* Header */
+    .iv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        color: #e2e8f0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .iv-title {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .iv-close {
+        background: transparent;
+        border: none;
+        color: #e2e8f0;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+        .iv-close:hover {
+            opacity: 0.7;
+        }
+
+    /* Corpo flexível */
+    .iv-body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px; /* espaço ao redor da imagem */
+        background: #0f172a;
+    }
+
+    /* Imagem tamanho fixo */
+    .iv-image {
+        width: 640px;
+        height: 480px;
+        object-fit: contain; /* mantém proporção dentro do tamanho fixo */
+        border-radius: 6px;
+    }
+
+    /* Placeholder */
+    .iv-placeholder {
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+</style>

@@ -5,6 +5,7 @@ using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
+using MediaOrganizerApp.Application;
 using MediaOrganizerApp.WebApi.Hubs;
 using Scalar.AspNetCore;
 using Serilog;
@@ -17,6 +18,8 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        // Add a configuration provider that reflects runtime feature flags from FeatureFlagsStore
+        ((IConfigurationBuilder)builder.Configuration).Add(new MediaOrganizerApp.WebApi.Configuration.FeatureFlagsConfigurationSource());
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets<Program>();
@@ -59,6 +62,23 @@ public class Program
 // AI services
 builder.Services.AddHttpClient<OllamaBookSummaryService>();
 builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
+        // Ollama-based books provider (LLM fallback for Google Books lookups)
+            builder.Services.AddHttpClient<OllamaBooksService>();
+            builder.Services.AddScoped<IAiBooksService, OllamaBooksService>();
+
+        // Feature flags: allow runtime toggling of AI fallback/badge
+        builder.Services.Configure<MediaOrganizerApp.Application.FeatureFlags>(builder.Configuration.GetSection("Features"));
+
+        // Initialize FeatureFlagsStore from configuration at startup so the in-memory store matches configured defaults
+        try
+        {
+            var initial = builder.Configuration.GetSection("Features").Get<MediaOrganizerApp.Application.FeatureFlags>() ?? new MediaOrganizerApp.Application.FeatureFlags();
+            MediaOrganizerApp.WebApi.Services.FeatureFlagsStore.Set(initial);
+        }
+        catch
+        {
+            // ignore any errors reading initial flags
+        }
 
 builder.Services.AddHttpClient<OllamaMediaNotesService>();
 builder.Services.AddScoped<IAiMediaNotesService, OllamaMediaNotesService>();

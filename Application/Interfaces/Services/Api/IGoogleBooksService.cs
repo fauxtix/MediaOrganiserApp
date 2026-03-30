@@ -6,7 +6,9 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.Api
 {
     public interface IGoogleBooksService
     {
-        Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author, int maxResults = 12, int startIndex = 0);
+        // Query books for an author. Do not expose a caller-controlled maxResults or startIndex;
+        // implementations should apply their own defaults and caps.
+        Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author);
 
         // Existing method kept for backward compatibility
         Task<GoogleBook> GetBookAsync(string bookTitle, string author);

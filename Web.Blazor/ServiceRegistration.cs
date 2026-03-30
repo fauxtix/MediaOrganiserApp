@@ -76,8 +76,6 @@ namespace Web.Blazor
             services.AddScoped<IDocxHelper, DocxHelper>();
             services.AddScoped<IOutlookMsgHelper, OutlookMsgHelper>();
             services.AddScoped<IFileService, FileService>();
-            // Register the legacy concrete service so the new client can delegate when needed
-            services.AddHttpClient<GoogleBooksService>();
             // Register the client implementation as the IGoogleBooksService used across the app
             services.AddHttpClient<IGoogleBooksService, GoogleBooksClientService>();
 
