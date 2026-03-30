@@ -3,23 +3,26 @@
 @using Microsoft.AspNetCore.Components
 @using System.Collections.Concurrent
 @using System.Threading
+@using System.Globalization
+@using Microsoft.Extensions.Localization
 @inject IGoogleBooksService GoogleBooksService
 @inject ILogger<AuthorBooks> Logger
 @inject Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient
 @inject Microsoft.Extensions.Options.IOptionsMonitor<MediaOrganizerApp.Application.FeatureFlags> FeatureFlagsMonitor
+@inject IStringLocalizer<App> L
 
 <div class="author-books-component">
     @if (string.IsNullOrWhiteSpace(AuthorName))
     {
-        <div class="text-muted">Nenhum autor selecionado.</div>
+        <div class="text-muted">@L["TituloNenhumAutorSelecionado"]</div>
     }
     else if (booksLoading)
     {
-        <div class="text-muted">Carregando livros...</div>
+        <div class="text-muted">@L["LoadingMsg"]</div>
     }
     else if (googleRateLimited)
     {
-        <div class="alert alert-warning">Too many requests to Google service; falling back to AI.</div>
+        <div class="alert alert-warning">@L["TituloErroTooManyRequests"]</div>
     }
     else
     {
@@ -27,15 +30,15 @@
         if (fn.Any())
         {
             <div>
-                <p class="font-weight-bolder mt-2" style="font-size:18px;">List of books</p>
+                <p class="font-weight-bolder mt-2" style="font-size:18px;">@L["TituloListaLivros"]</p>
                 <hr />
             </div>
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || booksLoading || TotalPages <= 1)">Anterior</button>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">Seguinte</button>
+                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || booksLoading || TotalPages <= 1)">@L["TituloAnterior"]</button>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">L["TituloSeguinte"]</button>
                 </div>
-                <div class="text-muted small">Página @currentPage de @TotalPages</div>
+                <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
             </div>
 
             <div class="books-grid" style="--cols:@(Math.Max(1, Math.Min(PageSize, PagedBooks.Count()))); --min-width:140px;">
@@ -65,18 +68,16 @@
             </div>
 
             <div class="d-flex justify-content-end align-items-center mt-2">
-                <div class="text-muted small">Página @currentPage de @TotalPages</div>
+                <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
             </div>
         }
         else
         {
-            <div class="text-muted">Nenhum livro encontrado.</div>
+            <div class="text-muted">@L["TituloLivroNaoEncontrado"].</div>
         }
     }
 </div>
 
-@* <ImageViewer ImageUrl="@SelectedBook?.Thumbnail" Visible="@isImageViewerVisible" OnClose="CloseImageViewer" />
- *@
 <ImageViewer 
     ImageUrl="@SelectedBook?.Thumbnail"
     Visible="@isImageViewerVisible"
@@ -116,7 +117,6 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // reset paging if author changed
         currentPage = 1;
         await LoadBooksAsync();
     }
@@ -135,10 +135,7 @@
         if (currentPage > 1) currentPage--;
     }
 
-    // simple in-memory cache to reduce repeated failing lookups
-    // store source so we can tell if cached results came from Google or AI
     private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items, string source)> _booksCache = new();
-    // Different TTLs for Google vs AI results
     private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan AiCacheTtl = TimeSpan.FromMinutes(5);
 
@@ -167,12 +164,13 @@
 
         booksLoading = true;
         googleRateLimited = false;
+        var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
         try
         {
             List<GoogleBookInfo>? resultList = null;
             try
             {
-                // Use the Google Books service without passing a maxResults parameter
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
                 if (result == null || result.Count == 0)
                 {
@@ -180,7 +178,7 @@
                     Logger.LogInformation("No Google results for {Author}; attempting AI fallback.", AuthorName);
                     try
                     {
-                        var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, "pt");
+                        var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
                         if (ai is not null && ai.Count > 0)
                         {
                             resultList = ai.ToList();
@@ -210,7 +208,7 @@
                 googleRateLimited = true;
                 try
                 {
-                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, "pt");
+                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
                     if (ai is not null && ai.Count > 0)
                     {
                         resultList = ai.ToList();
@@ -237,7 +235,7 @@
                 Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
                 try
                 {
-                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, "pt");
+                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
                     if (ai is not null && ai.Count > 0)
                     {
                         resultList = ai.ToList();
@@ -282,7 +280,6 @@
 }
 
 <style>
-    /* Card shell - visual framing moved to the image container so image fills its box */
     .book-card {
         overflow: hidden;
         height: 100%;
@@ -298,14 +295,12 @@
     .books-grid {
         display: grid;
         gap: 0.75rem;
-        /* create up to --cols equal columns (capped by PageSize and actual items). */
         grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
         align-items: stretch;
         width: 100%;
         max-width: 100%;
     }
 
-    /* Responsive fallbacks: cap columns on smaller screens */
     @@media (max-width: 992px) {
         .books-grid {
         grid-template-columns: repeat(min(3, var(--cols)), 1fr);
@@ -324,17 +319,13 @@
 
     .book-item { /* optional wrapper */ }
 
-    /* Portrait image box matching AuthorReadOnly styling */
-    /* Book thumbnail box: use aspect-ratio close to typical book covers so cover fill crops less */
-    /* Image container: border, shadow and radius are applied here so the card body does not clip the image layout.
-       This ensures the image fills the container while the card keeps consistent height. */
     .img-box.portrait.book-thumb {
         display: flex;
         justify-content: center;
         align-items: center;
         width: 100%;
-        aspect-ratio: 2 / 3; /* typical book cover ratio */
-        max-height: 200px; /* reduced thumbnail height */
+        aspect-ratio: 2 / 3;
+        max-height: 200px; 
         border: 2px solid #ccc;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.08);
@@ -345,14 +336,12 @@
     .img-box.portrait.book-thumb img {
         width: 100%;
         height: 100%;
-        /* show whole image without cropping */
         object-fit: contain;
         object-position: center;
         background-color: #f9f9f9;
         display: block;
     }
 
-    /* Ensure all cards in a row have equal height */
     .book-item {
         display: flex;
     }
@@ -360,10 +349,9 @@
     .book-card {
         display: flex;
         flex-direction: column;
-        flex: 1 1 auto; /* take full height of the grid cell */
+        flex: 1 1 auto; 
     }
 
-    /* Title: clamp to exactly 2 lines visually but allow 1 line as well. Reserve space so cards have equal height. */
     .book-title {
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -372,12 +360,10 @@
         text-overflow: ellipsis;
         word-break: break-word;
         line-height: 1.2;
-        /* Reserve height for two lines to keep cards uniform */
         max-height: calc(1.2em * 2);
         min-height: calc(1.2em * 2);
     }
 
-    /* Ensure meta stays at bottom of the card body */
     .book-meta {
         margin-top: auto;
     }

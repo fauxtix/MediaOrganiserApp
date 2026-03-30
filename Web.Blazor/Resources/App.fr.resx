@@ -1168,4 +1168,22 @@
   <data name="TituloItensPlaylist" xml:space="preserve">
     <value>Titres</value>
   </data>
+  <data name="TituloNenhumAutorSelecionado" xml:space="preserve">
+    <value>Aucun auteur sélectionné</value>
+  </data>
+  <data name="TituloErroTooManyRequests" xml:space="preserve">
+    <value>Trop de requêtes adressées au service Google ; on se rabat sur l'IA.</value>
+  </data>
+  <data name="TituloListaLivros" xml:space="preserve">
+    <value>Liste des livres</value>
+  </data>
+  <data name="TituloAnterior" xml:space="preserve">
+    <value>Précédent</value>
+  </data>
+  <data name="TituloSeguinte" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="TituloLivroNaoEncontrado" xml:space="preserve">
+    <value>Aucun livre trouvé</value>
+  </data>
 </root>

@@ -1171,4 +1171,22 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloItensPlaylist" xml:space="preserve">
     <value>Títulos</value>
   </data>
+  <data name="TituloNenhumAutorSelecionado" xml:space="preserve">
+    <value>Nenhum autor selecionado</value>
+  </data>
+  <data name="TituloErroTooManyRequests" xml:space="preserve">
+    <value>Demasiadas solicitações ao serviço do Google; recorrendo à IA.</value>
+  </data>
+  <data name="TituloListaLivros" xml:space="preserve">
+    <value>Lista de livros</value>
+  </data>
+  <data name="TituloAnterior" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="TituloSeguinte" xml:space="preserve">
+    <value>Seguinte</value>
+  </data>
+  <data name="TituloLivroNaoEncontrado" xml:space="preserve">
+    <value>Nenhum livro encontrado</value>
+  </data>
 </root>
