@@ -10,6 +10,9 @@ Each item must be an object with exactly these properties:
 Rules:
 - Output only a valid JSON array (e.g. [] or [{...}, {...}]).
 - Do not include any extra fields, comments or surrounding text.
+- Do not iclude any items that are not by the specified author.
+- Only include items in that language (if known).
+- The temperature is set to be between 0.0 and 0.2, so only include items you are very confident about. If you are not sure about an item, do not include it.
 - If unsure about a match, reduce the "Confidence" value (e.g. 0.2-0.5). Do not invent many high-confidence items.
 - If no matches are found, return an empty array: []
 
