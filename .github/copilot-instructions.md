@@ -8,6 +8,14 @@
 - When multiple plausible author candidates are found, choose the single candidate with the highest internal confidence and return only that candidate's profile; if only one candidate is found, return it normally. Explain ambiguity in Notes and lower Confidence. Use a 0.0–1.0 scale; thresholds: low confidence < 0.5, tie difference < 0.15 indicates ambiguity.
 - Always run a build after any code change to ensure correctness and functionality.
 
+## User Environment Preferences
+- User is using Visual Studio Community 2026 (18.4.2) with a workspace root at `C:\NewProjects\MediaOrganizer\MediaOrganizerApp`.
+- User prefers the terminal shell to be `powershell.exe`.
+- The repository is located at the specified path on the `master` branch.
+- Projects target .NET 10 and .NET 7.
+- The project contains a Blazor project; prioritize Blazor-focused answers.
+- README uses 'Media Organizer App' as the application name and does not include a 'Publications Management' heading; do not modify README without explicit request.
+
 ## Service Registration Guidelines
 - When registering new services that depend on HttpClient, always use `AddHttpClient` in the `AddServicesInfrastructure` method (ServiceRegistration.cs) and never register directly in `Program.cs`. Follow the pattern of other services in the project to avoid duplication and lifecycle issues.
 
@@ -22,7 +30,7 @@
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
 
 ## AI Metadata Rules
-- AI responses for "Notes" must always pertain to LPs, CDs, or DVDs and should never describe songs. Ensure that AI-generated content aligns with these formats.
+- AI responses for "Notes" must always pertain to LPs, CDs, or DVDs and should never describe songs. Ensure that AI-generated content aligns with these formats. LPs, CDs, and DVDs are managed by the Media Management feature; they are not part of Publications or 'Publications Management'.
 
 ## Prompt and Modification Guidelines
 - Do not modify the solution or files unless the user explicitly requests changes; prefer making suggestions and asking before applying edits. User prefers I do not change files unless they explicitly ask; they want diagnostics and explanations rather than automatic edits.

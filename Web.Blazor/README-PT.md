@@ -1,13 +1,13 @@
-# 📚 Aplicação Media Organiser
+# 📚 Aplicação Media Organizer
 
 [Versão em Inglês](README.md)
 
 Já alguma vez sentiu frustração ao gerir os seus ficheiros multimédia, com centenas de ficheiros espalhados por diferentes discos ou dispositivos de armazenamento? Não seria ótimo tê-los organizados, facilitando a sua gestão?
 
 A Aplicação Media Organizer é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
-Também permite organizar coleções de livros, discos de vinil, CDs, DVDs e documentos escritos em papel (armários de arquivo, por exemplo).
+Também permite organizar coleções de livros e documentos escritos em papel (armários de arquivo, por exemplo).
 
-Esta aplicação foi concebida para simplificar a organização, gestão e pesquisa de dados multimédia e de publicações com uma interface intuitiva e um backend robusto.
+Esta aplicação foi concebida para simplificar a organização, gestão e recuperação de dados multimédia e de publicações com uma interface amigável e um backend robusto.
 
 ---
 
@@ -16,79 +16,67 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 ### 📚 Gestão de Publicações
 - **Operações CRUD**: Criar, consultar, atualizar e eliminar publicações com metadados detalhados.
 - **Importação/Upload em Massa**:
-  - Carregue publicações em massa utilizando ficheiros CSV, Excel ou JSON.
-  - Mapeamento de dados automático e manual para integração sem falhas.
-  - Validação de campos obrigatórios, deteção de duplicados e relatórios de erros.
-- **Pesquisa e Filtro**: Pesquisa avançada por título, autor, categoria ou palavras-chave.
-- **Deteção de Duplicados**: Sinalização automática de publicações duplicadas com base em metadados.
-- **Relatórios**: Gerar relatórios detalhados sobre publicações, incluindo estatísticas por categoria, autor ou ano.
-- **Pesquisa na API Google Books**: Pesquisa integrada para metadados de livros usando a API Google Books.
+  - Carregue publicações em massa utilizando Pdf, Excel ou Word.
+  - Mapeamento automático e manual para integração.
+  - Validação, deteção de duplicados e relatórios de erros.
+- **Pesquisa & Filtro**: Pesquisa avançada por título, autor, categoria, palavras-chave.
+- **Deteção de Duplicados**: Sinalização automática de publicações duplicadas.
+- **Relatórios**: Gerar relatórios detalhados por categoria, autor ou ano.
+- **Google Books API**: Pesquisa integrada para metadados de livros.
+- **Visualização de livros do autor**: Ver os livros de um autor diretamente do editor de publicações e da página de autor (Google Books + fallback IA).
 
 ### 🖼️ Gestão de Média
-- **Upload de Ficheiros**: Carregamento de ficheiros (arrastar e largar) para imagens, PDFs, vídeos e áudios.
-  - **Acompanhamento de Progresso**: Barra de progresso em tempo real para uploads de ficheiros.
-- **Pré-visualização de Média**: Pré-visualizações integradas para tipos de ficheiros suportados.
-- **Ligar Média a Publicações**: Associar ficheiros multimédia a publicações específicas.
-- **Categorização e Etiquetagem**: Organize os ficheiros multimédia por categorias e etiquetas.
-- **Listas de Reprodução**: Criar, gerir e editar listas de reprodução para organizar ficheiros multimédia.
-  - **Tipos de Média**: Suporte para listas de reprodução de áudio e vídeo.
-  - **Detalhes da Lista de Reprodução**: Exibir nomes, descrições e ficheiros associados às listas de reprodução.
-- **Títulos de Página Dinâmicos**: As páginas de média agora incluem títulos dinâmicos com badges e subtítulos.
-- **Integração com YouTube**: Adicionar registos do YouTube diretamente na interface de gestão de média.
-- **Recuperação de Metadados com IA**: Obter metadados para ficheiros multimédia diretamente na interface.
-  - **Botão Obter Informações**: Permite aos utilizadores recuperar metadados para um ficheiro selecionado usando prompts de IA.
-  - **Atualizações de Estado**: Exibe progresso e alertas durante o processo de recuperação de metadados.
+- **Uploads**: Drag-and-drop para imagens, PDFs, vídeos e áudio com progressbar.
+- **Pré-visualização**: Inline previews para ficheiros suportados.
+- **Ligar Media a Publicações**: Associar ficheiros a publicações.
+- **Categorização & Tags**: Organize ficheiros por categorias e etiquetas.
+- **Playlists**: Criar e gerir playlists (audio/video).
+- **YouTube Integration**: Adicionar registos do YouTube.
+- **Recuperação de Metadados com IA**: Botão "Obter Informações" com fallback de IA e atualizações de estado.
 
 ### 📄 Gestão de Documentos
-- **Edição de Documentos**: Editar documentos Word (`.docx`) diretamente no navegador usando `SfDocumentEditor`.
-- **Impressão**: Imprimir documentos diretamente do editor.
-- **Estilos Personalizados**: Estilização melhorada para opções de documentos.
+- **Editor de .docx**: Edição em browser usando `SfDocumentEditor`.
+- **Impressão**: Imprimir diretamente do editor.
+- **Visualizador de Documentos**: Componente separado para visualização e impressão.
 
 ### 🔄 Atualizações em Tempo Real
-- **Integração com SignalR**: Atualizações em tempo real para operações demoradas, como importações em massa ou recuperação de metadados.
+- **SignalR** para progresso em operações longas.
 
-### 🤖 IA de Apoio
-- **Recuperação de Metadados**: Obter automaticamente metadados (ex.: perfis de autores) usando IA quando as chamadas à API externa falham.
-- **Integração com Ollama**: Utilizado para gerar perfis de autores e metadados.
-  - **Perfis de Autores**: Obter informações detalhadas sobre autores usando prompts de IA.
-  - **Prompts Personalizáveis**: Suporte para consultas dinâmicas para resultados personalizados.
+### 🤖 Fallback de IA
+- **Recuperação de metadados com IA**: Usa Ollama/local LLM para gerar perfis de autor e metadados quando APIs externas falham.
+- **Gestão de prompts**: Página para editar prompts usados pelo fallback.
 
-### 📊 Analítica e Relatórios
-- **Estatísticas de Publicação**: Consultar estatísticas como o número de publicações por categoria, autor ou ano.
-- **Insights do Uso de Média**: Analisar a utilização de ficheiros multimédia e identificar ficheiros não utilizados ou desatualizados.
-- **Relatórios Personalizáveis**: Gerar relatórios em PDF ou Excel adaptados às suas necessidades.
+### 📊 Analítica & Relatórios
+- Estatísticas de publicações/media e export para PDF/Excel.
 
-### 🔐 Gestão de Utilizadores e Autorização
-- **Controlo de Acesso Baseado em Funções**: Atribuir funções (Administrador, Editor, Visualizador) aos utilizadores.
-- **Perfis de Utilizador**: Gerir perfis de utilizador, incluindo detalhes pessoais e preferências.
-- **Registos de Atividade**: Acompanhar atividades dos utilizadores para responsabilidade.
-- **Autenticação**: Login seguro usando ASP.NET Core Identity com MFA opcional.
+### 🔐 Gestão de Utilizadores
+- RBAC (Admin, Editor, Viewer), Perfis e Logs.
 
 ---
 
 ## 📂 Visão Geral das Páginas
 
-| Nome da Página             | Descrição                                                                 |
-|----------------------------|-------------------------------------------------------------------------|
-| **Início**                 | Painel com métricas principais e links rápidos.                        |
-| **Publicações**            | Gerir publicações, ver detalhes e realizar operações CRUD.             |
-| **Pesquisa Google Books**  | Pesquisar e recuperar metadados de livros usando a API Google Books.   |
-| **Média**                  | Carregar, pré-visualizar e gerir ficheiros multimédia.                 |
-| **Galeria de Vídeos**      | Navegar e gerir ficheiros de vídeo.                                    |
-| **Listas de Reprodução**   | Criar e gerir listas de reprodução para ficheiros multimédia.          |
-| **Backup da Base de Dados**| Fazer backup da base de dados.                                         |
-| **Backup de Publicações**  | Fazer backup de uploads de publicações.                               |
-| **Backup de Média**        | Fazer backup de uploads de média.                                     |
-| **Backup de Imagens**      | Fazer backup de uploads de imagens.                                   |
-| **Gerir Autores**          | Gerir informações de autores.                                         |
-| **Gerir Utilizadores**     | Gerir contas e funções de utilizadores.                               |
-| **Tabelas Auxiliares**     | Gerir dados auxiliares como autores, categorias e editores.           |
-| **Definições da Aplicação**| Configurar definições gerais da aplicação.                            |
-| **Gestor de Ficheiros**    | Gerir ficheiros e diretórios.                                         |
-| **Ver Registos**           | Ver registos da aplicação para depuração e monitorização.             |
-| **Editar Prompts**         | Editar prompts de IA para geração de metadados.                      |
-| **Relatórios**             | Gerar e descarregar relatórios para publicações e média.              |
-| **Gestão de Utilizadores** | Gerir funções, permissões e perfis de utilizadores.                   |
+| Nome da Página                  | Descrição                                                                 |
+|---------------------------------|-----------------------------------------------------------------------------|
+| **Home**                        | Dashboard com métricas principais e links rápidos.                        |
+| **Publications**                | Manage publications, view details, and perform CRUD operations.           |
+| **GoogleBooksApiSearch**        | Search and retrieve book metadata using Google Books API.                 |
+| **Media**                       | Upload, preview, and manage media files.                                   |
+| **Video Gallery**               | Browse and manage video files.                                             |
+| **Playlists**                   | Create and manage playlists for media files.                               |
+| **Backup Database**             | Backup the database.                                                       |
+| **Backup Publications**         | Backup publication uploads.                                                |
+| **Backup Media**                | Backup media uploads.                                                      |
+| **Backup Images**               | Backup image uploads.                                                      |
+| **Manage Authors**              | Manage author information.                                                 |
+| **Manage Users**                | Manage user accounts and roles.                                            |
+| **Lookup Tables**               | Manage auxiliary data like authors, categories, and publishers.            |
+| **Application Settings**        | Configure application-wide settings.                                       |
+| **File Manager**                | Manage files and directories.                                              |
+| **View Logs**                   | View application logs for debugging and monitoring.                        |
+| **Edit Prompts**                | Edit AI prompts for metadata generation.                                   |
+| **Reports**                     | Generate and download reports for publications and media.                  |
+| **Data Integrity**              | Tools to find publications with missing files and store PDFs/PNGs flagged as not deleted. |
 
 ---
 
@@ -98,7 +86,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 - **Backend**: ASP.NET Core Web API
 - **Base de Dados**: SQL Server
 - **Comunicação em Tempo Real**: SignalR
-- **Integração com IA**: OpenAI API para recuperação de metadados
+- **Integração com IA**: Ollama API para recuperação de metadados (local LLM)
 - **Autenticação**: ASP.NET Core Identity
 - **Registos**: Serilog
 - **Outras Ferramentas**: FluentValidation, AutoMapper
@@ -129,7 +117,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
    dotnet restore
 ```
 
-4. Atualize o ficheiro `appsettings.json` com a sua string de conexão à base de dados.
+4. Atualize o `appsettings.json` com a sua string de conexão.
 
 5. Execute as migrações:
 ```
@@ -143,12 +131,12 @@ Esta aplicação foi concebida para simplificar a organização, gestão e pesqu
 
 ---
 
-## 📖 API e Integrações
+## 📖 API & Integrações
 
-A solução fornece uma API RESTful para gerir publicações e média. Endpoints principais incluem:
+A solução fornece uma API RESTful para gerir publicações e media. Endpoints principais incluem:
 
 - **Publicações**: `/api/publications`
-- **Média**: `/api/media`
+- **Media**: `/api/media`
 - **Utilizadores**: `/api/users`
 
 ### Integrações
@@ -157,4 +145,20 @@ A solução fornece uma API RESTful para gerir publicações e média. Endpoints
 
 ---
 
-Este ficheiro foi atualizado para refletir as últimas funcionalidades, tecnologias e instruções de configuração da solução. Informe-me se precisar de mais ajustes!
+## 🔐 User Roles & Authorization
+
+### **User Roles**
+- **Admin**: Full access to all features, including user management, app settings, logs, and backups.
+- **Editor**: Manage publications and media files.
+- **Viewer**: Read-only access to publications and media.
+
+---
+
+## ⚙️ Admin Options
+
+### **1. App Settings**
+Administração das definições da aplicação incluindo API keys, storage e políticas de autenticação.
+
+---
+
+Se quiser que eu adicione links diretos para os componentes (`AuthorReadOnly`, `AuthorBooks`, `EditPublicacoes`) ou ajustar a tradução, diga-me.

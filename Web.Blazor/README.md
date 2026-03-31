@@ -23,6 +23,10 @@ This application is designed to streamline the organization, management, and ret
 - **Duplicate Detection**: Automatically flag duplicate publications based on metadata.
 - **Reports**: Generate detailed reports for publications, including statistics by category, author, or year.
 - **Google Books API Search**: Integrated search for book metadata using the Google Books API.
+ - **Author's books view**: View an author's books directly from the publication editor and from the author details page (uses Google Books with AI fallback when necessary).
+   - How to access:
+     - From the publication editor: open a publication in `Publications` and click the author lookup/search button next to the author field to open the author dialog; the dialog shows author details and an "Author Books" list with thumbnails, titles and links.
+     - From the author editor: open `Manage Authors`, edit an author and click the "Author Books" button to view the same list in a dialog.
 
 ### 🖼️ Media Management
 - **File Uploads**: Drag-and-drop file uploads for images, PDFs, videos, and audio files.
@@ -52,6 +56,16 @@ This application is designed to streamline the organization, management, and ret
 - **Ollama Integration**: Utilized for generating author profiles and metadata.
   - **Author Profiles**: Fetches detailed author information using AI prompts.
   - **Customizable Prompts**: Supports dynamic queries for personalized results.
+
+### 🔧 Additional server & utility features
+
+- **File integrity checks**: APIs and tools to detect publications whose digital files are missing on disk and to run verification or repair operations.
+- **PDF/PNG retention helpers**: Endpoints to store files flagged as "not deleted" and related server-side handling to preserve important uploads.
+- **Cascade author cleanup**: When deleting a publication, the system can automatically remove the author record if they have no other publications.
+- **AI prompts management**: UI page to edit and manage AI prompt templates used by the AI metadata fallback services.
+- **Ollama author & book services**: Server-side Ollama clients generate author profiles and assist with book metadata when external APIs fail.
+- **Document viewer & printing**: Dedicated document viewer component with print/export support, complementing the in-browser document editor.
+- **File Manager API & UI**: Endpoints and client services for browsing, uploading and managing application files (PDFs, images, media).
 
 ### 📊 Analytics & Reporting
 - **Publication Statistics**: View statistics such as the number of publications by category, author, or year.
@@ -85,6 +99,7 @@ This application is designed to streamline the organization, management, and ret
 | **Lookup Tables**          | Manage auxiliary data like authors, categories, and publishers.            |
 | **Application Settings**   | Configure application-wide settings.                                       |
 | **File Manager**           | Manage files and directories.                                              |
+| **Data Integrity**         | Tools to find publications with missing files and store PDFs/PNGs flagged as not deleted. |
 | **View Logs**              | View application logs for debugging and monitoring.                        |
 | **Edit Prompts**           | Edit AI prompts for metadata generation.                                   |
 | **Reports**                | Generate and download reports for publications and media.                  |
