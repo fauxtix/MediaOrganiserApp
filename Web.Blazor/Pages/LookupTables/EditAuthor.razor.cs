@@ -48,6 +48,7 @@ namespace Web.Blazor.Pages.LookupTables
         public string[] Items = new string[] { "Open", "|", "Delete", "Download", "Rename", "|", "Details", "Custom" };
         protected (string bio, string photo, string birthDate) authorDetails;
 
+        protected bool ShowBooksVisibility;
         protected override void OnInitialized()
         {
             alertVisibility = false;

@@ -1,11 +1,12 @@
 ﻿@using Web.Blazor.Components
+@using Web.Blazor.Components.Authors
 @inject Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient
 
 @attribute [Authorize]
 
 <div id="spinnerContainer"></div>
-<SfSpinner @ref="SpinnerObj" 
-           Label="@L["LoadingMsg"]" 
+<SfSpinner @ref="SpinnerObj"
+           Label="@L["LoadingMsg"]"
            Type="@SpinnerType.Tailwind"
            CssClass="e-spin-overlay">
 </SfSpinner>
@@ -49,28 +50,30 @@
                         <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
                     </SfRichTextEditor>
                 </div>
-               @if (!string.IsNullOrWhiteSpace(aiNotes) || aiConfidence is not null)
+                @if (!string.IsNullOrWhiteSpace(aiNotes) || aiConfidence is not null)
                 {
                     <div class="mt-2">
                         <SfMessage Severity="MessageSeverity.Info"
                                    ShowCloseIcon="true" ShowIcon="true"
                                    Variant="MessageVariant.Text"
                                    Visible="true">
-                                AI Notes:@(string.IsNullOrWhiteSpace(aiNotes) ? " (none)" : $" {aiNotes}")
-                                @if (aiConfidence is not null)
-                                {
-                                    <span> | Confidence: @aiConfidence</span>
-                                }
+                            AI Notes:@(string.IsNullOrWhiteSpace(aiNotes) ? " (none)" : $" {aiNotes}")
+                            @if (aiConfidence is not null)
+                            {
+                                <span> | Confidence: @aiConfidence</span>
+                            }
                         </SfMessage>
                     </div>
                 }
-@*                 @if (!blnEdit)
+                @if (!blnEdit || string.IsNullOrEmpty(SelectedAuthor.Sobre))
                 {
- *@                    <div class="mt-2">
-                        <SfButton CssClass="e-primary" IsPrimary="true"
+                    <div class="d-flex justify-content-start align-items-center mt-2" style="gap:5px">
+                        <SfButton CssClass="e-primary e-round-corner" IsPrimary="true"
                                   Content="Get data From Api" OnClick="GetAuthorDataFromApi" />
+                        <SfButton CssClass="e-primary e-round-corner"
+                                  Content="Author Books" OnClick="@(()=>ShowBooksVisibility = true)" />
                     </div>
-                @* } *@
+                }
             </div>
             <div class="col-md-4 text-center h-100">
                 @if (!string.IsNullOrEmpty(SelectedAuthor.ImagemAutor))
@@ -107,7 +110,38 @@
                ShowCloseIcon="true" ShowIcon="true"
                Variant="MessageVariant.Text" Visible=@alertVisibility>@message</SfMessage>
 
+
 </div>
+
+<SfDialog Width="580px"
+          Height="auto"
+          IsModal="true"
+          MinHeight="580px"
+          ShowCloseIcon="true"
+          @bind-Visible="ShowBooksVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="font-weight-bold" style="font-size:1.5rem;">
+                <img src="images/book-picture-icon.png" width="48" height="48">
+                @SelectedAuthor.Descricao
+            </div>
+        </Header>
+
+        <Content>
+            <AuthorBooks AuthorName="@SelectedAuthor.Descricao" PageSize="3" />
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-outline e-round-corner"
+                          IconCss="fa fa-times" Content="@L["BtnSalir"]"
+                          @onclick="() => ShowBooksVisibility = false">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=400></DialogAnimationSettings>
+</SfDialog>
+
 
 <style>
     .img-box.portrait {

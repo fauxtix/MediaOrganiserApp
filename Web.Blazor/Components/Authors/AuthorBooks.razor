@@ -36,7 +36,7 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
                     <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || booksLoading || TotalPages <= 1)">@L["TituloAnterior"]</button>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">L["TituloSeguinte"]</button>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || booksLoading || TotalPages <= 1)">@L["TituloSeguinte"]</button>
                 </div>
                 <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
             </div>
@@ -73,7 +73,31 @@
         }
         else
         {
-            <div class="text-muted">@L["TituloLivroNaoEncontrado"].</div>
+            @if(!string.IsNullOrEmpty(SpinnerLabel))
+            {
+                <div class="text-muted">
+                    <SfMessage Severity="MessageSeverity.Info" ShowCloseIcon="true" CssClass="mt-2">
+                            @if (googleRateLimited)
+                            {
+                                @L["TituloErroTooManyRequests"]
+                            }
+                            else if (aiFallbackUsed)
+                            {
+                                @L["TituloNenhumResultadoGoogleUsandoAIFallback"]
+                            }
+                            else
+                            {
+                                @L["TituloNenhumResultadoGoogle"]
+                            }
+                    </SfMessage>
+                </div>
+
+                <div class="text-muted">
+                    <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2">
+                                @SpinnerLabel
+                    </SfMessage>
+                </div>
+            }
         }
     }
 </div>
@@ -84,6 +108,13 @@
     VisibleChanged="@(v => isImageViewerVisible = v)"
     Title="@SelectedBook.Title" />
 
+    <div id="spinner-container">
+    <SfSpinner Visible="@SpinnerVisible"
+                Label="@SpinnerLabel" 
+                Type="@SpinnerType.Tailwind"
+                CssClass="e-spin-overlay">
+    </SfSpinner>
+</div>
 
 @code {
     [Parameter]
@@ -92,6 +123,9 @@
     [Parameter]
     public int PageSize { get; set; } = 4;
 
+
+    protected SfSpinner SpinnerObj;
+
     private bool isImageViewerVisible;
     private GoogleBookInfo? SelectedBook = new();
     private List<GoogleBookInfo>? books;
@@ -99,6 +133,10 @@
     private bool aiFallbackUsed;
     private bool googleRateLimited;
     private int currentPage = 1;
+    private string SpinnerLabel { get; set; }
+    private bool SpinnerVisible{ get; set; }
+    private readonly SemaphoreSlim _spinnerLock = new(1, 1);
+
 
     private IEnumerable<GoogleBookInfo> FilteredBooks => (books ?? Enumerable.Empty<GoogleBookInfo>()).Where(b =>
         !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
@@ -171,11 +209,17 @@
             List<GoogleBookInfo>? resultList = null;
             try
             {
+                SpinnerLabel = L["LoadingMsg"];
+                SpinnerVisible = true;
+                await InvokeAsync(StateHasChanged);
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
                 if (result == null || result.Count == 0)
                 {
                     // If Google returned no results, try AI fallback
+                    SpinnerLabel = $"No Google results for {AuthorName}; attempting AI fallback.";                   
                     Logger.LogInformation("No Google results for {Author}; attempting AI fallback.", AuthorName);
+                                    await InvokeAsync(StateHasChanged);
+
                     try
                     {
                         var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
@@ -195,16 +239,26 @@
                         Logger.LogWarning(ex, "AI fallback failed for author {Author}", AuthorName);
                         resultList = new List<GoogleBookInfo>();
                     }
+                    finally
+                    {
+                        SpinnerVisible = false;
+                        SpinnerLabel = "";
+                    }
                 }
                 else
                 {
+                        SpinnerVisible = false;
+
                     resultList = result.ToList();
                 }
             }
             catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
                 // Specific handling for Google 429 rate-limit: fall back to AI and show message
+                SpinnerLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
                 Logger.LogWarning(httpEx, "Google Books rate-limited for {Author}; falling back to AI.", AuthorName);
+                                await InvokeAsync(StateHasChanged);
+
                 googleRateLimited = true;
                 try
                 {
@@ -228,11 +282,19 @@
                     Logger.LogWarning(ex2, "AI fallback failed for author {Author}", AuthorName);
                     resultList = new List<GoogleBookInfo>();
                 }
+                finally
+                {
+                        SpinnerVisible = false;
+                    SpinnerLabel = "";
+                }
             }
             catch (Exception ex)
             {
                 // On other exceptions, log and attempt AI fallback
+                SpinnerLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
                 Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
+                                await InvokeAsync(StateHasChanged);
+
                 try
                 {
                     var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
@@ -252,6 +314,11 @@
                     Logger.LogWarning(ex2, "AI fallback failed for author {Author}", AuthorName);
                     resultList = new List<GoogleBookInfo>();
                 }
+                finally
+                {
+                        SpinnerVisible = false;
+                    SpinnerLabel = "";
+                }
             }
 
             books = resultList ?? new List<GoogleBookInfo>();
@@ -263,6 +330,7 @@
         finally
         {
             booksLoading = false;
+                        SpinnerVisible = false;
             StateHasChanged();
         }
     }
@@ -276,6 +344,32 @@
     private void CloseImageViewer()
     {
         isImageViewerVisible = false;
+    }
+
+    private async Task RunWithSpinnerAsync(string label, Func<Task> work)
+    {
+        await _spinnerLock.WaitAsync();
+        try
+        {
+            SpinnerLabel = label ?? "";
+            SpinnerVisible = true;
+            await InvokeAsync(StateHasChanged); // ensure label renders before work
+
+            if (work is not null) await work();
+        }
+        finally
+        {
+            SpinnerVisible = false;
+            SpinnerLabel = "";
+            await InvokeAsync(StateHasChanged);
+            _spinnerLock.Release();
+        }
+    }
+    // update the label while spinner is visible (forces immediate render)
+    private Task UpdateSpinnerLabelAsync(string label)
+    {
+        SpinnerLabel = label ?? "";
+        return InvokeAsync(StateHasChanged);
     }
 }
 
@@ -325,7 +419,7 @@
         align-items: center;
         width: 100%;
         aspect-ratio: 2 / 3;
-        max-height: 200px; 
+        max-height: 240px; 
         border: 2px solid #ccc;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.08);
@@ -336,7 +430,7 @@
     .img-box.portrait.book-thumb img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: fill;
         object-position: center;
         background-color: #f9f9f9;
         display: block;
@@ -367,4 +461,10 @@
     .book-meta {
         margin-top: auto;
     }
+
+ #spinner-container {
+        position: relative;
+        color: red;
+    }
+
 </style>

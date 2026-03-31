@@ -1188,4 +1188,10 @@
   <data name="TituloLivroNaoEncontrado" xml:space="preserve">
     <value>No books found</value>
   </data>
+  <data name="TituloNenhumResultadoGoogleUsandoAIFallback" xml:space="preserve">
+    <value>No results (Google)</value>
+  </data>
+  <data name="TituloNenhumResultadoGoogle" xml:space="preserve">
+    <value>No results (Google), using an AI-based alternative solution </value>
+  </data>
 </root>

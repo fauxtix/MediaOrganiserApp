@@ -1186,4 +1186,10 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TituloLivroNaoEncontrado" xml:space="preserve">
     <value>No se ha encontrado ningún libro</value>
   </data>
+  <data name="TituloNenhumResultadoGoogleUsandoAIFallback" xml:space="preserve">
+    <value>Ningún resultado (Google)</value>
+  </data>
+  <data name="TituloNenhumResultadoGoogle" xml:space="preserve">
+    <value>Ningún resultado (Google), utilizando una solución alternativa basada en IA </value>
+  </data>
 </root>
