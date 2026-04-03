@@ -1,6 +1,9 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Microsoft.AspNetCore.Mvc;
+using System;
 
 namespace MediaOrganizerApp.WebApi.Controllers
 {
@@ -13,6 +16,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiBooksService _aiBooks;
         private readonly IAiMediaNotesService _media;
         private readonly IAiMediaMetadataService _mediaMetadata;
+        private readonly IAiChatService _chat;
         private readonly ILogger<AiController> _logger;
 
         // Pasta externa para overrides
@@ -24,7 +28,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             IAiBooksService aiBooks,
             IAiMediaNotesService media,
             IAiMediaMetadataService mediaMetadata,
-            ILogger<AiController> logger)
+            ILogger<AiController> logger,
+            IAiChatService chat)
         {
             _ai = ai;
             _books = books;
@@ -34,6 +39,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _logger = logger;
 
             Directory.CreateDirectory(_overrideDir); // garante que a pasta existe
+            _chat = chat;
         }
 
         [HttpGet("prompts/readme")]
@@ -264,6 +270,47 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
             var year = await _mediaMetadata.GetMediaEditionYearAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
             return Ok(string.IsNullOrWhiteSpace(year) ? "N/A" : year);
+        }
+
+        [HttpPost("chat")]
+        public async Task Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
+        {
+            Response.ContentType = "text/plain";
+
+            // If Language present, insert a system message so the LLM replies in the requested language.
+            if (!string.IsNullOrWhiteSpace(request?.Language))
+            {
+                request.Messages.Insert(0, new ChatMessageDto
+                {
+                    Role = "system",
+                    Content = $"Please respond in {request.Language}. Keep answers concise and avoid repetition."
+                });
+            }
+
+            try
+            {
+                await foreach (var chunk in _chat.StreamChatAsync(
+                    request.Messages,
+                    request.ConnectionId,
+                    cancellationToken))
+                {
+                    await Response.WriteAsync(chunk, cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in Chat endpoint");
+                Response.StatusCode = 500;
+                try
+                {
+                    await Response.WriteAsync("Internal server error: " + ex.Message, cancellationToken);
+                }
+                catch
+                {
+                    // swallow
+                }
+            }
         }
     }
 }

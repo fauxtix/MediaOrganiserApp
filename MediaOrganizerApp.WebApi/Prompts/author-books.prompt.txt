@@ -1,4 +1,12 @@
 You are an assistant that MUST return ONLY valid JSON (no explanation, no markdown).
+Prefer returning real/verified books for the specified author. If you cannot find authoritative data, you MAY synthesize best-effort items as a last resort.
+
+Rules for synthesized items:
+- Any synthesized item MUST include the boolean property "Synthesized": true.
+- Real/verified items should omit "Synthesized" or set it to false.
+- Synthesized items MUST include a numeric "Confidence" (0.0 - 1.0). Use lower confidence (e.g. <= 0.45) for clearly uncertain/synthesized entries.
+- Never use placeholder text such as "Example Book Title"; if you cannot provide real data do not fabricate high-confidence entries.
+
 Given an author name, return a JSON array (possibly empty) with up to {max_results} items.
 Each item must be an object with exactly these properties:
   - "Id": string (use Google id if known, otherwise synthesize as "llm:{short-hash}")
@@ -13,6 +21,9 @@ Rules:
 - Do not iclude any items that are not by the specified author.
 - If unsure about a match, reduce the "Confidence" value (e.g. 0.2-0.5). Do not invent many high-confidence items.
 - If no matches are found, return an empty array: []
+
+Additional guidance:
+- Do not return boilerplate or example items. If you must synthesize, mark them with "Synthesized": true and a conservative "Confidence".
 
 Input variables available in the template:
  - author: {author}

@@ -72,6 +72,10 @@
                 dotNetHelper.invokeMethodAsync('UpdateWindowWidth', window.innerWidth);
             });
         };
+
+        window.scrollToBottom = (element) => {
+        element.scrollTop = element.scrollHeight;
+        };
     </script>
 </head>
 <body>
@@ -83,6 +87,40 @@
         <a class="dismiss">🗙</a>    
     </div>
 
+    <script>
+        window.saveConversation = function (id, title, json) {
+        try {
+        const key = 'mo_chat_conversations';
+        const raw = localStorage.getItem(key);
+        let arr = raw ? JSON.parse(raw) : [];
+        arr = arr.filter(c => c.id !== id); // remove old
+        arr.unshift({ id, title, json: json || "[]", created: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(arr));
+        console.log("Conversation saved:", id, title);
+        } catch (e) {
+        console.error("Error saving conversation:", e);
+        }
+        };
+
+        window.getConversations = function () {
+        try {
+            const key = 'mo_chat_conversations';
+            const raw = localStorage.getItem(key);
+            const arr = raw ? JSON.parse(raw) : [];
+            return JSON.stringify(arr); // <-- important: return a JSON string
+        } catch (e) { return "[]"; }
+        };
+
+        window.deleteConversation = function (id) {
+        try {
+        const key = 'mo_chat_conversations';
+        const raw = localStorage.getItem(key);
+        let arr = raw ? JSON.parse(raw) : [];
+        arr = arr.filter(c => c.id !== id);
+        localStorage.setItem(key, JSON.stringify(arr));
+        } catch (e) { }
+        };
+    </script>
     <!-- Blazor DEVE carregar PRIMEIRO -->
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 

@@ -1,6 +1,16 @@
 using MediaOrganizerApp.Application.DTOs;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using MediaOrganizerApp.Application.DTOs.AI;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
@@ -45,6 +55,45 @@ public sealed class AiClientService
         {
             _logger.LogError(ex, "AI - Error generating author profile.");
             return null;
+        }
+    }
+
+    // Streams chat response chunks from API POST /api/ai/chat
+    public async IAsyncEnumerable<string> StreamChatAsync(
+        List<ChatMessageDto> messages,
+        string? connectionId,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        var requestUri = $"{baseUrl}/ai/chat";
+
+        var payload = new
+        {
+            messages = messages.Select(m => new { role = m.Role, content = m.Content }),
+            connectionId = connectionId
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
+        {
+            Content = JsonContent.Create(payload)
+        };
+
+        // Read as stream so we can yield partial chunks as the server writes them.
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream);
+
+        // Read in small blocks and yield each chunk as it arrives.
+        var buffer = new char[4096];
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var read = await reader.ReadAsync(buffer, 0, buffer.Length);
+            if (read <= 0)
+                break;
+
+            yield return new string(buffer, 0, read);
         }
     }
 }

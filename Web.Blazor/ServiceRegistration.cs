@@ -1,10 +1,12 @@
 using FluentValidation;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.Security;
 using MediaOrganizerApp.Application.Interfaces.Services.Validators;
 using MediaOrganizerApp.Application.Validators;
+using MediaOrganizerApp.WebApi.Services;
 using Web.Blazor.Components.Prompts;
 using Web.Blazor.Data;
 using Web.Blazor.Reporting.BusinessObjects;

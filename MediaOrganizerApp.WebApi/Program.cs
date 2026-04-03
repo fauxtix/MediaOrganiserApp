@@ -59,12 +59,12 @@ public class Program
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
         builder.Services.AddSignalR();
 
-// AI services
-builder.Services.AddHttpClient<OllamaBookSummaryService>();
-builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
+        // AI services
+        builder.Services.AddHttpClient<OllamaBookSummaryService>();
+        builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
         // Ollama-based books provider (LLM fallback for Google Books lookups)
-            builder.Services.AddHttpClient<OllamaBooksService>();
-            builder.Services.AddScoped<IAiBooksService, OllamaBooksService>();
+        builder.Services.AddHttpClient<OllamaBooksService>();
+        builder.Services.AddScoped<IAiBooksService, OllamaBooksService>();
 
         // Feature flags: allow runtime toggling of AI fallback/badge
         builder.Services.Configure<MediaOrganizerApp.Application.FeatureFlags>(builder.Configuration.GetSection("Features"));
@@ -80,11 +80,16 @@ builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
             // ignore any errors reading initial flags
         }
 
-builder.Services.AddHttpClient<OllamaMediaNotesService>();
-builder.Services.AddScoped<IAiMediaNotesService, OllamaMediaNotesService>();
+        builder.Services.AddHttpClient<OllamaMediaNotesService>();
+        builder.Services.AddScoped<IAiMediaNotesService, OllamaMediaNotesService>();
 
-builder.Services.AddHttpClient<OllamaMediaMetadataService>();
-builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>();
+        builder.Services.AddHttpClient<OllamaMediaMetadataService>();
+        builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>();
+
+        // Register a concrete IAiChatService so AiController can be activated.
+        // If you later add a real chat implementation, replace DevAiChatService with that class
+        builder.Services.AddHttpClient<OllamaChatService>();
+        builder.Services.AddScoped<MediaOrganizerApp.Application.Interfaces.Services.AI.IAiChatService, OllamaChatService>();
 
         // AI fallback services (server-side). Used only when external metadata APIs fail.
         // Provider selection:
@@ -143,8 +148,8 @@ builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>(
         app.MapControllers();
         app.MapHub<MediaInfoProgressHub>("/media-info-progress"); // Ensure using directive
         app.MapHub<GoogleBooksProgressHub>("/books-info-progress"); // Ensure using directive
-                                                                  // Add at top if missing:
-                                                                  // using MediaOrganizerApp.WebApi.Hubs;
+                                                                    // Add at top if missing:
+                                                                    // using MediaOrganizerApp.WebApi.Hubs;
 
         app.Run();
     }

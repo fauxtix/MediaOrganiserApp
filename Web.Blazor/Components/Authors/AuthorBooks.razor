@@ -206,6 +206,7 @@
 
         try
         {
+
             List<GoogleBookInfo>? resultList = null;
             try
             {
@@ -218,37 +219,11 @@
                     // If Google returned no results, try AI fallback
                     SpinnerLabel = $"No Google results for {AuthorName}; attempting AI fallback.";                   
                     Logger.LogInformation("No Google results for {Author}; attempting AI fallback.", AuthorName);
-                                    await InvokeAsync(StateHasChanged);
-
-                    try
-                    {
-                        var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                        if (ai is not null && ai.Count > 0)
-                        {
-                            resultList = ai.ToList();
-                            aiFallbackUsed = true;
-                            Logger.LogInformation("Used AI fallback to generate books for author {Author}", AuthorName);
-                        }
-                        else
-                        {
-                            resultList = new List<GoogleBookInfo>();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "AI fallback failed for author {Author}", AuthorName);
-                        resultList = new List<GoogleBookInfo>();
-                    }
-                    finally
-                    {
-                        SpinnerVisible = false;
-                        SpinnerLabel = "";
-                    }
+                    await InvokeAsync(StateHasChanged);
+                    resultList = new();
                 }
                 else
                 {
-                        SpinnerVisible = false;
-
                     resultList = result.ToList();
                 }
             }
@@ -260,65 +235,13 @@
                                 await InvokeAsync(StateHasChanged);
 
                 googleRateLimited = true;
-                try
-                {
-                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                    if (ai is not null && ai.Count > 0)
-                    {
-                        resultList = ai.ToList();
-                        aiFallbackUsed = true;
-                        Logger.LogInformation("Used AI fallback to generate books for author {Author}", AuthorName);
-                        // Inform user via a simple log; UI could display a banner if desired
-                        // For now, set a small note on the first item's Notes (if exists) or log
-                        Logger.LogInformation("Too many requests to Google service, fallback to AI for {Author}", AuthorName);
-                    }
-                    else
-                    {
-                        resultList = new List<GoogleBookInfo>();
-                    }
-                }
-                catch (Exception ex2)
-                {
-                    Logger.LogWarning(ex2, "AI fallback failed for author {Author}", AuthorName);
-                    resultList = new List<GoogleBookInfo>();
-                }
-                finally
-                {
-                        SpinnerVisible = false;
-                    SpinnerLabel = "";
-                }
             }
             catch (Exception ex)
             {
                 // On other exceptions, log and attempt AI fallback
                 SpinnerLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
                 Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
-                                await InvokeAsync(StateHasChanged);
-
-                try
-                {
-                    var ai = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                    if (ai is not null && ai.Count > 0)
-                    {
-                        resultList = ai.ToList();
-                        aiFallbackUsed = true;
-                        Logger.LogInformation("Used AI fallback to generate books for author {Author}", AuthorName);
-                    }
-                    else
-                    {
-                        resultList = new List<GoogleBookInfo>();
-                    }
-                }
-                catch (Exception ex2)
-                {
-                    Logger.LogWarning(ex2, "AI fallback failed for author {Author}", AuthorName);
-                    resultList = new List<GoogleBookInfo>();
-                }
-                finally
-                {
-                        SpinnerVisible = false;
-                    SpinnerLabel = "";
-                }
+                await InvokeAsync(StateHasChanged);
             }
 
             books = resultList ?? new List<GoogleBookInfo>();
@@ -330,7 +253,7 @@
         finally
         {
             booksLoading = false;
-                        SpinnerVisible = false;
+            SpinnerVisible = false;
             StateHasChanged();
         }
     }
