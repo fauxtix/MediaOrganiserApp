@@ -1,18 +1,18 @@
-using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MediaOrganizerApp.Application.Interfaces;
+namespace MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 public interface IAiBookSummaryService
 {
-    Task<Application.DTOs.AiBookSummaryResponseDto> GetBookSummaryAsync(
+    Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
         string title,
         string? author,
         string language,
         CancellationToken cancellationToken);
 
-    Task<Application.DTOs.AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
+    Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
         string title,
         string? author,
         string language,

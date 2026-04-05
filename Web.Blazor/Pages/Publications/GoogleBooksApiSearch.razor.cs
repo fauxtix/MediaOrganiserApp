@@ -1,5 +1,6 @@
 using HarfBuzzSharp;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Formatting;
 using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;

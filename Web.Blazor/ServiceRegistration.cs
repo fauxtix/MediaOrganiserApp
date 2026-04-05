@@ -70,6 +70,9 @@ namespace Web.Blazor
 
             services.AddHttpClient<PromptFilesService>();
 
+            // Conversations client for server-side persisted chat
+            services.AddHttpClient<Web.Blazor.Services.ApiWrappers.ConversationsClientService>();
+
             services.AddHttpClient<ILogService, WrapperAppLogs>();
 
             services.AddScoped<IFormService, FormService>();

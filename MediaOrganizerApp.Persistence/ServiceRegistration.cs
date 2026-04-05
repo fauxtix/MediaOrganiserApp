@@ -1,5 +1,5 @@
-using MediaOrganiserApp.Application.Services.Playlists;
-using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
+using MediaOrganizerApp.Persistence.Services.Playlists;
+using MediaOrganizerApp.Persistence.Repositories.SqlServerRepository;
 using MediaOrganizerApp.API.Filters;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
@@ -8,6 +8,7 @@ using MediaOrganizerApp.Application.Security;
 using MediaOrganizerApp.Persistence.Repositories.SqlServerRepository;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using Microsoft.Extensions.DependencyInjection;
+using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
 
 namespace MediaOrganizerApp.Persistence
 {
@@ -50,6 +51,10 @@ namespace MediaOrganizerApp.Persistence
             services.AddScoped<ILogRepository, LogRepository>();
 
             services.AddScoped<IDapperContext, DapperContext>();
+
+            // Conversations (chat)
+            services.AddScoped<MediaOrganizerApp.Application.Interfaces.Repositories.IConversationRepository, MediaOrganizerApp.Persistence.Repositories.SqlServerRepository.ConversationRepository>();
+            services.AddScoped<MediaOrganizerApp.Application.Interfaces.Services.IConversationService, MediaOrganizerApp.Persistence.Services.Chat.ConversationService>();
 
         }
     }

@@ -1,5 +1,3 @@
-using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
@@ -11,6 +9,8 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
 using System.Text.RegularExpressions;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi.Services;
 

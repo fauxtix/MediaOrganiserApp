@@ -1,5 +1,5 @@
-using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Application.Interfaces;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
 using System;

@@ -1,8 +1,8 @@
-using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MediaOrganizerApp.Application.Interfaces;
+namespace MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 public interface IAiMediaMetadataService
 {

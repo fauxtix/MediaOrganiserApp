@@ -1,4 +1,4 @@
-using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 using System.Threading;
@@ -78,7 +78,7 @@ public partial class AiMediaClientService
                 return null;
             }
 
-            return await resp.Content.ReadFromJsonAsync<MediaOrganizerApp.Application.DTOs.AiMediaMetadataResponseDto>();
+            return await resp.Content.ReadFromJsonAsync<AiMediaMetadataResponseDto>();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

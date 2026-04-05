@@ -158,6 +158,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Application\MediaOrganizerApp.Application.csproj" />
+    <ProjectReference Include="..\Domain\MediaOrganizerApp.Domain.csproj" />
+
     <ProjectReference Include="..\MediaOrganizerApp.Persistence\MediaOrganizerApp.Persistence.csproj" />
   </ItemGroup>
 

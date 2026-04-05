@@ -1,6 +1,5 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Microsoft.AspNetCore.Mvc;
 using System;

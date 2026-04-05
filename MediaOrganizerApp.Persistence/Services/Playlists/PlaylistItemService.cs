@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MediaOrganiserApp.Application.Services.Playlists
+namespace MediaOrganizerApp.Persistence.Services.Playlists
 {
     public class PlaylistItemService : IPlaylistItemService
     {

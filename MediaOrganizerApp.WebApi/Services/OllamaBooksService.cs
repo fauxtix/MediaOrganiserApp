@@ -1,5 +1,5 @@
 using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Application.Interfaces;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;

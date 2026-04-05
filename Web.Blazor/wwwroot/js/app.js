@@ -72,39 +72,6 @@ window.showToast = function (text) {
 };
 
 // Conversation persistence helpers (store as an array of { Id, Title, Json } )
-(function () {
-    const KEY = 'mo_chat_conversations';
-
-    window.getConversations = function () {
-        try {
-            const raw = localStorage.getItem(KEY);
-            if (!raw) return [];
-            const arr = JSON.parse(raw);
-            if (!Array.isArray(arr)) return [];
-            return arr;
-        } catch (e) { return []; }
-    };
-
-    window.saveConversation = function (id, title, json) {
-        try {
-            const raw = localStorage.getItem(KEY);
-            let arr = raw ? JSON.parse(raw) : [];
-            if (!Array.isArray(arr)) arr = [];
-            const existingIndex = arr.findIndex(c => c && (c.Id === id));
-            const item = { Id: id, Title: title, Json: json };
-            if (existingIndex >= 0) arr[existingIndex] = item; else arr.push(item);
-            localStorage.setItem(KEY, JSON.stringify(arr));
-        } catch (e) { }
-    };
-
-    window.deleteConversation = function (id) {
-        try {
-            const raw = localStorage.getItem(KEY);
-            if (!raw) return;
-            let arr = JSON.parse(raw);
-            if (!Array.isArray(arr)) arr = [];
-            arr = arr.filter(c => !(c && c.Id === id));
-            localStorage.setItem(KEY, JSON.stringify(arr));
-        } catch (e) { }
-    };
-})();
+// Conversation persistence used to be stored in localStorage.
+// Local storage CRUD helpers removed - conversations are persisted in server-side SQL now.
+// Keep other UI helpers in this file (focus, toast, chat input, scroll, etc.).

@@ -5,6 +5,9 @@ using Microsoft.JSInterop;
 using Syncfusion.Blazor.DropDowns;
 using Syncfusion.Blazor.Notifications;
 using System.Text.Json;
+using MediaOrganizerApp.Domain.Entities;
+using Web.Blazor.Services.ApiWrappers;
+using Syncfusion.EJ2.Notifications;
 
 namespace Web.Blazor.Pages.AI
 {
@@ -27,19 +30,27 @@ namespace Web.Blazor.Pages.AI
         private string? selectedConversationId;
         private readonly DropDownListFieldSettings convFields = new() { Text = "Title", Value = "Id" };
 
-
         private SfToast? toastObj;
+        protected string ToastTitle = "";
+        protected string ToastContent = "";
+        protected string ToastCssClass = "";
+        public int ToastTimeOut { get; set; } = 1500;
 
         private bool SpinnerVisible { get; set; }
         private string SpinnerLabel { get; set; } = "Loading...";
 
+        // Keep a small UI DTO for the dropdown
         public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
 
+        [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
+        [Inject] private IJSRuntime JS { get; set; } = null!;
+
         protected override async Task OnInitializedAsync()
         {
-            await LoadConversations(); // <-- populate list from localStorage before render
+            await LoadConversations(); // load from server before render
         }
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (!firstRender) return;
@@ -133,15 +144,39 @@ namespace Web.Blazor.Pages.AI
                     await SafeScrollToBottomAsync();
                 }
 
-                try { if (toastObj != null) await toastObj.ShowAsync(new Syncfusion.Blazor.Notifications.ToastModel { Title = "AI", Content = "Response received" }); } catch { }
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "AI";
+                        ToastContent = "Response received";
+                        ToastCssClass = "e-toast-success";
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                if (currentAssistantMessage is null) { currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" }; messages.Add(currentAssistantMessage); }
+                if (currentAssistantMessage is null)
+                {
+                    currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+                    messages.Add(currentAssistantMessage);
+                }
                 currentAssistantMessage.Content += $"\n\n[Error receiving response: {ex.Message}]";
-                await InvokeAsync(StateHasChanged);
-                try { if (toastObj != null) await toastObj.ShowAsync(new Syncfusion.Blazor.Notifications.ToastModel { Title = "Error", Content = "Error receiving response" }); } catch { }
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "Error";
+                        ToastCssClass = "e-toast-danger";
+                        ToastContent = currentAssistantMessage.Content;
+                        await InvokeAsync(StateHasChanged);
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
             }
             finally
             {
@@ -184,10 +219,11 @@ namespace Web.Blazor.Pages.AI
             {
                 try
                 {
-                    await JS.InvokeVoidAsync("deleteConversation", selectedConversationId); await LoadConversations();
+                    // delete from server
+                    await ConversationsClient.DeleteAsync(selectedConversationId);
+                    await LoadConversations();
                 }
                 catch { }
-
                 selectedConversationId = null;
             }
 
@@ -198,7 +234,9 @@ namespace Web.Blazor.Pages.AI
                 await JS.InvokeVoidAsync("focusElement", chatInputRef);
                 var id = Guid.NewGuid().ToString();
                 var title = "Conversation " + DateTime.Now.ToString("g");
-                await JS.InvokeVoidAsync("saveConversation", id, title, "[]");
+                // create empty conversation record on server
+                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = "[]" };
+                await ConversationsClient.CreateAsync(conv);
                 await LoadConversations();
                 await JS.InvokeVoidAsync("showToast", "Started new conversation");
             }
@@ -209,13 +247,16 @@ namespace Web.Blazor.Pages.AI
         {
             try
             {
-                var arr = await JS.InvokeAsync<List<ConversationItem>>("getConversations");
+                var arr = await ConversationsClient.GetAllAsync();
                 if (arr != null)
                 {
                     conversations.Clear();
-                    conversations.AddRange(arr);
+                    conversations = arr
+                        .Select(c => new ConversationItem { Id = c.Id, Title = c.Title, Json = c.Json })
+                        .ToList();
+
                     selectedConversationId = conversations.FirstOrDefault()?.Id; // optional: select first
-                    await InvokeAsync(StateHasChanged); // <-- force dropdown to update
+                    await InvokeAsync(StateHasChanged);
                 }
             }
             catch (Exception ex)
@@ -245,28 +286,41 @@ namespace Web.Blazor.Pages.AI
                 await InvokeAsync(StateHasChanged);
             }
         }
-        // Add inside @code block
+
+        private void OnConversationChanged(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ConversationItem> args)
+        {
+            var id = args.Value;
+            _ = OnConversationSelected(id);
+        }
+
         private async Task SaveCurrentConversationAsync()
         {
             if (messages.Count == 0) return;
 
+            var json = JsonSerializer.Serialize(messages);
+
             if (string.IsNullOrEmpty(selectedConversationId))
             {
-                selectedConversationId = Guid.NewGuid().ToString();
+                var id = Guid.NewGuid().ToString();
                 var title = "Conversation " + DateTime.Now.ToString("g");
-                await JS.InvokeVoidAsync("saveConversation", selectedConversationId, title, JsonSerializer.Serialize(messages));
+                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = json };
+                await ConversationsClient.CreateAsync(conv);
+                selectedConversationId = id;
                 await LoadConversations();
             }
             else
             {
-                var conv = conversations.FirstOrDefault(c => c.Id == selectedConversationId);
-                if (conv != null)
-                {
-                    await JS.InvokeVoidAsync("saveConversation", conv.Id, conv.Title, JsonSerializer.Serialize(messages));
-                    await LoadConversations();
-                }
+                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json, UpdatedAt = DateTime.UtcNow };
+                await ConversationsClient.SaveAsync(conv);
+                await LoadConversations();
             }
         }
+
+        // Migration helper intentionally disabled: localStorage helpers were removed.
+        // If you still have local data and need to migrate it, restore the getConversations JS
+        // helpers temporarily and re-enable this method to import them to the server.
+        private Task MigrateLocalConversationsAsync() => Task.CompletedTask;
+
         public async ValueTask DisposeAsync()
         {
             BooksProgressClient.ChunkReceived -= OnChunkReceived;

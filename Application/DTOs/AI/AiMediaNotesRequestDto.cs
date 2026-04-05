@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MediaOrganizerApp.Application.DTOs;
+namespace MediaOrganizerApp.Application.DTOs.AI;
 
 public sealed class AiMediaNotesRequestDto
 {

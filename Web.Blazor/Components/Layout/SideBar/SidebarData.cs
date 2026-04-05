@@ -35,7 +35,7 @@ public class SidebarData
             new MenuItem(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
             new MenuItem(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
             new MenuItem(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
-
+            new MenuItem(href: "/ai/chat", title: "Chat", icon: "fa fa-robot"),
         };
         return menu;
     }

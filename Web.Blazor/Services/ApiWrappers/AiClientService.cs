@@ -1,4 +1,3 @@
-using MediaOrganizerApp.Application.DTOs;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 using System.IO;

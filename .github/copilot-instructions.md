@@ -23,6 +23,9 @@
 ## Service Registration Guidelines
 - When registering new services that depend on HttpClient, always use `AddHttpClient` in the `AddServicesInfrastructure` method (ServiceRegistration.cs) and never register directly in `Program.cs`. Follow the pattern of other services in the project to avoid duplication and lifecycle issues.
 - Register the existing `OllamaChatService` as the `IAiChatService` in the Web API project, and avoid creating placeholders without asking the user first. The assistant should ask before modifying files.
+- Register persistence services in `MediaOrganizerApp.Persistence.ServiceRegistration.AddPersistenceInfrastructure`.
+- Entities should be placed in `Core/Domain/Entities`, interfaces in `Core/Application/Interfaces`, and services in `Persistence/Services/Chat`.
+- Blazor API clients should be registered via `AddHttpClient` in `Web.Blazor.ServiceRegistration.AddServicesInfrastructure`.
 
 ## API Client Guidelines
 - Prefer using a typed API client wrapper for chat; UI components should not call API endpoints directly. Use `IConfiguration["BaseUrl"]` and include the ApiKey header from configuration in the client wrapper.
@@ -34,6 +37,7 @@
 - Apply requested UI changes directly without presenting multiple options. For example, ensure cards are the same height, images fill the container, and titles are clamped to two lines.
 - When rendering author/book UI, prioritize styling of book cover images (thumbnails). Treat the author's portrait as unimportant for book-card layout; it's okay if the author's portrait is cropped. Focus component changes on book image styling (thumbnail sizing, object-fit, card layout).
 - Provide an in-app admin UI to toggle feature flags instead of requiring administrators to run PowerShell scripts for changes.
+- When comparing UI components, explicitly compare how Syncfusion DropDownList is used across the app (Fields, ValueChange, @bind-Value, DropDownListFieldSettings) before recommending changes; avoid asserting behaviors without evidence and ask for diagnostic outputs first.
 
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
@@ -52,10 +56,18 @@
 - User expects concrete, actionable steps (runnable PowerShell scripts and exact file locations) and precise explanations rather than vague/high-level answers.
 - Do not modify server/port configuration or other infrastructure settings without user confirmation; always confirm before making such edits.
 - Avoid including remarks that might confuse the user; do not add confusing page comments or unsolicited configuration changes. Prefer concise, direct instructions and always ask before modifying files or changing infrastructure settings.
+- When the user says 'don't bother' or corrects the assistant to stop, stop further unsolicited actions and wait for explicit instructions before modifying files and ask before applying any code edits or diagnostic UI changes.
 
 ## User Secrets Management
 - User keeps the OpenAI API key in the Blazor project's user-secrets; the Web API process needs the key in the Web API project's user-secrets. Assistant should verify which project has the OpenAI secret before suggesting commands and provide explicit PowerShell commands to copy/set the key in the Web API secrets, including the provided API key value directly in the commands, and ask before applying changes. User prefers explicit PowerShell commands that include the provided API key directly when setting the Web API project's user-secrets and prefers the assistant not reference the Blazor secrets file.
 
 ## Host File Guidelines
-- User means the host file _Host.cshtml when referring to the host page; assistant must check the workspace for _Host.cshtml before referencing or proposing edits to it. Prefer importing JS modules from components via IJSRuntime without requiring host-file edits unless the user requests it.
+- User means the host file App.Razor when referring to the host page; assistant must check the workspace for App.Razor before referencing or proposing edits to it. Prefer importing JS modules from components via IJSRuntime without requiring host-file edits unless the user requests it.
 - When the user refers to the host/global JS loader, they mean a file like `app.blazor`; always check the workspace for that file before referencing or proposing edits, and ask the user to point to the exact file path. Do not assume host files exist.
+
+## Debugging Guidelines
+- When diagnosing missing dropdown/conversation entries, focus only on the UI dropdown data path: `Chat.razor` -> `ConversationsClientService` -> `/ai/conversations` API -> `ConversationsController` -> `ConversationService` -> `ConversationRepository`; avoid inspecting unrelated files (app.js, AiController) unless explicitly requested.
+- When asked about API routes, confirm controller route attributes in code before asserting; ConversationsController uses [Route("api/ai/conversations")] while AiController uses [Route("api/[controller]")] which yields api/ai. Always confirm controller route attributes before asserting routes. When explaining route segments, point out the exact controller attribute (e.g., ConversationsController uses [Route("api/ai/conversations")]) and that AiController uses [Route("api/[controller]")] which resolves to api/ai.
+- When the user corrects route handling, confirm controller route attributes before asserting routes; 
+- ConversationsController explicitly uses [Route("api/ai/conversations")] and AiController uses 
+- [Route("api/[controller]")] which resolves to api/ai. Do not conflate controllers; always check route attributes.

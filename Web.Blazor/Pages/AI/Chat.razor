@@ -10,7 +10,6 @@
 @using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Notifications
 @using Web.Blazor.Components
-@inject IJSRuntime JS
 @inject Web.Blazor.Services.Common.BooksInfoProgressClient BooksProgressClient
 @inject Web.Blazor.Services.ApiWrappers.AiClientService AiClient
 
@@ -18,17 +17,17 @@
     <div class="chat-header">
         <div class="header-inner">
             <div class="header-title">Chat room</div>
-            <SfToast @ref="toastObj"></SfToast>
 
             <div class="header-actions">
                 <div class="conversation-list">
                     <SfDropDownList TValue="string" TItem="ConversationItem"
                                     DataSource="@conversations"
-                                    Fields="@convFields"
+                                    @bind-Value="selectedConversationId"
                                     Placeholder="-- Conversations --"
-                                    Value="@selectedConversationId"
-                                    ValueChange="OnConversationSelected"
-                                    CssClass="conversation-dropdown" />
+                                    CssClass="conversation-dropdown">
+                        <DropDownListFieldSettings Text="Title" Value="Id" />
+                        <DropDownListEvents TItem="ConversationItem" TValue="string" ValueChange="OnConversationChanged" />
+                    </SfDropDownList>
                 </div>
 
                 @if (isProcessing)
@@ -110,6 +109,16 @@
     </div>
 </div>
 
+<div>
+        <SfToast @ref="toastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="@ToastTimeOut" ShowCloseButton="true">
+        <ToastPosition X="right" Y="top"></ToastPosition>
+    </SfToast>
+</div>
+
 
 <style>
     .chat-container {
@@ -172,6 +181,20 @@
     .input-inner {
         display: flex;
         gap: 12px;
+    }
+
+    /* Conversation dropdown container and dropdown sizing */
+    .conversation-list {
+        display: inline-block;
+        margin-right: 12px;
+        vertical-align: middle;
+    }
+
+    .conversation-dropdown {
+        min-width: 220px;
+        max-width: 360px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .chat-input {

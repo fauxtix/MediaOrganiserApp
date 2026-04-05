@@ -1,4 +1,4 @@
-namespace MediaOrganizerApp.Application.DTOs;
+namespace MediaOrganizerApp.Application.DTOs.AI;
 
 /// <summary>
 /// AI-generated author profile response (fallback).

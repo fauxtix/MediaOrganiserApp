@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MediaOrganizerApp.Application.Interfaces
+namespace MediaOrganizerApp.Application.Interfaces.Services.AI
 {
     public interface IAiBooksService
     {

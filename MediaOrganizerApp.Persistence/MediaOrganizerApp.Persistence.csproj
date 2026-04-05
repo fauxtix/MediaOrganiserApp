@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\MediaOrganizerApp.Application.csproj" />
     <ProjectReference Include="..\Domain\MediaOrganizerApp.Domain.csproj" />
+
   </ItemGroup>
 
   <ItemGroup>

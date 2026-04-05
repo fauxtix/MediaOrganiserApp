@@ -118,10 +118,10 @@
 		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Application\MediaOrganizerApp.Application.csproj" />
-		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Domain\MediaOrganizerApp.Domain.csproj" />
-		<ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\MediaOrganizerApp.Persistence\MediaOrganizerApp.Persistence.csproj" />
+ <ItemGroup>
+		<ProjectReference Include="..\Application\MediaOrganizerApp.Application.csproj" />
+		<ProjectReference Include="..\Domain\MediaOrganizerApp.Domain.csproj" />
+		<ProjectReference Include="..\MediaOrganizerApp.Persistence\MediaOrganizerApp.Persistence.csproj" />
 		<ProjectReference Include="..\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj" />
 		<ProjectReference Include="..\Web.Blazor.ReportObjects\Web.Blazor.Reporting.csproj" />
 	</ItemGroup>
@@ -137,6 +137,7 @@
 		<Folder Include="wwwroot\images\Audiocovers\" />
 		<Folder Include="wwwroot\Reports_Pdf\" />
 		<Folder Include="wwwroot\Reports_Pdf\Publicacoes\" />
+		<Folder Include="wwwroot\images\Autores\" />
 		<Folder Include="wwwroot\videos\" />
 	</ItemGroup>
 

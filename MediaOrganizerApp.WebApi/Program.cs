@@ -10,6 +10,7 @@ using MediaOrganizerApp.WebApi.Hubs;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi;
 

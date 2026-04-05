@@ -1,9 +1,9 @@
-using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Application.Interfaces;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
