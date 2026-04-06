@@ -43,6 +43,7 @@ namespace Web.Blazor.Pages.AI
 
         private string SpinnerLabel { get; set; } = "Loading...";
 
+
         // Keep a small UI DTO for the dropdown
         public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
@@ -145,17 +146,26 @@ namespace Web.Blazor.Pages.AI
             {
                 ignoreHubChunks = true;
                 isProcessing = true;
-                // show spinner while waiting for the first AI chunk
+                var spinnerVisible = true;
 
-                await ShowSpinnerWithDelay();
+                // show a spinner overlay (after a short delay) while waiting for the first chunk
+                //await ShowSpinnerWithDelay();
                 await InvokeAsync(StateHasChanged);
 
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, connectionId, chatCts.Token))
                 {
-                    if (currentAssistantMessage is null) { currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" }; messages.Add(currentAssistantMessage); }
-                    // hide spinner as soon as we receive the first chunk
-
-                    HideSpinner();
+                    if (currentAssistantMessage is null) 
+                    {
+                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" }; 
+                        messages.Add(currentAssistantMessage);
+                    }
+                    // hide the spinner as soon as the first chunk arrives so Cancel remains clickable
+                    //if (spinnerVisible)
+                    //{
+                    //    spinnerVisible = false;
+                    //    HideSpinner();
+                    //    await InvokeAsync(StateHasChanged);
+                    //}
                     currentAssistantMessage.Content += chunk;
                     await InvokeAsync(StateHasChanged);
                     await SafeScrollToBottomAsync();
@@ -173,9 +183,14 @@ namespace Web.Blazor.Pages.AI
                 }
                 catch { }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                // ensure spinner hidden when cancelled
+                //try { HideSpinner(); } catch { }
+            }
             catch (Exception ex)
             {
+                //try { HideSpinner(); } catch { }
                 if (currentAssistantMessage is null)
                 {
                     currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
@@ -201,7 +216,8 @@ namespace Web.Blazor.Pages.AI
                 chatCts = null;
                 ignoreHubChunks = false;
                 isProcessing = false;
-                HideSpinner();
+
+                //try { HideSpinner(); } catch { }
 
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
             }
@@ -270,7 +286,18 @@ namespace Web.Blazor.Pages.AI
                 // ensure dropdown selects the newly created conversation
                 selectedConversationId = id;
                 await InvokeAsync(StateHasChanged);
-                await JS.InvokeVoidAsync("showToast", "Started new conversation");
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "Conversation";
+                        ToastContent = "Started new conversation";
+                        ToastCssClass = "e-toast-success";
+                        await InvokeAsync(StateHasChanged);
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
             }
             catch { }
         }
@@ -315,7 +342,19 @@ namespace Web.Blazor.Pages.AI
                     }
                     catch { }
                 }
-                try { await JS.InvokeVoidAsync("showToast", "Loaded conversation: " + conv.Title); } catch { }
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "Conversation";
+                        ToastContent = "Loaded conversation: " + conv.Title;
+                        ToastCssClass = "e-toast-success";
+                        ToastTimeOut = 2000;
+                        await InvokeAsync(StateHasChanged);
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -370,11 +409,33 @@ namespace Web.Blazor.Pages.AI
                 }
 
                 await InvokeAsync(StateHasChanged);
-                await JS.InvokeVoidAsync("showToast", "Conversation deleted");
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "Conversation";
+                        ToastContent = "Conversation deleted";
+                        ToastCssClass = "e-toast-success";
+                        await InvokeAsync(StateHasChanged);
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
             }
             catch
             {
-                try { await JS.InvokeVoidAsync("showToast", "Error deleting conversation"); } catch { }
+                try
+                {
+                    if (toastObj != null)
+                    {
+                        ToastTitle = "Error";
+                        ToastContent = "Error deleting conversation";
+                        ToastCssClass = "e-toast-danger";
+                        await InvokeAsync(StateHasChanged);
+                        await toastObj.ShowAsync();
+                    }
+                }
+                catch { }
             }
         }
 
@@ -397,6 +458,17 @@ namespace Web.Blazor.Pages.AI
         {
             spinnerCts?.Cancel();
             ShowSpinnerOverlay = false;
+        }
+
+        async Task CancelSend()
+        {
+            try { chatCts?.Cancel(); } catch { }
+            try { chatCts?.Dispose(); chatCts = null; } catch { }
+
+            ignoreHubChunks = false;
+            isProcessing = false;
+
+            await InvokeAsync(StateHasChanged);
         }
         // Migration helper intentionally disabled: localStorage helpers were removed.
         // If you still have local data and need to migrate it, restore the getConversations JS

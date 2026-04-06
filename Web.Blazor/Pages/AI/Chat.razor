@@ -30,7 +30,7 @@
                     </SfDropDownList>
                 </div>
 
-                <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation" Title="Start new conversation" AriaLabel="Start new conversation">
+                <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation" AriaLabel="Start new conversation">
                     <span class="sf-btn-icon" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -42,22 +42,13 @@
                 <SfButton CssClass="delete-conversation"
                           OnClick="ShowConfirmDeleteConversation"
                           Disabled="@(string.IsNullOrEmpty(selectedConversationId))"
-                          Title="Delete selected conversation">
-                    Delete
+                          Content="Delete">
                 </SfButton>
             </div>
         </div>
     </div>
 
-@if (ShowSpinnerOverlay)
-{
-    <div class="spinner-overlay">
-        <SfSpinner Visible="true"
-                   Label="@SpinnerLabel"
-                   Type="@SpinnerType.Tailwind">
-        </SfSpinner>
-    </div>
-}
+<!-- spinner overlay moved out of .chat-container to avoid affecting sticky header and scrolling context -->
     <ConfirmAppWarning DialogTitle="Start new conversation"
                        AlertMessage="This will clear the current messages and start a new chat context. Continue?"
                        AlertMessageType="AlertMessageType.Warning"
@@ -88,9 +79,19 @@
                       disabled="@(isConnecting || connectionId == null)"
                       aria-label="Chat message input"></textarea>
 
-            <button class="send-button" @onclick="Send" disabled="@(isConnecting || connectionId == null)" title="Send message">
-                Enviar
-            </button>
+               <SfButton CssClass="send-button"
+                          OnClick="Send"
+                          Disabled="@(isConnecting || connectionId == null)"
+                          Content="Enviar">
+               </SfButton>
+
+            @if (isProcessing)
+            {
+               <SfButton CssClass="send-button"
+                          OnClick="CancelSend"
+                          Content="Cancelar">
+               </SfButton>
+            }
         </div>
 
         @if (isConnecting)
@@ -109,13 +110,25 @@
     </div>
 </div>
 
+@if (ShowSpinnerOverlay)
+{
+    <div class="global-spinner-overlay">
+        <div class="spinner-container">
+            <SfSpinner Visible="true"
+                       Label="@SpinnerLabel"
+                       Type="@SpinnerType.Tailwind">
+            </SfSpinner>
+        </div>
+    </div>
+}
+
 <div>
-        <SfToast @ref="toastObj"
+    <SfToast @ref="toastObj"
              Title="@ToastTitle"
              Content="@ToastContent"
              CssClass="@ToastCssClass"
              Timeout="@ToastTimeOut" ShowCloseButton="true">
-        <ToastPosition X="right" Y="top"></ToastPosition>
+        <ToastPosition X="right" Y="bottom"></ToastPosition>
     </SfToast>
 </div>
 
@@ -140,18 +153,37 @@
     }
 
     .header-inner {
-        max-width: 1000px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: none;
+        margin: 0;
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start; /* keep items starting at left, push actions with margin-left */
         align-items: center;
-        padding: 6px 12px;
+        padding: 6px 16px; /* page padding */
+        box-sizing: border-box;
+    }
+
+    .header-title {
+        text-align: left;
+        padding-left: 8px; /* left spacing for the title */
+        padding-right: 12px; /* spacing between title and actions */
+        flex: 0 0 auto; /* do not stretch */
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px; /* gap between action controls */
+        align-items: center;
+        margin-left: auto; /* push actions to the far right */
     }
 
 .messages {
     flex: 1;
     overflow-y: auto;
     padding: 12px;
+    min-height: 0; /* ensure flex child can shrink properly */
 
     display: flex;
     flex-direction: column;
@@ -189,6 +221,7 @@
     .input-inner {
         display: flex;
         gap: 12px;
+        align-items: flex-start; /* align children to the top so the send button doesn't stretch */
     }
 
     /* Conversation dropdown container and dropdown sizing */
@@ -209,14 +242,25 @@
         flex: 1;
         padding: 10px;
         border-radius: 10px;
+        min-height: 40px;
+        max-height: 220px; /* limit growth so layout remains usable */
+        resize: vertical; /* allow user to resize but within max-height */
+        overflow: auto;
+        box-sizing: border-box;
     }
 
     .send-button {
-        padding: 10px 14px;
+        padding: 0 14px; /* vertical padding removed to keep fixed height */
         border-radius: 10px;
         background: #007bff;
         color: white;
         border: none;
+        height: 40px; /* fixed button height */
+        min-width: 72px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: flex-start; /* keep button anchored to the top of the input area */
     }
 
     .cursor {
@@ -255,6 +299,23 @@
 
 #spinner-container {
     display: none;
+}
+
+.global-spinner-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* allow clicks through */
+    z-index: 9999;
+}
+
+.global-spinner-overlay .spinner-container {
+    pointer-events: auto; /* spinner accepts events only */
+    background: rgba(255,255,255,0.85);
+    padding: 10px;
+    border-radius: 8px;
 }
 
 </style>

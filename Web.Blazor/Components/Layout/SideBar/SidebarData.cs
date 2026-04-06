@@ -34,8 +34,13 @@ public class SidebarData
             new MenuItem(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
             new MenuItem(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
             new MenuItem(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
-            new MenuItem(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
-            new MenuItem(href: "/ai/chat", title: "Chat", icon: "fa fa-robot"),
+
+            // AI submenu: Edit Prompts and Chat grouped under a single parent
+            new MenuItem(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
+            {
+                new MenuItem(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
+                new MenuItem(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
+            }),
         };
         return menu;
     }
