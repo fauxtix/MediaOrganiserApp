@@ -30,13 +30,6 @@
                     </SfDropDownList>
                 </div>
 
-                @if (isProcessing)
-                {
-                    SpinnerVisible = true;
-                }
-                else
-                {    SpinnerVisible = false;}
-
                 <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation" Title="Start new conversation" AriaLabel="Start new conversation">
                     <span class="sf-btn-icon" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -46,30 +39,37 @@
                     <span class="btn-text">New</span>
                 </SfButton>
 
-                <SfButton CssClass="save-conversation" 
-                          OnClick="SaveCurrentConversationAsync" 
-                          Disabled="@(messages.Count == 0)" 
-                          Title="Save current conversation">
-                    Save
+                <SfButton CssClass="delete-conversation"
+                          OnClick="ShowConfirmDeleteConversation"
+                          Disabled="@(string.IsNullOrEmpty(selectedConversationId))"
+                          Title="Delete selected conversation">
+                    Delete
                 </SfButton>
             </div>
         </div>
     </div>
 
-        <div id="spinner-container">
-    <SfSpinner Visible="@SpinnerVisible"
-                Label="@SpinnerLabel" 
-                Type="@SpinnerType.Tailwind"
-                CssClass="e-spin-overlay">
-    </SfSpinner>
-</div>
-
+@if (ShowSpinnerOverlay)
+{
+    <div class="spinner-overlay">
+        <SfSpinner Visible="true"
+                   Label="@SpinnerLabel"
+                   Type="@SpinnerType.Tailwind">
+        </SfSpinner>
+    </div>
+}
     <ConfirmAppWarning DialogTitle="Start new conversation"
                        AlertMessage="This will clear the current messages and start a new chat context. Continue?"
                        AlertMessageType="AlertMessageType.Warning"
                        Visible="@showConfirmNewConversation"
                        OnConfirmationYes="@OnConfirmYes"
                        OnConfirmationNo="@OnConfirmNo" />
+    <ConfirmAppWarning DialogTitle="Delete conversation"
+                       AlertMessage="This will permanently delete the selected conversation. Continue?"
+                       AlertMessageType="AlertMessageType.Warning"
+                       Visible="@showConfirmDeleteConversation"
+                       OnConfirmationYes="@OnConfirmDeleteYes"
+                       OnConfirmationNo="@OnConfirmDeleteNo" />
     <div class="messages" @ref="messagesDiv">
         @foreach (var msg in messages)
         {
@@ -122,9 +122,13 @@
 
 <style>
     .chat-container {
+        margin: 0 !important;
+        padding: 0 !important;
         display: flex;
         flex-direction: column;
         height: calc(100vh - 56px);
+        position: relative;
+        top: 0;
     }
 
     .chat-header {
@@ -141,21 +145,25 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 16px;
+        padding: 6px 12px;
     }
 
-    .messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-    }
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
 
+    display: flex;
+    flex-direction: column;
+
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: 0;
+}
     .msg {
         max-width: 70%;
-        padding: 10px;
-        margin: 5px;
+        padding: 8px;
+        margin: 4px 5px;
         border-radius: 12px;
     }
 
@@ -222,5 +230,31 @@
             opacity: 0;
         }
     }
+
+    .spinner-overlay {
+    position: fixed; /* key: removes it from layout */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.5);
+    z-index: 9999;
+
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#spinner-container {
+    display: none;
+}
 
 </style>

@@ -13,6 +13,9 @@ namespace Web.Blazor.Pages.AI
 {
     public partial class Chat
     {
+        private bool ShowSpinnerOverlay;
+        private CancellationTokenSource spinnerCts;
+
         private List<ChatMessage> messages = new();
         private string userInput = "";
         private ChatMessage? currentAssistantMessage;
@@ -26,6 +29,7 @@ namespace Web.Blazor.Pages.AI
         private ElementReference chatInputRef;
         private DotNetObjectReference<Chat>? dotNetRef;
         private bool showConfirmNewConversation = false;
+        private bool showConfirmDeleteConversation = false;
         private List<ConversationItem> conversations = new();
         private string? selectedConversationId;
         private readonly DropDownListFieldSettings convFields = new() { Text = "Title", Value = "Id" };
@@ -36,7 +40,7 @@ namespace Web.Blazor.Pages.AI
         protected string ToastCssClass = "";
         public int ToastTimeOut { get; set; } = 1500;
 
-        private bool SpinnerVisible { get; set; }
+
         private string SpinnerLabel { get; set; } = "Loading...";
 
         // Keep a small UI DTO for the dropdown
@@ -104,7 +108,14 @@ namespace Web.Blazor.Pages.AI
 
         private async Task SafeScrollToBottomAsync()
         {
-            try { await Task.Delay(50); await JS.InvokeVoidAsync("scrollToBottom", messagesDiv); } catch { }
+            try
+            {
+                // Avoid forcing scroll to bottom for the first message(s) so the initial prompt appears near the top.
+                if (messages.Count <= 1) return;
+                await Task.Delay(50);
+                await JS.InvokeVoidAsync("scrollToBottom", messagesDiv);
+            }
+            catch { }
         }
 
         private string FormatMessage(string content, bool showCursor)
@@ -134,11 +145,17 @@ namespace Web.Blazor.Pages.AI
             {
                 ignoreHubChunks = true;
                 isProcessing = true;
+                // show spinner while waiting for the first AI chunk
+
+                await ShowSpinnerWithDelay();
                 await InvokeAsync(StateHasChanged);
 
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, connectionId, chatCts.Token))
                 {
                     if (currentAssistantMessage is null) { currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" }; messages.Add(currentAssistantMessage); }
+                    // hide spinner as soon as we receive the first chunk
+
+                    HideSpinner();
                     currentAssistantMessage.Content += chunk;
                     await InvokeAsync(StateHasChanged);
                     await SafeScrollToBottomAsync();
@@ -184,7 +201,7 @@ namespace Web.Blazor.Pages.AI
                 chatCts = null;
                 ignoreHubChunks = false;
                 isProcessing = false;
-                await InvokeAsync(StateHasChanged);
+                HideSpinner();
 
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
             }
@@ -192,11 +209,27 @@ namespace Web.Blazor.Pages.AI
 
         [JSInvokable] public async Task OnEnterPressedFromJs() => await Send();
 
-        void ShowConfirmNewConversation() => showConfirmNewConversation = true;
+        async Task ShowConfirmNewConversation()
+        {
+            // Only show confirmation if there are messages in the UI
+            if (messages.Count > 0)
+            {
+                showConfirmNewConversation = true;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                // No messages: start a new conversation immediately
+                await NewConversation();
+            }
+        }
+        void ShowConfirmDeleteConversation() => showConfirmDeleteConversation = true;
 
         async Task OnConfirmYes()
         {
-            // Only save if there are messages
+            // If there are messages, save them before starting a new conversation.
+            // SaveCurrentConversationAsync handles both create (when no selectedConversationId)
+            // and update (when a conversation is selected).
             if (messages.Count > 0)
             {
                 await SaveCurrentConversationAsync();
@@ -207,25 +240,21 @@ namespace Web.Blazor.Pages.AI
         }
 
         void OnConfirmNo() => showConfirmNewConversation = false;
+        void OnConfirmDeleteNo() => showConfirmDeleteConversation = false;
+
+        async Task OnConfirmDeleteYes()
+        {
+            showConfirmDeleteConversation = false;
+            await DeleteSelectedConversationAsync();
+        }
 
         async Task NewConversation()
         {
             try { chatCts?.Cancel(); } catch { }
             chatCts?.Dispose(); chatCts = null;
 
+            // Clear UI messages and prepare to start a fresh conversation context.
             messages.Clear(); currentAssistantMessage = null; ignoreHubChunks = false;
-
-            if (!string.IsNullOrEmpty(selectedConversationId))
-            {
-                try
-                {
-                    // delete from server
-                    await ConversationsClient.DeleteAsync(selectedConversationId);
-                    await LoadConversations();
-                }
-                catch { }
-                selectedConversationId = null;
-            }
 
             await InvokeAsync(StateHasChanged);
 
@@ -234,10 +263,13 @@ namespace Web.Blazor.Pages.AI
                 await JS.InvokeVoidAsync("focusElement", chatInputRef);
                 var id = Guid.NewGuid().ToString();
                 var title = "Conversation " + DateTime.Now.ToString("g");
-                // create empty conversation record on server
+                // create empty conversation record on server and select it so new prompts attach to it
                 var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = "[]" };
                 await ConversationsClient.CreateAsync(conv);
                 await LoadConversations();
+                // ensure dropdown selects the newly created conversation
+                selectedConversationId = id;
+                await InvokeAsync(StateHasChanged);
                 await JS.InvokeVoidAsync("showToast", "Started new conversation");
             }
             catch { }
@@ -255,7 +287,8 @@ namespace Web.Blazor.Pages.AI
                         .Select(c => new ConversationItem { Id = c.Id, Title = c.Title, Json = c.Json })
                         .ToList();
 
-                    selectedConversationId = conversations.FirstOrDefault()?.Id; // optional: select first
+                    // Do not auto-select a conversation. Require the user to explicitly select one from the dropdown.
+                    selectedConversationId = null;
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -316,6 +349,55 @@ namespace Web.Blazor.Pages.AI
             }
         }
 
+        private async Task DeleteSelectedConversationAsync()
+        {
+            if (string.IsNullOrEmpty(selectedConversationId)) return;
+            var deletedId = selectedConversationId; // capture before reloading
+
+            try
+            {
+                await ConversationsClient.DeleteAsync(deletedId);
+                // reload conversations from server so the dropdown is up-to-date
+                await LoadConversations();
+
+                // if the deleted conversation is no longer present, clear UI messages
+                if (!conversations.Any(c => c.Id == deletedId))
+                {
+                    messages.Clear();
+                    currentAssistantMessage = null;
+                    // select the first conversation if any (or leave null)
+                    selectedConversationId = conversations.FirstOrDefault()?.Id;
+                }
+
+                await InvokeAsync(StateHasChanged);
+                await JS.InvokeVoidAsync("showToast", "Conversation deleted");
+            }
+            catch
+            {
+                try { await JS.InvokeVoidAsync("showToast", "Error deleting conversation"); } catch { }
+            }
+        }
+
+
+        private async Task ShowSpinnerWithDelay(int delayMs = 300)
+        {
+            spinnerCts?.Cancel();
+            spinnerCts = new CancellationTokenSource();
+
+            try
+            {
+                await Task.Delay(delayMs, spinnerCts.Token);
+                ShowSpinnerOverlay = true;
+                StateHasChanged();
+            }
+            catch { }
+        }
+
+        private void HideSpinner()
+        {
+            spinnerCts?.Cancel();
+            ShowSpinnerOverlay = false;
+        }
         // Migration helper intentionally disabled: localStorage helpers were removed.
         // If you still have local data and need to migrate it, restore the getConversations JS
         // helpers temporarily and re-enable this method to import them to the server.

@@ -6,7 +6,7 @@
 - User’s main pain point with external metadata APIs is low hit-rate (often can’t find authors), while LLM prompts usually return some response. User wants AI prompts (LLM) to replace some external metadata API calls, e.g., fetching author profiles via AI instead of Google Books/other APIs. 
 - AI fallback for metadata (e.g., author profiles) should run only when external API lookup fails.
 - When multiple plausible author candidates are found, choose the single candidate with the highest internal confidence and return only that candidate's profile; if only one candidate is found, return it normally. Explain ambiguity in Notes and lower Confidence. Use a 0.0–1.0 scale; thresholds: low confidence < 0.5, tie difference < 0.15 indicates ambiguity.
-- Always run a build after any code change to ensure correctness and functionality.
+- Always run a full build after any code change to ensure correctness and functionality.
 
 ## User Environment Preferences
 - User is using Visual Studio Community 2026 (18.4.2) with a workspace root at `C:\NewProjects\MediaOrganizer\MediaOrganizerApp`.
@@ -68,6 +68,4 @@
 ## Debugging Guidelines
 - When diagnosing missing dropdown/conversation entries, focus only on the UI dropdown data path: `Chat.razor` -> `ConversationsClientService` -> `/ai/conversations` API -> `ConversationsController` -> `ConversationService` -> `ConversationRepository`; avoid inspecting unrelated files (app.js, AiController) unless explicitly requested.
 - When asked about API routes, confirm controller route attributes in code before asserting; ConversationsController uses [Route("api/ai/conversations")] while AiController uses [Route("api/[controller]")] which yields api/ai. Always confirm controller route attributes before asserting routes. When explaining route segments, point out the exact controller attribute (e.g., ConversationsController uses [Route("api/ai/conversations")]) and that AiController uses [Route("api/[controller]")] which resolves to api/ai.
-- When the user corrects route handling, confirm controller route attributes before asserting routes; 
-- ConversationsController explicitly uses [Route("api/ai/conversations")] and AiController uses 
-- [Route("api/[controller]")] which resolves to api/ai. Do not conflate controllers; always check route attributes.
+- When the user corrects route handling, confirm controller route attributes before asserting routes; ConversationsController explicitly uses [Route("api/ai/conversations")] and AiController uses [Route("api/[controller]")] which resolves to api/ai. Do not conflate controllers; always check route attributes.
