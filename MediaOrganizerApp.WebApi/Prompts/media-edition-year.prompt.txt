@@ -4,7 +4,7 @@ Given the following information about a media item, return ONLY the release year
 
 - The temperature of the response should be low to ensure factual accuracy and consistency.
 
-- Title: {{Title}
+- Title: {Title}
 - Author/Artist: {Author}
 - Additional Info: {AdditionalInfo}
 
