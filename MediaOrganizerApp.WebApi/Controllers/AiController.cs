@@ -18,9 +18,6 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiChatService _chat;
         private readonly ILogger<AiController> _logger;
 
-        // Pasta externa para overrides
-        private readonly string _overrideDir = @"C:\NewProjects\MediaOrganizer\MediaOrganizerApp\Prompts_Ollama";
-
         public AiController(
             IAiAuthorProfileService ai,
             IAiBookSummaryService books,
@@ -36,46 +33,32 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _media = media;
             _mediaMetadata = mediaMetadata;
             _logger = logger;
-
-            Directory.CreateDirectory(_overrideDir); // garante que a pasta existe
             _chat = chat;
         }
 
         [HttpGet("prompts/readme")]
         public IActionResult GetReadme()
         {
-            // Primeiro procura na pasta externa (overrides)
-            var overrideReadme = Path.Combine(_overrideDir, "README.md");
-            if (System.IO.File.Exists(overrideReadme))
-                return Content(System.IO.File.ReadAllText(overrideReadme), "text/plain");
-
-            // Depois procura na pasta default do projeto
-            var defaultReadme = Path.Combine(AppContext.BaseDirectory, "Prompts", "README.md");
-            if (System.IO.File.Exists(defaultReadme))
-                return Content(System.IO.File.ReadAllText(defaultReadme), "text/plain");
+            var readme = Path.Combine(AppContext.BaseDirectory, "Prompts", "README.md");
+            if (System.IO.File.Exists(readme))
+                return Content(System.IO.File.ReadAllText(readme), "text/plain");
 
             return NotFound();
         }
-        // Lista todos os prompts (.txt ou .md) incluindo overrides
+        // Lista todos os prompts (.txt ou .md)
         [HttpGet("prompts")]
         public IActionResult GetPromptFiles()
         {
-            var defaultDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+            var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
 
-            var defaultFiles = Directory.Exists(defaultDir)
-                ? Directory.GetFiles(defaultDir, "*.*")
+            var files = Directory.Exists(promptsDir)
+                ? Directory.GetFiles(promptsDir, "*.*")
                     .Where(f => f.EndsWith(".txt") || f.EndsWith(".md"))
                     .Select(Path.GetFileName)
-                : Array.Empty<string>();
+                    .ToList()
+                : new List<string?>();
 
-            var overrideFiles = Directory.Exists(_overrideDir)
-                ? Directory.GetFiles(_overrideDir, "*.*")
-                    .Where(f => f.EndsWith(".txt") || f.EndsWith(".md"))
-                    .Select(Path.GetFileName)
-                : Array.Empty<string>();
-
-            var allFiles = defaultFiles.Union(overrideFiles).ToList();
-            return Ok(allFiles);
+            return Ok(files);
         }
 
         // Lê conteúdo de um prompt
@@ -85,23 +68,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(filename))
                 return BadRequest("Filename is required.");
 
-            var defaultDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
-            var defaultFile = Path.Combine(defaultDir, filename);
-            var overrideFile = Path.Combine(_overrideDir, filename);
+            var file = Path.Combine(AppContext.BaseDirectory, "Prompts", filename);
 
-            string content;
-
-            if (System.IO.File.Exists(overrideFile))
-                content = System.IO.File.ReadAllText(overrideFile);
-            else if (System.IO.File.Exists(defaultFile))
-                content = System.IO.File.ReadAllText(defaultFile);
-            else
+            if (!System.IO.File.Exists(file))
                 return NotFound();
 
-            return Content(content, "text/plain");
+            return Content(System.IO.File.ReadAllText(file), "text/plain");
         }
 
-        // Grava conteúdo de prompt — grava sempre na pasta externa
+        // Grava conteúdo de prompt
         [HttpPut("prompts/{filename}")]
         public IActionResult SavePromptFile(string filename, [FromBody] string content)
         {
@@ -110,10 +85,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(content))
                     return BadRequest("Filename and content are required.");
 
-                var overrideFile = Path.Combine(_overrideDir, filename);
-                System.IO.File.WriteAllText(overrideFile, content);
+                var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+                Directory.CreateDirectory(promptsDir);
+                var file = Path.Combine(promptsDir, filename);
+                System.IO.File.WriteAllText(file, content);
 
-                _logger.LogInformation("Saved override file: {File}", overrideFile);
+                _logger.LogInformation("Saved prompt file: {File}", file);
                 return Ok();
             }
             catch (Exception ex)
@@ -123,15 +100,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-        // Remove override e volta a usar default
+        // Remove um prompt
         [HttpDelete("prompts/{filename}")]
         public IActionResult ResetPromptFile(string filename)
         {
             try
             {
-                var overrideFile = Path.Combine(_overrideDir, filename);
-                if (System.IO.File.Exists(overrideFile))
-                    System.IO.File.Delete(overrideFile);
+                var file = Path.Combine(AppContext.BaseDirectory, "Prompts", filename);
+                if (System.IO.File.Exists(file))
+                    System.IO.File.Delete(file);
 
                 return Ok();
             }

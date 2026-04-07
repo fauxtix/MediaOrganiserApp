@@ -171,9 +171,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
-                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Notes)
-                        && parsed.Notes.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                        && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
                 bool confidenceLow = parsed.Confidence < 0.5;
                 if (summaryValid && !confidenceLow)
@@ -202,9 +202,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 if (parsed is not null)
                 {
                     // Validate summary: must mention author and title, and confidence should be reasonable
-                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Notes)
-                        && parsed.Notes.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                        && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
                     bool confidenceLow = parsed.Confidence < 0.5;
 
