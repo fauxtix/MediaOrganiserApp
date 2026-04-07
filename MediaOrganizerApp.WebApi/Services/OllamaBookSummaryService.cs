@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -171,9 +172,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
-                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Warnings)
-                        && parsed.Warnings.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Warnings.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                        && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
                 bool confidenceLow = parsed.Confidence < 0.5;
                 if (summaryValid && !confidenceLow)

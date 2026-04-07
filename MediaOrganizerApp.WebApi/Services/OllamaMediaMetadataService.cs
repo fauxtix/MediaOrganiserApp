@@ -406,8 +406,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
-            ["artist"] = artist,
-            ["title"] = title,
+            ["Artist"] = artist,
+            ["Title"] = title,
             ["AdditionalInfo"] = additionalInfo
         });
 

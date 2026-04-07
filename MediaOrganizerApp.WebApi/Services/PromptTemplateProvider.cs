@@ -27,26 +27,21 @@ public sealed class PromptTemplateProvider : IPromptTemplateProvider
 
         if (_cache.TryGetValue(templateName, out var cached) && !string.IsNullOrWhiteSpace(cached))
             return cached;
-            // Allow overrides in an external folder (used by the admin UI).
-            // Check common override locations before falling back to the embedded Prompts folder.
-            var overrideCandidates = new[] {
-                Path.Combine(AppContext.BaseDirectory, "Prompts_Ollama", templateName),
-                Path.Combine(Environment.CurrentDirectory, "Prompts_Ollama", templateName),
-                Path.Combine(_promptsRoot, templateName) // fallback
-            };
 
-            string? path = null;
-            foreach (var candidate in overrideCandidates)
-            {
-                if (File.Exists(candidate))
-                {
-                    path = candidate;
-                    break;
-                }
-            }
+        // Allow overrides in an external folder (used by the admin UI).
+        // Check common override locations before falling back to the embedded Prompts folder.
+        var overrideCandidates = new[]
+        {
+        Path.Combine(AppContext.BaseDirectory, "Prompts_Ollama", templateName),
+        Path.Combine(Environment.CurrentDirectory, "Prompts_Ollama", templateName),
+        Path.Combine(_promptsRoot, templateName) // fallback
+    };
 
-            if (path is null)
-                throw new FileNotFoundException($"Prompt template not found. Searched: {string.Join(";", overrideCandidates)}");
+        var path = overrideCandidates.FirstOrDefault(File.Exists);
+
+        if (path is null)
+            throw new FileNotFoundException(
+                $"Prompt template not found. Searched: {string.Join(";", overrideCandidates)}");
 
         try
         {
@@ -63,25 +58,25 @@ public sealed class PromptTemplateProvider : IPromptTemplateProvider
             throw;
         }
     }
-}
 
-public static class PromptTemplateRenderer
-{
-    public static string Render(string template, IReadOnlyDictionary<string, string?> values)
+    public static class PromptTemplateRenderer
     {
-        if (template is null)
-            throw new ArgumentNullException(nameof(template));
-
-        if (values is null || values.Count == 0)
-            return template;
-
-        var s = template;
-        foreach (var kvp in values)
+        public static string Render(string template, IReadOnlyDictionary<string, string?> values)
         {
-            var token = "{" + kvp.Key + "}";
-            s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
-        }
+            if (template is null)
+                throw new ArgumentNullException(nameof(template));
 
-        return s;
+            if (values is null || values.Count == 0)
+                return template;
+
+            var s = template;
+            foreach (var kvp in values)
+            {
+                var token = "{" + kvp.Key + "}";
+                s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
+            }
+
+            return s;
+        }
     }
 }

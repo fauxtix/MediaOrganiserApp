@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services
 {
