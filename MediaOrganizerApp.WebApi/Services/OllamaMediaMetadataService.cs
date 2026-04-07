@@ -116,7 +116,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
             }
 
-            var text = TryExtractOllamaResponseText(json);
+            var text = OllamaResponseHelper.TryExtractResponseText(json);
 
             // ✅ Log raw response for debugging
             _logger.LogInformation("AI raw response: {Response}", text);
@@ -152,7 +152,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 }
             }
 
-            var extractedJson = TryExtractFirstJsonObject(text);
+            var extractedJson = OllamaResponseHelper.TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
                 parsed = TryParseJsonContract(extractedJson);
@@ -233,7 +233,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         {
             try
             {
-                var objText = TryExtractFirstJsonObject(text) ?? text;
+                var objText = OllamaResponseHelper.TryExtractFirstJsonObject(text) ?? text;
                 return TryParseLenientContract(objText);
             }
             catch
@@ -298,94 +298,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         {
             return null;
         }
-    }
-
-    private static string? TryExtractOllamaResponseText(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("response", out var resp))
-                return resp.GetString();
-
-            return json;
-        }
-        catch
-        {
-            var lines = json.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var sb = new StringBuilder();
-            foreach (var line in lines)
-            {
-                try
-                {
-                    using var doc = JsonDocument.Parse(line);
-                    if (doc.RootElement.TryGetProperty("response", out var resp))
-                        sb.Append(resp.GetString());
-                }
-                catch
-                {
-                }
-            }
-
-            var merged = sb.ToString();
-            return string.IsNullOrWhiteSpace(merged) ? null : merged;
-        }
-    }
-
-    private static string? TryExtractFirstJsonObject(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
-
-        var start = text.IndexOf('{');
-        if (start < 0)
-            return null;
-
-        var depth = 0;
-        var inString = false;
-        var escape = false;
-
-        for (var i = start; i < text.Length; i++)
-        {
-            var ch = text[i];
-
-            if (inString)
-            {
-                if (escape)
-                {
-                    escape = false;
-                    continue;
-                }
-
-                if (ch == '\\')
-                {
-                    escape = true;
-                    continue;
-                }
-
-                if (ch == '\"')
-                    inString = false;
-
-                continue;
-            }
-
-            if (ch == '\"')
-            {
-                inString = true;
-                continue;
-            }
-
-            if (ch == '{')
-                depth++;
-            else if (ch == '}')
-            {
-                depth--;
-                if (depth == 0)
-                    return text.Substring(start, i - start + 1);
-            }
-        }
-
-        return null;
     }
 
     // --------------------- UPDATED Media Edition Year ---------------------
@@ -476,7 +388,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
             var json = Encoding.UTF8.GetString(bytes);
 
-            var text = TryExtractOllamaResponseText(json);
+            var text = OllamaResponseHelper.TryExtractResponseText(json);
 
             // ✅ Log raw response for debugging
             _logger.LogInformation("AI raw year response: {Response}", text);

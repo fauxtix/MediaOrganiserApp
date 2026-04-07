@@ -1,6 +1,7 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.WebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
@@ -16,6 +17,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiMediaNotesService _media;
         private readonly IAiMediaMetadataService _mediaMetadata;
         private readonly IAiChatService _chat;
+        private readonly IPromptTemplateProvider _promptProvider;
         private readonly ILogger<AiController> _logger;
 
         public AiController(
@@ -25,7 +27,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             IAiMediaNotesService media,
             IAiMediaMetadataService mediaMetadata,
             ILogger<AiController> logger,
-            IAiChatService chat)
+            IAiChatService chat,
+            IPromptTemplateProvider promptProvider)
         {
             _ai = ai;
             _books = books;
@@ -34,18 +37,19 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _mediaMetadata = mediaMetadata;
             _logger = logger;
             _chat = chat;
+            _promptProvider = promptProvider;
         }
 
         [HttpGet("prompts/readme")]
-        public IActionResult GetReadme()
+        public async Task<IActionResult> GetReadme()
         {
             var readme = Path.Combine(AppContext.BaseDirectory, "Prompts", "README.md");
             if (System.IO.File.Exists(readme))
-                return Content(System.IO.File.ReadAllText(readme), "text/plain");
+                return Content(await System.IO.File.ReadAllTextAsync(readme), "text/plain");
 
             return NotFound();
         }
-        // Lista todos os prompts (.txt ou .md)
+
         [HttpGet("prompts")]
         public IActionResult GetPromptFiles()
         {
@@ -61,34 +65,41 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok(files);
         }
 
-        // Lê conteúdo de um prompt
         [HttpGet("prompts/{filename}")]
-        public IActionResult GetPromptFile(string filename)
+        public async Task<IActionResult> GetPromptFile(string filename)
         {
-            if (string.IsNullOrWhiteSpace(filename))
-                return BadRequest("Filename is required.");
+            if (!IsValidPromptFilename(filename))
+                return BadRequest("Invalid filename.");
 
-            var file = Path.Combine(AppContext.BaseDirectory, "Prompts", filename);
+            var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+            var file = Path.GetFullPath(Path.Combine(promptsDir, filename));
+
+            if (!file.StartsWith(Path.GetFullPath(promptsDir) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Invalid filename.");
 
             if (!System.IO.File.Exists(file))
                 return NotFound();
 
-            return Content(System.IO.File.ReadAllText(file), "text/plain");
+            return Content(await System.IO.File.ReadAllTextAsync(file), "text/plain");
         }
 
-        // Grava conteúdo de prompt
         [HttpPut("prompts/{filename}")]
-        public IActionResult SavePromptFile(string filename, [FromBody] string content)
+        public async Task<IActionResult> SavePromptFile(string filename, [FromBody] string content)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(content))
+                if (!IsValidPromptFilename(filename) || string.IsNullOrWhiteSpace(content))
                     return BadRequest("Filename and content are required.");
 
                 var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
                 Directory.CreateDirectory(promptsDir);
-                var file = Path.Combine(promptsDir, filename);
-                System.IO.File.WriteAllText(file, content);
+                var file = Path.GetFullPath(Path.Combine(promptsDir, filename));
+
+                if (!file.StartsWith(Path.GetFullPath(promptsDir) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Invalid filename.");
+
+                await System.IO.File.WriteAllTextAsync(file, content);
+                _promptProvider.Invalidate(filename);
 
                 _logger.LogInformation("Saved prompt file: {File}", file);
                 return Ok();
@@ -100,15 +111,24 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-        // Remove um prompt
         [HttpDelete("prompts/{filename}")]
         public IActionResult ResetPromptFile(string filename)
         {
             try
             {
-                var file = Path.Combine(AppContext.BaseDirectory, "Prompts", filename);
+                if (!IsValidPromptFilename(filename))
+                    return BadRequest("Invalid filename.");
+
+                var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
+                var file = Path.GetFullPath(Path.Combine(promptsDir, filename));
+
+                if (!file.StartsWith(Path.GetFullPath(promptsDir) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Invalid filename.");
+
                 if (System.IO.File.Exists(file))
                     System.IO.File.Delete(file);
+
+                _promptProvider.Invalidate(filename);
 
                 return Ok();
             }
@@ -119,9 +139,20 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-        // -----------------------------
-        // Os restantes endpoints de AI permanecem iguais
-        // -----------------------------
+        private static bool IsValidPromptFilename(string? filename)
+        {
+            if (string.IsNullOrWhiteSpace(filename))
+                return false;
+
+            // Reject any path separators or parent-directory traversal attempts.
+            if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                return false;
+
+            if (filename.Contains("..", StringComparison.Ordinal))
+                return false;
+
+            return true;
+        }
 
         [HttpPost("author-profile")]
         public async Task<ActionResult<AiAuthorProfileResponseDto>> AuthorProfile(

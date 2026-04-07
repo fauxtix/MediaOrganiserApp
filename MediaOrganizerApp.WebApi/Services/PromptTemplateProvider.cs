@@ -6,6 +6,7 @@ namespace MediaOrganizerApp.WebApi.Services;
 public interface IPromptTemplateProvider
 {
     Task<string> GetTemplateAsync(string templateName, CancellationToken cancellationToken = default);
+    void Invalidate(string templateName);
 }
 
 public sealed class PromptTemplateProvider : IPromptTemplateProvider
@@ -47,6 +48,12 @@ public sealed class PromptTemplateProvider : IPromptTemplateProvider
             _logger.LogError(ex, "Failed to load prompt template {TemplateName} from {PromptsRoot}", templateName, _promptsRoot);
             throw;
         }
+    }
+
+    public void Invalidate(string templateName)
+    {
+        if (!string.IsNullOrWhiteSpace(templateName))
+            _cache.TryRemove(templateName, out _);
     }
 }
 
