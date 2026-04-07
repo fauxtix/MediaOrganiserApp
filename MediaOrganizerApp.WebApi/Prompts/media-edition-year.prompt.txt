@@ -6,4 +6,3 @@ Given the following information about a media item, return ONLY the release year
 - Author/Artist: {artist}
 - Additional Info: {AdditionalInfo}
 
-# Response

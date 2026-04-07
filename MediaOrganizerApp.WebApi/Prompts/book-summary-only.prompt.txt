@@ -10,6 +10,7 @@ Rules:
 
 - If you don't know a field, set it to null (except summary, which can be empty string).
 - Do not include HTML.
+-  The temperature of the response should be low to ensure factual accuracy and consistency.
 
 - notes: short meta-only message (<= 200 characters). Use notes ONLY for: title/author match uncertainty OR output/format issues.
   Do NOT include plot, synopsis, publisher, year, awards, or any extra bibliographic details in notes.

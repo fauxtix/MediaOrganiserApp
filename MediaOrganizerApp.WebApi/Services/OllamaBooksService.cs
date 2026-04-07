@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services
 {
@@ -49,7 +50,7 @@ namespace MediaOrganizerApp.WebApi.Services
                 });
 
                 var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-                var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+                var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
 
                 var payload = new { model, prompt, stream = false };
 

@@ -25,7 +25,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
     {
         _httpClient = httpClient;
         _baseUrl = config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        _model = config["Ai:Ollama:Model"] ?? "llama3.2:1b";
+        _model = config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
         _prompts = prompts;
     }
 

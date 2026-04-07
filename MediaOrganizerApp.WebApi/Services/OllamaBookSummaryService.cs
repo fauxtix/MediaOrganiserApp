@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -119,7 +120,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
 
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
 
         var payload = new
         {

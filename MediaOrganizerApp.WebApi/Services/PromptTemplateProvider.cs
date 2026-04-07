@@ -57,23 +57,24 @@ public sealed class PromptTemplateProvider : IPromptTemplateProvider
     }
 }
 
-public static class PromptTemplateRenderer
-{
-    public static string Render(string template, IReadOnlyDictionary<string, string?> values)
+    public static class PromptTemplateRenderer
     {
-        if (template is null)
-            throw new ArgumentNullException(nameof(template));
-
-        if (values is null || values.Count == 0)
-            return template;
-
-        var s = template;
-        foreach (var kvp in values)
+        public static string Render(string template, IReadOnlyDictionary<string, string?> values)
         {
-            var token = "{" + kvp.Key + "}";
-            s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
-        }
+            if (template is null)
+                throw new ArgumentNullException(nameof(template));
 
-        return s;
+            if (values is null || values.Count == 0)
+                return template;
+
+            var s = template;
+            foreach (var kvp in values)
+            {
+                var token = "{" + kvp.Key + "}";
+                s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
+            }
+
+            return s;
+        }
     }
 }

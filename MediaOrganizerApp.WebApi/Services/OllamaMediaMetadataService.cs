@@ -66,7 +66,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
 
         // ✅ Added temperature and deterministic options
         var payload = new
@@ -78,7 +78,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             {
                 temperature = 0,
                 top_p = 1,
-                num_predict = 20
             }
         };
 
@@ -323,8 +322,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
-            ["artist"] = artist,
-            ["title"] = title,
+            ["Artist"] = artist,
+            ["Title"] = title,
             ["AdditionalInfo"] = additionalInfo
         });
 
@@ -360,7 +359,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     private async Task<string?> ExecuteOllamaEditionYearAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
 
         // ✅ Added temperature and deterministic options
         var payload = new
