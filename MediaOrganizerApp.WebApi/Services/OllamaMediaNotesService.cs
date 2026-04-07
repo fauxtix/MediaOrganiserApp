@@ -97,7 +97,7 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
             }
 
-            var text = TryExtractOllamaResponseText(json);
+            var text = OllamaResponseHelper.TryExtractResponseText(json);
             if (string.IsNullOrWhiteSpace(text))
                 return new AiMediaNotesResponseDto { Notes = string.Empty, Confidence = 0, Warnings = "Empty LLM response." };
 
@@ -127,7 +127,7 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
                 return parsed;
             }
 
-            var extractedJson = TryExtractFirstJsonObject(text);
+            var extractedJson = OllamaResponseHelper.TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
                 parsed = TryParseJsonContract(extractedJson);
@@ -212,95 +212,5 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
         {
             return null;
         }
-    }
-
-    private static string? TryExtractOllamaResponseText(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("response", out var resp))
-                return resp.GetString();
-
-            return json;
-        }
-        catch
-        {
-            // Ollama can occasionally return NDJSON. Attempt simple extraction of "response" chunks.
-            var lines = json.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var sb = new StringBuilder();
-            foreach (var line in lines)
-            {
-                try
-                {
-                    using var doc = JsonDocument.Parse(line);
-                    if (doc.RootElement.TryGetProperty("response", out var resp))
-                        sb.Append(resp.GetString());
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            var merged = sb.ToString();
-            return string.IsNullOrWhiteSpace(merged) ? null : merged;
-        }
-    }
-
-    private static string? TryExtractFirstJsonObject(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
-
-        var start = text.IndexOf('{');
-        if (start < 0)
-            return null;
-
-        var depth = 0;
-        var inString = false;
-        var escape = false;
-
-        for (var i = start; i < text.Length; i++)
-        {
-            var ch = text[i];
-
-            if (inString)
-            {
-                if (escape)
-                {
-                    escape = false;
-                    continue;
-                }
-
-                if (ch == '\\')
-                {
-                    escape = true;
-                    continue;
-                }
-
-                if (ch == '\"')
-                    inString = false;
-
-                continue;
-            }
-
-            if (ch == '\"')
-            {
-                inString = true;
-                continue;
-            }
-
-            if (ch == '{')
-                depth++;
-            else if (ch == '}')
-            {
-                depth--;
-                if (depth == 0)
-                    return text.Substring(start, i - start + 1);
-            }
-        }
-
-        return null;
     }
 }

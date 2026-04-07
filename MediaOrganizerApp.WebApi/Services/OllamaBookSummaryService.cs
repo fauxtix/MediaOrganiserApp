@@ -203,9 +203,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 if (parsed is not null)
                 {
                     // Validate summary: must mention author and title, and confidence should be reasonable
-                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Warnings)
-                        && parsed.Warnings.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Warnings.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                        && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
                     bool confidenceLow = parsed.Confidence < 0.5;
 

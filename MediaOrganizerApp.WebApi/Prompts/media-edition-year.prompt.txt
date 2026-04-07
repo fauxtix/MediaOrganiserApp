@@ -2,9 +2,7 @@
 
 Given the following information about a media item, return ONLY the release year of edition as a plain string (e.g., 1999). If the year is not available, respond with "N/A". Do NOT include any explanation, code, or extra text—just the year or "N/A".
 
-- The temperature of the response should be low to ensure factual accuracy and consistency.
-
-- Title: {Title}
-- Artist: {Artist}
+- Title: {title}
+- Author/Artist: {artist}
 - Additional Info: {AdditionalInfo}
 
