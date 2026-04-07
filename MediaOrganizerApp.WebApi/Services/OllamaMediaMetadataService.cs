@@ -172,7 +172,11 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                     parsed = TryParseJsonContract(normalized);
                     if (parsed is not null)
                     {
-                        await _hubContext.Clients.All.SendAsync("ReceiveProgress", null, "Done!");
+                        if (!string.IsNullOrWhiteSpace(connectionId))
+                        {
+                            LogProgress("Done!");
+                            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
+                        }
                         return parsed;
                     }
                 }
