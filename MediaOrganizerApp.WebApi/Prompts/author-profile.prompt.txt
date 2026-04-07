@@ -4,7 +4,9 @@ Requirements:
 - If you are not confident about facts, say so in Notes and lower Confidence.
 - Do NOT invent exact dates, awards, or long bibliographies.
 - If the name is ambiguous (multiple candidates), mention ambiguity in Notes.
-- If you find more than one plausible candidate, do NOT attempt to combine them into a single profile; instead indicate ambiguity in Notes and lower Confidence.
+- If there are multiple candidates, pick the most likely one, lower confidence, and explain the ambiguity in notes.
+- Always include all three keys even if the value is null
+-  The temperature of the response should be low to ensure factual accuracy and consistency.
 - Output MUST be valid JSON matching:
   { "bio": string|null, "confidence": number|null, "notes": string|null }
 

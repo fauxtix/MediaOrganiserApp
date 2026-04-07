@@ -18,7 +18,8 @@ Each item must be an object with exactly these properties:
 Rules:
 - Output only a valid JSON array (e.g. [] or [{...}, {...}]).
 - Do not include any extra fields, comments or surrounding text.
-- Do not iclude any items that are not by the specified author.
+- Do not include any items that are not by the specified author.
+-  The temperature of the response should be low to ensure factual accuracy and consistency.
 - If unsure about a match, reduce the "Confidence" value (e.g. 0.2-0.5). Do not invent many high-confidence items.
 - If no matches are found, return an empty array: []
 
@@ -34,7 +35,8 @@ Examples:
 [
   {
     "Id": "llm:doe-001",
-    "Title": "Example Book Title",
+    "Author": "Isaac Asimov",
+    "Title": "Foundation",
     "PublishedDate": "2000-01-01",
     "Thumbnail": "images/NoPhoto.png",
     "Confidence": 0.45

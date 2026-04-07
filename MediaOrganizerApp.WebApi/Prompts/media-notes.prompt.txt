@@ -7,12 +7,13 @@ Rules:
 - notes: plain-text liner notes / awards / key highlights, 300-800 characters.
   - For albums: mention genre/style; mention tracks only if confident.
   - For movies/films: mention major awards/nominations only if confident.
-  - For LPs, CDs, or DVDs: ensure the response pertains to these formats and not songs.
+  - IMPORTANT: This service is for LPs, CDs, and DVDs. Never describe individual songs as the subject — describe the release as a whole.
 - Do NOT write instructional/meta text in notes.
 - Do not include HTML.
 - If unsure about the match: lower confidence, add a brief warning in 'warnings' (<= 200 chars), and keep notes generic.
 - Do not invent specific awards, dates, record labels, publishers, track lists, cast, or plot specifics unless confident.
 - Provide a confidence score between 0.0 and 1.0.
+- The temperature of the response should be low to ensure factual accuracy and consistency.
 - IMPORTANT: Always return a complete, valid JSON object with all braces and fields. Never omit the closing brace. If you cannot find information, use empty strings or zero for fields, but always return valid JSON.
 
 INPUT (must match exactly):

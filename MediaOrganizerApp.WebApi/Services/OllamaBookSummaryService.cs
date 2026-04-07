@@ -119,7 +119,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
 
         var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "llama3.2";
+        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
 
         var payload = new
         {
@@ -171,9 +171,9 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
-                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Notes)
-                        && parsed.Notes.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Warnings)
+                        && parsed.Warnings.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                        && parsed.Warnings.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
                 bool confidenceLow = parsed.Confidence < 0.5;
                 if (summaryValid && !confidenceLow)
