@@ -111,7 +111,9 @@ namespace Web.Blazor.Pages.AI
         {
             if (!firstRender) return;
 
-            // attach client-side JS handlers after first render
+            // attach client-side JS handlers once after first render to avoid
+            // duplicate handlers / race conditions that could cause Enter/Shift+Enter
+            // to misbehave.
             dotNetRef = DotNetObjectReference.Create(this);
             try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
         }
@@ -192,10 +194,12 @@ namespace Web.Blazor.Pages.AI
                 ignoreHubChunks = true;
 
                 // show a friendly status while the AI pipeline runs; hub may replace this with more specific messages
-                ProgressStatus = "Copilot is thinking...";
+                ProgressStatus = "Thinking...";
                 isProcessing = true;
 
                 await InvokeAsync(StateHasChanged);
+                // Ensure the messages area is scrolled so the user can see the status message immediately
+                try { await SafeScrollToBottomAsync(); } catch { }
 
                 var firstChunkReceived = false;
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, connectionId, chatCts.Token))
@@ -516,6 +520,7 @@ namespace Web.Blazor.Pages.AI
         // If you still have local data and need to migrate it, restore the getConversations JS
         // helpers temporarily and re-enable this method to import them to the server.
         private Task MigrateLocalConversationsAsync() => Task.CompletedTask;
+
 
         public async ValueTask DisposeAsync()
         {

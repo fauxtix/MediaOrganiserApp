@@ -70,12 +70,13 @@
         }
 
         @* Place the progress/status message inside the messages area so it's near the expected reply *@
-        @if (!string.IsNullOrWhiteSpace(ProgressStatus))
-        {
-            <div class="msg assistant assistant-status" aria-live="polite">
-                @((MarkupString)FormatMessage(ProgressStatus, false))
-            </div>
-        }
+    @if (!string.IsNullOrWhiteSpace(ProgressStatus))
+    {
+        <div class="msg assistant assistant-status" aria-live="polite">
+            <span class="status-text">@((MarkupString)FormatMessage(ProgressStatus, false))</span>
+            <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        </div>
+    }
     </div>
 
     <div class="input-area">
@@ -204,6 +205,7 @@
     .msg {
         max-width: 70%;
         padding: 8px;
+        font-size: 0.8rem; /* slightly smaller message text */
         margin: 4px 5px;
         border-radius: 12px;
     }
@@ -241,7 +243,7 @@
     }
 
     .conversation-dropdown {
-        min-width: 220px;
+        min-width: 262px;
         max-width: 360px;
         width: 100%;
         box-sizing: border-box;
@@ -251,6 +253,7 @@
         flex: 1;
         padding: 10px;
         border-radius: 10px;
+        font-size: 0.8rem; /* smaller prompt/input font */
         min-height: 40px;
         max-height: 220px; /* limit growth so layout remains usable */
         resize: vertical; /* allow user to resize but within max-height */
@@ -330,29 +333,38 @@
 .assistant-status {
         margin-left: 12px;
         color: #666;
-        font-size: 0.95rem;
+        font-size: 0.8rem;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
 
+    /* Animated dots using explicit span elements (staggered) */
     .assistant-status .dots {
-        display: inline-block;
-        width: 48px;
-        text-align: left;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        margin-left: 6px;
     }
 
-    .assistant-status .dots::after {
-        content: '...';
-        display: inline-block;
-        animation: dots 1s steps(5, end) infinite;
+    .assistant-status .dots span {
+        width: 6px;
+        height: 6px;
+        background: #666;
+        border-radius: 50%;
+        opacity: 0.25;
+        transform: translateY(0);
+        animation: assistant-dot 1000ms ease-in-out infinite;
     }
 
-    @@keyframes dots {
-        0% { content: ''; opacity: 0.2; }
-        33% { content: '.'; opacity: 0.5; }
-        66% { content: '..'; opacity: 0.8; }
-        100% { content: '...'; opacity: 1; }
+    .assistant-status .dots span:nth-child(1) { animation-delay: 0ms; }
+    .assistant-status .dots span:nth-child(2) { animation-delay: 160ms; }
+    .assistant-status .dots span:nth-child(3) { animation-delay: 320ms; }
+
+    @@keyframes assistant-dot {
+        0% { opacity: 0.25; transform: translateY(0); }
+        50% { opacity: 1; transform: translateY(-4px); }
+        100% { opacity: 0.25; transform: translateY(0); }
     }
 
     .send-controls {

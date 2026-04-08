@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
@@ -82,17 +83,27 @@ public sealed class AiClientService
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var reader = new StreamReader(stream);
 
-        // Read in small blocks and yield each chunk as it arrives.
-        var buffer = new char[4096];
-        while (!cancellationToken.IsCancellationRequested)
+        // Read raw bytes so reads can observe the cancellation token, and decode
+        // using a Decoder to preserve UTF-8 state across buffer boundaries.
+        var byteBuffer = new byte[4096];
+        var decoder = Encoding.UTF8.GetDecoder();
+        var charBuffer = new char[Encoding.UTF8.GetMaxCharCount(byteBuffer.Length)];
+
+        while (true)
         {
-            var read = await reader.ReadAsync(buffer, 0, buffer.Length);
-            if (read <= 0)
+            var read = await stream.ReadAsync(byteBuffer.AsMemory(0, byteBuffer.Length), cancellationToken);
+            if (read == 0)
                 break;
 
-            yield return new string(buffer, 0, read);
+            var charsDecoded = decoder.GetChars(byteBuffer, 0, read, charBuffer, 0, false);
+            if (charsDecoded > 0)
+                yield return new string(charBuffer, 0, charsDecoded);
         }
+
+        // Flush any remaining decoder state
+        var finalChars = decoder.GetChars(Array.Empty<byte>(), 0, 0, charBuffer, 0, true);
+        if (finalChars > 0)
+            yield return new string(charBuffer, 0, finalChars);
     }
 }

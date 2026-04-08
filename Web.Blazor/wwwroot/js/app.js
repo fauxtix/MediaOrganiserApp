@@ -45,9 +45,42 @@ document.documentElement.setAttribute('data-theme', window.getTheme());
 window.chatInput = (function () {
     function insertNewlineAtCaret(el) { if (!el) return; const start = el.selectionStart; const end = el.selectionEnd; const value = el.value; el.value = value.slice(0, start) + '\n' + value.slice(end); el.selectionStart = el.selectionEnd = start + 1; el.dispatchEvent(new Event('input', { bubbles: true })); autoResize(el); }
     function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
-    function attachHandlers(el, dotNetRef) { if (!el) return; const handler = function (e) { if (e.key === 'Enter') { if (!e.shiftKey) { e.preventDefault(); if (dotNetRef) dotNetRef.invokeMethodAsync('OnEnterPressedFromJs'); } else insertNewlineAtCaret(el); } }; const resizeHandler = function () { autoResize(el); }; el.__chatInputHandler = handler; el.__chatInputResizeHandler = resizeHandler; el.addEventListener('keydown', handler); el.addEventListener('input', resizeHandler); autoResize(el); }
+    function attachHandlers(el, dotNetRef) {
+        if (!el) return;
+        // Prevent double-attachment which can cause multiple newlines or duplicate sends
+        if (el.__chatInputHandler) {
+            // update dotNetRef reference if needed and return
+            el.__chatInputDotNetRef = dotNetRef;
+            return;
+        }
+        console.debug('chatInput.attachHandlers called', el, !!dotNetRef);
+        const handler = function (e) {
+            console.debug('chatInput.keydown', e.key, 'shift', e.shiftKey, 'dotNetRef', !!dotNetRef);
+            if (e.key === 'Enter') {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    // Use the stored dotNetRef on the element if available so the handler
+                    // always calls the latest reference even if it was attached earlier.
+                    const ref = (el && el.__chatInputDotNetRef) || dotNetRef;
+                    if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs').catch(err=>console.error('invokeMethodAsync failed', err));
+                }
+                else {
+                    // Prevent the browser default newline and insert exactly one newline
+                    e.preventDefault();
+                    insertNewlineAtCaret(el);
+                }
+            }
+        };
+        const resizeHandler = function () { autoResize(el); };
+        el.__chatInputHandler = handler;
+        el.__chatInputResizeHandler = resizeHandler;
+        el.__chatInputDotNetRef = dotNetRef;
+        el.addEventListener('keydown', handler);
+        el.addEventListener('input', resizeHandler);
+        autoResize(el);
+    }
     function detachHandlers(el) { if (!el) return; if (el.__chatInputHandler) { el.removeEventListener('keydown', el.__chatInputHandler); delete el.__chatInputHandler; } if (el.__chatInputResizeHandler) { el.removeEventListener('input', el.__chatInputResizeHandler); delete el.__chatInputResizeHandler; } }
-    return { attachHandlers, detachHandlers };
+    return { attachHandlers, detachHandlers, insertNewlineAtCaret };
 })();
 
 // Focus helper
