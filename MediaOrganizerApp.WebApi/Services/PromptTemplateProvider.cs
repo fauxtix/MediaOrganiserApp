@@ -12,13 +12,15 @@ public interface IPromptTemplateProvider
 public sealed class PromptTemplateProvider : IPromptTemplateProvider
 {
     private readonly ILogger<PromptTemplateProvider> _logger;
+    // Use AppContext.BaseDirectory so runtime Save/Read (AiController) and this provider point at the same folder.
     private readonly string _promptsRoot;
     private readonly ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
 
     public PromptTemplateProvider(IHostEnvironment env, ILogger<PromptTemplateProvider> logger)
     {
         _logger = logger;
-        _promptsRoot = Path.Combine(env.ContentRootPath, "Prompts");
+        // Align runtime and provider by defaulting to AppContext.BaseDirectory/Prompts (same place AiController writes)
+        _promptsRoot = Path.Combine(AppContext.BaseDirectory, "Prompts");
     }
 
     public async Task<string> GetTemplateAsync(string templateName, CancellationToken cancellationToken = default)
@@ -57,24 +59,25 @@ public sealed class PromptTemplateProvider : IPromptTemplateProvider
     }
 }
 
-    public static class PromptTemplateRenderer
+public static class PromptTemplateRenderer
+{
+    public static string Render(string template, IReadOnlyDictionary<string, string?> values)
     {
-        public static string Render(string template, IReadOnlyDictionary<string, string?> values)
+        if (template is null)
+            throw new ArgumentNullException(nameof(template));
+
+        if (values is null || values.Count == 0)
+            return template;
+
+        var s = template;
+        foreach (var kvp in values)
         {
-            if (template is null)
-                throw new ArgumentNullException(nameof(template));
-
-            if (values is null || values.Count == 0)
-                return template;
-
-            var s = template;
-            foreach (var kvp in values)
-            {
-                var token = "{" + kvp.Key + "}";
-                s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
-            }
-
-            return s;
+            var token = "{" + kvp.Key + "}";
+            // Keep token replacement case-sensitive (templates likely expect exact token), but you may switch to OrdinalIgnoreCase if you need.
+            s = s.Replace(token, kvp.Value ?? string.Empty, StringComparison.Ordinal);
         }
+
+        return s;
     }
 }
+

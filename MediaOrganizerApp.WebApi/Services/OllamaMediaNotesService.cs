@@ -127,52 +127,49 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
                 return parsed;
             }
 
+            // Attempt to recover 'notes' from any embedded JSON object first
             var extractedJson = OllamaResponseHelper.TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
-                parsed = TryParseJsonContract(extractedJson);
-                if (parsed is not null)
+                try
                 {
-                    // Validate notes: must mention artist and title, and confidence should be reasonable
-                    bool notesValid = !string.IsNullOrWhiteSpace(parsed.Notes)
-                        && parsed.Notes.IndexOf(parsed.Artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Notes.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
-                    bool confidenceLow = parsed.Confidence < 0.5;
-                    if (notesValid && !confidenceLow)
+                    using var doc = JsonDocument.Parse(extractedJson);
+                    if (doc.RootElement.TryGetProperty("notes", out var notesProp) && notesProp.ValueKind == JsonValueKind.String)
                     {
-                        parsed.Warnings = string.Empty;
+                        var recovered = notesProp.GetString() ?? string.Empty;
+                        _logger.LogInformation("Recovered notes from embedded JSON object.");
+                        bool notesValidRecovered = !string.IsNullOrWhiteSpace(recovered)
+                            && recovered.IndexOf(artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                            && recovered.IndexOf(title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                        return new AiMediaNotesResponseDto
+                        {
+                            Notes = recovered,
+                            Confidence = 0,
+                            Warnings = notesValidRecovered ? string.Empty : $"AI notes may not be accurate for '{artist}' - '{title}'."
+                        };
                     }
-                    else
-                    {
-                        parsed.Warnings = $"AI notes may not be accurate for '{parsed.Artist}' - '{parsed.Title}'.";
-                    }
-                    if (!string.IsNullOrWhiteSpace(connectionId))
-                    {
-                        LogProgress("Done!");
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    }
-                    return parsed;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to parse extracted JSON object while recovering notes.");
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Done!");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-            }
-            // Attempt to recover 'notes' from malformed JSON
-            string notes = string.Empty;
-            var notesMatch = System.Text.RegularExpressions.Regex.Match(text, "\"notes\"\\s*:\\s*\"(.*?)\"");
+            // Last-resort: robust regex that allows escaped chars inside the string
+            var notesPattern = new System.Text.RegularExpressions.Regex("\"notes\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"", System.Text.RegularExpressions.RegexOptions.Singleline);
+            var notesMatch = notesPattern.Match(text);
             if (notesMatch.Success)
             {
-                notes = notesMatch.Groups[1].Value;
-                _logger.LogInformation($"Recovered notes from malformed JSON: {notes}");
-                bool notesValidMalformed = !string.IsNullOrWhiteSpace(notes)
-                    && notes.IndexOf(artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                    && notes.IndexOf(title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                // Unescape JSON-style escapes
+                var raw = notesMatch.Groups[1].Value;
+                var unescaped = System.Text.RegularExpressions.Regex.Unescape(raw);
+                _logger.LogInformation($"Recovered notes from malformed JSON (regex): {unescaped}");
+                bool notesValidMalformed = !string.IsNullOrWhiteSpace(unescaped)
+                    && unescaped.IndexOf(artist ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                    && unescaped.IndexOf(title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
                 return new AiMediaNotesResponseDto
                 {
-                    Notes = notes,
+                    Notes = unescaped,
                     Confidence = 0,
                     Warnings = notesValidMalformed ? string.Empty : $"AI notes may not be accurate for '{artist}' - '{title}'."
                 };

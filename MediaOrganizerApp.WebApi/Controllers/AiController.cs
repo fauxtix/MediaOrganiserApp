@@ -57,10 +57,10 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             var files = Directory.Exists(promptsDir)
                 ? Directory.GetFiles(promptsDir, "*.*")
-                    .Where(f => f.EndsWith(".txt") || f.EndsWith(".md"))
+                    .Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
                     .Select(Path.GetFileName)
                     .ToList()
-                : new List<string?>();
+                : new List<string>();
 
             return Ok(files);
         }
@@ -74,7 +74,9 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var promptsDir = Path.Combine(AppContext.BaseDirectory, "Prompts");
             var file = Path.GetFullPath(Path.Combine(promptsDir, filename));
 
-            if (!file.StartsWith(Path.GetFullPath(promptsDir) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            // Accept files in the promptsDir or its subfolders — ensure file is under promptsDir folder.
+            var promptRootFull = Path.GetFullPath(promptsDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!file.StartsWith(promptRootFull, StringComparison.OrdinalIgnoreCase))
                 return BadRequest("Invalid filename.");
 
             if (!System.IO.File.Exists(file))

@@ -149,6 +149,7 @@ public class Program
         app.MapControllers();
         app.MapHub<MediaInfoProgressHub>("/media-info-progress"); // Ensure using directive
         app.MapHub<GoogleBooksProgressHub>("/books-info-progress"); // Ensure using directive
+        app.MapHub<ChatProgressHub>("/chat-progress");
                                                                     // Add at top if missing:
                                                                     // using MediaOrganizerApp.WebApi.Hubs;
 

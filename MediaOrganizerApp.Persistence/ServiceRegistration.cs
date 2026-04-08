@@ -5,7 +5,6 @@ using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Security;
-using MediaOrganizerApp.Persistence.Repositories.SqlServerRepository;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using Microsoft.Extensions.DependencyInjection;
 using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;

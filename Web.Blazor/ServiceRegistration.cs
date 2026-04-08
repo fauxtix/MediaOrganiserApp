@@ -1,12 +1,10 @@
 using FluentValidation;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.Security;
 using MediaOrganizerApp.Application.Interfaces.Services.Validators;
 using MediaOrganizerApp.Application.Validators;
-using MediaOrganizerApp.WebApi.Services;
 using Web.Blazor.Components.Prompts;
 using Web.Blazor.Data;
 using Web.Blazor.Reporting.BusinessObjects;
@@ -72,6 +70,9 @@ namespace Web.Blazor
 
             // Conversations client for server-side persisted chat
             services.AddHttpClient<Web.Blazor.Services.ApiWrappers.ConversationsClientService>();
+
+            // Chat-specific SignalR client used only by the chat UI
+            services.AddScoped<Web.Blazor.Services.Common.ChatProgressClient>();
 
             services.AddHttpClient<ILogService, WrapperAppLogs>();
 

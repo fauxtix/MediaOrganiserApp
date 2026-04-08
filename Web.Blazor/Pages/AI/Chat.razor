@@ -10,7 +10,7 @@
 @using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Notifications
 @using Web.Blazor.Components
-@inject Web.Blazor.Services.Common.BooksInfoProgressClient BooksProgressClient
+@inject Web.Blazor.Services.Common.ChatProgressClient ChatProgressClient
 @inject Web.Blazor.Services.ApiWrappers.AiClientService AiClient
 
 <div class="chat-container">
@@ -48,7 +48,6 @@
         </div>
     </div>
 
-<!-- spinner overlay moved out of .chat-container to avoid affecting sticky header and scrolling context -->
     <ConfirmAppWarning DialogTitle="Start new conversation"
                        AlertMessage="This will clear the current messages and start a new chat context. Continue?"
                        AlertMessageType="AlertMessageType.Warning"
@@ -61,11 +60,20 @@
                        Visible="@showConfirmDeleteConversation"
                        OnConfirmationYes="@OnConfirmDeleteYes"
                        OnConfirmationNo="@OnConfirmDeleteNo" />
+
     <div class="messages" @ref="messagesDiv">
         @foreach (var msg in messages)
         {
             <div class="msg @(msg.Role)">
                 @((MarkupString)FormatMessage(msg.Content, msg.Role == "assistant" && currentAssistantMessage == msg))
+            </div>
+        }
+
+        @* Place the progress/status message inside the messages area so it's near the expected reply *@
+        @if (!string.IsNullOrWhiteSpace(ProgressStatus))
+        {
+            <div class="msg assistant assistant-status" aria-live="polite">
+                @((MarkupString)FormatMessage(ProgressStatus, false))
             </div>
         }
     </div>
@@ -76,22 +84,24 @@
                       @bind="userInput"
                       @ref="chatInputRef"
                       placeholder="Escreve mensagem..."
-                      disabled="@(isConnecting || connectionId == null)"
+                      disabled="@(isConnecting)"
                       aria-label="Chat message input"></textarea>
 
+            <div class="send-controls">
                <SfButton CssClass="send-button"
                           OnClick="Send"
-                          Disabled="@(isConnecting || connectionId == null)"
+                          Disabled="@(isConnecting)"
                           Content="Enviar">
                </SfButton>
 
-            @if (isProcessing)
-            {
-               <SfButton CssClass="send-button"
-                          OnClick="CancelSend"
-                          Content="Cancelar">
-               </SfButton>
-            }
+                @if (isProcessing)
+                {
+                   <SfButton CssClass="send-button"
+                              OnClick="CancelSend"
+                              Content="Cancelar">
+                   </SfButton>
+                }
+            </div>
         </div>
 
         @if (isConnecting)
@@ -131,7 +141,6 @@
         <ToastPosition X="right" Y="bottom"></ToastPosition>
     </SfToast>
 </div>
-
 
 <style>
     .chat-container {
@@ -318,4 +327,37 @@
     border-radius: 8px;
 }
 
-</style>
+.assistant-status {
+        margin-left: 12px;
+        color: #666;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .assistant-status .dots {
+        display: inline-block;
+        width: 48px;
+        text-align: left;
+    }
+
+    .assistant-status .dots::after {
+        content: '...';
+        display: inline-block;
+        animation: dots 1s steps(5, end) infinite;
+    }
+
+    @@keyframes dots {
+        0% { content: ''; opacity: 0.2; }
+        33% { content: '.'; opacity: 0.5; }
+        66% { content: '..'; opacity: 0.8; }
+        100% { content: '...'; opacity: 1; }
+    }
+
+    .send-controls {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+    }
+    </style>

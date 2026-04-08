@@ -69,3 +69,6 @@
 - When diagnosing missing dropdown/conversation entries, focus only on the UI dropdown data path: `Chat.razor` -> `ConversationsClientService` -> `/ai/conversations` API -> `ConversationsController` -> `ConversationService` -> `ConversationRepository`; avoid inspecting unrelated files (app.js, AiController) unless explicitly requested.
 - When asked about API routes, confirm controller route attributes in code before asserting; ConversationsController uses [Route("api/ai/conversations")] while AiController uses [Route("api/[controller]")] which yields api/ai. Always confirm controller route attributes before asserting routes. When explaining route segments, point out the exact controller attribute (e.g., ConversationsController uses [Route("api/ai/conversations")]) and that AiController uses [Route("api/[controller]")] which resolves to api/ai.
 - When the user corrects route handling, confirm controller route attributes before asserting routes; ConversationsController explicitly uses [Route("api/ai/conversations")] and AiController uses [Route("api/[controller]")] which resolves to api/ai. Do not conflate controllers; always check route attributes.
+
+## Code Update Preferences
+- User prefers full replacement file contents when requesting code updates (wants explicit file replacements rather than suggestions).

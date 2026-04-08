@@ -1,17 +1,15 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
-using Syncfusion.Blazor.DropDowns;
 using Syncfusion.Blazor.Notifications;
-using System.Text.Json;
-using MediaOrganizerApp.Domain.Entities;
 using Web.Blazor.Services.ApiWrappers;
-using Syncfusion.EJ2.Notifications;
+using Syncfusion.Blazor.DropDowns;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Web.Blazor.Pages.AI
 {
-    public partial class Chat
+    public partial class Chat : IAsyncDisposable
     {
         private bool ShowSpinnerOverlay;
         private CancellationTokenSource spinnerCts;
@@ -40,51 +38,97 @@ namespace Web.Blazor.Pages.AI
         protected string ToastCssClass = "";
         public int ToastTimeOut { get; set; } = 1500;
 
-
         private string SpinnerLabel { get; set; } = "Loading...";
 
+        private string ProgressStatus { get; set; } = "";
 
-        // Keep a small UI DTO for the dropdown
         public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
 
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
         [Inject] private IJSRuntime JS { get; set; } = null!;
 
+        [Inject] private IConfiguration Configuration { get; set; } = null!;
+
         protected override async Task OnInitializedAsync()
         {
             await LoadConversations(); // load from server before render
+
+            // subscribe to hub events early so we receive messages as soon as connection opens
+            try
+            {
+                ChatProgressClient.ProgressReceived += OnProgressReceived;
+                ChatProgressClient.ChunkReceived += OnChunkReceived;
+                ChatProgressClient.DoneReceived += OnDoneReceived;
+            }
+            catch
+            {
+                // defensive: if BooksProgressClient isn't available yet, continue without throwing
+            }
+
+            isConnecting = true;
+            await InvokeAsync(StateHasChanged);
+
+            // Derive hub base from configured API BaseUrl when available. Navigation base may point
+            // to the Blazor host which is not necessarily the API hosting the hub.
+            var hubBase = Configuration["BaseUrl"]?.TrimEnd('/');
+            if (string.IsNullOrEmpty(hubBase))
+            {
+                // fallback to NavigationManager if BaseUrl not configured
+                hubBase = (Nav?.BaseUri ?? "").TrimEnd('/');
+            }
+
+            // final fallback to localhost used previously
+            if (string.IsNullOrEmpty(hubBase))
+                hubBase = "https://localhost:44303";
+
+            try
+            {
+                // Await the hub start so the component has a deterministic connection id
+                await ChatProgressClient.StartAsync(hubBase);
+                connectionId = ChatProgressClient.ConnectionId;
+                ProgressStatus = string.Empty;
+                if (string.IsNullOrEmpty(ChatProgressClient.ConnectionId))
+                {
+                    ProgressStatus = "Progress hub unreachable. Server progress messages will not appear.";
+                }
+            }
+            catch (Exception ex)
+            {
+                // keep the UI usable, surface a brief message in the messages area
+                ProgressStatus = "Progress hub unreachable. Server progress messages will not appear.";
+                connectionId = ChatProgressClient.ConnectionId;
+                Console.WriteLine("BooksProgressClient.StartAsync failed: " + ex.Message);
+            }
+            finally
+            {
+                isConnecting = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (!firstRender) return;
 
-            BooksProgressClient.ChunkReceived += OnChunkReceived;
-            BooksProgressClient.DoneReceived += OnDoneReceived;
-
-            isConnecting = true;
-            await InvokeAsync(StateHasChanged);
-
-            try
-            {
-                await BooksProgressClient.StartAsync("https://localhost:44303");
-                connectionId = BooksProgressClient.ConnectionId;
-            }
-            catch { connectionId = null; }
-            finally
-            {
-                isConnecting = false;
-                await InvokeAsync(StateHasChanged);
-            }
-
+            // attach client-side JS handlers after first render
             dotNetRef = DotNetObjectReference.Create(this);
             try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
+        }
+
+        private void OnProgressReceived(string message)
+        {
+            // show informational progress coming from the server/hub
+            ProgressStatus = message ?? string.Empty;
+            _ = InvokeAsync(StateHasChanged);
         }
 
         private async void OnChunkReceived(string chunk)
         {
             if (ignoreHubChunks) return;
+
+            // clear any progress hint as soon as assistant starts streaming
+            ProgressStatus = string.Empty;
 
             await InvokeAsync(async () =>
             {
@@ -104,17 +148,17 @@ namespace Web.Blazor.Pages.AI
         {
             if (ignoreHubChunks) return;
 
-            await InvokeAsync(() => { currentAssistantMessage = null; StateHasChanged(); });
+            await InvokeAsync(() => { currentAssistantMessage = null; ProgressStatus = string.Empty; StateHasChanged(); });
         }
 
         private async Task SafeScrollToBottomAsync()
         {
             try
             {
-                // Avoid forcing scroll to bottom for the first message(s) so the initial prompt appears near the top.
-                if (messages.Count <= 1) return;
+                // Keep messages scroll behavior stable; scroll after content appended.
                 await Task.Delay(50);
-                await JS.InvokeVoidAsync("scrollToBottom", messagesDiv);
+                if (messagesDiv.Context != null)
+                    await JS.InvokeVoidAsync("scrollToBottom", messagesDiv);
             }
             catch { }
         }
@@ -128,7 +172,7 @@ namespace Web.Blazor.Pages.AI
 
         async Task Send()
         {
-            if (string.IsNullOrWhiteSpace(userInput) || connectionId == null || isConnecting) return;
+            if (string.IsNullOrWhiteSpace(userInput) || isConnecting) return;
 
             messages.Add(new ChatMessage { Role = "user", Content = userInput });
             currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
@@ -144,28 +188,32 @@ namespace Web.Blazor.Pages.AI
 
             try
             {
+                // When doing client-streaming, prevent hub chunks from being applied simultaneously.
                 ignoreHubChunks = true;
-                isProcessing = true;
-                var spinnerVisible = true;
 
-                // show a spinner overlay (after a short delay) while waiting for the first chunk
-                //await ShowSpinnerWithDelay();
+                // show a friendly status while the AI pipeline runs; hub may replace this with more specific messages
+                ProgressStatus = "Copilot is thinking...";
+                isProcessing = true;
+
                 await InvokeAsync(StateHasChanged);
 
+                var firstChunkReceived = false;
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, connectionId, chatCts.Token))
                 {
-                    if (currentAssistantMessage is null) 
+                    // clear the progress status on first chunk
+                    if (!firstChunkReceived)
                     {
-                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" }; 
+                        firstChunkReceived = true;
+                        ProgressStatus = string.Empty;
+                        await InvokeAsync(StateHasChanged);
+                    }
+
+                    if (currentAssistantMessage is null)
+                    {
+                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
                         messages.Add(currentAssistantMessage);
                     }
-                    // hide the spinner as soon as the first chunk arrives so Cancel remains clickable
-                    //if (spinnerVisible)
-                    //{
-                    //    spinnerVisible = false;
-                    //    HideSpinner();
-                    //    await InvokeAsync(StateHasChanged);
-                    //}
+
                     currentAssistantMessage.Content += chunk;
                     await InvokeAsync(StateHasChanged);
                     await SafeScrollToBottomAsync();
@@ -185,18 +233,18 @@ namespace Web.Blazor.Pages.AI
             }
             catch (OperationCanceledException)
             {
-                // ensure spinner hidden when cancelled
-                //try { HideSpinner(); } catch { }
+                // cancelled by user
+                ProgressStatus = "Request cancelled.";
             }
             catch (Exception ex)
             {
-                //try { HideSpinner(); } catch { }
                 if (currentAssistantMessage is null)
                 {
                     currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
                     messages.Add(currentAssistantMessage);
                 }
                 currentAssistantMessage.Content += $"\n\n[Error receiving response: {ex.Message}]";
+                ProgressStatus = string.Empty;
                 try
                 {
                     if (toastObj != null)
@@ -216,10 +264,10 @@ namespace Web.Blazor.Pages.AI
                 chatCts = null;
                 ignoreHubChunks = false;
                 isProcessing = false;
-
-                //try { HideSpinner(); } catch { }
+                ProgressStatus = string.Empty;
 
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
+                await InvokeAsync(StateHasChanged);
             }
         }
 
@@ -243,9 +291,6 @@ namespace Web.Blazor.Pages.AI
 
         async Task OnConfirmYes()
         {
-            // If there are messages, save them before starting a new conversation.
-            // SaveCurrentConversationAsync handles both create (when no selectedConversationId)
-            // and update (when a conversation is selected).
             if (messages.Count > 0)
             {
                 await SaveCurrentConversationAsync();
@@ -269,7 +314,6 @@ namespace Web.Blazor.Pages.AI
             try { chatCts?.Cancel(); } catch { }
             chatCts?.Dispose(); chatCts = null;
 
-            // Clear UI messages and prepare to start a fresh conversation context.
             messages.Clear(); currentAssistantMessage = null; ignoreHubChunks = false;
 
             await InvokeAsync(StateHasChanged);
@@ -279,11 +323,9 @@ namespace Web.Blazor.Pages.AI
                 await JS.InvokeVoidAsync("focusElement", chatInputRef);
                 var id = Guid.NewGuid().ToString();
                 var title = "Conversation " + DateTime.Now.ToString("g");
-                // create empty conversation record on server and select it so new prompts attach to it
                 var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = "[]" };
                 await ConversationsClient.CreateAsync(conv);
                 await LoadConversations();
-                // ensure dropdown selects the newly created conversation
                 selectedConversationId = id;
                 await InvokeAsync(StateHasChanged);
                 try
@@ -314,7 +356,6 @@ namespace Web.Blazor.Pages.AI
                         .Select(c => new ConversationItem { Id = c.Id, Title = c.Title, Json = c.Json })
                         .ToList();
 
-                    // Do not auto-select a conversation. Require the user to explicitly select one from the dropdown.
                     selectedConversationId = null;
                     await InvokeAsync(StateHasChanged);
                 }
@@ -467,6 +508,7 @@ namespace Web.Blazor.Pages.AI
 
             ignoreHubChunks = false;
             isProcessing = false;
+            ProgressStatus = string.Empty;
 
             await InvokeAsync(StateHasChanged);
         }
@@ -477,13 +519,19 @@ namespace Web.Blazor.Pages.AI
 
         public async ValueTask DisposeAsync()
         {
-            BooksProgressClient.ChunkReceived -= OnChunkReceived;
-            BooksProgressClient.DoneReceived -= OnDoneReceived;
+            try
+            {
+                ChatProgressClient.ProgressReceived -= OnProgressReceived;
+                ChatProgressClient.ChunkReceived -= OnChunkReceived;
+                ChatProgressClient.DoneReceived -= OnDoneReceived;
+            }
+            catch { }
+
             chatCts?.Cancel();
             chatCts?.Dispose();
-            try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
+                try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
             dotNetRef?.Dispose();
-            await BooksProgressClient.StopAsync();
+            try { await ChatProgressClient.StopAsync(); } catch { }
         }
     }
 }

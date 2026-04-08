@@ -26,6 +26,11 @@ namespace MediaOrganizerApp.WebApi.Middlewares
                 await _next(context);
                 return;
             }
+            if (context.Request.Path.StartsWithSegments("/chat-progress"))
+            {
+                await _next(context);
+                return;
+            }
 
             if (!context.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
             {
