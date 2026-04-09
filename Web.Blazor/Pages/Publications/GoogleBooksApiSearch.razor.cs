@@ -1,4 +1,3 @@
-using HarfBuzzSharp;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Formatting;
@@ -6,8 +5,6 @@ using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Microsoft.JSInterop;
-using RtfPipe.Tokens;
 using Syncfusion.Blazor.Spinner;
 using System.Globalization;
 using Web.Blazor.Services.Common;
@@ -21,8 +18,8 @@ namespace Web.Blazor.Pages.Publications
         [Inject] public IPublicacaoService PubsService { get; set; }
         [Inject] public IAutorService autoresService { get; set; }
         [Inject] public IGoogleBooksService GoogleBooksService { get; set; }
-        [Inject] public Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient { get; set; }
-        [Inject] public Web.Blazor.Services.Common.InternetConnectivityService Internet { get; set; }
+        [Inject] public Services.ApiWrappers.AiBookClientService AiBookClient { get; set; }
+        [Inject] public InternetConnectivityService Internet { get; set; }
         [Inject] public ILogger<App> _logger { get; set; }
         [Inject] public IUtilitiesService utilitiesService { get; set; }
 

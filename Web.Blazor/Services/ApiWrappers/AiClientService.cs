@@ -106,4 +106,55 @@ public sealed class AiClientService
         if (finalChars > 0)
             yield return new string(charBuffer, 0, finalChars);
     }
+
+    // Start a hub-driven chat: POST to /api/ai/chat/start to request background processing.
+    // The server will send progress/chunk/done messages to the provided SignalR connection id.
+    public async Task<bool> StartChatAsync(
+        List<ChatMessageDto> messages,
+        string? connectionId,
+        string? language = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        var requestUri = $"{baseUrl}/ai/chat/start";
+
+        var payload = new
+        {
+            messages = messages.Select(m => new { role = m.Role, content = m.Content }),
+            connectionId = connectionId,
+            language = language
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
+        {
+            Content = JsonContent.Create(payload)
+        };
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.Accepted) return true;
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict) return false;
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task CancelChatAsync(string? connectionId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId)) return;
+        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        var requestUri = $"{baseUrl}/ai/chat/cancel";
+        using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
+        {
+            Content = JsonContent.Create(new { connectionId = connectionId })
+        };
+
+        try
+        {
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            // ignore result
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error calling cancel chat");
+        }
+    }
 }

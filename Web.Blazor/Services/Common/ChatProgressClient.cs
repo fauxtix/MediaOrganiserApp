@@ -8,6 +8,9 @@ public class ChatProgressClient
     public event Action<string>? ProgressReceived;
     public event Action<string>? ChunkReceived;
     public event Action? DoneReceived;
+    public event Action<string?>? Reconnected;
+    public event Action? Reconnecting;
+    public event Action<Exception?>? Closed;
 
         public async Task StartAsync(string baseUrl)
     {
@@ -30,6 +33,24 @@ public class ChatProgressClient
         _connection.On<string>("ReceiveProgress", (message) => ProgressReceived?.Invoke(message));
         _connection.On<string>("ReceiveChunk", (chunk) => ChunkReceived?.Invoke(chunk));
         _connection.On("ReceiveDone", () => DoneReceived?.Invoke());
+
+        _connection.Reconnecting += (ex) =>
+        {
+            try { Reconnecting?.Invoke(); } catch { }
+            return Task.CompletedTask;
+        };
+
+        _connection.Reconnected += (newId) =>
+        {
+            try { Reconnected?.Invoke(newId); } catch { }
+            return Task.CompletedTask;
+        };
+
+        _connection.Closed += (ex) =>
+        {
+            try { Closed?.Invoke(ex); } catch { }
+            return Task.CompletedTask;
+        };
 
         await _connection.StartAsync();
     }

@@ -13,14 +13,14 @@ namespace MediaOrganizerApp.WebApi.Services
         private readonly ILogger<OllamaChatService> _logger;
         private readonly IConfiguration _config;
         private readonly IPromptTemplateProvider _prompts;
-        private readonly IHubContext<GoogleBooksProgressHub> _hubContext;
+        private readonly IHubContext<ChatProgressHub> _hubContext;
 
         public OllamaChatService(
             HttpClient httpClient,
             ILogger<OllamaChatService> logger,
             IConfiguration config,
             IPromptTemplateProvider prompts,
-            IHubContext<GoogleBooksProgressHub> hubContext)
+            IHubContext<ChatProgressHub> hubContext)
         {
             _httpClient = httpClient;
             _logger = logger;
@@ -55,13 +55,24 @@ namespace MediaOrganizerApp.WebApi.Services
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken);
 
+            // Notify client that server-side streaming is starting so the UI
+            // can show a progress message even while client-side streaming is active.
+            if (!string.IsNullOrWhiteSpace(connectionId))
+            {
+                try
+                {
+                    await _hubContext.Clients.Client(connectionId)
+                        .SendAsync("ReceiveProgress", "Server: starting response stream...", cancellationToken);
+                }
+                catch { }
+            }
+
             var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var reader = new StreamReader(stream);
 
-            while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
             {
-                var line = await reader.ReadLineAsync();
-
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
