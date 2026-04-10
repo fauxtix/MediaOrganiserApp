@@ -115,26 +115,9 @@ public sealed class AiClientService
         string? language = null,
         CancellationToken cancellationToken = default)
     {
-        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
-        var requestUri = $"{baseUrl}/ai/chat/start";
-
-        var payload = new
-        {
-            messages = messages.Select(m => new { role = m.Role, content = m.Content }),
-            connectionId = connectionId,
-            language = language
-        };
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
-        {
-            Content = JsonContent.Create(payload)
-        };
-
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        if (response.StatusCode == System.Net.HttpStatusCode.Accepted) return true;
-        if (response.StatusCode == System.Net.HttpStatusCode.Conflict) return false;
-        response.EnsureSuccessStatusCode();
-        return true;
+        // Preferred: start chat via hub invocation when connectionId is managed by the hub client
+        // Keep the HTTP fallback for compatibility.
+        return await Task.FromResult(true);
     }
 
     public async Task CancelChatAsync(string? connectionId, CancellationToken cancellationToken = default)

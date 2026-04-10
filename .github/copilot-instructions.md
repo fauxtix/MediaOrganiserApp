@@ -72,3 +72,4 @@
 
 ## Code Update Preferences
 - User prefers full replacement file contents when requesting code updates (wants explicit file replacements rather than suggestions).
+- Do not provide unsolicited explanations about mistakes or analytic post-mortems; require explicit consent before making code changes and do not act without clear instructions.

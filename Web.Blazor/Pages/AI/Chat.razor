@@ -18,6 +18,11 @@
         <div class="header-inner">
             <div class="header-title">Chat room</div>
 
+                <div class="hub-debug" aria-hidden="true" style="margin-left:12px;font-size:0.75rem;color:#666;">
+                    <div>Conn: <span data-debug-connid>@connectionId</span></div>
+                    <div>Last hub: <span data-debug-lastevent>@lastHubEvent</span></div>
+                </div>
+
             <div class="header-actions">
                 <div class="conversation-list">
                     <SfDropDownList TValue="string" TItem="ConversationItem"
@@ -243,7 +248,7 @@
     }
 
     .conversation-dropdown {
-        min-width: 262px;
+        min-width: 300px;
         max-width: 360px;
         width: 100%;
         box-sizing: border-box;

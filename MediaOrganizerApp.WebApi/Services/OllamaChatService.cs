@@ -61,10 +61,14 @@ namespace MediaOrganizerApp.WebApi.Services
             {
                 try
                 {
+                    _logger.LogInformation("OllamaChatService: sending initial progress to {ConnectionId}", connectionId);
                     await _hubContext.Clients.Client(connectionId)
                         .SendAsync("ReceiveProgress", "Server: starting response stream...", cancellationToken);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "OllamaChatService: failed to send initial progress to {ConnectionId}", connectionId);
+                }
             }
 
             var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -95,21 +99,37 @@ namespace MediaOrganizerApp.WebApi.Services
 
                 if (!string.IsNullOrEmpty(content))
                 {
-                    // ✔️ agora já não está dentro de try/catch
+                    // yield chunk for HTTP streaming clients
                     yield return content;
 
                     if (!string.IsNullOrWhiteSpace(connectionId))
                     {
-                        await _hubContext.Clients.Client(connectionId)
-                            .SendAsync("ReceiveChunk", content, cancellationToken);
+                        try
+                        {
+                            _logger.LogDebug("OllamaChatService: sending chunk (len={Len}) to {ConnectionId}", content.Length, connectionId);
+                            await _hubContext.Clients.Client(connectionId)
+                                .SendAsync("ReceiveChunk", content, cancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "OllamaChatService: failed to send chunk to {ConnectionId}", connectionId);
+                        }
                     }
                 }
             }
 
             if (!string.IsNullOrWhiteSpace(connectionId))
             {
-                await _hubContext.Clients.Client(connectionId)
-                    .SendAsync("ReceiveDone", cancellationToken);
+                try
+                {
+                    _logger.LogInformation("OllamaChatService: sending done to {ConnectionId}", connectionId);
+                    await _hubContext.Clients.Client(connectionId)
+                        .SendAsync("ReceiveDone", cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "OllamaChatService: failed to send done to {ConnectionId}", connectionId);
+                }
             }
         }
     }
