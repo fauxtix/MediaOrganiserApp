@@ -18,12 +18,12 @@ namespace Web.Blazor.Pages.AI
         private string userInput = "";
         private ChatMessage? currentAssistantMessage;
         private ElementReference messagesDiv;
-        private string? connectionId;
-        private string? lastHubEvent;
+        // Using HTTP streaming only
         private bool isConnecting = false;
         private bool isProcessing = false;
-        private CancellationTokenSource? chatCts;
         private bool ignoreHubChunks = false;
+        private CancellationTokenSource? chatCts;
+
 
         private ElementReference chatInputRef;
         private DotNetObjectReference<Chat>? dotNetRef;
@@ -54,86 +54,9 @@ namespace Web.Blazor.Pages.AI
         protected override async Task OnInitializedAsync()
         {
             await LoadConversations(); // load from server before render
-
-                // subscribe to hub events early so we receive messages as soon as connection opens
-                ChatProgressClient.ProgressReceived += OnProgressReceived;
-                ChatProgressClient.ChunkReceived += OnChunkReceived;
-                ChatProgressClient.DoneReceived += OnDoneReceived;
-
-            isConnecting = true;
-            await InvokeAsync(StateHasChanged);
-
-            // Derive hub base from configured API BaseUrl when available. Navigation base may point
-            // to the Blazor host which is not necessarily the API hosting the hub.
-            var hubBase = Configuration["BaseUrl"]?.TrimEnd('/');
-            if (string.IsNullOrEmpty(hubBase))
-            {
-                // fallback to NavigationManager if BaseUrl not configured
-                hubBase = (Nav?.BaseUri ?? "").TrimEnd('/');
-            }
-
-            // final fallback to localhost used previously
-            if (string.IsNullOrEmpty(hubBase))
-                hubBase = "https://localhost:44303";
-
-            try
-            {
-                // Await the hub start so the component has a deterministic connection id
-                // subscribe to reconnect events so UI knows when connection id changes
-                ChatProgressClient.Reconnecting += OnHubReconnecting;
-                ChatProgressClient.Reconnected += OnHubReconnected;
-                ChatProgressClient.Closed += OnHubClosed;
-
-                await ChatProgressClient.StartAsync(hubBase);
-                connectionId = ChatProgressClient.ConnectionId;
-                ProgressStatus = string.Empty;
-                if (string.IsNullOrEmpty(ChatProgressClient.ConnectionId))
-                {
-                    ProgressStatus = "Progress hub unreachable. Server progress messages will not appear.";
-                    lastHubEvent = "unavailable";
-                }
-                else
-                {
-                    lastHubEvent = "connected";
-                }
-            }
-            catch (Exception ex)
-            {
-                // keep the UI usable, surface a brief message in the messages area
-                ProgressStatus = "Progress hub unreachable. Server progress messages will not appear.";
-                connectionId = ChatProgressClient.ConnectionId;
-                Console.WriteLine("BooksProgressClient.StartAsync failed: " + ex.Message);
-            }
-            finally
-            {
-                isConnecting = false;
-                await InvokeAsync(StateHasChanged);
-            }
         }
 
-        private void OnHubReconnecting()
-        {
-            // show a small connection hint while reconnecting
-            isConnecting = true;
-            lastHubEvent = "reconnecting";
-            _ = InvokeAsync(StateHasChanged);
-        }
 
-        private void OnHubReconnected(string? newId)
-        {
-            connectionId = newId;
-            isConnecting = false;
-            lastHubEvent = "reconnected";
-            _ = InvokeAsync(StateHasChanged);
-        }
-
-        private void OnHubClosed(Exception? ex)
-        {
-            connectionId = null;
-            isConnecting = false;
-            lastHubEvent = "closed";
-            _ = InvokeAsync(StateHasChanged);
-        }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -146,69 +69,16 @@ namespace Web.Blazor.Pages.AI
             try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
         }
 
-        private void OnProgressReceived(string message)
+        private void OnProgressReceived(string? message)
         {
-            // show informational progress coming from the server/hub
+            // show informational progress coming from the server (HTTP streaming)
             ProgressStatus = message ?? string.Empty;
-            lastHubEvent = "progress";
 
             // Update UI and ensure the messages area scrolls so the status is visible
             _ = InvokeAsync(async () =>
             {
                 StateHasChanged();
                 try { await SafeScrollToBottomAsync(); } catch { }
-            });
-        }
-
-        private async void OnChunkReceived(string chunk)
-        {
-            if (ignoreHubChunks) return;
-            lastHubEvent = "chunk";
-
-            // clear any progress hint as soon as assistant starts streaming
-            ProgressStatus = string.Empty;
-
-            await InvokeAsync(async () =>
-            {
-                if (currentAssistantMessage is null)
-                {
-                    currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
-                    messages.Add(currentAssistantMessage);
-                }
-
-                currentAssistantMessage.Content += chunk;
-                StateHasChanged();
-                await SafeScrollToBottomAsync();
-            });
-        }
-
-        private async void OnDoneReceived()
-        {
-            if (ignoreHubChunks) return;
-
-            lastHubEvent = "done";
-
-            await InvokeAsync(async () =>
-            {
-                currentAssistantMessage = null;
-                ProgressStatus = string.Empty;
-                // mark processing finished when server indicates done
-                isProcessing = false;
-                StateHasChanged();
-                try { await SaveCurrentConversationAsync(); } catch { }
-
-                // show a small toast to indicate completion
-                try
-                {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = "AI";
-                        ToastContent = "Response received";
-                        ToastCssClass = "e-toast-success";
-                        await toastObj.ShowAsync();
-                    }
-                }
-                catch { }
             });
         }
 
@@ -219,7 +89,7 @@ namespace Web.Blazor.Pages.AI
                 // Keep messages scroll behavior stable; scroll after content appended.
                 await Task.Delay(50);
                 if (messagesDiv.Context != null)
-                    await JS.InvokeVoidAsync("scrollToBottom", messagesDiv);
+                    await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
             }
             catch { }
         }
@@ -251,149 +121,33 @@ namespace Web.Blazor.Pages.AI
             {
                 try { await SafeScrollToBottomAsync(); } catch { }
 
-                // Try hub-first: invoke StartChat on the hub so server uses the caller connection id.
+                // Use HTTP streaming only
                 var dtoList = messages.Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content }).ToList();
                 var language = Configuration["Language"] ?? null;
 
-                connectionId = ChatProgressClient.ConnectionId;
+                ProgressStatus = "Thinking...";
+                isProcessing = true;
+                await InvokeAsync(StateHasChanged);
 
-                if (!string.IsNullOrWhiteSpace(ChatProgressClient.ConnectionId) && ChatProgressClient.IsConnected && !ChatProgressClient.IsReconnecting)
+                var firstChunkReceived = false;
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, language, chatCts.Token))
                 {
-                    // allow hub chunks
-                    ignoreHubChunks = false;
-                    ProgressStatus = "Thinking...";
-                    isProcessing = true;
-                    await InvokeAsync(StateHasChanged);
-
-                    var started = await ChatProgressClient.StartChatAsync(dtoList, language);
-                    if (started)
+                    if (!firstChunkReceived)
                     {
-                        // wait for the first hub chunk within a short window
-                        var firstChunkTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        void LocalChunkHandler(string _) => firstChunkTcs.TrySetResult(null);
-
-                        ChatProgressClient.ChunkReceived += LocalChunkHandler;
-                        try
-                        {
-                            var delayMs = 2000;
-                            var delayTask = Task.Delay(delayMs, chatCts.Token);
-                            var finished = await Task.WhenAny(firstChunkTcs.Task, delayTask);
-
-                            if (finished != firstChunkTcs.Task)
-                            {
-                                // no hub chunks in time: cancel server job via hub and fall back to HTTP streaming
-                                try { await ChatProgressClient.CancelChatAsync(); } catch { }
-
-                                ChatProgressClient.ChunkReceived -= LocalChunkHandler;
-
-                                ignoreHubChunks = true;
-                                ProgressStatus = "Thinking...";
-                                await InvokeAsync(StateHasChanged);
-
-                                var firstChunkReceived = false;
-                                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, chatCts.Token))
-                                {
-                                    if (!firstChunkReceived)
-                                    {
-                                        firstChunkReceived = true;
-                                        ProgressStatus = string.Empty;
-                                        await InvokeAsync(StateHasChanged);
-                                    }
-
-                                    if (currentAssistantMessage is null)
-                                    {
-                                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
-                                        messages.Add(currentAssistantMessage);
-                                    }
-
-                                    currentAssistantMessage.Content += chunk;
-                                    await InvokeAsync(StateHasChanged);
-                                    await SafeScrollToBottomAsync();
-                                }
-
-                                try { await SaveCurrentConversationAsync(); } catch { }
-                                return;
-                            }
-                        }
-                        finally
-                        {
-                            ChatProgressClient.ChunkReceived -= LocalChunkHandler;
-                        }
-
-                        // seen at least one hub chunk — wait for done
-                        var tcs = new TaskCompletionSource<object?>();
-                        void DoneHandler() => tcs.TrySetResult(null);
-
-                        ChatProgressClient.DoneReceived += DoneHandler;
-                        try
-                        {
-                            using (chatCts.Token.Register(() => tcs.TrySetCanceled()))
-                            {
-                                await tcs.Task;
-                            }
-                        }
-                        finally
-                        {
-                            ChatProgressClient.DoneReceived -= DoneHandler;
-                        }
-                    }
-                    else
-                    {
-                        // hub invocation failed: fallback to HTTP streaming
-                        ignoreHubChunks = true;
-                        ProgressStatus = "Thinking...";
+                        firstChunkReceived = true;
+                        ProgressStatus = string.Empty;
                         await InvokeAsync(StateHasChanged);
-
-                        var firstChunkReceived = false;
-                        await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, chatCts.Token))
-                        {
-                            if (!firstChunkReceived)
-                            {
-                                firstChunkReceived = true;
-                                ProgressStatus = string.Empty;
-                                await InvokeAsync(StateHasChanged);
-                            }
-
-                            if (currentAssistantMessage is null)
-                            {
-                                currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
-                                messages.Add(currentAssistantMessage);
-                            }
-
-                            currentAssistantMessage.Content += chunk;
-                            await InvokeAsync(StateHasChanged);
-                            await SafeScrollToBottomAsync();
-                        }
                     }
-                }
-                else
-                {
-                    // no stable hub connection: fallback to HTTP streaming
-                    ignoreHubChunks = true;
-                    ProgressStatus = "Thinking...";
-                    isProcessing = true;
-                    await InvokeAsync(StateHasChanged);
 
-                    var firstChunkReceived = false;
-                    await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, chatCts.Token))
+                    if (currentAssistantMessage is null)
                     {
-                        if (!firstChunkReceived)
-                        {
-                            firstChunkReceived = true;
-                            ProgressStatus = string.Empty;
-                            await InvokeAsync(StateHasChanged);
-                        }
-
-                        if (currentAssistantMessage is null)
-                        {
-                            currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
-                            messages.Add(currentAssistantMessage);
-                        }
-
-                        currentAssistantMessage.Content += chunk;
-                        await InvokeAsync(StateHasChanged);
-                        await SafeScrollToBottomAsync();
+                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+                        messages.Add(currentAssistantMessage);
                     }
+
+                    currentAssistantMessage.Content += chunk;
+                    await InvokeAsync(StateHasChanged);
+                    await SafeScrollToBottomAsync();
                 }
 
                 try { await SaveCurrentConversationAsync(); } catch { }
@@ -440,7 +194,6 @@ namespace Web.Blazor.Pages.AI
             {
                 chatCts?.Dispose();
                 chatCts = null;
-                ignoreHubChunks = false;
                 isProcessing = false;
                 ProgressStatus = string.Empty;
 
@@ -450,6 +203,7 @@ namespace Web.Blazor.Pages.AI
         }
 
         [JSInvokable] public async Task OnEnterPressedFromJs() => await Send();
+
 
         async Task ShowConfirmNewConversation()
         {
@@ -488,7 +242,7 @@ namespace Web.Blazor.Pages.AI
             try { chatCts?.Cancel(); } catch { }
             chatCts?.Dispose(); chatCts = null;
 
-            messages.Clear(); currentAssistantMessage = null; ignoreHubChunks = false;
+            messages.Clear(); currentAssistantMessage = null;
 
             await InvokeAsync(StateHasChanged);
 
@@ -699,22 +453,10 @@ namespace Web.Blazor.Pages.AI
 
         public async ValueTask DisposeAsync()
         {
-            try
-            {
-                ChatProgressClient.ProgressReceived -= OnProgressReceived;
-                ChatProgressClient.ChunkReceived -= OnChunkReceived;
-                ChatProgressClient.DoneReceived -= OnDoneReceived;
-                ChatProgressClient.Reconnected -= OnHubReconnected;
-                ChatProgressClient.Reconnecting -= OnHubReconnecting;
-                ChatProgressClient.Closed -= OnHubClosed;
-            }
-            catch { }
-
             chatCts?.Cancel();
             chatCts?.Dispose();
-                try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
+            try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
             dotNetRef?.Dispose();
-            try { await ChatProgressClient.StopAsync(); } catch { }
         }
     }
 }

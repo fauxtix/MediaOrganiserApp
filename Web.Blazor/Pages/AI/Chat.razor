@@ -10,7 +10,6 @@
 @using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Notifications
 @using Web.Blazor.Components
-@inject Web.Blazor.Services.Common.ChatProgressClient ChatProgressClient
 @inject Web.Blazor.Services.ApiWrappers.AiClientService AiClient
 
 <div class="chat-container">
@@ -18,10 +17,7 @@
         <div class="header-inner">
             <div class="header-title">Chat room</div>
 
-                <div class="hub-debug" aria-hidden="true" style="margin-left:12px;font-size:0.75rem;color:#666;">
-                    <div>Conn: <span data-debug-connid>@connectionId</span></div>
-                    <div>Last hub: <span data-debug-lastevent>@lastHubEvent</span></div>
-                </div>
+                @* Hub debug removed: using HTTP streaming only *@
 
             <div class="header-actions">
                 <div class="conversation-list">
@@ -110,19 +106,7 @@
             </div>
         </div>
 
-        @if (isConnecting)
-        {
-            <div class="connection-status" title="Connecting to progress hub...">
-                <span class="spinner" aria-hidden="true"></span>
-                <span class="status-text">Connecting...</span>
-            </div>
-        }
-        else if (connectionId == null)
-        {
-            <div class="connection-status disconnected" title="Not connected">
-                <span class="status-text">Not connected</span>
-            </div>
-        }
+        @* Connection status removed: using HTTP streaming only *@
     </div>
 </div>
 

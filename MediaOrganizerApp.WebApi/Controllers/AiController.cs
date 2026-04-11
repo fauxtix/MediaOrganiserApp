@@ -11,9 +11,6 @@ namespace MediaOrganizerApp.WebApi.Controllers
     [Route("api/[controller]")]
     public sealed class AiController : ControllerBase
     {
-        // Track background chat processing per connection so we can cancel if requested.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> _processing = new();
-
         private readonly IAiAuthorProfileService _ai;
         private readonly IAiBookSummaryService _books;
         private readonly IAiBooksService _aiBooks;
@@ -43,72 +40,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _promptProvider = promptProvider;
         }
 
-        [HttpPost("chat/start")]
-        public IActionResult StartChat([FromBody] ChatRequest request)
-        {
-            if (request == null) return BadRequest("Request body is required.");
-            if (string.IsNullOrWhiteSpace(request.ConnectionId)) return BadRequest("ConnectionId is required for hub streaming.");
-            if (request.Messages == null || request.Messages.Count == 0) return BadRequest("Messages are required.");
-
-            var connectionId = request.ConnectionId!;
-
-            // Create a CTS for this connection and store it so Cancel can find it.
-            var cts = new CancellationTokenSource();
-            if (!_processing.TryAdd(connectionId, cts))
-            {
-                // Already processing for this connection; return Conflict to indicate duplicate start attempt.
-                _logger.LogWarning("StartChat called for connection already processing: {ConnectionId}", connectionId);
-                return Conflict(new { message = "A chat is already processing for this connection." });
-            }
-
-            // Start background processing; the IAiChatService implementations are expected
-            // to push progress/chunk/done messages to the hub (ChatProgressHub).
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // If language provided, insert system message like existing Chat endpoint does
-                    if (!string.IsNullOrWhiteSpace(request?.Language))
-                    {
-                        request.Messages.Insert(0, new ChatMessageDto
-                        {
-                            Role = "system",
-                            Content = $"Please respond in {request.Language}. Keep answers concise and avoid repetition."
-                        });
-                    }
-
-                    await foreach (var _ in _chat.StreamChatAsync(request.Messages, connectionId, cts.Token))
-                    {
-                        // service implementations already send hub messages; nothing to do here.
-                    }
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error during background chat processing for {ConnectionId}", connectionId);
-                }
-                finally
-                {
-                    // cleanup
-                    _processing.TryRemove(connectionId, out var _);
-                }
-            });
-
-            return Accepted();
-        }
-
-        [HttpPost("chat/cancel")]
-        public IActionResult CancelChat([FromBody] ChatCancelRequest req)
-        {
-            if (req == null || string.IsNullOrWhiteSpace(req.ConnectionId)) return BadRequest("ConnectionId is required.");
-            if (_processing.TryRemove(req.ConnectionId, out var cts))
-            {
-                try { cts.Cancel(); } catch { }
-                try { cts.Dispose(); } catch { }
-            }
-
-            return Ok();
-        }
+        // Note: Hub-based background chat start/cancel endpoints removed. Chat streaming is handled
+        // directly by the /chat endpoint which streams to the HTTP response.
 
         [HttpGet("prompts/readme")]
         public async Task<IActionResult> GetReadme()

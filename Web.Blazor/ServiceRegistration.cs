@@ -71,8 +71,7 @@ namespace Web.Blazor
             // Conversations client for server-side persisted chat
             services.AddHttpClient<Web.Blazor.Services.ApiWrappers.ConversationsClientService>();
 
-            // Chat-specific SignalR client used only by the chat UI
-            services.AddScoped<Web.Blazor.Services.Common.ChatProgressClient>();
+            // Chat-specific SignalR client removed: chat now uses HTTP streaming via AiClientService
 
             services.AddHttpClient<ILogService, WrapperAppLogs>();
 

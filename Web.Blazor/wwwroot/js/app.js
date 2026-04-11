@@ -83,6 +83,71 @@ window.chatInput = (function () {
     return { attachHandlers, detachHandlers, insertNewlineAtCaret };
 })();
 
+// Copilot-style inline suggestion helpers (for new CopilotChat component)
+window.copilotInput = (function () {
+    // Attach minimal handlers to keep the suggestion overlay in sync with the textarea
+    function attachHandlers(el) {
+        if (!el) return;
+        if (el.__copilotAttached) return;
+
+        const wrapper = el.closest && el.closest('.copilot-input-wrapper');
+        const overlay = wrapper ? wrapper.querySelector('.copilot-suggestion') : null;
+
+        function syncOverlay() {
+            try {
+                if (!overlay || !el) return;
+                const cs = getComputedStyle(el);
+                // copy important layout/font styles so the overlay mirrors the textarea
+                overlay.style.fontFamily = cs.fontFamily;
+                overlay.style.fontSize = cs.fontSize;
+                overlay.style.lineHeight = cs.lineHeight;
+                overlay.style.paddingTop = cs.paddingTop;
+                overlay.style.paddingRight = cs.paddingRight;
+                overlay.style.paddingBottom = cs.paddingBottom;
+                overlay.style.paddingLeft = cs.paddingLeft;
+                overlay.style.boxSizing = cs.boxSizing;
+                overlay.style.whiteSpace = 'pre-wrap';
+                overlay.style.wordWrap = 'break-word';
+                overlay.style.width = (el.clientWidth) + 'px';
+                // Match scroll
+                overlay.scrollTop = el.scrollTop;
+            } catch (e) { }
+        }
+
+        function onInput() {
+            try {
+                // ensure overlay height follows textarea growth
+                syncOverlay();
+            } catch (e) { }
+        }
+
+        function onScroll() { syncOverlay(); }
+
+        // initial sync
+        setTimeout(syncOverlay, 0);
+
+        el.addEventListener('input', onInput);
+        el.addEventListener('scroll', onScroll);
+
+        // store handlers for detach
+        el.__copilotHandlers = { onInput, onScroll };
+        el.__copilotAttached = true;
+    }
+
+    function detachHandlers(el) {
+        if (!el) return;
+        const h = el.__copilotHandlers;
+        if (h) {
+            if (h.onInput) el.removeEventListener('input', h.onInput);
+            if (h.onScroll) el.removeEventListener('scroll', h.onScroll);
+        }
+        delete el.__copilotHandlers;
+        delete el.__copilotAttached;
+    }
+
+    return { attachHandlers, detachHandlers };
+})();
+
 // Focus helper
 window.focusElement = function (el) { try { if (!el) return; el.focus(); } catch (e) { } };
 
