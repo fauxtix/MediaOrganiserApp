@@ -1,6 +1,7 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Syncfusion.Blazor.Notifications;
 using Web.Blazor.Services.ApiWrappers;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
@@ -18,7 +19,13 @@ namespace Web.Blazor.Pages.AI
         private ElementReference chatInputRef;
         private DotNetObjectReference<CopilotChat>? dotNetRef;
         private bool isProcessing = false;
+        private bool waitingForInitialResponse = false;
         private string ProgressStatus { get; set; } = "";
+        private SfToast? toastObj;
+        protected string ToastTitle = "";
+        protected string ToastContent = "";
+        protected string ToastCssClass = "";
+        public int ToastTimeOut { get; set; } = 1500;
 
         [Inject] private Web.Blazor.Services.ApiWrappers.AiClientService AiClient { get; set; } = null!;
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
@@ -34,8 +41,16 @@ namespace Web.Blazor.Pages.AI
         {
             if (!firstRender) return;
             dotNetRef = DotNetObjectReference.Create(this);
-            try { await JS.InvokeVoidAsync("copilotInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
+            try
+            {
+                // attach standard chat input handlers (Enter -> send) and copilot overlay sync
+                await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
+            }
+            catch { }
+            try { await JS.InvokeVoidAsync("copilotInput.attachHandlers", chatInputRef); } catch { }
         }
+
+        [JSInvokable] public async Task OnEnterPressedFromJs() => await Send();
 
         [JSInvokable] public async Task OnAcceptSuggestionFromJs() => await AcceptSuggestionAsync();
         [JSInvokable] public Task OnDismissSuggestionFromJs() { suggestion = string.Empty; StateHasChanged(); return Task.CompletedTask; }
@@ -53,7 +68,8 @@ namespace Web.Blazor.Pages.AI
         {
             try
             {
-                await Task.Delay(50);
+                // Slightly larger delay to allow Blazor to render updated DOM before scrolling
+                await Task.Delay(80);
                 if (messagesDiv.Context != null)
                     await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
             }
@@ -80,17 +96,48 @@ namespace Web.Blazor.Pages.AI
             currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
             messages.Add(currentAssistantMessage);
 
-            try { await SafeScrollToBottomAsync(); } catch { }
+            // Clear the input area immediately after sending the prompt
+            userInput = string.Empty;
+            await InvokeAsync(StateHasChanged);
+
+            bool hadScrollbar = false;
+            try
+            {
+                // Check if the messages container already has a scrollbar (content exceeds visible height).
+                // If so, we'll auto-scroll so the user sees the latest content (Copilot-like behavior).
+                try
+                {
+                    hadScrollbar = await JS.InvokeAsync<bool>("hasScrollbar", messagesDiv);
+                }
+                catch { hadScrollbar = false; }
+
+                if (hadScrollbar)
+                    try { await SafeScrollToBottomAsync(); } catch { }
+            }
+            catch { }
 
             var dtoList = messages.Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content }).ToList();
             var language = Configuration["Language"] ?? null;
 
             isProcessing = true;
+            waitingForInitialResponse = true;
             suggestion = string.Empty;
+            // create a cancellation token source so Stop button can cancel the streaming request
+            try { chatCts?.Dispose(); } catch { }
+            chatCts = new CancellationTokenSource();
+            // ensure UI updates to show waiting state
+            await InvokeAsync(StateHasChanged);
             try
             {
-                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, language, CancellationToken.None))
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, language, chatCts.Token))
                 {
+                    // first chunk received -> we are no longer waiting for the initial response
+                    if (waitingForInitialResponse)
+                    {
+                        waitingForInitialResponse = false;
+                        await InvokeAsync(StateHasChanged);
+                    }
+
                     suggestion += chunk;
                     if (currentAssistantMessage is null)
                     {
@@ -100,7 +147,12 @@ namespace Web.Blazor.Pages.AI
 
                     currentAssistantMessage.Content = suggestion;
                     await InvokeAsync(StateHasChanged);
-                    await SafeScrollToBottomAsync();
+                    // If the messages area already had a scrollbar before sending, keep auto-scrolling
+                    // so the user sees the last message as it streams (Copilot-like behavior).
+                    if (hadScrollbar)
+                    {
+                        await SafeScrollToBottomAsync();
+                    }
                 }
 
                 if (currentAssistantMessage != null)
@@ -110,6 +162,9 @@ namespace Web.Blazor.Pages.AI
                 }
 
                 try { await SaveCurrentConversationAsync(); } catch { }
+
+                // After streaming completes, scroll once to reveal the full response
+                try { await SafeScrollToBottomAsync(); } catch { }
             }
             catch (OperationCanceledException)
             {
@@ -127,7 +182,9 @@ namespace Web.Blazor.Pages.AI
             finally
             {
                 isProcessing = false;
+                waitingForInitialResponse = false;
                 suggestion = string.Empty;
+                try { chatCts?.Dispose(); chatCts = null; } catch { }
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
                 await InvokeAsync(StateHasChanged);
             }
@@ -140,6 +197,20 @@ namespace Web.Blazor.Pages.AI
 
             isProcessing = false;
             ProgressStatus = string.Empty;
+
+            // notify the user that the request was cancelled using Syncfusion toast
+            try
+            {
+                if (toastObj != null)
+                {
+                    ToastTitle = "AI";
+                    ToastContent = "Request cancelled.";
+                    ToastCssClass = "e-toast-warning";
+                    await InvokeAsync(StateHasChanged);
+                    await toastObj.ShowAsync();
+                }
+            }
+            catch { }
 
             await InvokeAsync(StateHasChanged);
         }

@@ -11,6 +11,7 @@ using Web.Blazor.Reporting.BusinessObjects;
 using Web.Blazor.Reporting.Helpers;
 using Web.Blazor.Reporting.Helpers.Reporting;
 using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.ApiWrappers.Authors;
 using Web.Blazor.Services.Common;
 using Web.Blazor.Services.DocumentHelpers;
 using Web.Blazor.Services.Recipes;
@@ -52,6 +53,8 @@ namespace Web.Blazor
 
             // AI wrapper for publication fallback (e.g., missing/resume/synopsis).
             services.AddHttpClient<AiBookClientService>();
+
+            services.AddHttpClient<IAuthorImageService, AuthorImageService>();
 
             // AI wrapper for media fallback (e.g., missing awards/liner notes).
             services.AddHttpClient<AiMediaClientService>();

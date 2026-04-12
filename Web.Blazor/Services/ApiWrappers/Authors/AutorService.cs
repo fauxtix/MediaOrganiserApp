@@ -1,13 +1,15 @@
 using FluentValidation.Results;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Validators;
 using MediaOrganizerApp.Domain.Entities.Author_Api_Models;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Web.Services.Description;
 
-namespace Web.Blazor.Services.ApiWrappers
+namespace Web.Blazor.Services.ApiWrappers.Authors
 {
     public class AutorService : IAutorService
     {
@@ -16,13 +18,17 @@ namespace Web.Blazor.Services.ApiWrappers
         private readonly IConfiguration _env;
         private readonly string _Uri;
 
+        private readonly IAuthorImageService _authorImageService;
+
         public AutorService(HttpClient httpClient,
             ILogger<AutorService> logger,
-            IConfiguration Env)
+            IConfiguration Env,
+            IAuthorImageService authorImageService)
         {
             _httpClient = httpClient;
             _logger = logger;
             _env = Env;
+            _authorImageService = authorImageService;
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
@@ -425,6 +431,18 @@ namespace Web.Blazor.Services.ApiWrappers
                     int photoId = photosElement[0].GetInt32(); // Obtém o primeiro ID da lista
                     authorPhotoUrl = $"https://covers.openlibrary.org/a/id/{photoId}-M.jpg";
                 }
+                else
+                {
+                    var image = await _authorImageService.GetAuthorImageAsync(authorName);
+                    if (image != null)
+                    {
+                        authorPhotoUrl = image;
+                    }
+                    else
+                    { 
+                        authorPhotoUrl = "images/NoPhoto.png";
+                    }
+                }
 
                 string translatedBio = await TranslateWithMyMemoryAsync(authorBio, "en", "pt");
                 translatedBio = RemoveRepeatedBio(translatedBio);
@@ -460,6 +478,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
             return cleanedBio;
         }
+
 
         public async Task<string> TranslateWithMyMemoryAsync(string text, string sourceLang, string targetLang)
         {

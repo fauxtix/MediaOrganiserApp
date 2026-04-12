@@ -3,6 +3,54 @@ window.setTheme = (theme) => { localStorage.setItem('theme', theme); document.do
 
 // Scroll helper
 window.scrollToBottom = function (el) { try { if (!el) return; const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el); if (!target) return; target.scrollTop = target.scrollHeight; } catch (e) { } };
+// Compatibility wrapper used by Blazor code
+window.scrollMessagesToBottom = function (el) {
+    try {
+        if (!el) return;
+        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
+        if (!target) return;
+        // Prefer scrolling the last child into view — more reliable with flex layouts and padding
+        if (target.lastElementChild) {
+            try {
+                // First attempt: scroll the last child into view
+                target.lastElementChild.scrollIntoView({ block: 'end', behavior: 'auto' });
+                // Force a layout/read to encourage repaint
+                void target.offsetHeight;
+                // A second pass on next animation frame to ensure visibility
+                window.requestAnimationFrame(function () {
+                    try { target.lastElementChild.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (e) { }
+                });
+                return;
+            } catch (e) { /* fallthrough to fallback */ }
+        }
+        // Fallback: set scrollTop to scrollHeight
+        target.scrollTop = target.scrollHeight;
+    } catch (e) {
+        try { if (el) el.scrollTop = el.scrollHeight; } catch { }
+    }
+};
+
+// Return true when the element is already scrolled near the bottom (within threshold px)
+window.isNearBottom = function (el, threshold) {
+    try {
+        if (!el) return true;
+        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
+        if (!target) return true;
+        threshold = Number(threshold) || 80;
+        const distance = target.scrollHeight - (target.scrollTop + target.clientHeight);
+        return distance <= threshold;
+    } catch (e) { return true; }
+};
+
+// Return true when the element has a vertical scrollbar (content taller than clientHeight)
+window.hasScrollbar = function (el) {
+    try {
+        if (!el) return false;
+        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
+        if (!target) return false;
+        return target.scrollHeight > target.clientHeight;
+    } catch (e) { return false; }
+};
 
 // Toolbar height helper
 window.updateAppToolbarHeight = function () {

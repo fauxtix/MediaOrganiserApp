@@ -68,26 +68,34 @@
                 @if (isProcessing)
                 {
                     <div class="streaming-hint">
-                        <span class="streaming-dot"></span> Streaming...
-                        <button class="stop-button" @onclick="CancelSend" title="Stop streaming">Stop</button>
+                        <span class="streaming-dot"></span>
+                        @if (waitingForInitialResponse)
+                        {
+                            <span>Waiting for a response</span>
+                        }
+                        else
+                        {
+                            <span>Streaming...</span>
+                        }
+
+                       <SfButton CssClass="e-danger"
+                                  OnClick="CancelSend"
+                                  Disabled="@(isProcessing)"
+                                  Content="Stop">
+                       </SfButton>
+
                     </div>
                 }
             </div>
 
             <div class="send-controls">
-               <SfButton CssClass="send-button"
+               <SfButton CssClass="e-primary"
                           OnClick="Send"
                           Disabled="@(isProcessing)"
                           Content="Send">
                </SfButton>
 
-               @if (isProcessing)
-               {
-                   <SfButton CssClass="send-button"
-                              OnClick="CancelSend"
-                              Content="Cancel">
-                   </SfButton>
-               }
+               @* Removed duplicate Cancel button — 'Stop' already exists while streaming *@
             </div>
         </div>
     </div>
@@ -96,6 +104,16 @@
 @code {
     // Code-behind implemented in CopilotChat.razor.cs
 }
+
+<div>
+    <SfToast @ref="toastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="@ToastTimeOut" ShowCloseButton="true">
+        <ToastPosition X="right" Y="bottom"></ToastPosition>
+    </SfToast>
+</div>
 
 <style>
     /* Adopt Chat.razor layout/styling for consistent look */

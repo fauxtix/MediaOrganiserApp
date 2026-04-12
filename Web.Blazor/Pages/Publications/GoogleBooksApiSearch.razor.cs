@@ -82,9 +82,18 @@ namespace Web.Blazor.Pages.Publications
         protected async Task GetBookInfo(string bookTitle, string author)
         {
 
-            await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
-            ProgressClient.ProgressReceived -= OnProgressReceived;
-            ProgressClient.ProgressReceived += OnProgressReceived;
+            try
+            {
+                await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+                ProgressClient.ProgressReceived += OnProgressReceived;
+
+            }
+            catch (Exception ex)
+            {
+                var me = ex.Message;
+                throw;
+            }
 
             if (string.IsNullOrEmpty(bookTitle) && string.IsNullOrEmpty(author))
             {

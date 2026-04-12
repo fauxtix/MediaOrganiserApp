@@ -306,7 +306,7 @@ namespace Web.Blazor.Pages.BaseComponents
                     ToastTitle = localizerApp["EditMsg"] + " " + localizerApp["lblAutor"];
                     ToastCssClass = "e-toast-success";
                     ToastContent = localizerApp["SuccessUpdate"];
-                    blnEdit = true;
+                   // blnEdit = true;
                 }
                 else
                 {
