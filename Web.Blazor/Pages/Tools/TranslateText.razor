@@ -1,0 +1,203 @@
+@using MediaOrganizerApp.Application.DTOs.AI
+@inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<App> L
+
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@L["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+<SfDialog @bind-Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false">
+    <DialogTemplates>
+        <Header>
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <h5 class="m-0">@Title</h5>
+            </div>
+        </Header>
+
+        <Content>
+            <div class="translate-panel card p-3">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">@L["TituloIdiomaOrigem"]</label>
+                        <SfDropDownList TValue="string" TItem="LanguageItem" @bind-Value="SourceLanguage"
+                                        DataSource="languages" Placeholder="@L["TituloIdiomaOrigem"]"
+                                        CssClass="w-100 mb-2" PopupHeight="220px">
+                            <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
+                        </SfDropDownList>
+
+                        <label class="form-label">@L["TituloTextoATraduzir"]</label>
+                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="8" @bind-Value="InputText"></SfTextBox>
+                    </div>
+
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">@L["TituloIdiomaDestino"]</label>
+                        <SfDropDownList TValue="string" TItem="LanguageItem" @bind-Value="TargetLanguage"
+                                        DataSource="targetLanguages" Placeholder="@L["TituloIdiomaDestino"]"
+                                        CssClass="w-100 mb-2" PopupHeight="220px">
+                            <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
+                        </SfDropDownList>
+
+                        <label class="form-label">@L["lblTranslatedText"]</label>
+                        <SfTextBox CssClass="w-100 translate-output" Multiline="true" Rows="8" Value="@TranslatedText" Enabled="false"></SfTextBox>
+
+                        <div class="mt-2 d-flex justify-content-between">
+                            <div>
+                                <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                            </div>
+                            <div class="text-muted">@((Confidence.HasValue) ? $"Confidence: {Confidence:0.00}" : string.Empty)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-2 text-danger">@ErrorMessage</div>
+            </div>
+        </Content>
+
+        <FooterTemplate>
+            <div class="d-flex justify-content-end" style="gap:8px">
+                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText)" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
+                <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Content="@L["BtnSalir"]" @onclick="OnExit"></SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration="300" />
+</SfDialog>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Translate Text";
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string InitialText { get; set; } = string.Empty;
+    [Parameter] public string InitialSourceLanguage { get; set; } = string.Empty;
+    [Parameter] public string InitialTargetLanguage { get; set; } = string.Empty;
+    [Parameter] public Func<TranslateRequestDto, System.Threading.CancellationToken, Task<TranslateResponseDto?>>? TranslateFunc { get; set; }
+    [Parameter] public EventCallback<TranslateRequestDto> OnTranslateRequested { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    protected SfSpinner SpinnerObj;
+
+
+    string InputText { get; set; } = string.Empty;
+    string SourceLanguage { get; set; } = string.Empty;
+    string TargetLanguage { get; set; } = string.Empty;
+    string TranslatedText { get; set; } = string.Empty;
+    double? Confidence { get; set; }
+    string ErrorMessage { get; set; } = string.Empty;
+    bool IsTranslating { get; set; } = false;
+
+    List<LanguageItem> languages = new()
+    {
+        new LanguageItem("pt","Português"),
+        new LanguageItem("en","English"),
+        new LanguageItem("es","Español"),
+        new LanguageItem("fr","Français")
+    };
+
+    IEnumerable<LanguageItem> targetLanguages => languages.Where(l => l.Value != SourceLanguage);
+
+    bool CanTranslate => !string.IsNullOrWhiteSpace(InputText) && !string.IsNullOrWhiteSpace(SourceLanguage) && !string.IsNullOrWhiteSpace(TargetLanguage) && SourceLanguage != TargetLanguage;
+
+    private async Task Translate()
+    {
+        await SpinnerObj?.ShowAsync();
+        IsTranslating = true;
+        ErrorMessage = string.Empty;
+        // Ensure the spinner is rendered before starting the translation call
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(50);
+        TranslatedText = string.Empty;
+        Confidence = null;
+
+        if (!CanTranslate)
+        {
+            ErrorMessage = L["msgFillAllFields"] ?? "Please fill text, source and target languages and ensure they differ.";
+            return;
+        }
+
+        var req = new TranslateRequestDto { Text = InputText, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
+
+        try
+        {
+            TranslateResponseDto? resp = null;
+            if (TranslateFunc is not null)
+            {
+                resp = await TranslateFunc(req, System.Threading.CancellationToken.None);
+            }
+            else if (OnTranslateRequested.HasDelegate)
+            {
+                await OnTranslateRequested.InvokeAsync(req);
+                // parent is responsible for setting output via other means
+            }
+
+            if (resp is not null)
+            {
+                TranslatedText = resp.TranslatedText ?? string.Empty;
+                Confidence = resp.Confidence;
+                // keep modal open so user can review and click Apply manually
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsTranslating = false;
+            await SpinnerObj?.HideAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task Copy() => Task.CompletedTask; // removed duplicate functionality; keep stub to avoid breaking refs
+
+    private async Task ApplyTranslated()
+    {
+        // Notify parent via OnTranslateRequested callback with the translated text
+        if (!string.IsNullOrWhiteSpace(TranslatedText))
+        {
+            var dto = new TranslateRequestDto { Text = TranslatedText, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
+            // Parent may consume the callback to apply the translated text to the model
+            if (OnTranslateRequested.HasDelegate)
+            {
+                await OnTranslateRequested.InvokeAsync(dto);
+            }
+        }
+    }
+
+    private async Task OnExit()
+    {
+        // close dialog and notify parent
+        Visible = false;
+        // notify parent via OnClose only (no two-way VisibleChanged)
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // when dialog is opened, prefill input with InitialText if provided
+        if (Visible && !string.IsNullOrWhiteSpace(InitialText))
+        {
+            InputText = InitialText;
+        }
+        // if parent provided initial languages, use them to prefill dropdowns
+        if (!string.IsNullOrWhiteSpace(InitialSourceLanguage))
+        {
+            SourceLanguage = InitialSourceLanguage;
+        }
+        if (!string.IsNullOrWhiteSpace(InitialTargetLanguage))
+        {
+            TargetLanguage = InitialTargetLanguage;
+        }
+    }
+
+    private class LanguageItem
+    {
+        public LanguageItem(string v, string t) { Value = v; Text = t; }
+        public string Value { get; set; }
+        public string Text { get; set; }
+    }
+}

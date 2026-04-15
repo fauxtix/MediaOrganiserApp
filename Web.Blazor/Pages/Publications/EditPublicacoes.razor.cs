@@ -253,12 +253,38 @@ namespace Web.Blazor.Pages.Publications
             string coverImageToReplace = string.Empty;
             string previousImage = string.Empty;
             uploaderFile = args.Files[0];
-
+            var bookCoversDirectory = AppSettings.PastaImagensCapasLivros;
+            string[] subFolders = bookCoversDirectory.Split("\\");
+            string BookImagesDirectory = Path.Combine(env.WebRootPath, "Files", subFolders[1], subFolders[2]);
             string path = string.Empty;
+
+            if (!Directory.Exists(BookImagesDirectory))
+                Directory.CreateDirectory(BookImagesDirectory);
+
+            if (!blnEdit )
+            {
+                uploadedFileName = uploaderFile.File.Name;
+                path = Path.Combine(BookImagesDirectory, uploadedFileName);
+                if (!File.Exists(path))
+                {
+                    using (var fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.None))
+                    {
+                        await uploaderFile.File.OpenReadStream().CopyToAsync(fs);
+                    }
+                }
+
+                CoverImage = $"/Files/{subFolders[1]}/{subFolders[2]}/{uploadedFileName}";
+                var dirImagePos = BookImagesDirectory.IndexOf("Files");
+                SelectedRecord.ImagemCapa = Path.Combine(BookImagesDirectory.Substring(dirImagePos), uploadedFileName);
+                await objUploader.ClearAllAsync();
+                await InvokeAsync(StateHasChanged);
+
+                return;
+            }
 
 
             var directoryName = "";
-            if (SelectedRecord is not null)
+            if (SelectedRecord.Id > 0) // edit mode
             {
                 coverImageToReplace = SelectedRecord.ImagemCapa;
                 if (!string.IsNullOrWhiteSpace(coverImageToReplace))
@@ -275,20 +301,16 @@ namespace Web.Blazor.Pages.Publications
                     return;
                 }
 
-                var bookCoversDirectory = AppSettings.PastaImagensCapasLivros;
                 if (string.IsNullOrEmpty(SelectedRecord.DigitalPath)) // not a digital file (pdf)
                 {
+                    // assume we have an image downloaded from Google Books, we need to save it locally and update the path accordingly
                     if (SelectedRecord.ImagemCapa.ToLower().StartsWith("http") ||
                         SelectedRecord.ImagemCapa.ToLower().Contains("photo") ||
                         SelectedRecord.ImagemCapa.ToLower().Contains("image") ||
                         SelectedRecord.ImagemCapa.ToLower().StartsWith("file") || // local image file, but need to be replaced
                         SelectedRecord.ImagemCapa.ToLower().Contains("available")) // image path contains "available" (no image available)
                     {
-                        var subFolders = bookCoversDirectory.Split("\\");
-                        string BookImagesDirectory = Path.Combine(env.WebRootPath, "Files", subFolders[1], subFolders[2]);
 
-                        if (!Directory.Exists(BookImagesDirectory))
-                            Directory.CreateDirectory(BookImagesDirectory);
 
                         path = Path.Combine(BookImagesDirectory, uploadedFileName);
                         if (!File.Exists(path))
@@ -339,7 +361,7 @@ namespace Web.Blazor.Pages.Publications
                 }
                 else
                 {
-                    string BookImagesDirectory = Path.Combine(env.WebRootPath, "images", "BookHardCovers");
+                    BookImagesDirectory = Path.Combine(env.WebRootPath, "images", "BookHardCovers");
 
                     if (!Directory.Exists(BookImagesDirectory))
                         Directory.CreateDirectory(BookImagesDirectory);

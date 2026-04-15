@@ -69,6 +69,8 @@ public class AppSettingsRepository : IAppSettingsRepository
         parameters.Add("@FicheirosOrganizados", settings?.FicheirosOrganizados);
         parameters.Add("@AuthorMobile", settings?.AuthorMobile);
         parameters.Add("@SupportMail", settings?.SupportMail);
+        parameters.Add("@ModelBaseUrl", settings?.ModelBaseUrl);
+        parameters.Add("@AiModelName", settings?.AiModelName);
 
         try
         {

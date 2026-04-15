@@ -3398,7 +3398,8 @@ input[type=button].btn-block {
 .input-group-prepend .btn + .input-group-text,
 .input-group-prepend .input-group-text + .input-group-text,
 .input-group-prepend .input-group-text + .btn,
-.input-group-append .btn + .btn,
+
+
 .input-group-append .btn + .input-group-text,
 .input-group-append .input-group-text + .input-group-text,
 .input-group-append .input-group-text + .btn {

@@ -1195,4 +1195,19 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloNenhumResultadoGoogle" xml:space="preserve">
     <value>Nenhum resultado (Google), usando solução alternativa AI </value>
   </data>
+  <data name="TituloTraduzir" xml:space="preserve">
+    <value>Traduzir</value>
+  </data>
+  <data name="TituloIdiomaOrigem" xml:space="preserve">
+    <value>Idioma Origem</value>
+  </data>
+  <data name="TituloIdiomaDestino" xml:space="preserve">
+    <value>Idioma Destino</value>
+  </data>
+  <data name="TituloTextoATraduzir" xml:space="preserve">
+    <value>Texto a traduzir</value>
+  </data>
+  <data name="lblTranslatedText" xml:space="preserve">
+    <value>Texto traduzido</value>
+  </data>
 </root>

@@ -87,6 +87,10 @@ public class Program
         builder.Services.AddHttpClient<OllamaMediaMetadataService>();
         builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>();
 
+        // Translation service (generic) using Ollama
+        builder.Services.AddHttpClient<OllamaTranslateService>();
+        builder.Services.AddScoped<ITranslateService, OllamaTranslateService>();
+
         // Register a concrete IAiChatService so AiController can be activated.
         // If you later add a real chat implementation, replace DevAiChatService with that class
         builder.Services.AddHttpClient<OllamaChatService>();

@@ -1,9 +1,11 @@
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.WebApi.Hubs;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.SignalR;
-using MediaOrganizerApp.WebApi.Hubs;
-using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -13,17 +15,23 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaMediaNotesService> _logger;
-    private readonly IConfiguration _config;
+    private string _baseUrl;
+    private string _model;
+    private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
     private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
-    public OllamaMediaNotesService(HttpClient httpClient, ILogger<OllamaMediaNotesService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
+    public OllamaMediaNotesService(HttpClient httpClient,
+                                   ILogger<OllamaMediaNotesService> logger,
+                                   IPromptTemplateProvider prompts,
+                                   IHubContext<MediaInfoProgressHub> hubContext,
+                                   IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _config = config;
         _prompts = prompts;
         _hubContext = hubContext;
+        _appSettingsRepository = appSettingsRepository;
     }
 
     public async Task<AiMediaNotesResponseDto> GetMediaNotesAsync(
@@ -53,12 +61,13 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
 private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string artist, string title, string? connectionId, CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
-        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+        var (modelBaseUrl, modelName) = await GetAiSettings();
+        _baseUrl = modelBaseUrl;
+        _model = modelName;
 
         var payload = new
         {
-            model,
+            model = _model,
             prompt,
             stream = false
         };
@@ -72,7 +81,7 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -195,6 +204,13 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
             }
             return new AiMediaNotesResponseDto { Notes = string.Empty, Confidence = 0, Warnings = ex.Message };
         }
+    }
+
+
+    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+    {
+        var settings = await _appSettingsRepository.GetSettingsAsync();
+        return (settings.ModelBaseUrl, settings.AiModelName);
     }
 
     // Prompt text is stored as external templates under Prompts/.

@@ -1,12 +1,8 @@
 using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -17,15 +13,17 @@ namespace MediaOrganizerApp.WebApi.Services;
 public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
-    private readonly string _model;
-    private readonly IPromptTemplateProvider _prompts;
+    private string _baseUrl;
+    private string _model;
+    private readonly IAppSettingsRepository _appSettingsRepository;
 
-    public OllamaAuthorProfileService(HttpClient httpClient, IConfiguration config, IPromptTemplateProvider prompts)
+    private readonly IPromptTemplateProvider _prompts;
+    public OllamaAuthorProfileService(HttpClient httpClient,
+                                      IAppSettingsRepository appSettingsRepository,
+                                      IPromptTemplateProvider prompts)
     {
         _httpClient = httpClient;
-        _baseUrl = config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        _model = config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+        _appSettingsRepository = appSettingsRepository;
         _prompts = prompts;
     }
 
@@ -37,6 +35,10 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
             ["name"] = name,
             ["language"] = language
         });
+        
+        var (modelBaseUrl, modelName) = await GetAiSettings();
+        _baseUrl = modelBaseUrl;
+        _model = modelName;
 
         var payload = new OllamaGenerateRequest
         {
@@ -133,6 +135,12 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         }
 
         return sb.ToString();
+    }
+
+    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+    {
+        var settings = await _appSettingsRepository.GetSettingsAsync();
+        return (settings.ModelBaseUrl, settings.AiModelName);
     }
 
     private static string DecodeUtf8Lossy(byte[] bytes)

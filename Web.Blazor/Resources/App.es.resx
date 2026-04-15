@@ -895,6 +895,9 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="MSG_PreparandoDados" xml:space="preserve">
     <value>Preparación de datos</value>
   </data>
+  <data name="MSG_AiLowConfidenceNoNotes" xml:space="preserve">
+    <value>La IA ha devuelto un aviso (baja fiabilidad) y no se han rellenado las notas.</value>
+  </data>
   <data name="TituloMensagem" xml:space="preserve">
     <value>Mensage</value>
   </data>
@@ -1191,5 +1194,20 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   </data>
   <data name="TituloNenhumResultadoGoogle" xml:space="preserve">
     <value>Ningún resultado (Google), utilizando una solución alternativa basada en IA </value>
+  </data>
+  <data name="TituloTraduzir" xml:space="preserve">
+    <value>Traducir</value>
+  </data>
+  <data name="TituloIdiomaOrigem" xml:space="preserve">
+    <value>Idioma de origen</value>
+  </data>
+  <data name="TituloIdiomaDestino" xml:space="preserve">
+    <value>Idioma de destino</value>
+  </data>
+  <data name="TituloTextoATraduzir" xml:space="preserve">
+    <value>Texto a traducir</value>
+  </data>
+  <data name="lblTranslatedText" xml:space="preserve">
+    <value>Texto traducido</value>
   </data>
 </root>

@@ -5,6 +5,7 @@ using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Configuration;
 using Syncfusion.Blazor.Spinner;
 using System.Globalization;
 using Web.Blazor.Services.Common;
@@ -14,6 +15,7 @@ namespace Web.Blazor.Pages.Publications
     public partial class GoogleBooksApiSearch
     {
         [Inject] public NavigationManager NavigationManager { get; set; }
+        [Inject] public IConfiguration Configuration { get; set; }
         [Inject] public IStringLocalizer<App> localizerApp { get; set; }
         [Inject] public IPublicacaoService PubsService { get; set; }
         [Inject] public IAutorService autoresService { get; set; }
@@ -84,7 +86,16 @@ namespace Web.Blazor.Pages.Publications
 
             try
             {
-                await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
+                // Prefer the configured API base URL (appsettings "BaseUrl").
+                // The Blazor NavigationManager.BaseUri points to the client origin and not the API host,
+                // which caused the 404 during SignalR negotiate.
+                var apiBase = Configuration["BaseUrl"]?.TrimEnd('/') ?? NavigationManager.BaseUri.TrimEnd('/');
+                if (apiBase.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    apiBase = apiBase.Substring(0, apiBase.Length - 4);
+                }
+
+                await ProgressClient.StartAsync(apiBase);
                 ProgressClient.ProgressReceived -= OnProgressReceived;
                 ProgressClient.ProgressReceived += OnProgressReceived;
 

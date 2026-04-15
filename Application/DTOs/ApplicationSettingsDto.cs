@@ -32,7 +32,8 @@
         public string AuthorMobile { get; set; }
         public string SupportMail { get; set; }
 
-
-
+        // AI settings
+        public string ModelBaseUrl { get; set; }
+        public string AiModelName { get; set; }
     }
 }

@@ -1194,4 +1194,19 @@
   <data name="TituloNenhumResultadoGoogle" xml:space="preserve">
     <value>No results (Google), using an AI-based alternative solution </value>
   </data>
+  <data name="TituloTraduzir" xml:space="preserve">
+    <value>Translate</value>
+  </data>
+  <data name="TituloIdiomaOrigem" xml:space="preserve">
+    <value>Source language</value>
+  </data>
+  <data name="TituloIdiomaDestino" xml:space="preserve">
+    <value>Target Language</value>
+  </data>
+  <data name="TituloTextoATraduzir" xml:space="preserve">
+    <value>Text to translate</value>
+  </data>
+  <data name="lblTranslatedText" xml:space="preserve">
+    <value>Translated text</value>
+  </data>
 </root>

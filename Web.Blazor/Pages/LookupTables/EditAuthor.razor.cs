@@ -1,15 +1,10 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Spinner;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using Web.Blazor.Services.ApiWrappers;
+using MediaOrganizerApp.Application.DTOs.AI;
 using Web.Blazor.Utilities;
 using Path = System.IO.Path;
 namespace Web.Blazor.Pages.LookupTables
@@ -24,6 +19,7 @@ namespace Web.Blazor.Pages.LookupTables
         [Inject] Microsoft.Extensions.Localization.IStringLocalizer<App> L { get; set; }
         [Inject] IAutorService AutoresService { get; set; }
         [Inject] AiClientService AiClientService { get; set; }
+        [Inject] TranslateClientService TranslateClient { get; set; }
         [Inject] NavigationManager NavigationManager { get; set; }
         [Inject] IConfiguration Configuration { get; set; }
         [Inject] ILogger<App> Logger { get; set; }
@@ -52,6 +48,82 @@ namespace Web.Blazor.Pages.LookupTables
         protected override void OnInitialized()
         {
             alertVisibility = false;
+            showTranslateModal = false;
+        }
+
+        protected async Task OnTranslateApplied(TranslateRequestDto dto)
+        {
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+                return;
+
+            // Apply translated text to the author bio and close modal
+            SelectedAuthor.Sobre = dto.Text;
+            showTranslateModal = false;
+            StateHasChanged();
+            await Task.CompletedTask;
+        }
+
+        protected async Task OnTranslateVisibleChanged(bool visible)
+        {
+            showTranslateModal = visible;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        // flag to control translate modal visibility
+        protected bool showTranslateModal { get; set; }
+
+        protected async Task TranslateBio()
+        {
+            // Button is a test hook for the new translate API. Do not change other flows.
+            if (string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
+            {
+                message = "Sem texto para traduzir";
+                alertVisibility = true;
+                StateHasChanged();
+                return;
+            }
+
+            await SpinnerObj?.ShowAsync();
+            try
+            {
+                var source = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+                var target = source == "en" ? "pt" : "en"; // simple default: translate to English unless already English
+
+                var plain = TextSanitizer.StripHtml(SelectedAuthor.Sobre ?? string.Empty);
+                var req = new MediaOrganizerApp.Application.DTOs.AI.TranslateRequestDto
+                {
+                    Text = plain,
+                    SourceLanguage = source,
+                    TargetLanguage = target
+                };
+
+                var resp = await TranslateClient.TranslateAsync(req);
+                if (resp is not null && !string.IsNullOrWhiteSpace(resp.TranslatedText))
+                {
+                    SelectedAuthor.Sobre = resp.TranslatedText;
+                    aiNotes = null;
+                    aiConfidence = resp.Confidence;
+                    message = "Bio traduzida pelo serviço de tradução.";
+                    alertVisibility = true;
+                }
+                else
+                {
+                    message = "Serviço de tradução não retornou texto.";
+                    alertVisibility = true;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError(ex, "Error calling translate service");
+                message = "Erro ao chamar serviço de tradução.";
+                alertVisibility = true;
+            }
+            finally
+            {
+                StateHasChanged();
+                await Task.Delay(20);
+                await SpinnerObj?.HideAsync();
+            }
         }
 
         private string GetLocalizedString(string resName)
@@ -180,7 +252,6 @@ namespace Web.Blazor.Pages.LookupTables
                 {
                     // External API first; AI fallback only when external returns empty bio.
                     if(SelectedAuthor.Sobre is not null && 
-
                         !string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
                     {
                         message = "já existe Bio para o Autor. AI não foi consultada.";

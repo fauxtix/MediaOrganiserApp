@@ -1,5 +1,6 @@
 ﻿@using Web.Blazor.Components
 @using Web.Blazor.Components.Authors
+@using Web.Blazor.Pages.Tools
 @inject Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient
 
 @attribute [Authorize]
@@ -71,6 +72,8 @@
                         <SfButton CssClass="e-primary e-round-corner" IsPrimary="true"
                                   Content="Get data From Api" OnClick="GetAuthorDataFromApi" />
                         <SfButton CssClass="e-primary e-round-corner"
+                                  Content="Translate Bio" OnClick="@(()=> showTranslateModal = true)" />
+                        <SfButton CssClass="e-primary e-round-corner"
                                   Content="Author Books" OnClick="@(()=>ShowBooksVisibility = true)" />
                     </div>
                 }
@@ -141,6 +144,14 @@
     </DialogTemplates>
     <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=400></DialogAnimationSettings>
 </SfDialog>
+
+<TranslateText Visible="@showTranslateModal"
+               InitialText="@SelectedAuthor.Sobre"
+               InitialSourceLanguage="pt"
+               InitialTargetLanguage="en"
+               TranslateFunc="@(TranslateClient.TranslateAsync)"
+               OnTranslateRequested="OnTranslateApplied"
+               OnClose="@(()=> showTranslateModal = false)" />
 
 
 <style>

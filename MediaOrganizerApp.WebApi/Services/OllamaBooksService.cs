@@ -1,15 +1,8 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services
 {
@@ -22,15 +15,21 @@ namespace MediaOrganizerApp.WebApi.Services
 
         private readonly HttpClient _httpClient;
         private readonly ILogger<OllamaBooksService> _logger;
+        private string _baseUrl;
+        private string _model;
+
         private readonly IConfiguration _config;
         private readonly IPromptTemplateProvider _prompts;
+        private readonly IAppSettingsRepository _appSettingsRepository;
 
-        public OllamaBooksService(HttpClient httpClient, ILogger<OllamaBooksService> logger, IConfiguration config, IPromptTemplateProvider prompts)
+
+        public OllamaBooksService(HttpClient httpClient, ILogger<OllamaBooksService> logger, IConfiguration config, IPromptTemplateProvider prompts, IAppSettingsRepository appSettingsRepository)
         {
             _httpClient = httpClient;
             _logger = logger;
             _config = config;
             _prompts = prompts;
+            _appSettingsRepository = appSettingsRepository;
         }
 
         public async Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author, string language, CancellationToken cancellationToken = default)
@@ -49,12 +48,12 @@ namespace MediaOrganizerApp.WebApi.Services
                     ["language"] = string.IsNullOrWhiteSpace(language) ? "pt" : language
                 });
 
-                var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-                var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+                var (modelBaseUrl, modelName) = await GetAiSettings();
 
-                var payload = new { model, prompt, stream = false };
 
-                using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+                var payload = new { model = modelName, prompt, stream = false };
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(modelBaseUrl), "/api/generate"))
                 {
                     Content = JsonContent.Create(payload)
                 };
@@ -208,7 +207,7 @@ namespace MediaOrganizerApp.WebApi.Services
                             var id = ReadString(el, "Id", "id") ?? ReadString(el, "googleId", "google_id");
                             var published = ReadString(el, "PublishedDate", "publishedDate", "date") ?? string.Empty;
                             var thumb = ReadString(el, "Thumbnail", "thumbnail", "image") ?? "images/NoPhoto.png";
-                            var confidence = ReadDouble(el, "Confidence", "confidence") ;
+                            var confidence = ReadDouble(el, "Confidence", "confidence");
 
                             if (confidence is not null)
                             {
@@ -363,5 +362,12 @@ namespace MediaOrganizerApp.WebApi.Services
 
             return string.IsNullOrWhiteSpace(merged) ? null : merged;
         }
+
+        private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+        {
+            var settings = await _appSettingsRepository.GetSettingsAsync();
+            return (settings.ModelBaseUrl, settings.AiModelName);
+        }
+
     }
 }

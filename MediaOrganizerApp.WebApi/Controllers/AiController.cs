@@ -19,6 +19,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiChatService _chat;
         private readonly IPromptTemplateProvider _promptProvider;
         private readonly ILogger<AiController> _logger;
+        // Translate is implemented as a separate service resolved per-request to avoid changing constructor signature
 
         public AiController(
             IAiAuthorProfileService ai,
@@ -113,6 +114,30 @@ namespace MediaOrganizerApp.WebApi.Controllers
             {
                 _logger.LogError(ex, "Error saving file: {File}", filename);
                 return BadRequest("Error saving file.");
+            }
+        }
+
+        [HttpPost("translate")]
+        public async Task<ActionResult<TranslateResponseDto>> Translate([FromBody] TranslateRequestDto request, CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Text)) return BadRequest("Field 'text' is required.");
+            if (string.IsNullOrWhiteSpace(request.SourceLanguage)) return BadRequest("Field 'sourceLanguage' is required.");
+            if (string.IsNullOrWhiteSpace(request.TargetLanguage)) return BadRequest("Field 'targetLanguage' is required.");
+
+            try
+            {
+                var translateService = HttpContext.RequestServices.GetService(typeof(ITranslateService)) as ITranslateService;
+                if (translateService == null)
+                    return StatusCode(500, "Translation service not available");
+
+                var resp = await translateService.TranslateAsync(request, cancellationToken);
+                return Ok(resp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error translating text");
+                return BadRequest("Error translating text.");
             }
         }
 

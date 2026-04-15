@@ -48,6 +48,9 @@ namespace Web.Blazor
 
             services.AddHttpClient<IAutorService, AutorService>();
 
+            // Translate client for generic text translation
+            services.AddHttpClient<TranslateClientService>();
+
             // AI wrapper used as fallback only when external metadata APIs fail (e.g., author profile).
             services.AddHttpClient<AiClientService>();
 

@@ -1,15 +1,10 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Net.Http.Json;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.WebApi.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.SignalR;
-using MediaOrganizerApp.WebApi.Hubs;
-using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using static MediaOrganizerApp.WebApi.Services.PromptTemplateProvider;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -19,17 +14,23 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaBookSummaryService> _logger;
-    private readonly IConfiguration _config;
+    private string _baseUrl;
+    private string _model;
+    private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
     private readonly IHubContext<GoogleBooksProgressHub> _hubContext;
 
-    public OllamaBookSummaryService(HttpClient httpClient, ILogger<OllamaBookSummaryService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<GoogleBooksProgressHub> hubContext)
+    public OllamaBookSummaryService(HttpClient httpClient,
+                                    ILogger<OllamaBookSummaryService> logger,
+                                    IPromptTemplateProvider prompts,
+                                    IHubContext<GoogleBooksProgressHub> hubContext,
+                                    IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _config = config;
         _prompts = prompts;
         _hubContext = hubContext;
+        _appSettingsRepository = appSettingsRepository;
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
@@ -119,12 +120,13 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
 
-        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+        var (modelBaseUrl, modelName) = await GetAiSettings();
+        _baseUrl = modelBaseUrl;
+        _model = modelName;
 
         var payload = new
         {
-            model,
+            model = _model,
             prompt,
             stream = false
         };
@@ -138,7 +140,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -402,4 +404,10 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         var merged = sb.ToString();
         return string.IsNullOrWhiteSpace(merged) ? null : merged;
     }
+    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+    {
+        var settings = await _appSettingsRepository.GetSettingsAsync();
+        return (settings.ModelBaseUrl, settings.AiModelName);
+    }
+
 }

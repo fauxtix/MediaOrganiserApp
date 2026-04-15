@@ -194,6 +194,18 @@ else
                                     <SfTextBox @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]"></SfTextBox>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloModelBaseUrl"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.ModelBaseUrl" Placeholder="@L["TituloModelBaseUrl"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloAIModelName"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.AiModelName" Placeholder="@L["TituloAIModelName"]"></SfTextBox>
+                                </div>
+                            </div>
                         </ContentTemplate>
                     </TabItem>
                 </TabItems>

@@ -1,0 +1,8 @@
+.translate-panel .translate-input,
+.translate-panel .translate-output {
+    font-family: inherit;
+    resize: vertical;
+}
+.translate-panel .translate-input { min-height: 160px; }
+.translate-panel .translate-output { min-height: 160px; background: #f8f9fa; }
+.translate-panel .form-label { font-weight: 600; }

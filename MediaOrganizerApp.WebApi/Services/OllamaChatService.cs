@@ -1,6 +1,6 @@
 ﻿using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-// SignalR hub removed for chat; HTTP streaming only
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -10,19 +10,23 @@ namespace MediaOrganizerApp.WebApi.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<OllamaChatService> _logger;
-        private readonly IConfiguration _config;
         private readonly IPromptTemplateProvider _prompts;
+        private string _baseUrl;
+        private string _model;
+        private readonly IAppSettingsRepository _appSettingsRepository;
+
 
         public OllamaChatService(
             HttpClient httpClient,
             ILogger<OllamaChatService> logger,
             IConfiguration config,
-            IPromptTemplateProvider prompts)
+            IPromptTemplateProvider prompts,
+            IAppSettingsRepository appSettingsRepository)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _config = config;
             _prompts = prompts;
+            _appSettingsRepository = appSettingsRepository;
         }
 
         public async IAsyncEnumerable<string> StreamChatAsync(
@@ -30,18 +34,18 @@ namespace MediaOrganizerApp.WebApi.Services
             string? connectionId,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-            var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
-//            var model = "phi4-mini:latest";
+            var (modelBaseUrl, modelName) = await GetAiSettings();
+            _baseUrl = modelBaseUrl;
+            _model = modelName;
 
             var payload = new
             {
-                model,
+                model = _model,
                 messages,
                 stream = true
             };
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"{baseUrl}/api/chat"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"{_baseUrl}/api/chat"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -88,5 +92,11 @@ namespace MediaOrganizerApp.WebApi.Services
 
             // done
         }
+        private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+        {
+            var settings = await _appSettingsRepository.GetSettingsAsync();
+            return (settings.ModelBaseUrl, settings.AiModelName);
+        }
+
     }
 }

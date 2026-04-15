@@ -1,16 +1,11 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.WebApi.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Threading;
-using System;
-using Microsoft.AspNetCore.SignalR;
-using MediaOrganizerApp.WebApi.Hubs;
 using System.Text.RegularExpressions;
-using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
@@ -20,17 +15,23 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaMediaMetadataService> _logger;
-    private readonly IConfiguration _config;
+    private string _baseUrl;
+    private string _model;
+    private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
     private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
-    public OllamaMediaMetadataService(HttpClient httpClient, ILogger<OllamaMediaMetadataService> logger, IConfiguration config, IPromptTemplateProvider prompts, IHubContext<MediaInfoProgressHub> hubContext)
+    public OllamaMediaMetadataService(HttpClient httpClient,
+                                      ILogger<OllamaMediaMetadataService> logger,
+                                      IPromptTemplateProvider prompts,
+                                      IHubContext<MediaInfoProgressHub> hubContext,
+                                      IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _config = config;
         _prompts = prompts;
         _hubContext = hubContext;
+        _appSettingsRepository = appSettingsRepository;
     }
 
     public async Task<AiMediaMetadataResponseDto> GetMediaMetadataAsync(
@@ -65,13 +66,14 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     private async Task<AiMediaMetadataResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
-        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+        var (modelBaseUrl, modelName) = await GetAiSettings();
+        _baseUrl = modelBaseUrl;
+        _model = modelName;
 
         // ✅ Added temperature and deterministic options
         var payload = new
         {
-            model,
+            model = _model,
             prompt,
             stream = false,
             options = new
@@ -89,7 +91,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -358,13 +360,14 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
     private async Task<string?> ExecuteOllamaEditionYearAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
     {
-        var baseUrl = _config["Ai:Ollama:BaseUrl"] ?? "http://localhost:11434";
-        var model = _config["Ai:Ollama:Model"] ?? "phi4-mini:latest";
+        var (modelBaseUrl, modelName) = await GetAiSettings();
+        _baseUrl = modelBaseUrl;
+        _model = modelName;
 
         // ✅ Added temperature and deterministic options
         var payload = new
         {
-            model,
+            model = _model,
             prompt,
             stream = false,
             options = new
@@ -377,7 +380,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), "/api/generate"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -420,4 +423,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             .Replace("Special Edition", "", StringComparison.OrdinalIgnoreCase)
             .Trim();
     }
+    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
+    {
+        var settings = await _appSettingsRepository.GetSettingsAsync();
+        return (settings.ModelBaseUrl, settings.AiModelName);
+    }
+
 }
