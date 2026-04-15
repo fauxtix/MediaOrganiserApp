@@ -3,21 +3,13 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<App> L
 
 
-<div id="spinnerContainer"></div>
-<SfSpinner @ref="SpinnerObj"
-           Label="@L["LoadingMsg"]"
-           Type="@SpinnerType.Bootstrap4"
-           CssClass="e-spin-overlay">
-</SfSpinner>
-
-<SfDialog @bind-Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false">
+<SfDialog @bind-Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false" ZIndex="2000">
     <DialogTemplates>
         <Header>
             <div class="d-flex justify-content-between align-items-center w-100">
                 <h5 class="m-0">@Title</h5>
             </div>
-        </Header>
-
+        </Header>       
         <Content>
             <div class="translate-panel card p-3">
                 <div class="row">
@@ -44,9 +36,18 @@
                         <label class="form-label">@L["lblTranslatedText"]</label>
                         <SfTextBox CssClass="w-100 translate-output" Multiline="true" Rows="8" Value="@TranslatedText" Enabled="false"></SfTextBox>
 
-                        <div class="mt-2 d-flex justify-content-between">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
                             <div>
-                                <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                                @if (IsTranslating)
+                                {
+                                    <div class="bouncing-dots">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                                }
                             </div>
                             <div class="text-muted">@((Confidence.HasValue) ? $"Confidence: {Confidence:0.00}" : string.Empty)</div>
                         </div>
@@ -59,12 +60,14 @@
 
         <FooterTemplate>
             <div class="d-flex justify-content-end" style="gap:8px">
-                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText)" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
+                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText) && !IsTranslating" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
                 <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Content="@L["BtnSalir"]" @onclick="OnExit"></SfButton>
             </div>
         </FooterTemplate>
     </DialogTemplates>
     <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration="300" />
+    <DialogPositionData X="right" Y="top"></DialogPositionData>
+
 </SfDialog>
 
 @code {
@@ -76,9 +79,6 @@
     [Parameter] public Func<TranslateRequestDto, System.Threading.CancellationToken, Task<TranslateResponseDto?>>? TranslateFunc { get; set; }
     [Parameter] public EventCallback<TranslateRequestDto> OnTranslateRequested { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-
-    protected SfSpinner SpinnerObj;
-
 
     string InputText { get; set; } = string.Empty;
     string SourceLanguage { get; set; } = string.Empty;
@@ -102,10 +102,8 @@
 
     private async Task Translate()
     {
-        await SpinnerObj?.ShowAsync();
         IsTranslating = true;
         ErrorMessage = string.Empty;
-        // Ensure the spinner is rendered before starting the translation call
         await InvokeAsync(StateHasChanged);
         await Task.Delay(50);
         TranslatedText = string.Empty;
@@ -129,14 +127,12 @@
             else if (OnTranslateRequested.HasDelegate)
             {
                 await OnTranslateRequested.InvokeAsync(req);
-                // parent is responsible for setting output via other means
             }
 
             if (resp is not null)
             {
                 TranslatedText = resp.TranslatedText ?? string.Empty;
                 Confidence = resp.Confidence;
-                // keep modal open so user can review and click Apply manually
             }
         }
         catch (Exception ex)
@@ -146,20 +142,17 @@
         finally
         {
             IsTranslating = false;
-            await SpinnerObj?.HideAsync();
             await InvokeAsync(StateHasChanged);
         }
     }
 
-    private Task Copy() => Task.CompletedTask; // removed duplicate functionality; keep stub to avoid breaking refs
+    private Task Copy() => Task.CompletedTask;
 
     private async Task ApplyTranslated()
     {
-        // Notify parent via OnTranslateRequested callback with the translated text
         if (!string.IsNullOrWhiteSpace(TranslatedText))
         {
             var dto = new TranslateRequestDto { Text = TranslatedText, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
-            // Parent may consume the callback to apply the translated text to the model
             if (OnTranslateRequested.HasDelegate)
             {
                 await OnTranslateRequested.InvokeAsync(dto);
@@ -169,21 +162,17 @@
 
     private async Task OnExit()
     {
-        // close dialog and notify parent
         Visible = false;
-        // notify parent via OnClose only (no two-way VisibleChanged)
         if (OnClose.HasDelegate)
             await OnClose.InvokeAsync();
     }
 
     protected override void OnParametersSet()
     {
-        // when dialog is opened, prefill input with InitialText if provided
         if (Visible && !string.IsNullOrWhiteSpace(InitialText))
         {
             InputText = InitialText;
         }
-        // if parent provided initial languages, use them to prefill dropdowns
         if (!string.IsNullOrWhiteSpace(InitialSourceLanguage))
         {
             SourceLanguage = InitialSourceLanguage;

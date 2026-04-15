@@ -29,12 +29,19 @@ public sealed class OllamaTranslateService : ITranslateService
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
         var template = await _prompts.GetTemplateAsync("translate-text.prompt.txt", cancellationToken);
+
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
-            ["sourceLanguage"] = request.SourceLanguage,
-            ["targetLanguage"] = request.TargetLanguage,
+            ["sourceLanguage"] = ResolveLanguageName(request.SourceLanguage),
+            ["targetLanguage"] = ResolveLanguageName(request.TargetLanguage),
             ["text"] = request.Text
         });
+        //var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        //{
+        //    ["sourceLanguage"] = request.SourceLanguage,
+        //    ["targetLanguage"] = request.TargetLanguage,
+        //    ["text"] = request.Text
+        //});
 
         // Log rendered prompt and request details for diagnostics
         _logger.LogInformation("Translate requested. Source={SourceLanguage}, Target={TargetLanguage}, TextLength={Len}",
@@ -220,5 +227,18 @@ public sealed class OllamaTranslateService : ITranslateService
         var settings = await _appSettingsRepository.GetSettingsAsync();
         return (settings.ModelBaseUrl, settings.AiModelName);
     }
+
+    private static readonly Dictionary<string, string> LanguageNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["pt"] = "Portuguese",
+        ["en"] = "English",
+        ["fr"] = "French",
+        ["es"] = "Spanish",
+        ["de"] = "German",
+        ["it"] = "Italian",
+    };
+
+    private static string ResolveLanguageName(string code)
+        => LanguageNames.TryGetValue(code, out var name) ? name : code;
 
 }
