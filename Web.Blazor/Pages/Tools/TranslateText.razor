@@ -44,9 +44,18 @@
                         <label class="form-label">@L["lblTranslatedText"]</label>
                         <SfTextBox CssClass="w-100 translate-output" Multiline="true" Rows="8" Value="@TranslatedText" Enabled="false"></SfTextBox>
 
-                        <div class="mt-2 d-flex justify-content-between">
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
                             <div>
-                                <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                                @if (IsTranslating)
+                                {
+                                    <div class="bouncing-dots">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                                }
                             </div>
                             <div class="text-muted">@((Confidence.HasValue) ? $"Confidence: {Confidence:0.00}" : string.Empty)</div>
                         </div>
@@ -59,7 +68,7 @@
 
         <FooterTemplate>
             <div class="d-flex justify-content-end" style="gap:8px">
-                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText)" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
+                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText) && !IsTranslating" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
                 <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Content="@L["BtnSalir"]" @onclick="OnExit"></SfButton>
             </div>
         </FooterTemplate>
