@@ -97,18 +97,9 @@ public class Program
         builder.Services.AddScoped<MediaOrganizerApp.Application.Interfaces.Services.AI.IAiChatService, OllamaChatService>();
 
         // AI fallback services (server-side). Used only when external metadata APIs fail.
-        // Provider selection:
-        // - Ai:Provider = "OpenAI" (default)
-        // - Ai:Provider = "Ollama" (local)
-        var aiProvider = builder.Configuration["Ai:Provider"];
-        if (string.Equals(aiProvider, "Ollama", StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddScoped<IAiAuthorProfileService, OllamaAuthorProfileService>();
-        }
-        else
-        {
-            builder.Services.AddScoped<IAiAuthorProfileService, AiAuthorProfileService>();
-        }
+        // Provider selection is delegated to ServiceRegistration.AddAiServices to ensure
+        // typed HttpClient registration for Ollama-backed implementations.
+        builder.Services.AddAiServices(builder.Configuration);
 
         var app = builder.Build();
 

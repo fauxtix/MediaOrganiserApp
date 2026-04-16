@@ -46,7 +46,7 @@
                 </div>
                 <div class="mt-2">
                     <SfRichTextEditor Placeholder="@L["lblSobreAutor"]"
-                                      CssClass="e-field"
+                                      CssClass="e-field h-50"
                                       @bind-Value="@SelectedAuthor.Sobre">
                         <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
                     </SfRichTextEditor>
@@ -66,23 +66,24 @@
                         </SfMessage>
                     </div>
                 }
-                @if (!blnEdit || string.IsNullOrEmpty(SelectedAuthor.Sobre))
-                {
-                    <div class="d-flex justify-content-start align-items-center mt-2" style="gap:5px">
-                    @if (!blnEdit)
+                <div class="d-flex justify-content-start align-items-center mt-2" style="gap:5px">
+                    @if (!blnEdit || string.IsNullOrEmpty(SelectedAuthor.Sobre))
                     {
                         <SfButton CssClass="e-primary e-round-corner" IsPrimary="true"
-                                      Content="@L["TituloDadosDoApi"]" OnClick="GetAuthorDataFromApi" />
-                        }
+                                  Content="@L["TituloDadosDoApi"]" OnClick="GetAuthorDataFromApi" />
+                    }
+                    @if (!string.IsNullOrEmpty(SelectedAuthor.Sobre))
+                    {
                         <SfButton CssClass="e-success e-round-corner"
                                   Content="@L["TituloTraduzirBio"]" OnClick="@(()=> showTranslateModal = true)" />
-                        @if (blnEdit)
-                        {
-                            <SfButton CssClass="e-primary e-round-corner"
-                                      Content="@L["TituloLivrosDoAutor"]" OnClick="@(()=>ShowBooksVisibility = true)" />                           
-                        }
-                    </div>
-                }
+                    }
+
+                    @if (blnEdit)
+                    {
+                        <SfButton CssClass="e-warning e-round-corner"
+                                  Content="@L["TituloLivrosDoAutor"]" OnClick="@(()=>ShowBooksVisibility = true)" />
+                    }
+                </div>
             </div>
             <div class="col-md-4 text-center h-100">
                 @if (!string.IsNullOrEmpty(SelectedAuthor.ImagemAutor))
@@ -94,7 +95,7 @@
                 else
                 {
                     <div class="img-box portrait">
-                        <img src="images/No-image-available.png" alt="Não há imagem do Autor" width="80" height="80" />
+                        <img src="images/NoPhoto.png" alt="Não há imagem do Autor" width="80" height="80" />
                     </div>
 
                 }

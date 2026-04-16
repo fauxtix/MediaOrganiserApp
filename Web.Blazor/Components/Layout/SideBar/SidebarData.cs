@@ -26,7 +26,6 @@ public class SidebarData
 
             new MenuItem(title: _localizer["MsgManutencao"], icon: "fa fa-bars", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/autores", title: _localizer["mnuAutores"], icon: "fa fa-users"),
                 new MenuItem(href: "/admin/manageusers", title: _localizer["frmUsers"], icon: "oi oi-people"),
                 new MenuItem(href: "/admin/managelookuptables", title: _localizer["TituloTabelasAuxiliares"], icon: "fa fa-table"),
              }),
@@ -63,8 +62,7 @@ public class SidebarData
                 new MenuItem(href: "/videogallery", title: _localizer["lblGaleria"], icon: "fa fa-image"),
                 new MenuItem(href: "/media/playlists", title: _localizer["Playlists"], icon: "fa fa-play"),
             }),
-
-
+            new MenuItem(href: "/autores", title: _localizer["mnuAutores"], icon: "fa fa-users"),
         };
     }
 }

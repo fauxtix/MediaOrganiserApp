@@ -89,7 +89,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             else
             {
-                authorImage = "Images/NoImage_48.png";
+                authorImage = "Images/NoPhoto.png";
             }
 
             if (args.CommandColumn.Type == CommandButtonType.Edit)

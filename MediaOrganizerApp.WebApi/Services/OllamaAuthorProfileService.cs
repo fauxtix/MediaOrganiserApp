@@ -1,6 +1,7 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
@@ -18,13 +19,16 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
     private readonly IAppSettingsRepository _appSettingsRepository;
 
     private readonly IPromptTemplateProvider _prompts;
+    private readonly ILogger<OllamaAuthorProfileService> _logger;
     public OllamaAuthorProfileService(HttpClient httpClient,
                                       IAppSettingsRepository appSettingsRepository,
-                                      IPromptTemplateProvider prompts)
+                                      IPromptTemplateProvider prompts,
+                                      ILogger<OllamaAuthorProfileService> logger)
     {
         _httpClient = httpClient;
         _appSettingsRepository = appSettingsRepository;
         _prompts = prompts;
+        _logger = logger;
     }
 
     public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
@@ -63,29 +67,34 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         var raw = DecodeUtf8Lossy(rawBytes);
         var text = TryExtractOllamaResponseText(raw);
 
-        // Same robustness behavior as OpenAI implementation.
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<AiAuthorProfileResponseDto>(
-                text,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        // Use repairer to robustly parse or attempt to repair malformed JSON responses.
+        var parsed = await AuthorProfileJsonRepairer.ParseOrRepairAsync(
+            text,
+            async (repairPrompt) =>
+            {
+                var payload = new OllamaGenerateRequest
+                {
+                    Model = _model,
+                    Prompt = repairPrompt,
+                    Stream = false
+                };
 
-            return parsed ?? new AiAuthorProfileResponseDto
-            {
-                Bio = text,
-                Confidence = 0.2,
-                Notes = "Non-JSON response; treated as Bio."
-            };
-        }
-        catch
-        {
-            return new AiAuthorProfileResponseDto
-            {
-                Bio = text,
-                Confidence = 0.2,
-                Notes = "Model response was not valid JSON."
-            };
-        }
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl.TrimEnd('/')}/api/generate")
+                {
+                    Content = JsonContent.Create(payload)
+                };
+
+                using var resp2 = await _httpClient.SendAsync(req2, cancellationToken);
+                resp2.EnsureSuccessStatusCode();
+                var rawBytes2 = await resp2.Content.ReadAsByteArrayAsync(cancellationToken);
+                var raw2 = DecodeUtf8Lossy(rawBytes2);
+                var repairedText = TryExtractOllamaResponseText(raw2);
+                return repairedText;
+            },
+            _logger,
+            language);
+
+        return parsed;
     }
 
     private sealed class OllamaGenerateRequest

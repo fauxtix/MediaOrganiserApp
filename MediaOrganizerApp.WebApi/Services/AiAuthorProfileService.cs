@@ -1,6 +1,7 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
 using System;
 using System.Text.Json;
@@ -17,10 +18,12 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
 {
     private readonly ChatClient _chat;
     private readonly IPromptTemplateProvider _prompts;
+    private readonly ILogger<AiAuthorProfileService> _logger;
 
-    public AiAuthorProfileService(IConfiguration config, IPromptTemplateProvider prompts)
+    public AiAuthorProfileService(IConfiguration config, IPromptTemplateProvider prompts, ILogger<AiAuthorProfileService> logger)
     {
         _prompts = prompts;
+        _logger = logger;
         var apiKey = config["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Missing configuration key: OpenAI:ApiKey");
@@ -49,28 +52,19 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
         var result = await _chat.CompleteChatAsync(messages, cancellationToken: cancellationToken);
         var text = result.Value.Content[0].Text;
 
-        // Robustness: if the model doesn't return JSON, still use the text as Bio.
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<AiAuthorProfileResponseDto>(
-                text,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        // Use repairer to robustly parse or attempt to repair malformed JSON responses.
+        var parsed = await AuthorProfileJsonRepairer.ParseOrRepairAsync(
+            text,
+            async (repairPrompt) =>
+            {
+                // Ask the same chat model to repair the malformed output. The repairPrompt is constructed by the helper.
+                var repairMessages = new ChatMessage[] { new UserChatMessage(repairPrompt) };
+                var repairResult = await _chat.CompleteChatAsync(repairMessages, cancellationToken: cancellationToken);
+                return repairResult.Value.Content[0].Text;
+            },
+            _logger,
+            language);
 
-            return parsed ?? new AiAuthorProfileResponseDto
-            {
-                Bio = text,
-                Confidence = 0.2,
-                Notes = "Non-JSON response; treated as Bio."
-            };
-        }
-        catch
-        {
-            return new AiAuthorProfileResponseDto
-            {
-                Bio = text,
-                Confidence = 0.2,
-                Notes = "Model response was not valid JSON."
-            };
-        }
+        return parsed;
     }
 }

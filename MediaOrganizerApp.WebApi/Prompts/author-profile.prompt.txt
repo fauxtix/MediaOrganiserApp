@@ -1,18 +1,25 @@
-You generate short author profiles.
+# Author profile prompt (strict JSON-only output)
 
-Requirements:
-- If you are not confident about facts, say so in Notes and lower Confidence.
-- Do NOT invent exact dates, awards, or long bibliographies.
-- If the name is ambiguous (multiple candidates), mention ambiguity in Notes.
-- If there are multiple candidates, pick the most likely one, lower confidence, and explain the ambiguity in notes.
-- Always include all three keys even if the value is null
--  The temperature of the response should be low to ensure factual accuracy and consistency.
-- Output MUST be valid JSON matching:
-  { "bio": string|null, "confidence": number|null, "notes": string|null }
+Respond with ONLY valid JSON and NOTHING else. Do not include explanations, markdown, code fences, or any extra text. The response MUST be a single JSON object exactly matching the schema below.
+
+Schema (exact keys and types):
+{ "bio": string|null, "confidence": number|null, "notes": string|null }
+
+Rules:
+- Always include all three keys in the top-level object. If a value is unknown or you are not confident, set it to null and explain uncertainty in "notes".
+- "bio": a concise 2-6 sentence biography in the requested language. No lists, no bullet points, no headings, no markup.
+- "confidence": a numeric score between 0.0 and 1.0 representing your confidence. If unknown, use null. Use lower values for uncertain/synthesized facts (< 0.5).
+- "notes": short plain-text explanation about ambiguity, uncertainty, or sources; use null if none.
+- Do NOT invent exact dates, awards, or long bibliographies. If you must synthesize, be conservative and set a low confidence.
+- If the name is ambiguous, choose the most likely candidate, lower the confidence, and explain ambiguity in "notes".
+- Keep temperature low and factual.
+
+Example valid output (must follow this shape exactly):
+{ "bio": "Born ...", "confidence": 0.75, "notes": null }
 
 INPUT:
 Name: {name}
 Language: {language}
 
 Task:
-Write a concise bio (2-6 sentences) in the language specified above.
+Write a concise bio (2-6 sentences) in the language specified above. Output must be valid JSON only.
