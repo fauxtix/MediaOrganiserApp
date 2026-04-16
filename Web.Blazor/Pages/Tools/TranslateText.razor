@@ -9,7 +9,7 @@
             <div class="d-flex justify-content-between align-items-center w-100">
                 <h5 class="m-0">@Title</h5>
             </div>
-        </Header>       
+        </Header>
         <Content>
             <div class="translate-panel card p-3">
                 <div class="row">
@@ -41,12 +41,16 @@
                                 @if (IsTranslating)
                                 {
                                     <div class="bouncing-dots">
+                                        @L["TituloTraducao"]
                                         <span></span><span></span><span></span>
                                     </div>
                                 }
                                 else
                                 {
-                                    <SfButton CssClass="e-primary e-round-corner" Enabled="@CanTranslate" @onclick="Translate">@L["TituloTraduzir"]</SfButton>
+                                    <SfButton CssClass="e-success e-round-corner"
+                                              IconCss="fa fa-angles-right"
+                                              Disabled="!CanTranslate"
+                                              @onclick="Translate">@L["TituloTraduzir"]</SfButton>
                                 }
                             </div>
                             <div class="text-muted">@((Confidence.HasValue) ? $"Confidence: {Confidence:0.00}" : string.Empty)</div>
@@ -60,13 +64,13 @@
 
         <FooterTemplate>
             <div class="d-flex justify-content-end" style="gap:8px">
-                <SfButton CssClass="e-primary e-round-corner" Enabled="!string.IsNullOrWhiteSpace(TranslatedText) && !IsTranslating" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
+                <SfButton CssClass="e-primary e-round-corner" Disabled="string.IsNullOrWhiteSpace(TranslatedText) || IsTranslating" @onclick="ApplyTranslated">@L["TituloConfirmar"]</SfButton>
                 <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Content="@L["BtnSalir"]" @onclick="OnExit"></SfButton>
             </div>
         </FooterTemplate>
     </DialogTemplates>
-    <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration="300" />
-    <DialogPositionData X="right" Y="top"></DialogPositionData>
+    <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration="700" />
+    <DialogPositionData X="center" Y="bottom"></DialogPositionData>
 
 </SfDialog>
 
@@ -108,6 +112,8 @@
         await Task.Delay(50);
         TranslatedText = string.Empty;
         Confidence = null;
+
+        TranslatedText = "";
 
         if (!CanTranslate)
         {
@@ -191,7 +197,7 @@
     }
 }
 
-        <style>
+<style>
     .translate-panel .translate-input,
     .translate-panel .translate-output {
         font-family: inherit;
@@ -248,4 +254,4 @@
         }
     }
 
-        </style>
+</style>

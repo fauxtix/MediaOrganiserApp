@@ -1210,4 +1210,16 @@
   <data name="lblTranslatedText" xml:space="preserve">
     <value>Texte traduit</value>
   </data>
+  <data name="TituloTraducao" xml:space="preserve">
+    <value>En attente de traduction</value>
+  </data>
+  <data name="TituloDadosDoApi" xml:space="preserve">
+    <value>Récupérer des données via l'API</value>
+  </data>
+  <data name="TituloTraduzirBio" xml:space="preserve">
+    <value>Traduire la biographie</value>
+  </data>
+  <data name="TituloLivrosDoAutor" xml:space="preserve">
+    <value>Livres de l'auteur</value>
+  </data>
 </root>

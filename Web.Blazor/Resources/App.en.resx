@@ -1209,4 +1209,16 @@
   <data name="lblTranslatedText" xml:space="preserve">
     <value>Translated text</value>
   </data>
+  <data name="TituloTraducao" xml:space="preserve">
+    <value>Waiting translation</value>
+  </data>
+  <data name="TituloDadosDoApi" xml:space="preserve">
+    <value>Get data from Api</value>
+  </data>
+  <data name="TituloTraduzirBio" xml:space="preserve">
+    <value>Translate Bio</value>
+  </data>
+  <data name="TituloLivrosDoAutor" xml:space="preserve">
+    <value>Books by the Author</value>
+  </data>
 </root>
