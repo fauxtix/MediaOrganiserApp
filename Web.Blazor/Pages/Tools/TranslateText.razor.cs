@@ -39,6 +39,24 @@ namespace Web.Blazor.Pages.Tools
 
         protected override async Task OnParametersSetAsync()
         {
+            // Copy incoming parameters to internal fields first to avoid races
+            // between the synchronous and asynchronous lifecycle methods.
+            if (!string.IsNullOrWhiteSpace(InitialText))
+            {
+                InputText = InitialText;
+            }
+
+            if (!string.IsNullOrWhiteSpace(InitialSourceLanguage))
+            {
+                SourceLanguage = InitialSourceLanguage;
+            }
+
+            if (!string.IsNullOrWhiteSpace(InitialTargetLanguage))
+            {
+                TargetLanguage = InitialTargetLanguage;
+            }
+
+            // Existing async initialization when dialog becomes visible
             if (Visible)
             {
                 SourceTextNoHtml = StripHtml(InputText ?? string.Empty);
@@ -149,22 +167,6 @@ namespace Web.Blazor.Pages.Tools
             Visible = false;
             if (OnClose.HasDelegate)
                 await OnClose.InvokeAsync();
-        }
-
-        protected override void OnParametersSet()
-        {
-            if (Visible && !string.IsNullOrWhiteSpace(InitialText))
-            {
-                InputText = InitialText;
-            }
-            if (!string.IsNullOrWhiteSpace(InitialSourceLanguage))
-            {
-                SourceLanguage = InitialSourceLanguage;
-            }
-            if (!string.IsNullOrWhiteSpace(InitialTargetLanguage))
-            {
-                TargetLanguage = InitialTargetLanguage;
-            }
         }
 
         private class LanguageItem

@@ -8,6 +8,7 @@
 @using MediaOrganizerApp.Application.Enums
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.BaseComponents
+@using Web.Blazor.Pages.Tools
 
 @attribute [Authorize]
 
@@ -187,6 +188,13 @@ else
                               @onclick="AddOrSaveRecord">
                         &nbsp;@(localizerApp["btnSalvar"])
                     </SfButton>
+                    @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedCategory?.Descricao))
+                    {
+                        <SfButton CssClass="e-btn e-info e-round-corner"
+                                  IconCss="fa fa-language"
+                                  Content="@localizerApp["TituloTraduzir"]"
+                                  @onclick="() => showTranslateModal = true" />
+                    }
                     <SfButton CssClass="e-btn e-outline e-round-corner"
                               IconCss="fa fa-times"
                               @onclick="Voltar">
@@ -314,6 +322,14 @@ else
         </DialogTemplates>
         <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
     </SfDialog>
+
+    <TranslateText Visible="@showTranslateModal"
+                   InitialText="@SelectedCategory.Descricao"
+                   InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
+                   InitialTargetLanguage="en"
+                   TranslateFunc="@(TranslateClient.TranslateAsync)"
+                   OnTranslateRequested="OnTranslateApplied"
+                   OnClose="@(()=> showTranslateModal = false)" />
 
     <SfToast @ref="ToastObj"
              Title="@ToastTitle"

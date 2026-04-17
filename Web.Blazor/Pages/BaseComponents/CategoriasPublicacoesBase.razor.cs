@@ -15,6 +15,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Web.Blazor.Services.Reporting;
+using MediaOrganizerApp.Application.DTOs.AI;
+using Web.Blazor.Services.ApiWrappers;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
 
 namespace Web.Blazor.Pages.BaseComponents
@@ -32,6 +34,9 @@ namespace Web.Blazor.Pages.BaseComponents
         public IWebHostEnvironment env { get; set; }
         [Inject]
         public NavigationManager NavigationManager { get; set; }
+
+        [Inject]
+        public TranslateClientService TranslateClient { get; set; }
 
         protected SfGrid<CategoryVM> gridObj;
 
@@ -59,6 +64,10 @@ namespace Web.Blazor.Pages.BaseComponents
         public bool EditDialogVisibility { get; set; } = false;
         public bool ValidationErrorsVisibility { get; set; } = false;
         public bool DeleteRecordConfirmVisibility { get; set; } = false;
+        public bool TranslationDialogVisible { get; set; } = false;
+
+        // flag to control translate modal visibility
+        protected bool showTranslateModal { get; set; }
 
         public int categoryID { get; set; }
         public int pubsCatalogadas { get; set; }
@@ -254,6 +263,18 @@ namespace Web.Blazor.Pages.BaseComponents
         {
             ErrorVisibility = false;
             EditDialogVisibility = true;
+        }
+
+        protected async Task OnTranslateApplied(TranslateRequestDto dto)
+        {
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+                return;
+
+            // Apply translated text to the category description and close modal
+            SelectedCategory.Descricao = dto.Text;
+            showTranslateModal = false;
+            StateHasChanged();
+            await Task.CompletedTask;
         }
 
     }
