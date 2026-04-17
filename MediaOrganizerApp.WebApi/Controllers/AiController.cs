@@ -120,24 +120,85 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [HttpPost("translate")]
         public async Task<ActionResult<TranslateResponseDto>> Translate([FromBody] TranslateRequestDto request, CancellationToken cancellationToken)
         {
-            if (request is null) return BadRequest("Request body is required.");
-            if (string.IsNullOrWhiteSpace(request.Text)) return BadRequest("Field 'text' is required.");
-            if (string.IsNullOrWhiteSpace(request.SourceLanguage)) return BadRequest("Field 'sourceLanguage' is required.");
-            if (string.IsNullOrWhiteSpace(request.TargetLanguage)) return BadRequest("Field 'targetLanguage' is required.");
+            // Controller always returns a TranslateResponseDto so the UI can rely on a stable payload.
+            if (request is null)
+            {
+                return Ok(new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "Request body is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Text))
+            {
+                return Ok(new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "Field 'text' is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.SourceLanguage))
+            {
+                return Ok(new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "Field 'sourceLanguage' is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.TargetLanguage))
+            {
+                return Ok(new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "Field 'targetLanguage' is required."
+                });
+            }
 
             try
             {
                 var translateService = HttpContext.RequestServices.GetService(typeof(ITranslateService)) as ITranslateService;
                 if (translateService == null)
-                    return StatusCode(500, "Translation service not available");
+                {
+                    _logger.LogError("Translation service not available");
+                    return Ok(new TranslateResponseDto
+                    {
+                        TranslatedText = string.Empty,
+                        Confidence = 0,
+                        ErrorMessage = "Translation service not available."
+                    });
+                }
 
                 var resp = await translateService.TranslateAsync(request, cancellationToken);
+
+                if (resp == null)
+                {
+                    // Service returned no object - map to DTO with error message
+                    return Ok(new TranslateResponseDto
+                    {
+                        TranslatedText = string.Empty,
+                        Confidence = 0,
+                        ErrorMessage = "Translation service returned no response."
+                    });
+                }
+
                 return Ok(resp);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error translating text");
-                return BadRequest("Error translating text.");
+                return Ok(new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "Error translating text: " + ex.Message
+                });
             }
         }
 

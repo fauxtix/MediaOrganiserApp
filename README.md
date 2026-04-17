@@ -28,6 +28,12 @@ This application is designed to streamline the organization, management, and ret
      - From the publication editor: open a publication in `Publications` and click the author lookup/search button next to the author field to open the author dialog; the dialog shows author details and an "Author Books" list with thumbnails, titles and links.
      - From the author editor: open `Manage Authors`, edit an author and click the "Author Books" button to view the same list in a dialog.
 
+### ✍️ Authors & Author Management (user-facing)
+- **Manage Authors**: A dedicated Authors area lets you create, edit and remove author records. Each author stores basic profile data (name, biography, external links) and links to publications in the system.
+- **Author Books**: From a publication editor or the author details page you can open an "Author Books" dialog. The dialog combines Google Books results (when available) with AI-powered fallback results so you can quickly attach accurate metadata and cover images to publications.
+- **Author cleanup**: When you delete a publication the app can automatically remove the author if they have no other publications — this behavior is configurable in App Settings.
+- **Why this matters**: Centralized author records keep publication metadata consistent, speed up data-entry and enable author-centric reports and filters across the app.
+
 ### 🖼️ Media Management
 - **File Uploads**: Drag-and-drop file uploads for images, PDFs, videos, and audio files.
   - **Progress Tracking**: Real-time progress bar for file uploads.
@@ -55,6 +61,13 @@ This application is designed to streamline the organization, management, and ret
 - **Ollama Integration**: Utilized for generating author profiles and metadata.
   - **Author Profiles**: Fetches detailed author information using AI prompts.
   - **Customizable Prompts**: Supports dynamic queries for personalized results.
+
+### 4ac AI Chat & Conversations (user-facing)
+- **Chat page**: The app exposes a user-facing Chat page (AI) reachable from the main sidebar. Use Chat to run ad-hoc queries, fetch author profiles, or request metadata for media and publications.
+- **Conversations**: Chats are grouped into conversations. Each conversation stores messages, context and can be re-opened for follow-up queries. The UI supports streaming replies for a natural chat experience.
+- **Edit Prompts**: Admins can edit prompt templates used by the AI directly from the Blazor admin UI (Edit Prompts). This enables tuning of LLM behavior without code deployments.
+- **Fallback behavior**: The UI prefers external APIs (Google Books) and falls back to the AI model only when external lookups do not return acceptable results. This reduces unnecessary LLM usage and improves metadata accuracy.
+
 
 ### 🔧 Additional server & utility features
 
@@ -102,6 +115,157 @@ This application is designed to streamline the organization, management, and ret
 | **Edit Prompts**           | Edit AI prompts for metadata generation.                                   |
 | **Reports**                | Generate and download reports for publications and media.                  |
 | **User Management**        | Manage user roles, permissions, and profiles.                              |
+
+---
+
+## 🧭 Navigation / Sidebar overview
+
+The app uses a persistent sidebar navigation accessible from the main layout. Key top-level groups and pages (as shown in the UI) include:
+
+- Backup
+  - Backup Database
+  - Backup Publications (uploads)
+  - Backup Media (uploads)
+  - Backup Images
+- Maintenance / Admin
+  - Manage Users
+  - Manage Lookup Tables
+  - App Settings
+  - File Manager
+  - View Logs
+- AI
+  - Edit Prompts
+  - Chat (Conversations)
+- Home
+- Publications
+  - Manage Publications
+  - Image Gallery
+- Media
+  - Manage Media
+  - Video Gallery
+  - Playlists
+- Authors
+
+Use the sidebar to quickly locate these features in the UI; labels are localized via resources in the Blazor project.
+
+---
+
+## Developer / Implementation Details
+
+This section is for maintainers and integrators. It expands the README with implementation locations, detailed feature notes, API examples and configuration tips. The user-facing content above is preserved unchanged.
+
+Where to look in the code (quick map)
+- Web.Blazor (UI, client wrappers, pages, components)
+  - Key folders: Pages, Components, Services/ApiWrappers, Controllers (Blazor-side controllers if present)
+- MediaOrganizerApp.WebApi (backend controllers, AI services, helpers)
+  - Key files:
+    - Controllers/ConversationsController.cs
+    - Controllers/AiController.cs
+    - Controllers/PublicationsController.cs
+    - Controllers/MediaController.cs
+    - Controllers/FileManagerController.cs
+    - Services/OllamaAuthorProfileService.cs
+    - Services/OllamaBooksService.cs
+    - Prompts/*.prompt.txt
+    - Helpers/BusinessObjects/BO_*.cs (file integrity / repair helpers)
+- ReportsRenderer and Web.Blazor.ReportObjects (report templates & helpers)
+
+Detailed features implemented (expanded)
+
+1) AI / Conversations / Chat
+- Files: AiController.cs, ConversationsController.cs, AiAuthorProfileService.cs, OllamaAuthorProfileService.cs, OllamaBooksService.cs, Prompts/*.prompt.txt
+- Behavior:
+  - The UI uses typed client wrappers (Web.Blazor/Services/ApiWrappers/AiClientService and ConversationsClientService) to call API chat endpoints.
+  - ConversationsController exposes conversation listing and streaming chat at `/api/ai/conversations` (explicit route attribute).
+  - AiController exposes one-off AI endpoints at `/api/ai` (controller route attribute).
+  - Ollama integration is used as an LLM fallback when third-party lookups (e.g., Google Books) return insufficient data.
+
+2) File Manager
+- Files: FileManagerController.cs (WebApi), Web.Blazor/Services/Utilities/FileManagerService.cs
+- Behavior:
+  - Endpoints for browsing server-side directories, uploading raw files, and file operations used by the admin UI and background tasks.
+
+3) Playlists & Media
+- Files: PlaylistsBase.cs, PlaylistClientService.cs, UploadMediaFiles.razor, EditMedia.razor
+- Behavior:
+  - Audio/video playlists with CRUD operations, playlist metadata and listing UI. Media pages include dynamic titles, thumbnails, preview players and a "Get Info" AI metadata button.
+
+4) Document editor & viewer
+- Files: Components/DocumentEditor.razor, DocumentViewerComponent.razor
+- Behavior:
+  - In-browser .docx editing (Syncfusion SfDocumentEditor) and a viewer with print/export support.
+
+5) Reporting
+- Files: ReportsRenderer project, Web.Blazor.ReportObjects/Helpers/ReportLists.cs
+- Behavior:
+  - Server-side report rendering to PDF/Excel. Blazor pages trigger report generation via the Web API or ReportsRenderer service.
+
+6) Background helpers & integrity checks
+- Files: Helpers/BusinessObjects/BO_*.cs
+- Behavior:
+  - File integrity checks to detect publications with missing files; retention helpers; cascade cleanup when deleting publications.
+
+7) Admin UI & settings
+- App Settings pages expose toggles for storage options, API keys and prompt editing. Prompts are editable via the Blazor "Edit Prompts" page.
+
+Concrete API usage examples (curl) — copy/paste smoke tests
+Notes: Update host/port if you use non-default launch profiles. These examples assume an auth cookie or Bearer token; replace <TOKEN> with a valid token or remove Authorization header if running with anonymous dev auth.
+
+1) Create a publication (JSON)
+
+```bash
+curl -X POST "https://localhost:5001/api/publications" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Example Book","authors":[{"name":"Jane Doe"}],"year":2020}'
+```
+
+2) Upload a media file (multipart)
+
+```bash
+curl -X POST "https://localhost:5001/api/media/upload" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -F "file=@/path/to/file.mp3" \
+  -F "title=My Track"
+```
+
+3) Start a conversation (AI) — POST to /api/ai/conversations
+
+```bash
+curl -X POST "https://localhost:5001/api/ai/conversations" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Author lookup for Jane Doe","messages":[{"role":"user","content":"Find author profile for Jane Doe"}],"language":"en-US"}'
+```
+
+4) Ask the AiController for an author profile (fallback)
+
+```bash
+curl -X POST "https://localhost:5001/api/ai/authorprofile" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane Doe","source":"fallback","language":"en-US"}'
+```
+
+Configuration & secrets (developer tips)
+- Ollama: default base URL `http://localhost:11434` — set `Ollama:BaseUrl` in WebApi user-secrets or appsettings.
+- OpenAI: store `OpenAI:ApiKey` in the Web API user secrets (Web.Blazor may also store a key for client features).
+- DB: `ConnectionStrings:DefaultConnection` for SQL Server.
+
+PowerShell example to set Web API secrets (replace values):
+
+```powershell
+$proj = ".\\MediaOrganizerApp.WebApi\\MediaOrganizerApp.WebApi.csproj"
+
+dotnet user-secrets --project $proj set "ConnectionStrings:DefaultConnection" "Server=.;Database=Publicacoes_Prod;Trusted_Connection=True;"
+dotnet user-secrets --project $proj set "Ollama:BaseUrl" "http://localhost:11434"
+```
+
+Suggested next additions (optional, high ROI)
+- Add quick API curl examples to the primary README for public visibility.
+- Add a Mermaid diagram near the top of README.md describing components and data flows.
+- Add screenshot files in `/docs/screenshots/` and reference them from README.md.
+
 
 ---
 

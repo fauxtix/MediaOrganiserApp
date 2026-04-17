@@ -9,4 +9,7 @@ public sealed class TranslateResponseDto
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }
+
+    [JsonPropertyName("errorMessage")]
+    public string ErrorMessage { get; set; } = string.Empty;
 }

@@ -36,16 +36,6 @@ public sealed class OllamaTranslateService : ITranslateService
             ["targetLanguage"] = ResolveLanguageName(request.TargetLanguage),
             ["text"] = request.Text
         });
-        //var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
-        //{
-        //    ["sourceLanguage"] = request.SourceLanguage,
-        //    ["targetLanguage"] = request.TargetLanguage,
-        //    ["text"] = request.Text
-        //});
-
-        // Log rendered prompt and request details for diagnostics
-        _logger.LogInformation("Translate requested. Source={SourceLanguage}, Target={TargetLanguage}, TextLength={Len}",
-            request.SourceLanguage, request.TargetLanguage, request.Text?.Length ?? 0);
         _logger.LogDebug("Rendered translate prompt:\n{Prompt}", prompt);
 
         var (modelBaseUrl, modelName) = await GetAiSettings();
@@ -59,8 +49,8 @@ public sealed class OllamaTranslateService : ITranslateService
             stream = false
         };
 
-        try
-        {
+            try
+            {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
@@ -70,7 +60,12 @@ public sealed class OllamaTranslateService : ITranslateService
             if (!resp.IsSuccessStatusCode)
             {
                 _logger.LogError("Translate: Ollama request failed. Status={Status}", resp.StatusCode);
-                return new TranslateResponseDto { TranslatedText = string.Empty, Confidence = 0 };
+                    return new TranslateResponseDto
+                    {
+                        TranslatedText = string.Empty,
+                        Confidence = 0,
+                        ErrorMessage = $"Translation backend returned status {(int)resp.StatusCode} ({resp.StatusCode})."
+                    };
             }
 
             var bytes = await resp.Content.ReadAsByteArrayAsync(cancellationToken);
@@ -80,7 +75,12 @@ public sealed class OllamaTranslateService : ITranslateService
             _logger.LogDebug("Raw Ollama response JSON: {Json}", json);
             _logger.LogDebug("Extracted response text: {Text}", text);
             if (string.IsNullOrWhiteSpace(text))
-                return new TranslateResponseDto { TranslatedText = string.Empty, Confidence = 0 };
+                return new TranslateResponseDto
+                {
+                    TranslatedText = string.Empty,
+                    Confidence = 0,
+                    ErrorMessage = "No response received from translation backend."
+                };
 
             // Attempt to parse direct JSON
             try
@@ -108,7 +108,13 @@ public sealed class OllamaTranslateService : ITranslateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Ollama for translate");
-            return new TranslateResponseDto { TranslatedText = string.Empty, Confidence = 0 };
+            // Return a concise user-facing error message; full exception remains in logs
+            return new TranslateResponseDto
+            {
+                TranslatedText = string.Empty,
+                Confidence = 0,
+                ErrorMessage = "Translation service error: " + (ex.Message ?? "Unexpected error")
+            };
         }
     }
 

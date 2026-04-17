@@ -16,6 +16,7 @@ namespace Web.Blazor.Pages.Tools
         [Parameter] public EventCallback OnClose { get; set; }
 
         string InputText { get; set; } = string.Empty;
+        string SourceTextNoHtml { get; set; } = string.Empty;
         string SourceLanguage { get; set; } = string.Empty;
         string TargetLanguage { get; set; } = string.Empty;
         string TranslatedText { get; set; } = string.Empty;
@@ -52,7 +53,9 @@ namespace Web.Blazor.Pages.Tools
                 return;
             }
 
-            var req = new TranslateRequestDto { Text = InputText, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
+            // Strip HTML from source before sending to translation backend and show sanitized source to user
+            SourceTextNoHtml = StripHtml(InputText ?? string.Empty);
+            var req = new TranslateRequestDto { Text = SourceTextNoHtml, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
 
             try
             {
@@ -68,8 +71,24 @@ namespace Web.Blazor.Pages.Tools
 
                 if (resp is not null)
                 {
-                    TranslatedText = resp.TranslatedText ?? string.Empty;
-                    Confidence = resp.Confidence;
+                    if (!string.IsNullOrWhiteSpace(resp.ErrorMessage))
+                    {
+                        // API returned an error message (for example Ollama server unreachable)
+                        ErrorMessage = resp.ErrorMessage;
+                        TranslatedText = string.Empty;
+                        Confidence = resp.Confidence;
+                    }
+                    else
+                    {
+                        TranslatedText = resp.TranslatedText ?? string.Empty;
+                        Confidence = resp.Confidence;
+                        ErrorMessage = string.Empty;
+                    }
+                }
+                else
+                {
+                    // No response (non-success status or exception in client). Show a friendly message.
+                    ErrorMessage = L["msgTranslateServiceUnavailable"] ?? "Translation service is unavailable (server error or network issue).";
                 }
             }
             catch (Exception ex)
@@ -84,6 +103,27 @@ namespace Web.Blazor.Pages.Tools
         }
 
         private Task Copy() => Task.CompletedTask;
+
+        private async Task ClearError()
+        {
+            ErrorMessage = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private static string StripHtml(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            try
+            {
+                return System.Text.RegularExpressions.Regex.Replace(input, "<.*?>", string.Empty);
+            }
+            catch
+            {
+                return input;
+            }
+        }
 
         private async Task ApplyTranslated()
         {

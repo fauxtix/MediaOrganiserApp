@@ -23,6 +23,9 @@
 
                         <label class="form-label">@L["TituloTextoATraduzir"]</label>
                         <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="8" @bind-Value="InputText"></SfTextBox>
+
+                        <label class="form-label mt-2">Source (no HTML)</label>
+                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="4" Value="@SourceTextNoHtml" Enabled="false"></SfTextBox>
                     </div>
 
                     <div class="col-md-6 mb-2">
@@ -58,7 +61,19 @@
                     </div>
                 </div>
 
-                <div class="mt-2 text-danger">@ErrorMessage</div>
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="mt-2 d-flex align-items-start" role="alert" aria-live="assertive">
+                        <div class="flex-grow-1 me-2" tabindex="-1">
+                            <SfMessage Severity="MessageSeverity.Warning" ShowIcon="true" Variant="MessageVariant.Outlined" ShowCloseIcon="true">
+                                @ErrorMessage
+                            </SfMessage>
+                        </div>
+                        <div>
+                            <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Title="Close" @onclick="ClearError"></SfButton>
+                        </div>
+                    </div>
+                }
             </div>
         </Content>
 
