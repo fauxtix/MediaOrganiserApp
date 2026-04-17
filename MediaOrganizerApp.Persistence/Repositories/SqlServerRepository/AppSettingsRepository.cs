@@ -96,7 +96,7 @@ public class AppSettingsRepository : IAppSettingsRepository
             {
                 string sp_Name = "usp_AppSettings_UpdateLanguage";
                 var result = (await connection.ExecuteAsync(sp_Name,
-                    new { DefaultLanguage = language },
+                    new { Language = language },
                     commandType: CommandType.StoredProcedure));
             }
         }

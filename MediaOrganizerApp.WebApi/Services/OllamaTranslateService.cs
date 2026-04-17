@@ -36,7 +36,6 @@ public sealed class OllamaTranslateService : ITranslateService
             ["targetLanguage"] = ResolveLanguageName(request.TargetLanguage),
             ["text"] = request.Text
         });
-        _logger.LogDebug("Rendered translate prompt:\n{Prompt}", prompt);
 
         var (modelBaseUrl, modelName) = await GetAiSettings();
         _baseUrl = modelBaseUrl;
@@ -72,8 +71,6 @@ public sealed class OllamaTranslateService : ITranslateService
             var json = Encoding.UTF8.GetString(bytes);
 
             var text = TryExtractOllamaResponseText(json, _logger);
-            _logger.LogDebug("Raw Ollama response JSON: {Json}", json);
-            _logger.LogDebug("Extracted response text: {Text}", text);
             if (string.IsNullOrWhiteSpace(text))
                 return new TranslateResponseDto
                 {

@@ -22,10 +22,10 @@
                         </SfDropDownList>
 
                         <label class="form-label">@L["TituloTextoATraduzir"]</label>
-                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="8" @bind-Value="InputText"></SfTextBox>
+                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="8" @bind-Value="SourceTextNoHtml"></SfTextBox>
 
-                        <label class="form-label mt-2">Source (no HTML)</label>
-                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="4" Value="@SourceTextNoHtml" Enabled="false"></SfTextBox>
+                        @* <label class="form-label mt-2">Source (no HTML)</label>
+                        <SfTextBox CssClass="w-100 translate-input" Multiline="true" Rows="4" Value="@SourceTextNoHtml" Enabled="false"></SfTextBox> *@
                     </div>
 
                     <div class="col-md-6 mb-2">

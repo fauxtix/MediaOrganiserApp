@@ -90,7 +90,7 @@ namespace Web.Blazor.Pages.Admin
                 settings = new();
             }
 
-            selectedCulture = settings.DefaultLanguage;
+            selectedCulture = settings.Language;
             if (!string.IsNullOrEmpty(selectedCulture))
             {
                 culture = new CultureInfo(selectedCulture);

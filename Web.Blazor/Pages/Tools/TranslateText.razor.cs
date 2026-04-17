@@ -1,5 +1,6 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.JSInterop;
 
 namespace Web.Blazor.Pages.Tools
@@ -36,6 +37,14 @@ namespace Web.Blazor.Pages.Tools
 
         bool CanTranslate => !string.IsNullOrWhiteSpace(InputText) && !string.IsNullOrWhiteSpace(SourceLanguage) && !string.IsNullOrWhiteSpace(TargetLanguage) && SourceLanguage != TargetLanguage;
 
+        protected override async Task OnParametersSetAsync()
+        {
+            if (Visible)
+            {
+                SourceTextNoHtml = StripHtml(InputText ?? string.Empty);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
         private async Task Translate()
         {
             IsTranslating = true;
@@ -53,8 +62,6 @@ namespace Web.Blazor.Pages.Tools
                 return;
             }
 
-            // Strip HTML from source before sending to translation backend and show sanitized source to user
-            SourceTextNoHtml = StripHtml(InputText ?? string.Empty);
             var req = new TranslateRequestDto { Text = SourceTextNoHtml, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
 
             try

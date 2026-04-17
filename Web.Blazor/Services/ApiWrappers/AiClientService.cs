@@ -62,6 +62,7 @@ public sealed class AiClientService
     public async IAsyncEnumerable<string> StreamChatAsync(
         List<ChatMessageDto> messages,
         string? connectionId,
+        string? language,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
@@ -70,7 +71,8 @@ public sealed class AiClientService
         var payload = new
         {
             messages = messages.Select(m => new { role = m.Role, content = m.Content }),
-            connectionId = connectionId
+            connectionId = connectionId,
+            language = language
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)

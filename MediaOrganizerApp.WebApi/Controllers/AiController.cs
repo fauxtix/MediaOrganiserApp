@@ -41,6 +41,20 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _promptProvider = promptProvider;
         }
 
+        private static string MapLanguageCodeToName(string? language)
+        {
+            if (string.IsNullOrWhiteSpace(language)) return language ?? string.Empty;
+            var code = language.Split(new[] { '-', '_' })[0].ToLowerInvariant();
+            return code switch
+            {
+                "pt" => "Portuguese",
+                "es" => "Spanish",
+                "fr" => "French",
+                "en" => "English",
+                _ => language
+            };
+        }
+
         // Note: Hub-based background chat start/cancel endpoints removed. Chat streaming is handled
         // directly by the /chat endpoint which streams to the HTTP response.
 
@@ -378,10 +392,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
             // If Language present, insert a system message so the LLM replies in the requested language.
             if (!string.IsNullOrWhiteSpace(request?.Language))
             {
+                var langName = MapLanguageCodeToName(request.Language);
                 request.Messages.Insert(0, new ChatMessageDto
                 {
                     Role = "system",
-                    Content = $"Please respond in {request.Language}. Keep answers concise and avoid repetition."
+                    Content = $"Please respond in {langName}. Keep answers concise and avoid repetition."
                 });
             }
 

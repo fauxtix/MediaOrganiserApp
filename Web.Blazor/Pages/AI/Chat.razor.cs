@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Syncfusion.Blazor.Notifications;
 using Web.Blazor.Services.ApiWrappers;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Syncfusion.Blazor.DropDowns;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +51,7 @@ namespace Web.Blazor.Pages.AI
         [Inject] private IJSRuntime JS { get; set; } = null!;
 
         [Inject] private IConfiguration Configuration { get; set; } = null!;
+        [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
 
         protected override async Task OnInitializedAsync()
         {
@@ -123,14 +125,27 @@ namespace Web.Blazor.Pages.AI
 
                 // Use HTTP streaming only
                 var dtoList = messages.Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content }).ToList();
-                var language = Configuration["Language"] ?? null;
+                // Obtain language from app settings service (falls back to DefaultLanguage)
+                string? language = null;
+                try
+                {
+                    var settings = await AppSettingsService.GetSettingsAsync();
+                    language = settings?.Language ?? settings?.DefaultLanguage;
+                    if (!string.IsNullOrWhiteSpace(language))
+                    {
+                        // Normalize culture like "pt-PT" or "en_US" to the short code before sending
+                        language = language.Split(new[] { '-', '_' })[0];
+                    }
+                }
+                catch { language = null; }
 
                 ProgressStatus = "Thinking...";
                 isProcessing = true;
                 await InvokeAsync(StateHasChanged);
 
                 var firstChunkReceived = false;
-                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, language, chatCts.Token))
+                // Pass null for connectionId (we're using HTTP streaming) and include the configured language
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, language, chatCts.Token))
                 {
                     if (!firstChunkReceived)
                     {
