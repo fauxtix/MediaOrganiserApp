@@ -91,12 +91,20 @@ else
                                    @bind-Value="@SelectedRecord.FileName">
                         </SfTextBox>
                     </div>
-                    <div>
-                        <SfTextBox Enabled="true" Placeholder="@L["frmAutores"]"
-                                   CssClass="form-control e-corner font-italic"
-                                   FloatLabelType="@FloatLabelType.Auto"
-                                   @bind-Value="@SelectedRecord.Autor">
-                        </SfTextBox>
+                    <div class="row">
+                        <div class="col-sm-10">
+                            <SfTextBox Enabled="true" Placeholder="@L["frmAutores"]"
+                                       CssClass="form-control e-corner font-italic"
+                                       FloatLabelType="@FloatLabelType.Auto"
+                                       @bind-Value="@SelectedRecord.Autor">
+                            </SfTextBox>
+                        </div>
+                        <div class="col-sm-2 mt-2 ml-0">
+                            <SfButton CssClass="e-primary e-outline e-round mt-4"
+                                      IconCss="fa fa-search"
+                                      @onclick="@(() => SearchArtistRecordsVisibility = true)" />
+                        </div>
+
                     </div>
                     <div style="float:right">
                         <SfButton CssClass="e-btn e-success e-outline mr-1 mt-2 e-round-corner"
@@ -105,13 +113,13 @@ else
                                   Content="Info"
                                   Enabled="@(blnEdit ? string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) || string.IsNullOrWhiteSpace(SelectedRecord.Notas) : true)">
                         </SfButton>
-                    @if (isBusy)
-                    {
-                        <SfButton CssClass="e-btn e-danger e-outline mr-1 mt-2 e-round-corner"
-                                  IconCss="fa fa-times"
-                                  @onclick="CancelMediaInfo" Content="Cancel">
-                        </SfButton>
-                    }
+                        @if (isBusy)
+                        {
+                            <SfButton CssClass="e-btn e-danger e-outline mr-1 mt-2 e-round-corner"
+                                      IconCss="fa fa-times"
+                                      @onclick="CancelMediaInfo" Content="Cancel">
+                            </SfButton>
+                        }
                     </div>
                 </div>
                 <div class="row py-2 mr-1 mt-4">
@@ -237,6 +245,37 @@ else
 
         </div>
     </div>
+
+    <SfDialog Width="500px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="SearchArtistRecordsVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <div>
+                            <i class="fa fa-google p-2"></i>&nbsp;&nbsp;@L["SerarchGoogleApi"]
+                        </div>
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <ArtistsPublishedTitles ArtistName="@SelectedRecord.Autor" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="@(() => SearchArtistRecordsVisibility = false)"
+                              Content="@(L["BtnSalir"])">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
+    </SfDialog>
 
     <SfToast @ref="ToastObj"
              Title="@ToastTitle"

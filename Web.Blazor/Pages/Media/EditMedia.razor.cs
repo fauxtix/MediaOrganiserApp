@@ -40,6 +40,7 @@ namespace Web.Blazor.Pages.Media
 
         public string uploadedCoverFile { get; set; } = "";
 
+        private bool SearchArtistRecordsVisibility = false;
 
         protected SfRadioButton<byte> chkVideo;
         protected SfRadioButton<byte> chkAudio;

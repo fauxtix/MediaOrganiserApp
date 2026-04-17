@@ -1,19 +1,21 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Enums;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Data;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Notifications;
-using Microsoft.Extensions.Localization;
-using Microsoft.AspNetCore.Hosting;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
+using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.Reporting;
-using MediaOrganizerApp.Application.Enums;
 
 namespace Web.Blazor.Pages.BaseComponents
 {
@@ -29,6 +31,10 @@ namespace Web.Blazor.Pages.BaseComponents
         public IWebHostEnvironment env { get; set; }
         [Inject]
         public NavigationManager NavigationManager { get; set; }
+
+        [Inject]
+        public TranslateClientService TranslateClient { get; set; }
+
 
         protected SfGrid<FormatoPublicacaoVM> gridObj;
 
@@ -56,6 +62,8 @@ namespace Web.Blazor.Pages.BaseComponents
         public bool EditDialogVisibility { get; set; } = false;
         public bool ValidationErrorsVisibility { get; set; } = false;
         public bool DeleteRecordConfirmVisibility { get; set; } = false;
+        public bool TranslationDialogVisible { get; set; } = false;
+        protected bool showTranslateModal { get; set; }
 
         public int formatoID { get; set; }
         public int pubsCatalogadas { get; set; }
@@ -234,6 +242,18 @@ namespace Web.Blazor.Pages.BaseComponents
         {
             this.ValidationErrorsVisibility = false;
             this.DeleteRecordConfirmVisibility = false;
+        }
+
+        protected async Task OnTranslateApplied(TranslateRequestDto dto)
+        {
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+                return;
+
+            // Apply translated text to the category description and close modal
+            SelectedRecord.Descricao = dto.Text;
+            showTranslateModal = false;
+            StateHasChanged();
+            await Task.CompletedTask;
         }
 
         public void closeErrorBox()

@@ -8,6 +8,8 @@ using MediaOrganizerApp.Application.Security;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using Microsoft.Extensions.DependencyInjection;
 using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
+using MediaOrganizerApp.Application.Interfaces.Services;
+using MediaOrganizerApp.Persistence.Services.Chat;
 
 namespace MediaOrganizerApp.Persistence
 {
@@ -52,8 +54,8 @@ namespace MediaOrganizerApp.Persistence
             services.AddScoped<IDapperContext, DapperContext>();
 
             // Conversations (chat)
-            services.AddScoped<MediaOrganizerApp.Application.Interfaces.Repositories.IConversationRepository, MediaOrganizerApp.Persistence.Repositories.SqlServerRepository.ConversationRepository>();
-            services.AddScoped<MediaOrganizerApp.Application.Interfaces.Services.IConversationService, MediaOrganizerApp.Persistence.Services.Chat.ConversationService>();
+            services.AddScoped<IConversationRepository, ConversationRepository>();
+            services.AddScoped<IConversationService, ConversationService>();
 
         }
     }

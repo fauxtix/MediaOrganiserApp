@@ -1,0 +1,87 @@
+﻿@using MediaOrganizerApp.Application.DTOs.Api.MusicBrainz
+@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components
+@using Web.Blazor.Services.ApiWrappers
+@inject IMusicApiClient MusicApi
+
+<h3>Discografia por Artista</h3>
+
+@if (result?.Releases == null || !result.Releases.Any())
+{
+    <LoadingData />
+}
+else 
+{
+    <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
+        @foreach (var release in result.Releases)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    @if (!string.IsNullOrEmpty(release.CoverUrl))
+                    {
+                        <img src="@release.CoverUrl" class="card-img-top" alt="@release.Title" />
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@release.Title</h5>
+                        <p class="card-text text-muted">
+                            @if (release.Year.HasValue)
+                            {
+                                @release.Year.Value
+                            }
+                            else
+                            {
+                                <em>ano desconhecido</em>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <SfSpinner @ref="spinner" Label="@L["MSG_PreparandoDados"]" Visible="false" />
+        }
+    </div>
+}
+else
+{
+    <div class="mt-2"><em>No published titles found for the given artist.</em></div>
+}
+
+
+@code {
+    [Parameter, EditorRequired]
+    public string ArtistName { get; set; }
+
+    [Inject] IStringLocalizer<App> L { get; set; }
+
+    private ArtistReleasesResponseDto? result;
+
+    private SfSpinner? spinner;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ArtistName))
+        {
+            result = null;
+            return;
+        }
+
+        try
+        {
+            await spinner.ShowAsync();
+            result = await MusicApi.GetArtistReleasesAsync(ArtistName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ArtistsPublishedTitles.SearchAsync error for '{ArtistName}': {ex}");
+            result = null;
+        }
+        finally
+        {
+            await spinner.HideAsync();
+        }
+    }
+}

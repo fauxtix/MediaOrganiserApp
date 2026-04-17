@@ -4,7 +4,9 @@ using IF.Lastfm.Core.Api.Enums;
 using IF.Lastfm.Core.Api.Helpers;
 using IF.Lastfm.Core.Objects;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.Api.MusicBrainz;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -23,14 +25,16 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IMediaRepository _repoMedia;
         private IMapper _mapper;
         private readonly LastfmClient _lastFMclient;
+        private readonly IMusicMetadataService _MusicBrainzService;
 
 
-        public MediaController(ILogger<MediaController> logger, IMediaRepository repoMedia, IMapper mapper)
+        public MediaController(ILogger<MediaController> logger, IMediaRepository repoMedia, IMapper mapper, IMusicMetadataService musicBrainzService)
         {
             _logger = logger;
             _repoMedia = repoMedia;
             _mapper = mapper;
             _lastFMclient = new LastfmClient("b937bd55da5593aaf00108c65dbe0bb5", "3d96efe5880bf77ce36d5641b94fad4c");
+            _MusicBrainzService = musicBrainzService;
         }
 
         [HttpGet("{userId}/{role}")]
@@ -995,6 +999,16 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        [HttpPost("artist-releases")]
+        public async Task<ActionResult<ArtistReleasesResponseDto>> GetArtistReleases(
+       [FromBody] ArtistReleasesRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.ArtistName))
+                return BadRequest("ArtistName is required.");
+
+            var result = await _MusicBrainzService.GetArtistReleasesAsync(request);
+            return Ok(result);
+        }
 
         private string GetControllerActionNames()
         {

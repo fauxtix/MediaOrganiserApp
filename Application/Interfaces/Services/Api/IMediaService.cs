@@ -1,4 +1,5 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.Api.MusicBrainz;
 using MediaOrganizerApp.Domain.Entities;
 using System;
 using System.Collections.Generic;

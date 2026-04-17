@@ -1,16 +1,18 @@
+using MediaOrganizerApp.Application;
 using MediaOrganizerApp.Application.Factories;
 using MediaOrganizerApp.Application.Interfaces;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Mappings;
 using MediaOrganizerApp.Persistence;
+using MediaOrganizerApp.Persistence.Services.MusicMetadata;
 using MediaOrganizerApp.Persistence.Services.Youtube;
+using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
-using MediaOrganizerApp.Application;
-using MediaOrganizerApp.WebApi.Hubs;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
 
 namespace MediaOrganizerApp.WebApi;
 
@@ -20,7 +22,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         // Add a configuration provider that reflects runtime feature flags from FeatureFlagsStore
-        ((IConfigurationBuilder)builder.Configuration).Add(new MediaOrganizerApp.WebApi.Configuration.FeatureFlagsConfigurationSource());
+        ((IConfigurationBuilder)builder.Configuration).Add(new Configuration.FeatureFlagsConfigurationSource());
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets<Program>();
@@ -68,13 +70,13 @@ public class Program
         builder.Services.AddScoped<IAiBooksService, OllamaBooksService>();
 
         // Feature flags: allow runtime toggling of AI fallback/badge
-        builder.Services.Configure<MediaOrganizerApp.Application.FeatureFlags>(builder.Configuration.GetSection("Features"));
+        builder.Services.Configure<FeatureFlags>(builder.Configuration.GetSection("Features"));
 
         // Initialize FeatureFlagsStore from configuration at startup so the in-memory store matches configured defaults
         try
         {
-            var initial = builder.Configuration.GetSection("Features").Get<MediaOrganizerApp.Application.FeatureFlags>() ?? new MediaOrganizerApp.Application.FeatureFlags();
-            MediaOrganizerApp.WebApi.Services.FeatureFlagsStore.Set(initial);
+            var initial = builder.Configuration.GetSection("Features").Get<FeatureFlags>() ?? new FeatureFlags();
+            FeatureFlagsStore.Set(initial);
         }
         catch
         {
@@ -94,12 +96,16 @@ public class Program
         // Register a concrete IAiChatService so AiController can be activated.
         // If you later add a real chat implementation, replace DevAiChatService with that class
         builder.Services.AddHttpClient<OllamaChatService>();
-        builder.Services.AddScoped<MediaOrganizerApp.Application.Interfaces.Services.AI.IAiChatService, OllamaChatService>();
+        builder.Services.AddScoped<IAiChatService, OllamaChatService>();
 
         // AI fallback services (server-side). Used only when external metadata APIs fail.
         // Provider selection is delegated to ServiceRegistration.AddAiServices to ensure
         // typed HttpClient registration for Ollama-backed implementations.
         builder.Services.AddAiServices(builder.Configuration);
+
+        // Music metadata service (external API) 
+        // 17-04-2026: Still using MusicBrainz as the primary metadata source, but this is where you'd register an alternative provider if needed.
+        builder.Services.AddHttpClient<IMusicMetadataService, MusicMetadataService>();
 
         var app = builder.Build();
 
