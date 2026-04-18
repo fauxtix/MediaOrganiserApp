@@ -47,7 +47,8 @@ namespace Web.Blazor.Services.ApiWrappers
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            return await response.Content.ReadFromJsonAsync<ArtistReleasesResponseDto>();
+            var resp = await response.Content.ReadFromJsonAsync<ArtistReleasesResponseDto>();
+            return resp;
         }
 
         private async Task<string> GetApiKey()

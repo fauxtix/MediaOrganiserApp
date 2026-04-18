@@ -6,7 +6,7 @@
 
 <h3>Discografia por Artista</h3>
 
-@if (result?.Releases == null || !result.Releases.Any())
+@if (result == null)
 {
     <LoadingData />
 }
@@ -36,14 +36,17 @@ else
                     </div>
                 </div>
             </div>
-            <SfSpinner @ref="spinner" Label="@L["MSG_PreparandoDados"]" Visible="false" />
+            <SfMessage Visible=@(!result.Releases.Any()) Severity="MessageSeverity.Warning" ShowCloseIcon=true
+                       ShowIcon=true Variant="MessageVariant.Filled">
+                No data found for the specified artist..
+            </SfMessage>
         }
     </div>
+
+    <SfSpinner Label="@L["MSG_PreparandoDados"]" Visible="@SpinnerVisibility"  />
+
 }
-else
-{
-    <div class="mt-2"><em>No published titles found for the given artist.</em></div>
-}
+
 
 
 @code {
@@ -52,9 +55,9 @@ else
 
     [Inject] IStringLocalizer<App> L { get; set; }
 
-    private ArtistReleasesResponseDto? result;
+    private ArtistReleasesResponseDto? result = new();
 
-    private SfSpinner? spinner;
+    private bool SpinnerVisibility { get; set; } = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -71,7 +74,7 @@ else
 
         try
         {
-            await spinner.ShowAsync();
+            SpinnerVisibility = true;
             result = await MusicApi.GetArtistReleasesAsync(ArtistName);
         }
         catch (Exception ex)
@@ -81,7 +84,7 @@ else
         }
         finally
         {
-            await spinner.HideAsync();
+            SpinnerVisibility = false;
         }
     }
 }
