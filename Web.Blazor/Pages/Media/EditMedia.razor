@@ -246,7 +246,7 @@ else
         </div>
     </div>
 
-    <SfDialog Width="500px"
+    <SfDialog Width="50%"
               Height="auto"
               IsModal="true"
               ShowCloseIcon="false"
@@ -262,7 +262,7 @@ else
                 </div>
             </Header>
             <Content>
-                <ArtistsPublishedTitles ArtistName="@SelectedRecord.Autor" />
+                <ArtistsPublishedTitles ArtistName="@SelectedRecord.Autor" PageSize="3" />
             </Content>
             <FooterTemplate>
                 <div>

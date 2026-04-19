@@ -7,6 +7,7 @@ using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.Api.MusicBrainz;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Interfaces.Services.LastFM;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -25,16 +26,24 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IMediaRepository _repoMedia;
         private IMapper _mapper;
         private readonly LastfmClient _lastFMclient;
+        private readonly ILastFmService _lastFMService;
         private readonly IMusicMetadataService _MusicBrainzService;
 
 
-        public MediaController(ILogger<MediaController> logger, IMediaRepository repoMedia, IMapper mapper, IMusicMetadataService musicBrainzService)
+
+        public MediaController(ILogger<MediaController> logger, 
+            IMediaRepository repoMedia, 
+            IMapper mapper, 
+            IMusicMetadataService musicBrainzService, 
+            LastfmClient lastFMclient, 
+            ILastFmService lastFMService)
         {
             _logger = logger;
             _repoMedia = repoMedia;
             _mapper = mapper;
-            _lastFMclient = new LastfmClient("b937bd55da5593aaf00108c65dbe0bb5", "3d96efe5880bf77ce36d5641b94fad4c");
             _MusicBrainzService = musicBrainzService;
+            _lastFMclient = lastFMclient;
+            _lastFMService = lastFMService;
         }
 
         [HttpGet("{userId}/{role}")]
@@ -999,6 +1008,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        [Obsolete("Legacy endpoint - MusicBrainz integration (will be removed)")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("artist-releases")]
         public async Task<ActionResult<ArtistReleasesResponseDto>> GetArtistReleases(
        [FromBody] ArtistReleasesRequestDto request)
@@ -1010,6 +1021,24 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok(result);
         }
 
+        [HttpGet("artist-albums/{artist}")]
+        public async Task<IActionResult> GetArtistAlbums(string artist)
+        {
+            if (string.IsNullOrWhiteSpace(artist))
+                return BadRequest("Artist is required.");
+
+            try
+            {
+                var albums = await _lastFMService.GetArtistReleasesAsync(artist);
+
+                return Ok(albums);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Last.fm artist albums");
+                return StatusCode(500, "Error retrieving artist albums");
+            }
+        }
         private string GetControllerActionNames()
         {
             var controller = ControllerContext.ActionDescriptor.ControllerName;

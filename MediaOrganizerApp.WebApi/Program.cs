@@ -1,8 +1,10 @@
+using IF.Lastfm.Core.Api;
 using MediaOrganizerApp.Application;
 using MediaOrganizerApp.Application.Factories;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Interfaces.Services.LastFM;
 using MediaOrganizerApp.Application.Mappings;
 using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.MusicMetadata;
@@ -106,6 +108,12 @@ public class Program
         // Music metadata service (external API) 
         // 17-04-2026: Still using MusicBrainz as the primary metadata source, but this is where you'd register an alternative provider if needed.
         builder.Services.AddHttpClient<IMusicMetadataService, MusicMetadataService>();
+
+        builder.Services.AddSingleton<ILastFmService, LastFmService>();
+
+        builder.Services.AddSingleton(new LastfmClient(
+            "b937bd55da5593aaf00108c65dbe0bb5",
+            "3d96efe5880bf77ce36d5641b94fad4c"));
 
         var app = builder.Build();
 

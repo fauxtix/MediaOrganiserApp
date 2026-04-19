@@ -26,7 +26,7 @@
     }
     else
     {
-        var fn = FilteredBooks.ToList();
+        var fn = CachedFilteredBooks.ToList();
         if (fn.Any())
         {
             <div>
@@ -141,17 +141,23 @@
     private IEnumerable<GoogleBookInfo> FilteredBooks => (books ?? Enumerable.Empty<GoogleBookInfo>()).Where(b =>
         !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
 
+    // cache filtered books to avoid repeated deferred LINQ enumeration during render
+    private List<GoogleBookInfo>? _filteredBooks;
+    private IEnumerable<GoogleBookInfo> CachedFilteredBooks =>
+        (_filteredBooks ??= (books ?? Enumerable.Empty<GoogleBookInfo>())
+            .Where(b => !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail)).ToList());
+
     private int TotalPages
     {
         get
         {
-            var count = FilteredBooks.Count();
+            var count = CachedFilteredBooks.Count();
             if (count == 0) return 1;
             return (int)Math.Ceiling(count / (double)PageSize);
         }
     }
 
-    private IEnumerable<GoogleBookInfo> PagedBooks => FilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
+    private IEnumerable<GoogleBookInfo> PagedBooks => CachedFilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -180,6 +186,7 @@
     private async Task LoadBooksAsync()
     {
         books = null;
+        _filteredBooks = null;
         if (string.IsNullOrWhiteSpace(AuthorName)) return;
 
         // Try cache first
@@ -245,6 +252,8 @@
             }
 
             books = resultList ?? new List<GoogleBookInfo>();
+            // clear cached filtered list so it will be recomputed
+            _filteredBooks = null;
 
             // store in cache (even empty) to avoid hammering API for a short period
             var source = aiFallbackUsed ? "AI" : "Google";

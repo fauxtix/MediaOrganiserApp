@@ -39,9 +39,10 @@ namespace Web.Blazor
 
             services.AddHttpClient<IMediaServiceWrapper, MediaServiceWrapper>();
 
-            // 17-04-2026 - Added MusicBrainz API client for music metadata retrieval,
+            // 17-04-2026 - Added LastFmApiClient API client for music metadata retrieval,
             // used in the Author profile page to fetch artist releases.
-            services.AddHttpClient<IMusicApiClient, MusicBrainzApiClient>();
+
+            services.AddHttpClient<IMusicApiClient, LastFmApiClient>();
 
             // 02/ 26 / 2024 - Added new services for Playlists, but not using the interface for now,
             // as it's only used in one place and doesn't have any complex logic that would require

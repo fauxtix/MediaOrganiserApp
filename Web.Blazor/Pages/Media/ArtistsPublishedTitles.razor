@@ -3,64 +3,95 @@
 @using Web.Blazor.Components
 @using Web.Blazor.Services.ApiWrappers
 @inject IMusicApiClient MusicApi
+@inject IStringLocalizer<App> L
 
-<h3>Discografia por Artista</h3>
+<h3 class="mb-2">Discografia de @ArtistName</h3>
 
-@if (result == null)
+@if (isLoading)
 {
     <LoadingData />
 }
-else 
+else if (isError)
 {
-    <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
-        @foreach (var release in result.Releases)
-        {
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    @if (!string.IsNullOrEmpty(release.CoverUrl))
-                    {
-                        <img src="@release.CoverUrl" class="card-img-top" alt="@release.Title" />
-                    }
-                    <div class="card-body">
-                        <h5 class="card-title">@release.Title</h5>
-                        <p class="card-text text-muted">
-                            @if (release.Year.HasValue)
-                            {
-                                @release.Year.Value
-                            }
-                            else
-                            {
-                                <em>ano desconhecido</em>
-                            }
-                        </p>
+    <SfMessage Severity="MessageSeverity.Error" ShowCloseIcon="true">
+        @errorMessage
+    </SfMessage>
+}
+else
+{
+    if (!FilteredReleases.Any())
+    {
+        <SfMessage Severity="MessageSeverity.Info" ShowCloseIcon="true">
+            @L["NoDataFound"]
+        </SfMessage>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || TotalPages <= 1)">@L["TituloAnterior"]</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || TotalPages <= 1)">@L["TituloSeguinte"]</button>
+            </div>
+            <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
+        </div>
+
+        <div class="releases-grid mt-2">
+            @foreach (var r in PagedReleases)
+            {
+                <div class="release-item">
+                    <div class="release-card h-100 shadow-sm">
+                        @if (!string.IsNullOrEmpty(r.CoverUrl))
+                        {
+                            <div class="img-box release-thumb">
+                                <img src="@r.CoverUrl" alt="@r.Title" />
+                            </div>
+                        }
+                        <div class="release-body p-2 d-flex flex-column">
+                            <div class="d-flex align-items-start">
+                                <div class="release-title flex-grow-1">@r.Title</div>
+                            </div>
+                            <div class="release-meta text-muted small mt-2">
+                                @if (r.Year.HasValue)
+                                {
+                                    @r.Year.Value
+                                }
+                                else
+                                {
+                                    <em>@L["UnknownYear", "ano desconhecido"]</em>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <SfMessage Visible=@(!result.Releases.Any()) Severity="MessageSeverity.Warning" ShowCloseIcon=true
-                       ShowIcon=true Variant="MessageVariant.Filled">
-                No data found for the specified artist..
-            </SfMessage>
-        }
-    </div>
+            }
+        </div>
 
-    <SfSpinner Label="@L["MSG_PreparandoDados"]" Visible="@SpinnerVisibility"  />
-
+        <div class="d-flex justify-content-end align-items-center mt-2">
+            <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
+        </div>
+    }
 }
-
 
 
 @code {
     [Parameter, EditorRequired]
     public string ArtistName { get; set; }
 
-    [Inject] IStringLocalizer<App> L { get; set; }
+    [Parameter]
+    public int PageSize { get; set; } = 6;
 
-    private ArtistReleasesResponseDto? result = new();
+    private ArtistReleasesResponseDto? result;
 
-    private bool SpinnerVisibility { get; set; } = false;
+    // loading / error state
+    private bool isLoading = true;
+    private bool isError = false;
+    private string? errorMessage;
+
+    private int currentPage = 1;
 
     protected override async Task OnParametersSetAsync()
     {
+        currentPage = 1;
         await SearchAsync();
     }
 
@@ -72,19 +103,123 @@ else
             return;
         }
 
+        isLoading = true;
+        isError = false;
+        errorMessage = null;
+
         try
         {
-            SpinnerVisibility = true;
-            result = await MusicApi.GetArtistReleasesAsync(ArtistName);
+           result = await MusicApi.GetLastFMArtistReleasesAsync(ArtistName);
+            // clear cached filtered list so it will be recomputed once
+            _filteredReleases = null;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"ArtistsPublishedTitles.SearchAsync error for '{ArtistName}': {ex}");
             result = null;
+            isError = true;
+            errorMessage = ex.Message;
         }
         finally
         {
-            SpinnerVisibility = false;
+            isLoading = false;
+            // ensure currentPage is within the bounds after filtering/paging changes
+            currentPage = Math.Clamp(currentPage, 1, TotalPages);
         }
     }
+
+    // cache the filtered list to avoid repeated deferred LINQ enumeration during rendering
+    private List<ReleaseDto>? _filteredReleases;
+    private IEnumerable<ReleaseDto> FilteredReleases =>
+        (_filteredReleases ??= (result?.Releases ?? Enumerable.Empty<ReleaseDto>())
+            // exclude items without a title or without a cover image
+            .Where(r => !string.IsNullOrWhiteSpace(r.Title) && !string.IsNullOrWhiteSpace(r.CoverUrl))
+            // remove duplicate titles (case-insensitive), keeping the first occurrence
+            .GroupBy(r => r.Title?.Trim() ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList());
+
+    private int TotalPages
+    {
+        get
+        {
+            var count = FilteredReleases.Count();
+            if (count == 0) return 1;
+            return (int)Math.Ceiling(count / (double)PageSize);
+        }
+    }
+
+    private IEnumerable<ReleaseDto> PagedReleases => FilteredReleases
+        .Skip((currentPage - 1) * PageSize)
+        .Take(PageSize);
+
+    private void NextPage()
+    {
+        if (currentPage < TotalPages) currentPage++;
+    }
+
+    private void PrevPage()
+    {
+        if (currentPage > 1) currentPage--;
+    }
 }
+
+<style>
+    .releases-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .release-item { display: flex; }
+
+    .release-card {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .img-box.release-thumb {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        max-height: 280px;
+        overflow: hidden;
+        background-color: #f6f6f6;
+    }
+
+    .img-box.release-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+    }
+
+    .release-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+    }
+
+    .release-title {
+        font-weight: 600;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        line-height: 1.15;
+        max-height: calc(1.15em * 2);
+    }
+
+    .release-meta { margin-top: auto; }
+</style>

@@ -4,6 +4,6 @@ namespace Web.Blazor.Services.ApiWrappers
 {
     public interface IMusicApiClient
     {
-        Task<ArtistReleasesResponseDto?> GetArtistReleasesAsync(string artistName);
+        Task<ArtistReleasesResponseDto?> GetLastFMArtistReleasesAsync(string artistName);
     }
 }

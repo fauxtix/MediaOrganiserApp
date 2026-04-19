@@ -1,15 +1,17 @@
-using MediaOrganizerApp.Persistence.Services.Playlists;
-using MediaOrganizerApp.Persistence.Repositories.SqlServerRepository;
+using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
 using MediaOrganizerApp.API.Filters;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Interfaces.Services.LastFM;
 using MediaOrganizerApp.Application.Security;
+using MediaOrganizerApp.Persistence.Repositories.SqlServerRepository;
+using MediaOrganizerApp.Persistence.Services.Chat;
+using MediaOrganizerApp.Persistence.Services.MusicMetadata;
+using MediaOrganizerApp.Persistence.Services.Playlists;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using Microsoft.Extensions.DependencyInjection;
-using MediaOrganiserApp.Persistence.Repositories.SqlServerRepository;
-using MediaOrganizerApp.Application.Interfaces.Services;
-using MediaOrganizerApp.Persistence.Services.Chat;
 
 namespace MediaOrganizerApp.Persistence
 {
@@ -56,6 +58,9 @@ namespace MediaOrganizerApp.Persistence
             // Conversations (chat)
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IConversationService, ConversationService>();
+
+            //services.AddSingleton<ILastFmService, LastFmService>();
+            services.AddMemoryCache();
 
         }
     }
