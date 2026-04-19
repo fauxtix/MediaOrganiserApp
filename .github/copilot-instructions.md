@@ -38,6 +38,7 @@
 - When rendering author/book UI, prioritize styling of book cover images (thumbnails). Treat the author's portrait as unimportant for book-card layout; it's okay if the author's portrait is cropped. Focus component changes on book image styling (thumbnail sizing, object-fit, card layout).
 - Provide an in-app admin UI to toggle feature flags instead of requiring administrators to run PowerShell scripts for changes.
 - When comparing UI components, explicitly compare how Syncfusion DropDownList is used across the app (Fields, ValueChange, @bind-Value, DropDownListFieldSettings) before recommending changes; avoid asserting behaviors without evidence and ask for diagnostic outputs first.
+- User insists: do not change component code; provide CSS-only fixes and never modify files without explicit permission.
 
 ## Code Snippets
 - Include runnable code snippets in the guidance file to enhance understanding and usability.
@@ -47,7 +48,7 @@
 - Ensure that the `ChatRequest` DTO includes a Language property to propagate language settings for chat streaming, as the `AiAuthorProfileService` passes language into the prompt (it uses `["language"] = language`). Note that the Chat API currently does not include a language parameter. The assistant should recommend adding Language to ChatRequest and inserting a system message in AiController.Chat or have the client prepend a system message.
 
 ## Prompt and Modification Guidelines
-- Do not modify the solution or files unless the user explicitly requests changes; prefer making suggestions and asking before applying edits. User prefers I do not change files unless they explicitly ask; they want diagnostics and explanations rather than automatic edits.
+- Do not modify files unless the user explicitly requests changes; the user prefers suggestions and explicit consent before code edits.
 - Do not invent tasks or actions modifying the repo. Only update prompts and provide suggestions.
 - When correcting the assistant's inference about JS interop, avoid asserting JS interop exists in a file unless explicitly present; ask for exception stack trace or offer diagnostics instead of making unsupported assertions.
 - When the user corrects the assistant's inference about component internals, analyze provided files before asserting implementation details and avoid changing files unless the user explicitly requests modifications. User prefers that the assistant analyze provided files before asserting implementation details and not change files unless explicitly requested.
@@ -73,3 +74,7 @@
 ## Code Update Preferences
 - User prefers full replacement file contents when requesting code updates (wants explicit file replacements rather than suggestions).
 - Do not provide unsolicited explanations about mistakes or analytic post-mortems; require explicit consent before making code changes and do not act without clear instructions.
+
+## CSS Guidelines
+- When writing CSS inside a .razor file, escape Razor's @ by using @@media (double @) for @media rules and similar constructs.
+- User insists: do not change component code; provide CSS-only fixes and never modify files without explicit permission.
