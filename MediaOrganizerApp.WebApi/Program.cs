@@ -61,6 +61,7 @@ public class Program
         // HttpClient used by AI providers (e.g., Ollama local HTTP API).
         builder.Services.AddHttpClient();
 
+
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
         builder.Services.AddSignalR();
 

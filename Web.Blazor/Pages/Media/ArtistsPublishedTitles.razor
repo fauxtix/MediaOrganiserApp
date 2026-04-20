@@ -1,11 +1,10 @@
 ﻿@using MediaOrganizerApp.Application.DTOs.Api.MusicBrainz
 @using Microsoft.Extensions.Localization
 @using Web.Blazor.Components
+@using Web.Blazor.Components.MediaGrids
 @using Web.Blazor.Services.ApiWrappers
 @inject IMusicApiClient MusicApi
 @inject IStringLocalizer<App> L
-
-<h3 class="mb-2">Discografia de @ArtistName</h3>
 
 @if (isLoading)
 {
@@ -32,40 +31,30 @@ else
                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="PrevPage" disabled="@(currentPage <= 1 || TotalPages <= 1)">@L["TituloAnterior"]</button>
                 <button class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= TotalPages || TotalPages <= 1)">@L["TituloSeguinte"]</button>
             </div>
-            <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
+            @* <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div> *@
         </div>
 
 
-         <div class="releases-grid mt-2"> 
-            @foreach (var r in PagedReleases)
-            {
-                <div class="release-item">
-                    <div class="release-card h-100 shadow-sm">
-                        @if (!string.IsNullOrEmpty(r.CoverUrl))
-                        {
-                            <div class="img-box release-thumb">
-                                <img src="@r.CoverUrl" alt="@r.Title" />
-                            </div>
-                        }
-                        <div class="release-body p-2 d-flex flex-column">
-                            <div class="d-flex align-items-start">
-                                <div class="release-title flex-grow-1">@r.Title</div>
-                            </div>
-                            <div class="release-meta text-muted small mt-2">
-                                @if (r.Year.HasValue)
-                                {
-                                    @r.Year.Value
-                                }
-                                else
-                                {
-                                    <em>@L["UnknownYear", "ano desconhecido"]</em>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
+        <MediaGrid TItem="ReleaseDto"
+                   Items="PagedReleases"
+                   Columns="PageSize"
+                   ImageSelector="r => r.CoverUrl">
+
+            <TitleTemplate Context="r">
+                @r.Title
+            </TitleTemplate>
+
+            <MetaTemplate Context="r">
+                @if (r.Year.HasValue)
+                {
+                    @r.Year
+                }
+                @* else
+                {
+                    <em>ano desconhecido</em>
+                } *@
+            </MetaTemplate>
+        </MediaGrid>
 
         <div class="d-flex justify-content-end align-items-center mt-2">
             <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
@@ -79,7 +68,7 @@ else
     public string ArtistName { get; set; }
 
     [Parameter, EditorRequired]
-    public int PageSize { get; set; } 
+    public int PageSize { get; set; }
 
     private ArtistReleasesResponseDto? result;
 
@@ -110,7 +99,7 @@ else
 
         try
         {
-           result = await MusicApi.GetLastFMArtistReleasesAsync(ArtistName);
+            result = await MusicApi.GetLastFMArtistReleasesAsync(ArtistName);
             // clear cached filtered list so it will be recomputed once
             _filteredReleases = null;
         }
@@ -167,7 +156,7 @@ else
 
 <style>
     /* Force more columns and override other rules */
-.releases-grid {
+    .releases-grid {
         display: grid;
         gap: 0.75rem;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -175,12 +164,16 @@ else
         width: 100%;
     }
 
-/* escaped media queries inside .razor */
-@@media (max-width: 768px) {
-  .releases-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; }
-}
+    /* escaped media queries inside .razor */
+    @@media (max-width: 768px) {
+        .releases-grid {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+        }
+    }
 
-    .release-item { display: flex; }
+    .release-item {
+        display: flex;
+    }
 
     .release-card {
         display: flex;
@@ -202,7 +195,7 @@ else
         background-color: #f9f9f9;
     }
 
-    .img-box.release-thumb img {
+        .img-box.release-thumb img {
             width: 100%;
             height: 100%;
             object-fit: fill;
@@ -228,5 +221,7 @@ else
         min-height: calc(1.2em * 2);
     }
 
-    .release-meta { margin-top: auto; }
+    .release-meta {
+        margin-top: auto;
+    }
 </style>

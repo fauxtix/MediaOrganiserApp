@@ -56,11 +56,15 @@ public partial class AiMediaClientService
         }
     }
 
-    public async Task<AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
+    public async Task<AiMediaMetadataResponseDto?> GetMediaMetadataAsync(string artist,
+                                                                         string title,
+                                                                         string language = "pt",
+                                                                         string? connectionId = null,
+                                                                         CancellationToken cancellationToken = default)
     {
         try
         {
-            using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(_httpClient,
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(_httpClient,
                 $"{_uri}/media-metadata",
                 new AiMediaMetadataRequestDto
                 {

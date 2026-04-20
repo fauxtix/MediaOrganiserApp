@@ -309,8 +309,6 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             try
             {
-                // Call AI books service without passing a maxResults parameter; the
-                // service implementation will apply its own defaults and limits.
                 var books = await _aiBooks.GetBooksByAuthorAsync(author, language, cancellationToken);
                 return Ok(books);
             }

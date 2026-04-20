@@ -23,7 +23,7 @@ public class LastFmService : ILastFmService
         var response = await _lastFMclient.Artist.GetTopAlbumsAsync(artist);
 
         if (response.Status != LastResponseStatus.Successful || response.Content is null)
-            return new List<ReleaseDto>();
+            return [];
 
         var tasks = response.Content.Select(async album =>
         {
@@ -49,17 +49,13 @@ public class LastFmService : ILastFmService
             }
         });
 
-        return (await Task.WhenAll(tasks))
+        return [.. (await Task.WhenAll(tasks))
             .GroupBy(x => x.Title)   // remove duplicados comuns do Last.fm
-            .Select(g => g.First())
-            .ToList();
+            .Select(g => g.First())];
     }
 
-    private string GetBestImage(LastAlbum album)
-    {
-        return album.Images?.Large?.AbsoluteUri
+    private string GetBestImage(LastAlbum album) => album.Images?.Large?.AbsoluteUri
             ?? album.Images?.Medium?.AbsoluteUri
             ?? album.Images?.Small?.AbsoluteUri
             ?? "images/No-image-available.png";
-    }
 }

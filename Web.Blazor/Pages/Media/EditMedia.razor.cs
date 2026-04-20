@@ -641,7 +641,7 @@ namespace Web.Blazor.Pages.Media
                     }
                     if (!string.IsNullOrEmpty(ai.ImdbRating))
                     {
-                        if (double.TryParse(ai.ImdbRating, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var rating))
+                        if (double.TryParse(ai.ImdbRating, NumberStyles.Any, CultureInfo.InvariantCulture, out var rating))
                             SelectedRecord.Rating = rating;
                     }
                     if (!string.IsNullOrEmpty(ai.Actors))

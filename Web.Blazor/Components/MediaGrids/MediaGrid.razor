@@ -1,0 +1,137 @@
+﻿@typeparam TItem
+
+<div class="media-grid" style="--cols:@Columns;">
+    @if(Items is null)
+    {
+        <LoadingData />
+    }
+    else
+    {
+        @foreach (var item in Items)
+        {
+            <div class="media-item">
+                <div class="media-card h-100">
+                    
+                    @if (ImageSelector != null)
+                    {
+                        var img = ImageSelector(item);
+
+                        <div class="img-box media-thumb">
+                            <img src="@(string.IsNullOrWhiteSpace(img) ? FallbackImage : img)" />
+                        </div>
+                    }
+
+                    <div class="media-body p-2 d-flex flex-column">
+
+                        <div class="d-flex align-items-start">
+                            @if (TitleTemplate != null)
+                            {
+                                <div class="media-title">
+                                    @TitleTemplate(item)
+                                </div>
+                            }
+                        </div>
+
+                        <div class="media-meta text-muted small mt-2">
+                            @if (MetaTemplate != null)
+                            {
+                                @MetaTemplate(item)
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+
+    [Parameter] public Func<TItem, string>? ImageSelector { get; set; }
+
+    [Parameter] public RenderFragment<TItem>? TitleTemplate { get; set; }
+
+    [Parameter] public RenderFragment<TItem>? MetaTemplate { get; set; }
+
+    [Parameter] public int Columns { get; set; } = 4;
+
+    [Parameter] public string FallbackImage { get; set; } = "images/NoPhoto.png";
+}
+
+
+<style>
+    .media-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    }
+
+    @@media (max-width: 992px) {
+        .media-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .media-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .media-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .media-item {
+        display: flex;
+    }
+
+    .media-card {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .img-box.media-thumb {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        aspect-ratio: 2 / 3;
+        max-height: 240px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #f9f9f9;
+    }
+
+        .img-box.media-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill; 
+        }
+
+    .media-body {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .media-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.2;
+        min-height: calc(1.2em * 2);
+    }
+
+    .media-meta {
+        margin-top: auto;
+    }
+
+</style>
