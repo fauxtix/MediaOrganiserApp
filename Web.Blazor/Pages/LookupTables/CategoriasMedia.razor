@@ -7,6 +7,9 @@
 @using MediaOrganizerApp.Application.DTOs
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.BaseComponents
+@using Web.Blazor.Pages.Tools
+@using Web.Blazor.Services.ApiWrappers
+@using MediaOrganizerApp.Application.DTOs.AI
 @inherits CategoriasMediaBase
 
 @attribute [Authorize]
@@ -104,31 +107,31 @@ else
                             </DetailTemplate>
                         </GridTemplates>
                         <GridColumns>
-                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="true" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="50">
-                                <GridCommandColumns>
-                                    <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                   {
-                                                                       CssClass = "e-btn e-primary e-round",
-                                                                       IconCss = "fa fa-edit",
-                                                                       IconPosition = @IconPosition.Left
-                                                                   })">
-                                    </GridCommandColumn>
-                                    <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                   {
-                                                                       CssClass = "e-btn e-danger e-round",
-                                                                       IconCss = "fa fa-trash",
-                                                                       IconPosition = @IconPosition.Left
-                                                                   })">
-                                    </GridCommandColumn>
-                                </GridCommandColumns>
-                            </GridColumn>
                             <GridColumn Field=@nameof(CategoryVM.Id)
                                         HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true"
                                         TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="50"></GridColumn>
                             <GridColumn Field=@nameof(CategoryVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
                                         TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="true" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="50">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                                               {
+                                                                                                   CssClass = "e-btn e-primary e-round",
+                                                                                                   IconCss = "fa fa-edit",
+                                                                                                   IconPosition = @IconPosition.Left
+                                                                                               })">
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                                               {
+                                                                                                   CssClass = "e-btn e-danger e-round",
+                                                                                                   IconCss = "fa fa-trash",
+                                                                                                   IconPosition = @IconPosition.Left
+                                                                                               })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
 
                         </GridColumns>
                     </SfGrid>
@@ -136,7 +139,7 @@ else
             </div>
         </div>
     </div>
-    <SfDialog Target="#target"
+    <SfDialog Target="#main"
               Width="450px"
               Height="auto"
               IsModal="true"
@@ -147,11 +150,11 @@ else
                 <div class="header">
                     @if (blnEdit)
                     {
-                        <p>@localizerApp["editionMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["editionMsg"]</p>
                     }
                     else
                     {
-                        <p>@localizerApp["NewMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["NewMsg"]</p>
                     }
                 </div>
             </Header>
@@ -159,17 +162,31 @@ else
                 <EditCategoriaPublicacao SelectedRecord="@SelectedCategory" blnEdit="@blnEdit" />
             </Content>
             <FooterTemplate>
-                <div class="modal-footer">
-                    <SfButton CssClass="e-btn e-primary e-round-corner"
-                              IconCss="fa fa-edit"
-                              @onclick="AddOrSaveRecord">
-                        &nbsp;@(localizerApp["btnSalvar"])
-                    </SfButton>
-                    <SfButton CssClass="e-btn e-outline e-round-corner"
-                              IconCss="fa fa-times"
-                              @onclick="Voltar">
-                        &nbsp;@(localizerApp["BtnSalir"])
-                    </SfButton>
+                <!-- Layout: translate button left, others right -->
+                <div class="modal-footer footer-with-sides">
+                    <div class="left-actions">
+                        @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedCategory?.Descricao))
+                        {
+                            <SfButton CssClass="e-btn e-info e-round-corner translate-btn"
+                                      IconCss="fa fa-language"
+                                      Content="@localizerApp["TituloTraduzir"]"
+                                      @onclick="() => showTranslateModal = true" />
+                        }
+                    </div>
+
+                    <div class="right-actions">
+                        <SfButton CssClass="e-btn e-primary e-round-corner"
+                                  IconCss="fa fa-edit"
+                                  @onclick="AddOrSaveRecord">
+                            &nbsp;@(localizerApp["btnSalvar"])
+                        </SfButton>
+
+                        <SfButton CssClass="e-btn e-outline e-round-corner"
+                                  IconCss="fa fa-times"
+                                  @onclick="Voltar">
+                            &nbsp;@(localizerApp["BtnSalir"])
+                        </SfButton>
+                    </div>
                 </div>
             </FooterTemplate>
         </DialogTemplates>
@@ -278,3 +295,51 @@ else
          ShowCloseButton="true">
     <ToastPosition X="Right" Y="Bottom"></ToastPosition>
 </SfToast>
+
+<TranslateText Visible="@showTranslateModal"
+               InitialText="@SelectedCategory.Descricao"
+               InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
+               InitialTargetLanguage="en"
+               TranslateFunc="@(TranslateClient.TranslateAsync)"
+               OnTranslateRequested="OnTranslateApplied"
+               OnClose="@(()=> showTranslateModal = false)" />
+
+<style>
+    .footer-with-sides {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+    }
+
+    .footer-with-sides .left-actions {
+        flex: 0 0 auto;
+    }
+
+    .footer-with-sides .right-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex: 0 0 auto;
+    }
+
+    .footer-with-sides .e-btn {
+        white-space: nowrap;
+    }
+</style>
+
+@code {
+    [Inject] TranslateClientService TranslateClient { get; set; }
+
+    protected bool showTranslateModal { get; set; }
+
+    protected async Task OnTranslateApplied(TranslateRequestDto dto)
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+            return;
+
+        SelectedCategory.Descricao = dto.Text;
+        showTranslateModal = false;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+}

@@ -60,7 +60,7 @@ else
                               IconCss="fa fa-plus"
                               IsPrimary="true"
                               @onclick="NotifyAddingRecord">
-                        &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["Record"])
+                        &nbsp;@(localizerApp["NewMsg"])&nbsp;@(localizerApp["lblFormato"])
                     </SfButton>
                     <br /><br />
                 </div>
@@ -100,8 +100,8 @@ else
                                                         <GridPageSettings PageSize="8"></GridPageSettings>
                                                         <GridEvents CommandClicked="OnPdfButtonClicked" TValue="PublicacoesVM"></GridEvents>
                                                         <GridColumns>
-                                                            <GridColumn Field=@nameof(PublicacoesVM.Titulo) HeaderText="Título" Width="250"></GridColumn>
-                                                            <GridColumn Field=@nameof(PublicacoesVM.NomeAutor) HeaderText="Autor" Width="120"></GridColumn>
+                                                            <GridColumn Field=@nameof(PublicacoesVM.Titulo) HeaderText="@localizerApp["lblTitulo"]" Width="250"></GridColumn>
+                                                            <GridColumn Field=@nameof(PublicacoesVM.NomeAutor) HeaderText="@localizerApp["lblAutor"]" Width="150"></GridColumn>
                                                             <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="150">
                                                                 <GridCommandColumns>
                                                                     <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["LerPdf"]"
@@ -124,29 +124,6 @@ else
                             </DetailTemplate>
                         </GridTemplates>
                         <GridColumns>
-                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false"
-                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="80">
-                                <GridCommandColumns>
-                                    <GridCommandColumn Type=CommandButtonType.Edit
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-primary e-round",
-                                                                           IconCss = "fa fa-edit",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                    </GridCommandColumn>
-                                    <GridCommandColumn Type=CommandButtonType.Delete
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-danger e-round",
-                                                                           IconCss = "fa fa-trash",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                    </GridCommandColumn>
-                                </GridCommandColumns>
-                            </GridColumn>
 
                             <GridColumn Field=@nameof(FormatoPublicacaoVM.Id)
                                         HeaderText="ID#" IsPrimaryKey="true" AllowSorting="true" Visible="false"
@@ -154,6 +131,30 @@ else
                                         Width="60"></GridColumn>
                             <GridColumn Field=@nameof(FormatoPublicacaoVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
                                         Width="150"></GridColumn>
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false"
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="80">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                                               {
+                                                                                                   Content = "",
+                                                                                                   CssClass = "e-btn e-primary e-round",
+                                                                                                   IconCss = "fa fa-edit",
+                                                                                                   IconPosition = @IconPosition.Left
+                                                                                               })">
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                                                               {
+                                                                                                   Content = "",
+                                                                                                   CssClass = "e-btn e-danger e-round",
+                                                                                                   IconCss = "fa fa-trash",
+                                                                                                   IconPosition = @IconPosition.Left
+                                                                                               })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
+
                         </GridColumns>
                     </SfGrid>
                 </div>
@@ -171,11 +172,11 @@ else
                 <div class="header">
                     @if (blnEdit)
                     {
-                        <p>@localizerApp["editionMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["editionMsg"]</p>
                     }
                     else
                     {
-                        <p>@localizerApp["NewMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["NewMsg"]</p>
                     }
                 </div>
             </Header>
@@ -183,25 +184,31 @@ else
                 <EditFormatos SelectedRecord="@SelectedRecord" blnEdit="@blnEdit" />
             </Content>
             <FooterTemplate>
-                <div class="modal-footer">
-                    <SfButton CssClass="e-btn e-primary e-round-corner"
-                              IconCss="fa fa-edit"
-                              @onclick="AddOrSaveRecord">
-                        &nbsp;@(localizerApp["btnSalvar"])
-                    </SfButton>
-                    @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedRecord ?.Descricao))
-                    {
-                        <SfButton CssClass="e-btn e-info e-round-corner"
-                                  IconCss="fa fa-language"
-                                  Content="@localizerApp["TituloTraduzir"]"
-                                  @onclick="() => showTranslateModal = true" />
-                    }
+                <!-- Layout: translate button left, others right -->
+                <div class="modal-footer footer-with-sides">
+                    <div class="left-actions">
+                        @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedRecord ?.Descricao))
+                        {
+                            <SfButton CssClass="e-btn e-info e-round-corner translate-btn"
+                                      IconCss="fa fa-language"
+                                      Content="@localizerApp["TituloTraduzir"]"
+                                      @onclick="() => showTranslateModal = true" />
+                        }
+                    </div>
 
-                    <SfButton CssClass="e-btn e-outline e-round-corner"
-                              IconCss="fa fa-times"
-                              @onclick="Voltar">
-                        &nbsp;@(localizerApp["BtnSalir"])
-                    </SfButton>
+                    <div class="right-actions">
+                        <SfButton CssClass="e-btn e-primary e-round-corner"
+                                  IconCss="fa fa-edit"
+                                  @onclick="AddOrSaveRecord">
+                            &nbsp;@(localizerApp["btnSalvar"])
+                        </SfButton>
+
+                        <SfButton CssClass="e-btn e-outline e-round-corner"
+                                  IconCss="fa fa-times"
+                                  @onclick="Voltar">
+                            &nbsp;@(localizerApp["BtnSalir"])
+                        </SfButton>
+                    </div>
                 </div>
             </FooterTemplate>
         </DialogTemplates>
@@ -344,4 +351,28 @@ else
              Timeout="1500" ShowCloseButton="true">
         <ToastPosition X="Right" Y="Bottom"></ToastPosition>
     </SfToast>
+
+    <style>
+        .footer-with-sides {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+        }
+
+        .footer-with-sides .left-actions {
+            flex: 0 0 auto;
+        }
+
+        .footer-with-sides .right-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex: 0 0 auto;
+        }
+
+        /* Optional: ensure Syncfusion buttons don't expand to full width inside footer */
+        .footer-with-sides .e-btn {
+            white-space: nowrap;
+        }
+    </style>
 }

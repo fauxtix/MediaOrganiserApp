@@ -102,11 +102,11 @@ else
                                                             <GridCommandColumns>
                                                                 <GridCommandColumn Type=CommandButtonType.None Title="@localizerApp["LerPdf"]"
                                                                                    ButtonOption="@(new CommandButtonOptions()
-                                                                                                       {
-                                                                                                           CssClass = "e-btn e-info e-round",
-                                                                                                           IconCss = "fa fa-file-pdf-o",
-                                                                                                           IconPosition = @IconPosition.Left
-                                                                                                       })">
+                                                                                                                                                       {
+                                                                                                                                                           CssClass = "e-btn e-info e-round",
+                                                                                                                                                           IconCss = "fa fa-file-pdf-o",
+                                                                                                                                                           IconPosition = @IconPosition.Left
+                                                                                                                                                       })">
                                                                 </GridCommandColumn>
                                                             </GridCommandColumns>
                                                         </GridColumn>
@@ -118,37 +118,37 @@ else
                                         </ContentTemplate>
                                     </TabItem>
                                 </TabItems>
-
                             </SfTab>
                         </DetailTemplate>
                     </GridTemplates>
                     <GridColumns>
-                        <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="100">
-                            <GridCommandColumns>
-                                <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
-                                                   ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           CssClass = "e-btn e-primary e-round",
-                                                                           IconCss = "fa fa-edit",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                </GridCommandColumn>
-                                <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
-                                                   ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           CssClass = "e-btn e-danger e-round",
-                                                                           IconCss = "fa fa-trash",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                </GridCommandColumn>
-                            </GridCommandColumns>
-                        </GridColumn>
 
                         <GridColumn Field=@nameof(PublisherVM.Id)
                                     HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
                                     Width="70"></GridColumn>
                         <GridColumn Field=@nameof(PublisherVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
                                     Width="150"></GridColumn>
+                        <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="100">
+                            <GridCommandColumns>
+                                <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                                   ButtonOption="@(new CommandButtonOptions()
+                                                                                       {
+                                                                                           CssClass = "e-btn e-primary e-round",
+                                                                                           IconCss = "fa fa-edit",
+                                                                                           IconPosition = @IconPosition.Left
+                                                                                       })">
+                                </GridCommandColumn>
+                                <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                   ButtonOption="@(new CommandButtonOptions()
+                                                                                       {
+                                                                                           CssClass = "e-btn e-danger e-round",
+                                                                                           IconCss = "fa fa-trash",
+                                                                                           IconPosition = @IconPosition.Left
+                                                                                       })">
+                                </GridCommandColumn>
+                            </GridCommandColumns>
+                        </GridColumn>
+
                     </GridColumns>
                 </SfGrid>
             </div>
@@ -164,11 +164,11 @@ else
                 <div class="header">
                     @if (blnEdit)
                     {
-                        <p>@localizerApp["editionMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["editionMsg"]</p>
                     }
                     else
                     {
-                        <p>@localizerApp["NewMsg"]&nbsp;@localizerApp["Record"]</p>
+                        <p>@localizerApp["NewMsg"]</p>
                     }
                 </div>
             </Header>

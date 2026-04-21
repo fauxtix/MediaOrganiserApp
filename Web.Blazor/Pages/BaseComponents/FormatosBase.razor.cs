@@ -3,17 +3,12 @@ using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Enums;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Data;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.Reporting;
 
