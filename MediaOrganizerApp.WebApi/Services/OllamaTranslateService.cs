@@ -17,10 +17,7 @@ public sealed class OllamaTranslateService : ITranslateService
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
 
-    public OllamaTranslateService(HttpClient httpClient,
-                                  ILogger<OllamaTranslateService> logger,
-                                  IPromptTemplateProvider prompts,
-                                  IAppSettingsRepository appSettingsRepository)
+    public OllamaTranslateService(HttpClient httpClient, ILogger<OllamaTranslateService> logger, IPromptTemplateProvider prompts, IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
@@ -51,8 +48,8 @@ public sealed class OllamaTranslateService : ITranslateService
             stream = false
         };
 
-        try
-        {
+            try
+            {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
@@ -62,12 +59,12 @@ public sealed class OllamaTranslateService : ITranslateService
             if (!resp.IsSuccessStatusCode)
             {
                 _logger.LogError("Translate: Ollama request failed. Status={Status}", resp.StatusCode);
-                return new TranslateResponseDto
-                {
-                    TranslatedText = string.Empty,
-                    Confidence = 0,
-                    ErrorMessage = $"Translation backend returned status {(int)resp.StatusCode} ({resp.StatusCode})."
-                };
+                    return new TranslateResponseDto
+                    {
+                        TranslatedText = string.Empty,
+                        Confidence = 0,
+                        ErrorMessage = $"Translation backend returned status {(int)resp.StatusCode} ({resp.StatusCode})."
+                    };
             }
 
             var bytes = await resp.Content.ReadAsByteArrayAsync(cancellationToken);
@@ -189,52 +186,16 @@ public sealed class OllamaTranslateService : ITranslateService
                 var responseText = response.GetString();
                 if (!string.IsNullOrWhiteSpace(responseText))
                 {
-                    // Clean common markdown / code-fence wrappers and leading noise
-                    static string CleanResponse(string s)
+                    try
                     {
-                        if (string.IsNullOrWhiteSpace(s)) return s;
-                        s = s.Trim();
-
-                        // Triple backtick fences ```json ... ```
-                        if (s.StartsWith("```"))
-                        {
-                            var last = s.LastIndexOf("```", StringComparison.Ordinal);
-                            if (last > 2)
-                            {
-                                var inner = s.Substring(3, last - 3);
-                                return inner.Trim();
-                            }
-                        }
-
-                        // Single backticks `...`
-                        if (s.Length >= 2 && s[0] == '`' && s[^1] == '`')
-                            return s.Substring(1, s.Length - 2).Trim();
-
-                        // If there is leading text before the first JSON object/array, strip it
-                        var firstJsonIndex = s.IndexOfAny(new[] { '{', '[' });
-                        if (firstJsonIndex > 0)
-                            return s.Substring(firstJsonIndex).Trim();
-
-                        return s;
+                        using var innerDoc = JsonDocument.Parse(responseText);
+                        return innerDoc.RootElement.ToString();
                     }
-
-                    var cleaned = CleanResponse(responseText);
-
-                    if (!string.IsNullOrWhiteSpace(cleaned) && (cleaned[0] == '{' || cleaned[0] == '['))
+                    catch (JsonException ex)
                     {
-                        try
-                        {
-                            using var innerDoc = JsonDocument.Parse(cleaned);
-                            return innerDoc.RootElement.ToString();
-                        }
-                        catch (JsonException ex)
-                        {
-                            logger.LogWarning(ex, "Malformed stringified JSON in response after cleaning; returning raw responseText");
-                            return responseText;
-                        }
+                        logger.LogWarning(ex, "Malformed stringified JSON in response");
+                        return responseText;
                     }
-
-                    return responseText;
                 }
             }
         }
