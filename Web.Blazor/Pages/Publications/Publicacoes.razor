@@ -12,12 +12,11 @@
 @using MediaOrganizerApp.Application.DTOs
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.BaseComponents
+@using Web.Blazor.Pages.LookupTables
 
 @inherits PublicacoesBase
 
 @attribute [Authorize]
-
-@inject Web.Blazor.Services.DocumentHelpers.PdfGeneratorService PdfGeneratorService
 
 @{
     var Filtering = new
@@ -268,6 +267,19 @@ else
                             </GridCommandColumn>
                         </GridCommandColumns>
                     </GridColumn>
+                    <!-- add this GridColumn after the columns you mentioned -->
+                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" AllowGrouping="false"
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
+                        <Template Context="pubRow">
+                            @{
+                                var row = (pubRow as PubsWithDescriptions);
+                            }
+                            <SfButton CssClass="e-outline e-round"
+                                      IconCss="fa fa-user"
+                                      Title="@localizerApp["lblAutor"]"
+                                      @onclick="@(async () => await ShowAuthorByIdAsync(row.IdAutor))" />
+                        </Template>
+                    </GridColumn>
                 </GridColumns>
 
             </SfGrid>
@@ -440,6 +452,28 @@ else
         </DialogTemplates>
         <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
     </SfDialog>
+
+    <SfDialog Width="40%"
+          Height="auto"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="AuthorVisibility">
+    <DialogTemplates>
+        <Content>
+            <AuthorReadOnly AuthorId="@SelectedRecord.IdAutor" />
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="@(() => AuthorVisibility = false)"
+                          Content="@(localizerApp["BtnSalir"])">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
+
 
     <ConfirmDeleteComponent AlertMessageType="AlertMessageType.Error"
                             DialogTitle="@(localizerApp["DeleteMsg"] + " " + localizerApp["frmLivros"])"
