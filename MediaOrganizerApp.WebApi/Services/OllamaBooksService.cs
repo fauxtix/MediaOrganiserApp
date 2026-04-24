@@ -38,7 +38,6 @@ namespace MediaOrganizerApp.WebApi.Services
 
             try
             {
-                // internal default/cap for results when AI generates a list
                 var defaultMaxResults = 20;
                 var template = await _prompts.GetTemplateAsync("author-books.prompt.txt", cancellationToken);
                 var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -49,7 +48,6 @@ namespace MediaOrganizerApp.WebApi.Services
                 });
 
                 var (modelBaseUrl, modelName) = await GetAiSettings();
-
 
                 var payload = new { model = modelName, prompt, stream = false };
 
@@ -62,24 +60,26 @@ namespace MediaOrganizerApp.WebApi.Services
                 if (!httpResponse.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Ollama returned non-success status {Status} when requesting books for {Author}", httpResponse.StatusCode, author);
-                    return new List<GoogleBookInfo>();
+                    // treat non-success as transient (let caller see non-success via HTTP)
+                    throw new HttpRequestException($"Ollama returned status {(int)httpResponse.StatusCode}");
                 }
 
                 var bytes = await httpResponse.Content.ReadAsByteArrayAsync(cancellationToken);
                 var raw = Encoding.UTF8.GetString(bytes);
-                // log raw response at debug level to aid diagnosis
                 _logger.LogDebug("Ollama raw response for {Author}: {Raw}", author, raw);
                 var text = TryExtractOllamaResponseText(raw);
 
                 if (string.IsNullOrWhiteSpace(text))
-                    return new List<GoogleBookInfo>();
+                {
+                    // No JSON could be extracted from the model output -> treat as transient / error
+                    _logger.LogWarning("Ollama returned no JSON for {Author}. Raw preview: {RawPreview}", author, raw?.Substring(0, Math.Min(512, raw?.Length ?? 0)));
+                    throw new InvalidOperationException("AI returned no JSON content");
+                }
 
                 try
                 {
                     using var doc = JsonDocument.Parse(text);
 
-                    // Normalize root into a sequence of elements. If the top-level object looks like
-                    // metadata (no book fields) but the raw text contains a JSON array, prefer the array.
                     var elements = new List<JsonElement>();
                     var root = doc.RootElement;
 
@@ -109,12 +109,9 @@ namespace MediaOrganizerApp.WebApi.Services
                     }
                     else if (root.ValueKind == JsonValueKind.Object)
                     {
-                        // If object already contains an array property, use it.
                         if (TryAddFromObject(root)) { }
                         else
                         {
-                            // Heuristic: if this object does not contain book-like fields but the raw text
-                            // contains an array, extract that array and parse it instead.
                             bool hasBookField = root.TryGetProperty("Title", out _) || root.TryGetProperty("title", out _) || root.TryGetProperty("Id", out _) || root.TryGetProperty("id", out _);
                             if (!hasBookField)
                             {
@@ -132,7 +129,6 @@ namespace MediaOrganizerApp.WebApi.Services
                                         }
                                         else
                                         {
-                                            // fallback to treating original object as single element
                                             elements.Add(root);
                                         }
                                     }
@@ -163,7 +159,6 @@ namespace MediaOrganizerApp.WebApi.Services
                     {
                         try
                         {
-                            // helper to read string properties with alternative names
                             static string? ReadString(JsonElement e, params string[] names)
                             {
                                 foreach (var n in names)
@@ -188,11 +183,9 @@ namespace MediaOrganizerApp.WebApi.Services
                                         {
                                             var s = p.GetString();
                                             if (string.IsNullOrWhiteSpace(s)) return null;
-                                            // strip percent
                                             s = s.Trim().TrimEnd('%');
                                             if (double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d2))
                                             {
-                                                // if value > 1 and looks like percent, normalize
                                                 if (d2 > 1) return d2 > 1 && d2 <= 100 ? d2 / 100.0 : d2;
                                                 return d2;
                                             }
@@ -224,7 +217,6 @@ namespace MediaOrganizerApp.WebApi.Services
                                 Confidence = confidence
                             };
 
-                            // Filter out obvious placeholder/example items
                             var tLower = (g.Title ?? string.Empty).ToLowerInvariant();
                             if (tLower.Contains("example") || tLower.Contains("example book"))
                             {
@@ -232,7 +224,6 @@ namespace MediaOrganizerApp.WebApi.Services
                                 continue;
                             }
 
-                            // If item is marked synthesized, require a minimum confidence to include
                             if (g is { } && g.Synthesized is true)
                             {
                                 var conf = g.Confidence ?? 0.0;
@@ -243,7 +234,6 @@ namespace MediaOrganizerApp.WebApi.Services
                                 }
                             }
 
-                            // Skip extremely low confidence items
                             if (g.Confidence is not null && g.Confidence < 0.10)
                             {
                                 _logger.LogInformation("Skipping very low-confidence book for {Author}: {Title} (conf={Conf})", author, g.Title, g.Confidence);
@@ -263,31 +253,29 @@ namespace MediaOrganizerApp.WebApi.Services
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogWarning(ex, "Failed to parse Ollama books response for {Author}. Raw: {Raw}", author, text);
-                    return new List<GoogleBookInfo>();
+                    _logger.LogWarning(ex, "Failed to parse Ollama books response for {Author}. Raw preview: {Preview}", author, text?.Substring(0, Math.Min(512, text?.Length ?? 0)));
+                    // propagate parse error so caller treats as transient
+                    throw;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("OllamaBooksService request canceled for author {Author}", author);
-                return new List<GoogleBookInfo>();
+                // propagate cancellation
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying Ollama for books by {Author}", author);
-                return new List<GoogleBookInfo>();
+                throw;
             }
         }
 
         private static string? TryExtractOllamaResponseText(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
-            // Normalize and try several extraction strategies to handle markdown/code fences,
-            // multiple JSON fragments, or simple raw arrays/objects.
-            var cleaned = raw ?? string.Empty;
-            cleaned = cleaned.Trim();
+            var cleaned = raw.Trim();
 
-            // If wrapped in triple backtick fences (``` or ```json), extract inner content
             const string fence = "```";
             try
             {
@@ -298,21 +286,18 @@ namespace MediaOrganizerApp.WebApi.Services
                     cleaned = cleaned.Substring(firstFence + fence.Length, lastFence - (firstFence + fence.Length)).Trim();
                 }
             }
-            catch { /* ignore and continue with original raw */ }
+            catch { }
 
-            // Trim any leading single/back quotes that sometimes appear
             while (!string.IsNullOrEmpty(cleaned) && (cleaned[0] == '`' || cleaned[0] == '\''))
                 cleaned = cleaned.Substring(1).TrimStart();
 
-            // Quick attempt: if cleaned starts with [ or { try parsing directly
             try
             {
                 using var docDirect = JsonDocument.Parse(cleaned);
                 return docDirect.RootElement.ToString();
             }
-            catch { /* fall through to other heuristics */ }
+            catch { }
 
-            // If text contains multiple JSON fragments, try to extract the first JSON array block
             try
             {
                 var start = cleaned.IndexOf('[');
@@ -326,18 +311,16 @@ namespace MediaOrganizerApp.WebApi.Services
                         if (doc.RootElement.ValueKind == JsonValueKind.Array)
                             return candidate;
                     }
-                    catch { /* not valid array, continue */ }
+                    catch { }
                 }
             }
             catch { }
 
-            // Fall back to NDJSON / merged lines approach: collect JSON parts or plain lines
             var sb = new StringBuilder();
             foreach (var line in raw.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var ln = line.Trim();
                 if (string.IsNullOrEmpty(ln)) continue;
-                // strip surrounding single backticks
                 if ((ln.StartsWith("`") && ln.EndsWith("`")) || (ln.StartsWith("'") && ln.EndsWith("'")))
                     ln = ln.Substring(1, ln.Length - 2).Trim();
 
@@ -346,7 +329,6 @@ namespace MediaOrganizerApp.WebApi.Services
 
             var merged = sb.ToString().Trim();
 
-            // If merged contains an array block, extract and return it
             try
             {
                 var start = merged.IndexOf('[');

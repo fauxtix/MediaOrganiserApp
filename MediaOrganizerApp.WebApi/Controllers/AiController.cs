@@ -312,6 +312,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 var books = await _aiBooks.GetBooksByAuthorAsync(author, language, cancellationToken);
                 return Ok(books);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("AuthorBooks request cancelled for {Author}", author);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating author books for {Author}", author);

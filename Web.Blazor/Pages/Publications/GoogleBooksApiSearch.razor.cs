@@ -419,6 +419,39 @@ namespace Web.Blazor.Pages.Publications
             }
             catch (HttpRequestException ex)
             {
+                // If Google Books API returned 429, use AI fallback and inform the user
+                if (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning(ex, "Google Books rate limit detected for title '{Title}' author '{Author}'", bookTitle, author);
+
+                    var ai = await TryGetAiBookAsync(bookTitle, author);
+                    if (ai is not null)
+                    {
+                        ApplyAiBookToRecord(ai, bookTitle, author);
+
+                        // Inform UI and parent that AI was used due to rate limit
+                        alertUser = true;
+                        alertMessage = localizerApp["msgGoogleRateLimitFallback"] ?? "Google Books API rate limit reached. Used AI fallback.";
+                        noteMessage = lastAiNotes ?? string.Empty;
+
+                        await OnGoogleResponse.InvokeAsync(new GoogleBooksSearchResult
+                        {
+                            Record = ApiRecord,
+                            AiNotes = lastAiNotes,
+                            AiConfidence = lastAiConfidence,
+                            UsedAi = true,
+                            UsedOfflineFallback = true
+                        });
+
+                        return;
+                    }
+
+                    // AI also failed
+                    alertUser = true;
+                    alertMessage = localizerApp["msgGoogleRateLimitNoFallback"] ?? "Google Books API rate limit reached and AI fallback failed.";
+                    return;
+                }
+
                 if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     alertUser = true;

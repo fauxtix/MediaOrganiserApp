@@ -23,29 +23,48 @@ public sealed class AiBookClientService
         _env = env;
         _hubContext = hubContext;
 
-        _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
+        if (!string.IsNullOrWhiteSpace(_env["ApiKey"]))
+            _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
         _uri = $"{_env["BaseUrl"]}/Ai";
     }
 
-    public async Task<List<GoogleBookInfo>> GetAuthorBooksAsync(string author, string language = "pt")
+    // Return null on transient failure/cancellation; return list (possibly empty) only on success
+    public async Task<List<GoogleBookInfo>?> GetAuthorBooksAsync(string author, string language = "pt")
     {
         try
         {
             var endpoint = $"{_uri}/author-books?author={Uri.EscapeDataString(author)}&language={language}";
             using var resp = await _httpClient.GetAsync(endpoint);
+
             if (!resp.IsSuccessStatusCode)
             {
-                _logger.LogWarning("AI author-books request failed. Status={StatusCode} for author={Author}", (int)resp.StatusCode, author);
-                return new List<GoogleBookInfo>();
+                var body = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("AI author-books request failed. Status={StatusCode} Body={Body} for author={Author}", (int)resp.StatusCode, body, author);
+                return null;
             }
 
-            var list = await resp.Content.ReadFromJsonAsync<List<GoogleBookInfo>>();
-            return list ?? new List<GoogleBookInfo>();
+            try
+            {
+                var list = await resp.Content.ReadFromJsonAsync<List<GoogleBookInfo>>();
+                _logger.LogDebug("AI author-books returned {Count} items for {Author}", list?.Count ?? 0, author);
+                return list ?? new List<GoogleBookInfo>();
+            }
+            catch (Exception ex)
+            {
+                var raw = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning(ex, "Failed to deserialize AI author-books response for {Author}. Raw: {RawPreview}", author, raw?.Substring(0, Math.Min(512, raw?.Length ?? 0)));
+                return null;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("AI author-books request cancelled for author={Author}", author);
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error fetching author books for {Author}", author);
-            return new List<GoogleBookInfo>();
+            return null;
         }
     }
 

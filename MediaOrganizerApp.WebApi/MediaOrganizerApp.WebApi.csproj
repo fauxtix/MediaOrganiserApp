@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Prompts\author-books.prompt.txt" />
     <None Remove="Prompts\author-profile.prompt.txt" />
     <None Remove="Prompts\book-summary-full.prompt.txt" />
     <None Remove="Prompts\book-summary-only.prompt.txt" />
@@ -30,6 +31,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Prompts\author-books.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Prompts\media-edition-year.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

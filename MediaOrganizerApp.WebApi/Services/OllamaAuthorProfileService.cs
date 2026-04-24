@@ -20,6 +20,12 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
 
     private readonly IPromptTemplateProvider _prompts;
     private readonly ILogger<OllamaAuthorProfileService> _logger;
+    
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public OllamaAuthorProfileService(HttpClient httpClient,
                                       IAppSettingsRepository appSettingsRepository,
                                       IPromptTemplateProvider prompts,
@@ -112,9 +118,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         // Fast path: single JSON object.
         try
         {
-            var single = JsonSerializer.Deserialize<OllamaGenerateResponse>(
-                raw,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var single = JsonSerializer.Deserialize<OllamaGenerateResponse>(raw, s_jsonOptions);
 
             if (!string.IsNullOrWhiteSpace(single?.Response))
                 return single.Response!;
@@ -130,9 +134,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         {
             try
             {
-                var item = JsonSerializer.Deserialize<OllamaGenerateResponse>(
-                    line,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var item = JsonSerializer.Deserialize<OllamaGenerateResponse>(line, s_jsonOptions);
 
                 if (!string.IsNullOrWhiteSpace(item?.Response))
                     sb.Append(item.Response);

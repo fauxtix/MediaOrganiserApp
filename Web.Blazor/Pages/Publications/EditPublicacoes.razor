@@ -81,19 +81,13 @@ else
                                        title="@SelectedRecord.Titulo">
                             </SfTextBox>
                         </div>
-                        @if (!blnEdit ||
-                                (
-                                    string.IsNullOrEmpty(SelectedRecord.Resumo) &&
-                                    string.IsNullOrEmpty(SelectedRecord.DigitalPath))
-                        )  @* Only on creation  or for Books if on edit mode *@
-                        {
-                            <div>
-                                <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
-                                          IconCss="fa fa-search"
-                                          Content="Google Books Api"
-                                          @onclick="@(() => SearchApiVisibility = true)" />
-                            </div>
-                        }
+                        <div>
+                            <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4" Disabled="!blnEdit ||
+                                    (string.IsNullOrEmpty(SelectedRecord.Resumo) && string.IsNullOrEmpty(SelectedRecord.DigitalPath))"
+                                        IconCss="fa fa-search"
+                                        Content="Google Books Api"
+                                        @onclick="@(() => SearchApiVisibility = true)" />
+                        </div>
                     </div>
                     <div class="form-row mt-1">
                         <div class="col-4">

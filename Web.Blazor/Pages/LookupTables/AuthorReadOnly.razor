@@ -9,20 +9,23 @@
 
 
 <div class="author-readonly card p-2">
-    @if (author is null)
+    @if (author is null && string.IsNullOrWhiteSpace(AuthorName))
     {
         <div class="text-muted">Autor não carregado.</div>
     }
     else
     {
+        var displayName = author?.Descricao ?? AuthorName;
+        var displayImage = author?.ImagemAutor ?? "images/NoPhoto.png";
+
         <div class="author-header-box mb-3 p-3">
             <div class="row">
                 <div class="col-md-4 text-center h-100">
                     @if (authorHasImage)
                     {
                         <div class="img-box portrait">
-                            <img src="@author.ImagemAutor" width="320" height="240"
-                                 alt="@author.Descricao" />
+                            <img src="@displayImage" width="320" height="240"
+                                 alt="@displayName" />
                         </div>
                     }
                     else
@@ -33,7 +36,7 @@
                     }
                 </div>
                 <div class="col-md-8">
-                    <h5 class="mb-1">@author.Descricao</h5>
+                    <h5 class="mb-1">@displayName</h5>
                     <div class="author-sobre">
                         @if (!string.IsNullOrWhiteSpace(sanitizedSobre))
                         {
@@ -48,7 +51,14 @@
             </div>
         </div>
 
-        <AuthorBooks AuthorName="@author.Descricao" PageSize="3" />
+        @* Use provided AuthorName when present; otherwise fall back to loaded author.Descricao *@
+        <div class="d-flex justify-content-around align-items-center mb-2">
+            <AuthorBooks AuthorName="@(string.IsNullOrWhiteSpace(AuthorName) ? author?.Descricao : AuthorName)" PageSize="3" />
+            @* <div class="ms-3">
+                <SfButton CssClass="e-btn e-outline" IconCss="fa fa-redo" 
+                          @onclick="RetryAiAsync">Retry</SfButton>
+            </div> *@
+        </div>
     }
 </div>
 
@@ -58,14 +68,23 @@
     [Parameter]
     public int AuthorId { get; set; }
 
+    // Optional param to allow parent to supply the author name immediately
+    [Parameter]
+    public string? AuthorName { get; set; }
+
     private bool authorHasImage;
 
     protected override async Task OnParametersSetAsync()
     {
         if (AuthorId <= 0)
         {
-            author = null;
-            sanitizedSobre = string.Empty;
+            // keep author if AuthorName only; otherwise clear
+            if (string.IsNullOrWhiteSpace(AuthorName))
+            {
+                author = null;
+                sanitizedSobre = string.Empty;
+                authorHasImage = false;
+            }
             return;
         }
 
@@ -76,14 +95,13 @@
             authorHasImage = !string.IsNullOrWhiteSpace(author?.ImagemAutor) &&
                 !(author.ImagemAutor?.ToLower().Contains("no-image") ?? false) &&
                 !(author.ImagemAutor?.ToLower().Contains("noimage") ?? false);
-            // Book list is now handled by the reusable AuthorBooks component
-            // Keep backward compatibility: no local fetch required
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading author {AuthorId}", AuthorId);
             author = null;
             sanitizedSobre = string.Empty;
+            authorHasImage = false;
         }
     }
 
@@ -99,7 +117,17 @@
         return sanitizer.Sanitize(html);
     }
 
-    // Book list is handled by the separate AuthorBooks component
+    private async Task RetryAiAsync()
+    {
+        // Clear cached AI results for this author so AuthorBooks will re-fetch
+        if (!string.IsNullOrWhiteSpace(AuthorName))
+        {
+            // Clear AuthorBooks cache entry and force re-render so child component reloads
+            Web.Blazor.Components.Authors.AuthorBooks.ClearCacheForAuthor(AuthorName);
+            author = await AutorService.GetAuthorsById(AuthorId);
+            StateHasChanged();
+        }
+    }
 }
 
 <style>

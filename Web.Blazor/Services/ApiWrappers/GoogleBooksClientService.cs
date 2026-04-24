@@ -22,13 +22,13 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
         }
 
-        public async Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author)
+        // Return null on transient failure/cancellation; return list (possibly empty) on success
+        public async Task<List<GoogleBookInfo>?> GetBooksByAuthorAsync(string author)
         {
             if (string.IsNullOrWhiteSpace(author)) return new List<GoogleBookInfo>();
             try
             {
                 var q = $"inauthor:\"{Uri.EscapeDataString(author)}\"";
-                // Use an internal default cap for maxResults to avoid exposing it to callers
                 var defaultMax = 20;
                 var url = $"https://www.googleapis.com/books/v1/volumes?q={q}&maxResults={defaultMax}&fields=items(id,volumeInfo/title,volumeInfo/publishedDate,volumeInfo/imageLinks)";
 
@@ -44,22 +44,39 @@ namespace Web.Blazor.Services.ApiWrappers
                 if (!resp.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Google Books API request failed with status {Status} for author {Author}", resp.StatusCode, author);
-                    return new List<GoogleBookInfo>();
+                    return null;
                 }
 
-                var respObj = await resp.Content.ReadFromJsonAsync<GoogleBooksResponse>();
-                return respObj?.items?.Select(i => new GoogleBookInfo
+                try
                 {
-                    Id = i.id,
-                    Title = i.volumeInfo?.title,
-                    PublishedDate = i.volumeInfo?.publishedDate,
-                    Thumbnail = i.volumeInfo?.imageLinks?.thumbnail
-                }).ToList() ?? new List<GoogleBookInfo>();
+                    var respObj = await resp.Content.ReadFromJsonAsync<GoogleBooksResponse>();
+                    var list = respObj?.items?.Select(i => new GoogleBookInfo
+                    {
+                        Id = i.id,
+                        Title = i.volumeInfo?.title,
+                        PublishedDate = i.volumeInfo?.publishedDate,
+                        Thumbnail = i.volumeInfo?.imageLinks?.thumbnail ?? i.volumeInfo?.imageLinks?.smallThumbnail
+                    }).ToList() ?? new List<GoogleBookInfo>();
+
+                    _logger.LogDebug("Google Books returned {Count} items for {Author}", list.Count, author);
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    var raw = await resp.Content.ReadAsStringAsync();
+                    _logger.LogWarning(ex, "Failed to deserialize Google Books response for {Author}. Raw preview: {Raw}", author, raw?.Substring(0, Math.Min(512, raw?.Length ?? 0)));
+                    return null;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("GoogleBooks request cancelled for author {Author}", author);
+                return null;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "GoogleBooks lookup failed for {Author}", author);
-                return new List<GoogleBookInfo>();
+                return null;
             }
         }
 
@@ -101,6 +118,14 @@ namespace Web.Blazor.Services.ApiWrappers
                 }
 
                 using var resp = await _http.GetAsync(query);
+
+                // Surface 429 so callers can detect and fallback to AI
+                if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("Google Books API rate limited for query {Query}", query);
+                    throw new HttpRequestException("Google Books API rate limited", null, resp.StatusCode);
+                }
+
                 if (!resp.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Google Books API GetBookAsync failed with status {Status} for query {Query}", resp.StatusCode, query);
@@ -122,6 +147,6 @@ namespace Web.Blazor.Services.ApiWrappers
         private class GoogleBooksResponse { public Item[]? items { get; set; } }
         private class Item { public string? id { get; set; } public Volumeinfo? volumeInfo { get; set; } }
         private class Volumeinfo { public string? title { get; set; } public string? publishedDate { get; set; } public Imagelinks? imageLinks { get; set; } }
-        private class Imagelinks { public string? thumbnail { get; set; } }
+        private class Imagelinks { public string? thumbnail { get; set; } public string? smallThumbnail { get; set; } }
     }
 }

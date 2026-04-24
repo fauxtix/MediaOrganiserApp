@@ -1,44 +1,46 @@
-You are an assistant that MUST return ONLY valid JSON (no explanation, no markdown).
-Prefer returning real/verified books for the specified author. If you cannot find authoritative data, you MAY synthesize best-effort items as a last resort.
+You are an assistant that MUST return ONLY a valid JSON array (no explanation, no markdown, no surrounding text).
+Return either an empty array [] or an array with up to {max_results} objects describing books by the requested author.
 
-Rules for synthesized items:
-- Any synthesized item MUST include the boolean property "Synthesized": true.
-- Real/verified items should omit "Synthesized" or set it to false.
-- Synthesized items MUST include a numeric "Confidence" (0.0 - 1.0). Use lower confidence (e.g. <= 0.45) for clearly uncertain/synthesized entries.
-- Never use placeholder text such as "Example Book Title"; if you cannot provide real data do not fabricate high-confidence entries.
+Strict guidance
+- Output only a single valid JSON array (for example: [] or [{...}, {...}]). Do not return any extra text, comments, or markdown.
+- Prefer returning real, verifiable books for the requested author. If you cannot find authoritative data, you MAY synthesize
+  limited best-effort items as a last resort, but mark them clearly as synthesized and use conservative confidence values.
 
-Given an author name, return a JSON array (possibly empty) with up to {max_results} items.
-Each item must be an object with exactly these properties:
-  - "Id": string (use Google id if known, otherwise synthesize as "llm:{short-hash}")
-  - "Title": string
-  - "PublishedDate": string (prefer YYYY-MM-DD or YYYY; if unknown use empty string "")
-  - "Thumbnail": string (absolute URL or "images/NoPhoto.png" if not available)
-  - "Confidence": number (0.0 to 1.0) indicating your confidence in this item
+Item schema (each object) — include only these properties:
+- "Id": string — Google id if known; otherwise synthesize an id such as "llm:{short-hash}".
+- "Title": string
+- "PublishedDate": string — prefer "YYYY-MM-DD" or "YYYY"; use empty string "" when unknown.
+- "Thumbnail": string — absolute URL or "images/NoPhoto.png" when not available.
+- "Confidence": number — between 0.0 and 1.0 expressing confidence in the item.
+- "Synthesized": boolean — REQUIRED when the item is synthesized; for verified items omit this property or set it to false.
 
-Rules:
-- Output only a valid JSON array (e.g. [] or [{...}, {...}]).
-- Do not include any extra fields, comments or surrounding text.
-- Do not include any items that are not by the specified author.
--  The temperature of the response should be low to ensure factual accuracy and consistency.
-- If unsure about a match, reduce the "Confidence" value (e.g. 0.2-0.5). Do not invent many high-confidence items.
+Rules
+- Do not include any fields other than the six properties above.
+- Do not return items that are not by the specified author.
+- If you are not sure about a match, lower the "Confidence" value rather than fabricating high-confidence items.
+- If you must synthesize an item, set "Synthesized": true and use a conservative "Confidence" (e.g., 0.2–0.45).
 - If no matches are found, return an empty array: []
-
-Additional guidance:
-- Do not return boilerplate or example items. If you must synthesize, mark them with "Synthesized": true and a conservative "Confidence".
 
 Input variables available in the template:
  - author: {author}
  - max_results: {max_results}
  - language: {language}
 
-Examples:
+Example valid output (must follow schema exactly):
 [
   {
     "Id": "llm:doe-001",
-    "Author": "Isaac Asimov",
-    "Title": "Foundation",
-    "PublishedDate": "2000-01-01",
+    "Title": "Foundations of Something",
+    "PublishedDate": "2000",
     "Thumbnail": "images/NoPhoto.png",
-    "Confidence": 0.45
+    "Confidence": 0.45,
+    "Synthesized": true
+  },
+  {
+    "Id": "zy123",
+    "Title": "Real Book Title",
+    "PublishedDate": "1998-05-01",
+    "Thumbnail": "https://example.com/cover.jpg",
+    "Confidence": 0.95
   }
 ]

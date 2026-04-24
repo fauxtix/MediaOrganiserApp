@@ -12,6 +12,8 @@
 @inject Microsoft.Extensions.Options.IOptionsMonitor<MediaOrganizerApp.Application.FeatureFlags> FeatureFlagsMonitor
 @inject IStringLocalizer<App> L
 
+@namespace Web.Blazor.Components.Authors
+
 <div class="author-books-component">
     @if (string.IsNullOrWhiteSpace(AuthorName))
     {
@@ -140,7 +142,7 @@
     [Parameter, EditorRequired]
     public int PageSize { get; set; } = 4;
 
-
+    private CancellationTokenSource? _cts;
     protected SfSpinner SpinnerObj;
 
     private bool isImageViewerVisible;
@@ -178,8 +180,11 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
         currentPage = 1;
-        await LoadBooksAsync();
+        await LoadBooksAsync(_cts.Token);
     }
 
     private void NextPage()
@@ -200,22 +205,38 @@
     private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan AiCacheTtl = TimeSpan.FromMinutes(5);
 
-    private async Task LoadBooksAsync()
+    // Allow external components to clear the client-side cache for an author (e.g. Retry button)
+    public static void ClearCacheForAuthor(string? author)
     {
-        books = null;
+        if (string.IsNullOrWhiteSpace(author)) return;
+        _booksCache.TryRemove(author, out _);
+    }
+
+    private async Task LoadBooksAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested(); books = null;
         _filteredBooks = null;
         if (string.IsNullOrWhiteSpace(AuthorName)) return;
 
         // Try cache first
         if (_booksCache.TryGetValue(AuthorName!, out var cached))
         {
+            List<GoogleBookInfo>? resultList = null;
             var ttl = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase) ? AiCacheTtl : GoogleCacheTtl;
             if (DateTime.UtcNow - cached.fetchedAt < ttl)
             {
-                books = cached.items;
-                aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
-                StateHasChanged();
-                return;
+                // If cached items exist and contain data, use them. If the cached list is empty,
+                // remove the cache entry so we will retry the external lookup (which includes AI fallback).
+                if (cached.items is not null && cached.items.Count > 0)
+                {
+                    books = cached.items;
+                    aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
+                    StateHasChanged();
+                    return;
+                }
+
+                // cached but empty -> remove and continue to retry (including AI fallback)
+                _booksCache.TryRemove(AuthorName!, out _);
             }
             else
             {
@@ -237,14 +258,26 @@
                 SpinnerLabel = L["LoadingMsg"];
                 SpinnerVisible = true;
                 await InvokeAsync(StateHasChanged);
+
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
+
                 if (result == null || result.Count == 0)
                 {
-                    // If Google returned no results, try AI fallback
+                    // No Google results -> attempt AI fallback
                     SpinnerLabel = $"No Google results for {AuthorName}; attempting AI fallback.";
                     Logger.LogInformation("No Google results for {Author}; attempting AI fallback.", AuthorName);
                     await InvokeAsync(StateHasChanged);
-                    resultList = new();
+
+                    var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
+                    if (aiResult != null && aiResult.Count > 0)
+                    {
+                        resultList = aiResult.ToList();
+                        aiFallbackUsed = true;
+                    }
+                    else
+                    {
+                        resultList = new List<GoogleBookInfo>();
+                    }
                 }
                 else
                 {
@@ -253,19 +286,41 @@
             }
             catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
-                // Specific handling for Google 429 rate-limit: fall back to AI and show message
+                // Google rate-limited -> try AI
                 SpinnerLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
                 Logger.LogWarning(httpEx, "Google Books rate-limited for {Author}; falling back to AI.", AuthorName);
                 await InvokeAsync(StateHasChanged);
 
                 googleRateLimited = true;
+
+                var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
+                if (aiResult != null && aiResult.Count > 0)
+                {
+                    resultList = aiResult.ToList();
+                    aiFallbackUsed = true;
+                }
+                else
+                {
+                    resultList = new List<GoogleBookInfo>();
+                }
             }
             catch (Exception ex)
             {
-                // On other exceptions, log and attempt AI fallback
+                // Other errors -> try AI fallback as well
                 SpinnerLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
                 Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
                 await InvokeAsync(StateHasChanged);
+
+                var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
+                if (aiResult != null && aiResult.Count > 0)
+                {
+                    resultList = aiResult.ToList();
+                    aiFallbackUsed = true;
+                }
+                else
+                {
+                    resultList = new List<GoogleBookInfo>();
+                }
             }
 
             books = resultList ?? new List<GoogleBookInfo>();
