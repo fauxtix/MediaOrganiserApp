@@ -98,6 +98,27 @@ namespace MediaOrganizerApp.Persistence.Repositories.SqlServerRepository
             }
         }
 
+        public async Task UpdateAutorAsync(Autor entity)
+        {
+            using var connection = _context.CreateConnection();
+
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@Id", entity.Id);
+            parameters.Add("@Descricao", entity.Descricao);
+            parameters.Add("@Sobre", entity.Sobre);
+            parameters.Add("@ImagemAutor", entity.ImagemAutor);
+
+            parameters.Add("@DataNascimento",
+                entity.DataNascimento,
+                DbType.DateTime2);
+
+            await connection.ExecuteAsync(
+                "usp_Autor_Update",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<IEnumerable<AutorDTO>> AutoresSemLivros()
         {
             return await repoPubs.AutoresSemLivros();

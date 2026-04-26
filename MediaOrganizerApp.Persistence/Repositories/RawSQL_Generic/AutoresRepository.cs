@@ -114,5 +114,10 @@ namespace MediaOrganizerApp.Persistence.Repositories.RawSQLRepository
                 return await connection.QuerySingleAsync<AutorDTO>(sbData.ToString(), new { Id });
             }
         }
+
+        public Task UpdateAutorAsync(Autor entity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

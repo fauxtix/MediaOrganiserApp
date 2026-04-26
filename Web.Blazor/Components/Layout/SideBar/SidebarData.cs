@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Localization;
-
-
 namespace Web.Blazor.Components.Layout.SideBar;
 
 public class SidebarData
@@ -16,29 +14,29 @@ public class SidebarData
         var menu = new List<MenuItem>
         {
 
-            new MenuItem(title: "Backup", icon: "fa fa-database", childMenuItems: new List<MenuItem>
+            new(title: "Backup", icon: "fa fa-database", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/backupdatabase", title: _localizer["btnManutBD"], icon: "fa fa-database"),
-                new MenuItem(href: "/backupuploads/1", title: _localizer["TituloUploadsPublicacoes"], icon:"fa fa-file-pdf-o"),
-                new MenuItem(href: "/backupuploads/2", title: _localizer["TituloUploadsMedia"], icon:"fa fa-file-movie-o"),
-                new MenuItem(href: "/backupuploads/3", title: _localizer["TituloUploadsImagens"], icon:"fa fa-image"),
+                new(href: "/backupdatabase", title: _localizer["btnManutBD"], icon: "fa fa-database"),
+                new(href: "/backupuploads/1", title: _localizer["TituloUploadsPublicacoes"], icon:"fa fa-file-pdf-o"),
+                new(href: "/backupuploads/2", title: _localizer["TituloUploadsMedia"], icon:"fa fa-file-movie-o"),
+                new(href: "/backupuploads/3", title: _localizer["TituloUploadsImagens"], icon:"fa fa-image"),
             }),
 
-            new MenuItem(title: _localizer["MsgManutencao"], icon: "fa fa-bars", childMenuItems: new List<MenuItem>
+            new(title: _localizer["MsgManutencao"], icon: "fa fa-bars", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/admin/manageusers", title: _localizer["frmUsers"], icon: "oi oi-people"),
-                new MenuItem(href: "/admin/managelookuptables", title: _localizer["TituloTabelasAuxiliares"], icon: "fa fa-table"),
+                new(href: "/admin/manageusers", title: _localizer["frmUsers"], icon: "oi oi-people"),
+                new(href: "/admin/managelookuptables", title: _localizer["TituloTabelasAuxiliares"], icon: "fa fa-table"),
              }),
 
-            new MenuItem(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
-            new MenuItem(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
-            new MenuItem(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
+            new(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
+            new(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
+            new(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
 
             // AI submenu: Edit Prompts and Chat grouped under a single parent
-            new MenuItem(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
+            new(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
-                new MenuItem(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
+                new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
+                new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
             }),
         };
         return menu;
@@ -48,21 +46,22 @@ public class SidebarData
     {
         return new List<MenuItem>
         {
-            new MenuItem(href: "/", title: "Home", icon: "ri-home-3-fill"),
+            new(href: "/", title: "Home", icon: "ri-home-3-fill"),
 
-            new MenuItem(title: _localizer["frmLivros"] , icon: "fa fa-book", childMenuItems: new List<MenuItem>
+            new(title: _localizer["frmLivros"] , icon: "fa fa-book", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/publicacoes", title: _localizer["lblGestao"], icon:"fa fa-bars"),
-                new MenuItem(href: "/imagegallery", title: _localizer["lblGaleria"], icon:"fa fa-list"),
+                new(href: "/publicacoes", title: _localizer["lblGestao"], icon:"fa fa-bars"),
+                new(href: "/imagegallery", title: _localizer["lblGaleria"], icon:"fa fa-list"),
+                new(href: "/autores", title: _localizer["mnuAutores"], icon: "fa fa-users"),
+
             }),
 
-            new MenuItem(title: "Media", icon: "fa fa-film", childMenuItems: new List<MenuItem>
+            new(title: "Media", icon: "fa fa-film", childMenuItems: new List<MenuItem>
             {
-                new MenuItem(href: "/media", title: _localizer["lblGestao"], icon:"fa fa-bars"),
-                new MenuItem(href: "/videogallery", title: _localizer["lblGaleria"], icon: "fa fa-image"),
-                new MenuItem(href: "/media/playlists", title: _localizer["Playlists"], icon: "fa fa-play"),
+                new(href: "/media", title: _localizer["lblGestao"], icon:"fa fa-bars"),
+                new(href: "/videogallery", title: _localizer["lblGaleria"], icon: "fa fa-image"),
+                new(href: "/media/playlists", title: _localizer["Playlists"], icon: "fa fa-play"),
             }),
-            new MenuItem(href: "/autores", title: _localizer["mnuAutores"], icon: "fa fa-users"),
         };
     }
 }

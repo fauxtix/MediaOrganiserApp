@@ -3,14 +3,7 @@ using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.Domain.Entities.Author_Api_Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace MediaOrganizerApp.WebApi.Controllers
 {
@@ -45,9 +38,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
 			try
 			{
 				var authors = await _repoAutores.Query_Async();
-				if (authors.Any())
+
+               var authorsDto = _mapper.Map<IEnumerable<AutorDTO>>(authors);
+
+                if (authorsDto.Any())
 				{
-					return Ok(authors);
+					return Ok(authorsDto);
 				}
 				else
 					return Ok(Enumerable.Empty<AutorDTO>());
@@ -634,8 +630,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
 				_mapper.Map(autorDTO, authorToUpdate);
 
-				await _repoAutores.Update_Async(authorToUpdate);
-				return NoContent();
+                await _repoAutores.UpdateAutorAsync(authorToUpdate); // não utilizado o método genérico Update_Async() para evitar a necessidade
+																	 // de setar manualmente as propriedades UpdatedDate e UpdatedBy,
+																	 // que são tratadas no método específico UpdateAutorAsync()
+                //await _repoAutores.Update_Async(authorToUpdate);
+                return NoContent();
 			}
 			catch (Exception ex)
 			{

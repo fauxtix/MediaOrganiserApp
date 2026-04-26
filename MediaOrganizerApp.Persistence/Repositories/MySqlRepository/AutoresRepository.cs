@@ -3,11 +3,13 @@ using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MediaOrganizerApp.Persistence.Repositories.MySqlRepository
 {
@@ -95,6 +97,29 @@ namespace MediaOrganizerApp.Persistence.Repositories.MySqlRepository
                 }
             }
         }
+        public async Task UpdateAutorAsync(Autor entity)
+        {
+            using (IDbConnection connection = sqlConnection)
+            {
+
+                var parameters = new DynamicParameters();
+
+                parameters.Add("@Id", entity.Id);
+                parameters.Add("@Descricao", entity.Descricao);
+                parameters.Add("@Sobre", entity.Sobre);
+                parameters.Add("@ImagemAutor", entity.ImagemAutor);
+
+                parameters.Add("@DataNascimento",
+                    entity.DataNascimento,
+                    DbType.DateTime2);
+
+                await connection.ExecuteAsync(
+                    "usp_Autor_Update",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+            }
+        }
+
 
         public async Task<IEnumerable<AutorDTO>> AutoresSemLivros()
         {

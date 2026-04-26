@@ -1,10 +1,11 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
 using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Spinner;
+using System.Net;
 using Web.Blazor.Services.ApiWrappers;
-using MediaOrganizerApp.Application.DTOs.AI;
 using Web.Blazor.Utilities;
 using Path = System.IO.Path;
 namespace Web.Blazor.Pages.LookupTables
@@ -215,12 +216,14 @@ namespace Web.Blazor.Pages.LookupTables
             try
             {
                 var authorName = SelectedAuthor.Descricao;
-                var authorHasImage = SelectedAuthor.ImagemAutor is not null && 
+                var authorHasImage = SelectedAuthor.ImagemAutor is not null &&
                     (!SelectedAuthor.ImagemAutor.ToLower().Contains("image") ||
                               !SelectedAuthor.ImagemAutor.ToLower().Contains("photo)")
                     );
 
                 authorDetails = await AutoresService.GetAuthorDetails(authorName);
+
+
                 if (!blnEdit && !string.IsNullOrEmpty(authorDetails.photo))
                 {
                     SelectedAuthor.ImagemAutor = authorDetails.photo;
@@ -236,11 +239,13 @@ namespace Web.Blazor.Pages.LookupTables
                     {
                         if (authorDetails.birthDate.Length == 5)
                         {
-                            SelectedAuthor.DataNascimento = new DateTime(DateTime.Parse(authorDetails.birthDate.Substring(0, 4)).Year, 1, 1);
+                            var yearPart = int.Parse(authorDetails.birthDate.Substring(0, 4));
+                            SelectedAuthor.DataNascimento = new DateTime(yearPart, 1, 1);
                         }
                         else if (authorDetails.birthDate.Length == 4)
                         {
-                            SelectedAuthor.DataNascimento = new DateTime(DateTime.Parse(authorDetails.birthDate).Year, 1, 1);
+                            var yearPart = int.Parse(authorDetails.birthDate.Substring(0, 4));
+                            SelectedAuthor.DataNascimento = new DateTime(yearPart, 1, 1);
                         }
                         else
                         {
@@ -251,7 +256,7 @@ namespace Web.Blazor.Pages.LookupTables
                 if (authorDetails.bio.ToLower().Contains("sem")) // TODO => localize "sem biografia" check
                 {
                     // External API first; AI fallback only when external returns empty bio.
-                    if(SelectedAuthor.Sobre is not null && 
+                    if (SelectedAuthor.Sobre is not null &&
                         !string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
                     {
                         message = "já existe Bio para o Autor. AI não foi consultada.";
@@ -289,14 +294,19 @@ namespace Web.Blazor.Pages.LookupTables
                 aiNotes = null;
                 aiConfidence = null;
 
-                if (!string.IsNullOrWhiteSpace(authorDetails.birthDate))
-                    SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
+                //if (!string.IsNullOrWhiteSpace(authorDetails.birthDate))
+                //    SelectedAuthor.DataNascimento = DateTime.Parse(authorDetails.birthDate);
                 await Task.Delay(20);
                 await SpinnerObj.HideAsync();
 
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                if (ex.StatusCode == HttpStatusCode.GatewayTimeout)
+                {
+                    Logger.LogWarning(ex, "Time out");
+                }
+
                 // Network failure (e.g., offline). Try AI fallback directly.
                 try
                 {

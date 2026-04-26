@@ -4,7 +4,9 @@ using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.Security;
 using MediaOrganizerApp.Application.Interfaces.Services.Validators;
+using MediaOrganizerApp.Application.Interfaces.Services.WikiData;
 using MediaOrganizerApp.Application.Validators;
+using MediaOrganizerApp.Persistence.Services.WikiData;
 using Web.Blazor.Components.Prompts;
 using Web.Blazor.Data;
 using Web.Blazor.Reporting.BusinessObjects;
@@ -92,8 +94,9 @@ namespace Web.Blazor
             services.AddScoped<IDocxHelper, DocxHelper>();
             services.AddScoped<IOutlookMsgHelper, OutlookMsgHelper>();
             services.AddScoped<IFileService, FileService>();
-            // Register the client implementation as the IGoogleBooksService used across the app
+
             services.AddHttpClient<IGoogleBooksService, GoogleBooksClientService>();
+            services.AddHttpClient<IWikidataClientService, WikidataClientService>();
 
             services.AddScoped<IGetYoutubeVideoMetadata, GetYoutubeVideoMetadata>();
 

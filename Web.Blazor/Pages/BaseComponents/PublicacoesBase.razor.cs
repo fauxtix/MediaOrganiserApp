@@ -2143,36 +2143,36 @@ namespace Web.Blazor.Pages.BaseComponents
         /// <summary>
         /// Open the author dialog by author id (call from the grid button/template)
         /// </summary>
-        public async Task ShowAuthorByIdAsync(int authorId)
-        {
-            try
-            {
-                // store selection on SelectedRecord so razor components that use SelectedRecord.IdAutor still work
-                if (SelectedRecord == null) SelectedRecord = new PubsWithDescriptions();
-                SelectedRecord.IdAutor = authorId;
+        //public async Task ShowAuthorByIdAsync(int authorId)
+        //{
+        //    try
+        //    {
+        //        // store selection on SelectedRecord so razor components that use SelectedRecord.IdAutor still work
+        //        if (SelectedRecord == null) SelectedRecord = new PubsWithDescriptions();
+        //        SelectedRecord.IdAutor = authorId;
 
-                // load author details (autoresService is already injected in this class)
-                SelectedAuthorDetails = await autoresService.GetAuthorsById(authorId);
+        //        // load author details (autoresService is already injected in this class)
+        //        SelectedAuthorDetails = await autoresService.GetAuthorsById(authorId);
 
-                // show dialog
-                AuthorVisibility = true;
+        //        // show dialog
+        //        AuthorVisibility = true;
 
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Logger?.LogError(ex, "Error opening author dialog");
-                // swallow or set a toast/visibility flag as per existing patterns
-            }
-        }
+        //        StateHasChanged();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger?.LogError(ex, "Error opening author dialog");
+        //        // swallow or set a toast/visibility flag as per existing patterns
+        //    }
+        //}
 
         /// <summary>
         /// Convenience wrapper if you have the row object available in the template
         /// </summary>
-        public Task ShowAuthorFromRowAsync(PubsWithDescriptions row)
-        {
-            if (row == null) return Task.CompletedTask;
-            return ShowAuthorByIdAsync(row.IdAutor);
-        }
+        //public Task ShowAuthorFromRowAsync(PubsWithDescriptions row)
+        //{
+        //    if (row == null) return Task.CompletedTask;
+        //    return ShowAuthorByIdAsync(row.IdAutor);
+        //}
     }
 }

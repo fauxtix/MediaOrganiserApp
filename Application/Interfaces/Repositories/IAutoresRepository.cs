@@ -14,5 +14,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Repositories
         Task<bool> AutorExiste(string NomeAutor);
         Task<IEnumerable<AutorDTO>> GetAutores_Extended_Async();
         Task<AutorDTO> GetAuthorById_Async(int Id);
+
+        Task UpdateAutorAsync(Autor entity);
     }
 }

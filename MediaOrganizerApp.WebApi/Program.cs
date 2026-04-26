@@ -5,9 +5,11 @@ using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.LastFM;
+using MediaOrganizerApp.Application.Interfaces.Services.WikiData;
 using MediaOrganizerApp.Application.Mappings;
 using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.MusicMetadata;
+using MediaOrganizerApp.Persistence.Services.WikiData;
 using MediaOrganizerApp.Persistence.Services.Youtube;
 using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.WebApi.Middlewares;
@@ -95,6 +97,7 @@ public class Program
         // Translation service (generic) using Ollama
         builder.Services.AddHttpClient<OllamaTranslateService>();
         builder.Services.AddScoped<ITranslateService, OllamaTranslateService>();
+        builder.Services.AddScoped<IWikidataService, WikidataService>();
 
         // Register a concrete IAiChatService so AiController can be activated.
         // If you later add a real chat implementation, replace DevAiChatService with that class

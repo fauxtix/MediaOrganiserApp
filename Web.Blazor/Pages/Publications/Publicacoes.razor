@@ -108,7 +108,8 @@ else
                 <div class="col-lg-4"></div>
                 </div>
         </div>
-        <div id="target" class="w-100 h-100 table table-responsive overflow-auto table-striped">
+        <div class="container-fluid">
+        <div id="target" class="table tab table-striped table-hover">
             <SfGrid @ref="gridObj"
                     Width="100%"
                     Height="auto"
@@ -143,7 +144,7 @@ else
                 <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
                 <GridColumns>
                     <GridColumn Field=@nameof(PubsWithDescriptions.Id) HeaderText="ID#" IsPrimaryKey="true"
-                                Visible="true" AllowGrouping=false
+                                Visible="false" AllowGrouping=false 
                                 HideAtMedia="(min-width: 1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
                     </GridColumn>
@@ -218,10 +219,10 @@ else
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="130"></GridColumn> *@
                     <GridColumn Field=@nameof(PubsWithDescriptions.Paginas)
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
-                                AllowGrouping=false
+                                AllowGrouping=false HeaderTextAlign =" TextAlign.Center"
                                 HeaderText="@(localizerApp["lblPaginas"])"
                                 HideAtMedia="(min-width: 1280px)"
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" Width="130"></GridColumn>
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="100"></GridColumn>
                     <GridColumn Field=@nameof(PubsWithDescriptions.AnoEdicao) ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
                                 HeaderText="@(localizerApp["lblAnoEdicao"])"
                                 HideAtMedia="(min-width: 1280px)"
@@ -268,21 +269,10 @@ else
                             </GridCommandColumn>
                         </GridCommandColumns>
                     </GridColumn>
-                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" AllowGrouping="false"
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
-                        <Template Context="pubRow">
-                            @{
-                                var row = (pubRow as PubsWithDescriptions);
-                            }
-                            <SfButton CssClass="e-outline e-round"
-                                      IconCss="fa fa-user"
-                                      Title="@localizerApp["lblAutor"]"
-                                      @onclick="@(async () => await ShowAuthorByIdAsync(row.IdAutor))" />
-                        </Template>
-                    </GridColumn>
                 </GridColumns>
 
             </SfGrid>
+        </div>
         </div>
     </div>
 
@@ -305,6 +295,12 @@ else
             </Content>
             <FooterTemplate>
                 <div>
+                    <SfButton CssClass="e-btn e-success e-outline e-round-corner ml-2 float-left"
+                              IconCss="fa fa-list"
+                              Title="@(localizerApp["lblAutor"])"
+                              @onclick="@(() => AuthorVisibility = true)"
+                              Content="@(localizerApp["TituloLivrosDoAutor"])" />
+
                     <SfButton CssClass="e-btn e-primary e-round-corner"
                               IconCss="fa fa-edit"
                               @onclick="AddOrSaveRecord" Content="@(localizerApp["btnSalvar"])">
@@ -318,6 +314,29 @@ else
         </DialogTemplates>
         <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
     </SfDialog>
+
+        <SfDialog Width="40%"
+              Height="85%"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="AuthorVisibility">
+        <DialogTemplates>
+            <Content>
+                <AuthorReadOnly AuthorId="@SelectedRecord.IdAutor" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="@(() => AuthorVisibility = false)"
+                              Content="@(localizerApp["BtnSalir"])">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
+    </SfDialog>
+
 
     <SfDialog Width="60%" Height="85%" Target="#main"
               IsModal="true" AllowDragging="true"
@@ -453,30 +472,7 @@ else
         <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
     </SfDialog>
 
-    <SfDialog Width="40%"
-          Height="auto"
-          IsModal="true"
-          ShowCloseIcon="false"
-          @bind-Visible="AuthorVisibility">
-    <DialogTemplates>
-        <Content>
-            @* pass author name when available to avoid race in AuthorBooks *@
-            <AuthorReadOnly AuthorId="@SelectedRecord.IdAutor" AuthorName="@SelectedAuthorDetails?.Descricao" />
-        </Content>
-        <FooterTemplate>
-            <div>
-                <SfButton CssClass="e-btn e-outline e-round-corner"
-                          IconCss="fa fa-times"
-                          @onclick="@(() => AuthorVisibility = false)"
-                          Content="@(localizerApp["BtnSalir"])">
-                </SfButton>
-            </div>
-        </FooterTemplate>
-    </DialogTemplates>
-</SfDialog>
-
-
-    <ConfirmDeleteComponent AlertMessageType="AlertMessageType.Error"
+        <ConfirmDeleteComponent AlertMessageType="AlertMessageType.Error"
                             DialogTitle="@(localizerApp["DeleteMsg"] + " " + localizerApp["frmLivros"])"
                             DialogSubTitle="@SelectedRecord.Titulo"
                             ConfirmationText="@(localizerApp["ConfirmarExclusao"])"

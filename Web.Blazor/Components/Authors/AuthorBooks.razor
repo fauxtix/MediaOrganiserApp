@@ -1,3 +1,4 @@
+@using MediaOrganizerApp.Application
 @using MediaOrganizerApp.Application.DTOs
 @using MediaOrganizerApp.Application.Interfaces.Services.Api
 @using Microsoft.AspNetCore.Components
@@ -5,11 +6,15 @@
 @using System.Threading
 @using System.Globalization
 @using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Options
 @using Web.Blazor.Components.MediaGrids
+@using Web.Blazor.Services.ApiWrappers
+
 @inject IGoogleBooksService GoogleBooksService
 @inject ILogger<AuthorBooks> Logger
-@inject Web.Blazor.Services.ApiWrappers.AiBookClientService AiBookClient
-@inject Microsoft.Extensions.Options.IOptionsMonitor<MediaOrganizerApp.Application.FeatureFlags> FeatureFlagsMonitor
+@inject AiBookClientService AiBookClient
+@inject IWikidataClientService WikidataClient
+@inject IOptionsMonitor<FeatureFlags> FeatureFlagsMonitor
 @inject IStringLocalizer<App> L
 
 @namespace Web.Blazor.Components.Authors
@@ -113,7 +118,7 @@
                 </div>
 
                 <div class="text-muted">
-                    <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2">
+                    <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2" Visible="@SpinnerVisible">
                         @SpinnerLabel
                     </SfMessage>
                 </div>
@@ -256,17 +261,42 @@
             try
             {
                 SpinnerLabel = L["LoadingMsg"];
-                SpinnerVisible = true;
-                await InvokeAsync(StateHasChanged);
+                await UpdateSpinnerLabelAsync(SpinnerLabel);
 
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
 
                 if (result == null || result.Count == 0)
                 {
-                    // No Google results -> attempt AI fallback
-                    SpinnerLabel = $"No Google results for {AuthorName}; attempting AI fallback.";
-                    Logger.LogInformation("No Google results for {Author}; attempting AI fallback.", AuthorName);
-                    await InvokeAsync(StateHasChanged);
+                    // No Google results -> attempt WikiData fallback
+                    SpinnerLabel = $"No Google results for {AuthorName}; attempting WikiData fallback.";
+                    await UpdateSpinnerLabelAsync(SpinnerLabel);
+                    Logger.LogInformation("No Google results for {Author}; attempting WikiData fallback.", AuthorName);
+
+                    var wikidataResult = await WikidataClient.GetBooksByAuthorAsync(AuthorName!, uiLanguage);
+                    if(wikidataResult != null && wikidataResult.Count > 0)
+                    {
+                        List<GoogleBookInfo> wikiDataResults = new();
+                        foreach (var b in wikidataResult)
+                        {
+                            wikiDataResults.Add(new GoogleBookInfo
+                            {
+                                Title = b.Title,
+                                PublishedDate = b.PublicationYear.ToString(), // year only, but better than nothing
+                                Thumbnail = b.CoverImage,
+                                Confidence = null // Wikidata results are not AI-generated, so confidence is not applicable
+                            });
+                        }
+
+                        resultList = wikiDataResults;
+                        return;
+                    }
+                    else
+                    {
+                        SpinnerLabel = $"WikiData returned no results for {AuthorName}; falling back to AI.";
+                        await UpdateSpinnerLabelAsync(SpinnerLabel);
+                        Logger.LogWarning("WikiData returned no results for {Author}; falling back to AI.", AuthorName);
+                    }
+
 
                     var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
                     if (aiResult != null && aiResult.Count > 0)
@@ -288,8 +318,8 @@
             {
                 // Google rate-limited -> try AI
                 SpinnerLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
+                await UpdateSpinnerLabelAsync(SpinnerLabel);
                 Logger.LogWarning(httpEx, "Google Books rate-limited for {Author}; falling back to AI.", AuthorName);
-                await InvokeAsync(StateHasChanged);
 
                 googleRateLimited = true;
 
@@ -308,8 +338,8 @@
             {
                 // Other errors -> try AI fallback as well
                 SpinnerLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
+                await UpdateSpinnerLabelAsync(SpinnerLabel);
                 Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
-                await InvokeAsync(StateHasChanged);
 
                 var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
                 if (aiResult != null && aiResult.Count > 0)
@@ -356,8 +386,7 @@
         try
         {
             SpinnerLabel = label ?? "";
-            SpinnerVisible = true;
-            await InvokeAsync(StateHasChanged); // ensure label renders before work
+            await UpdateSpinnerLabelAsync(SpinnerLabel);
 
             if (work is not null) await work();
         }
@@ -365,7 +394,7 @@
         {
             SpinnerVisible = false;
             SpinnerLabel = "";
-            await InvokeAsync(StateHasChanged);
+            await UpdateSpinnerLabelAsync(SpinnerLabel);
             _spinnerLock.Release();
         }
     }
@@ -373,33 +402,37 @@
     private Task UpdateSpinnerLabelAsync(string label)
     {
         SpinnerLabel = label ?? "";
+        if (!SpinnerVisible)
+            SpinnerVisible = true;
+
         return InvokeAsync(StateHasChanged);
     }
 }
 
 <style>
     .book-card {
-        overflow: hidden;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background: #fff;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
     }
 
     .book-body {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
     }
 
     .books-grid {
-        display: grid;
-        gap: 0.75rem;
-        grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-        align-items: stretch;
-        width: 100%;
-        max-width: 100%;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
     }
+
 
     @@media (max-width: 992px) {
         .books-grid {

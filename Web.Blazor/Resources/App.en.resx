@@ -1221,4 +1221,10 @@
   <data name="TituloLivrosDoAutor" xml:space="preserve">
     <value>Books by the Author</value>
   </data>
+  <data name="TituloModelBaseUrl" xml:space="preserve">
+    <value>URL of the AI base model</value>
+  </data>
+  <data name="TituloAIModelName" xml:space="preserve">
+    <value>Name of the base AI model</value>
+  </data>
 </root>

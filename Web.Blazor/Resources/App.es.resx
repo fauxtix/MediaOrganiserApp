@@ -1222,4 +1222,10 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TituloLivrosDoAutor" xml:space="preserve">
     <value>Libros del autor</value>
   </data>
+  <data name="TituloModelBaseUrl" xml:space="preserve">
+    <value>URL del modelo base de IA</value>
+  </data>
+  <data name="TituloAIModelName" xml:space="preserve">
+    <value>Nombre del modelo de IA base</value>
+  </data>
 </root>

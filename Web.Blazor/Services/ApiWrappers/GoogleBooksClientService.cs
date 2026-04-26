@@ -1,13 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text.Json;
-using System.Threading.Tasks;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
-using Microsoft.Extensions.Logging;
 
 namespace Web.Blazor.Services.ApiWrappers
 {
@@ -43,7 +36,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Google Books API request failed with status {Status} for author {Author}", resp.StatusCode, author);
+                    _logger.LogWarning("Google Books API request failed with status {Status} for author {Author}", resp.StatusCode, author);                    
                     return null;
                 }
 

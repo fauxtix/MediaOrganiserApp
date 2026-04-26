@@ -113,7 +113,7 @@ else
                         </div>
                     </div>
                     <div class="form-row mt-1">
-                        <div class="col-5">
+                        <div class="col-6">
                             <label class="col-form-label font-weight-bold">@localizerApp["lblAutor"]</label>
                             <SfDropDownList TValue="int" AllowFiltering="true" @bind-Value="@SelectedRecord.IdAutor"
                                             CssClass="custom-class e-corner"
@@ -127,12 +127,6 @@ else
                                 <DropDownListEvents TItem="AutorDTO" TValue="int" ValueChange="OnChangeAuthor"></DropDownListEvents>
                                 <DropDownListFieldSettings Value="Id" Text="Descricao"></DropDownListFieldSettings>
                             </SfDropDownList>
-                        </div>
-                        <div class="col-1 mt-2 ml-0">
-                            @* <label class="col-form-label font-weight-bold">&nbsp;</label><br /> *@
-                            <SfButton CssClass="e-primary e-outline e-round mt-4"
-                                      IconCss="fa fa-search"
-                                      @onclick="@(() => AuthorVisibility = true)" />
                         </div>
                         <div class="col-6">
                             <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
@@ -234,27 +228,6 @@ else
         </div>
     </div>
 
-    <SfDialog Width="40%"
-              Height="auto"
-              IsModal="true"
-              ShowCloseIcon="false"
-              @bind-Visible="AuthorVisibility">
-        <DialogTemplates>
-            <Content>
-                <AuthorReadOnly AuthorId="@SelectedRecord.IdAutor" />
-            </Content>
-            <FooterTemplate>
-                <div>
-                    <SfButton CssClass="e-btn e-outline e-round-corner"
-                              IconCss="fa fa-times"
-                              @onclick="@(() => AuthorVisibility = false)"
-                              Content="@(localizerApp["BtnSalir"])">
-                    </SfButton>
-                </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
-    </SfDialog>
 
     <SfDialog Width="500px"
               Height="auto"
