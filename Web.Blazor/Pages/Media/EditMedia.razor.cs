@@ -1,4 +1,6 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Formatting;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Components;
@@ -8,10 +10,10 @@ using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
 using System.Globalization;
+using System.Text;
 using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.Common;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
-using MediaOrganizerApp.Application.Formatting;
 
 namespace Web.Blazor.Pages.Media
 {
@@ -34,6 +36,9 @@ namespace Web.Blazor.Pages.Media
         [Inject] Microsoft.Extensions.Localization.IStringLocalizer<App> L { get; set; }
 
         [Inject] IWebHostEnvironment Env { get; set; }
+
+        [Inject] TranslateClientService TranslateClient { get; set; }
+
 
         protected SfUploader sfUploaderCover;
         private SfSpinner? spinner;
@@ -79,11 +84,14 @@ namespace Web.Blazor.Pages.Media
 
         private string busyStatusMessage = "";
         private bool isBusy;
-        private System.Threading.CancellationTokenSource? mediaInfoCts;
+        private CancellationTokenSource? mediaInfoCts;
 
         [Inject] public MediaInfoProgressClient ProgressClient { get; set; }
 
         protected bool fileVerified;
+
+        private bool TranslateVisible { get; set; } = false;
+
 
         protected override async Task OnInitializedAsync()
         {
@@ -219,6 +227,37 @@ namespace Web.Blazor.Pages.Media
 
         protected async Task GetMediaInfo()
         {
+
+            if (isMp3 && blnEdit &&
+                string.IsNullOrWhiteSpace(SelectedRecord.Notas))
+            {
+                var albumName = await GetMp3Album(SelectedRecord.Autor, SelectedRecord.FileName);
+                if (!string.IsNullOrWhiteSpace(albumName))
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine("Nome do Album: " + albumName);
+                    var albumInfo = await MediaService.GetAlbumInfo(SelectedRecord.Autor, albumName);
+                    if (!string.IsNullOrEmpty(albumInfo.Notas))
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine("Faixas:");
+                        sb.AppendLine();
+                        sb.AppendLine(albumInfo.Notas);
+                        SelectedRecord.Notas = sb.ToString();
+                    }
+                    else
+                        SelectedRecord.Notas = albumName;
+
+                    if (!string.IsNullOrEmpty(albumInfo.AnoEdicao))
+                        SelectedRecord.AnoEdicao = albumInfo.AnoEdicao;
+
+                    if (!string.IsNullOrEmpty(albumInfo.CoverFile))
+                        SelectedRecord.CoverFile = albumInfo.CoverFile;
+
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+            }
             var shouldAIBeUsed = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
 
             await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
@@ -328,7 +367,7 @@ namespace Web.Blazor.Pages.Media
                         ProgressClient.ConnectionId,
                         mediaInfoCts.Token);
 
-                    if(!string.IsNullOrWhiteSpace(year) && year == "N/A")
+                    if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
                     {
                         showAlertMessage = true;
                         alertMessage = "No available Edition year returned from external API/AI; try to find it in other sources.";
@@ -444,6 +483,13 @@ namespace Web.Blazor.Pages.Media
                 return tagFile.Properties.Duration.ToString(@"hh\:mm\:ss");
             }
         }
+
+        private async Task<string> GetMp3Album(string artist, string track)
+        {
+            var albumName = await MediaService.GetMp3Album(artist, track);
+            return albumName ?? string.Empty;
+        }
+
 
         private bool LocalFileOnDisk() // mp3 ou mp4
         {
@@ -689,5 +735,26 @@ namespace Web.Blazor.Pages.Media
                 StateHasChanged();
             }
         }
+
+        private Task OpenTranslateDialog()
+        {
+            // Ensure InitialText is read by the TranslateText component (it reads InitialText on parameters set)
+            // Set default languages if you want different defaults
+            TranslateVisible = true;
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleTranslateRequested(TranslateRequestDto dto)
+        {
+
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+                return;
+
+            SelectedRecord.Notas = dto.Text;
+            TranslateVisible = false;
+            StateHasChanged();
+            await Task.CompletedTask;
+        }
+
     }
 }

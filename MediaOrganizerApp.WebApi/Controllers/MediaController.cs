@@ -1039,6 +1039,25 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 return StatusCode(500, "Error retrieving artist albums");
             }
         }
+
+        [HttpGet("mp3-album/{artist}/{track}")]
+        public async Task<IActionResult> GetAlbum(string artist, string track)
+        {
+            if (string.IsNullOrWhiteSpace(artist) || string.IsNullOrWhiteSpace(track))
+                return BadRequest("Artist and track are required.");
+            try
+            {
+                var albumName = await _lastFMService.GetAlbumAsync(artist, track);
+
+                return Ok(albumName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Last.fm song album");
+                return StatusCode(500, "Error retrieving song album");
+            }
+        }
+
         private string GetControllerActionNames()
         {
             var controller = ControllerContext.ActionDescriptor.ControllerName;

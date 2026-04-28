@@ -297,6 +297,7 @@ else
 </SfToast>
 
 <TranslateText Visible="@showTranslateModal"
+               Title="@localizerApp["TituloTraduzirTexto"]"
                InitialText="@SelectedCategory.Descricao"
                InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
                InitialTargetLanguage="en"
@@ -312,19 +313,19 @@ else
         padding: 0.5rem;
     }
 
-    .footer-with-sides .left-actions {
-        flex: 0 0 auto;
-    }
+        .footer-with-sides .left-actions {
+            flex: 0 0 auto;
+        }
 
-    .footer-with-sides .right-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex: 0 0 auto;
-    }
+        .footer-with-sides .right-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex: 0 0 auto;
+        }
 
-    .footer-with-sides .e-btn {
-        white-space: nowrap;
-    }
+        .footer-with-sides .e-btn {
+            white-space: nowrap;
+        }
 </style>
 
 @code {

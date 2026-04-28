@@ -17,6 +17,7 @@ namespace Web.Blazor.Services.ApiWrappers
         Task<IEnumerable<MediaVM>> GetFilesByMediaCategory(int id);
         Task<IEnumerable<MediaVM>> GetFilesByMediaFormat(int id);
         Task<IEnumerable<MediaVM>> GetFilesByMediaType(AppDefinitions.Query_TipoMedia Tipo);
+        Task<string> GetMp3Album(string artist, string track);
         Task<int> GetFirstId_Media();
         Task<IEnumerable<Formato_Media>> GetFormatos_Media();
         Task<string> GetFormatos_Media(int id);

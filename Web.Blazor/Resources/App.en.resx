@@ -1227,4 +1227,10 @@
   <data name="TituloAIModelName" xml:space="preserve">
     <value>Name of the base AI model</value>
   </data>
+  <data name="TituloTraduzirTexto" xml:space="preserve">
+    <value>Translate Text</value>
+  </data>
+  <data name="TituloTraduzirSinopse" xml:space="preserve">
+    <value>Translate synopsis</value>
+  </data>
 </root>

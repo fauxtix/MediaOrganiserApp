@@ -1228,4 +1228,10 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloAIModelName" xml:space="preserve">
     <value>Nome do modelo base de IA</value>
   </data>
+  <data name="TituloTraduzirTexto" xml:space="preserve">
+    <value>Traduzir texto</value>
+  </data>
+  <data name="TituloTraduzirSinopse" xml:space="preserve">
+    <value>Traduzir sinopse</value>
+  </data>
 </root>

@@ -424,6 +424,22 @@ namespace Web.Blazor.Services.ApiWrappers
             }
         }
 
+        public async Task<string> GetMp3Album(string artist, string track)
+        {
+            string uri = $"{_Uri}/mp3-album/{artist}/{track}";
+            try
+            {
+                string result = await _httpClient.GetStringAsync(uri);
+                return result;
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(exc, "Media Files - Erro emGetMp3Album");
+                throw;
+            }
+        }
+
+
         public async Task<MediaVM> GetAlbumInfo(string artist, string album)
         {
             string uri = $"{_Uri}/getalbuminfo/{artist}/{album}";

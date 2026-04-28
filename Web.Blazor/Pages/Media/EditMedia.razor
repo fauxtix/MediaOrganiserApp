@@ -1,4 +1,5 @@
 ﻿@using Web.Blazor.Components
+@using Web.Blazor.Pages.Tools
 @attribute [Authorize]
 
 @if (categoryList == null || formatList == null)
@@ -39,8 +40,20 @@ else
                     </div>
                 </div>
 
-                <div class="row">
+
+                <div class="row mt-2">
                     <div class="col-md-12 ml-2 e-rte-content">
+                        @if (blnEdit || SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.Notas) || !isMp3)
+                        {
+                            <div class="d-flex justify-content-end mb-2">
+                                <SfButton CssClass="e-outline e-round-corner"
+                                          IconCss="fa fa-language"
+                                          @onclick="OpenTranslateDialog"
+                                          Content="@L["TituloTraduzir"]">
+                                </SfButton>
+                            </div>
+                        }
+
                         <SfTextBox Enabled="true" Placeholder="@L["lblNotas"]"
                                    Multiline="true"
                                    HtmlAttributes="htmlAttribute"
@@ -103,15 +116,15 @@ else
                         {
                             <div class="mt-4">
                                 <SfButton CssClass="e-primary e-outline e-round-corner"
-                                IconCss="fa fa-search"
-                                @onclick="@(() => SearchArtistRecordsVisibility = true)" />
+                                          IconCss="fa fa-search"
+                                          @onclick="@(() => SearchArtistRecordsVisibility = true)" />
                             </div>
                         }
                         <div class="mt-4">
                             <SfButton CssClass="e-success e-outline mr-1  e-round-corner"
                                       IconCss="fa fa-info"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
-                                      Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) || !string.IsNullOrWhiteSpace(SelectedRecord.Notas) : false)">
+                                      Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) : false)">
                             </SfButton>
                             @if (isBusy)
                             {
@@ -279,6 +292,15 @@ else
         </DialogTemplates>
         @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
     </SfDialog>
+
+    <TranslateText Visible="@TranslateVisible"
+                   Title="@L["TituloTraduzirSinopse"]"
+                   InitialText="@SelectedRecord.Notas"
+                   InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
+                   InitialTargetLanguage="en"
+                   TranslateFunc="@(TranslateClient.TranslateAsync)"
+                   OnTranslateRequested="HandleTranslateRequested"
+                   OnClose="() => TranslateVisible = false" />
 
     <SfToast @ref="ToastObj"
              Title="@ToastTitle"

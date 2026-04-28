@@ -1,7 +1,6 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.JSInterop;
+using Microsoft.Extensions.Localization;
 
 namespace Web.Blazor.Pages.Tools
 {
@@ -15,6 +14,7 @@ namespace Web.Blazor.Pages.Tools
         [Parameter] public Func<TranslateRequestDto, System.Threading.CancellationToken, Task<TranslateResponseDto?>>? TranslateFunc { get; set; }
         [Parameter] public EventCallback<TranslateRequestDto> OnTranslateRequested { get; set; }
         [Parameter] public EventCallback OnClose { get; set; }
+
 
         string InputText { get; set; } = string.Empty;
         string SourceTextNoHtml { get; set; } = string.Empty;

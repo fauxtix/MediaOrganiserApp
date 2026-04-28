@@ -58,9 +58,9 @@ else
             <div class="row">
                 <div class="e-dddata">
                     <SfButton CssClass="e-btn e-success e-round-corner"
-                    IconCss="fa fa-plus"
-                    IsPrimary="true"
-                    @onclick="NotifyAddingRecord">
+                              IconCss="fa fa-plus"
+                              IsPrimary="true"
+                              @onclick="NotifyAddingRecord">
                         &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
                     </SfButton>
                     <br /><br />
@@ -69,20 +69,20 @@ else
                 <div id="target">
                     <div id="grid-container">
                         <SfGrid @ref="gridObj"
-                        DataSource="@locaisArquivo"
-                        AllowFiltering="false"
-                        AllowGrouping="false"
-                        Toolbar="@Tool"
-                        AllowPaging="false"
-                        AllowSorting="true"
-                        RowHeight="32"
-                        Width="70%"
-                        Height="100%"
-                        AllowTextWrap="true">
+                                DataSource="@locaisArquivo"
+                                AllowFiltering="false"
+                                AllowGrouping="false"
+                                Toolbar="@Tool"
+                                AllowPaging="false"
+                                AllowSorting="true"
+                                RowHeight="32"
+                                Width="70%"
+                                Height="100%"
+                                AllowTextWrap="true">
                             <GridPageSettings PageSize="9"></GridPageSettings>
                             <GridEvents OnToolbarClick="OnToolbarClick"
-                            CommandClicked="OnCommandClicked"
-                            TValue="LocalArquivoVM"></GridEvents>
+                                        CommandClicked="OnCommandClicked"
+                                        TValue="LocalArquivoVM"></GridEvents>
                             <GridTemplates>
                                 <DetailTemplate>
                                     <SfTab Height="240" HeaderPlacement="HeaderPosition.Top">
@@ -105,12 +105,12 @@ else
                                                                 <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" Width="100">
                                                                     <GridCommandColumns>
                                                                         <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["LerPdf"]"
-                                                                        ButtonOption="@(new CommandButtonOptions()
-                                                                                                       {
-                                                                                                           CssClass = "e-btn e-info e-round",
-                                                                                                           IconCss = "fa fa-file-pdf-o",
-                                                                                                           IconPosition = @IconPosition.Left
-                                                                                                       })">
+                                                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                                                                                                    {
+                                                                                                                                                        CssClass = "e-btn e-info e-round",
+                                                                                                                                                        IconCss = "fa fa-file-pdf-o",
+                                                                                                                                                        IconPosition = @IconPosition.Left
+                                                                                                                                                    })">
                                                                         </GridCommandColumn>
                                                                     </GridCommandColumns>
                                                                 </GridColumn>
@@ -126,28 +126,28 @@ else
                             </GridTemplates>
                             <GridColumns>
                                 <GridColumn Field=@nameof(LocalArquivoVM.Id)
-                                HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true"
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="60"></GridColumn>
+                                            HeaderText="ID#" IsPrimaryKey="true" Visible="false" AllowSorting="true"
+                                            TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="60"></GridColumn>
                                 <GridColumn Field=@nameof(LocalArquivoVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
+                                            TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
                                 <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="50px">
                                     <GridCommandColumns>
                                         <GridCommandColumn Type=CommandButtonType.Edit
-                                        ButtonOption="@(new CommandButtonOptions()
-                                                                                                       {
-                                                                                                           CssClass = "e-btn e-primary e-round",
-                                                                                                           IconCss = "fa fa-edit",
-                                                                                                           IconPosition = @IconPosition.Left
-                                                                                                       })">
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                                    {
+                                                                                        CssClass = "e-btn e-primary e-round",
+                                                                                        IconCss = "fa fa-edit",
+                                                                                        IconPosition = @IconPosition.Left
+                                                                                    })">
                                         </GridCommandColumn>
                                         <GridCommandColumn Type=CommandButtonType.Delete
-                                        ButtonOption="@(new CommandButtonOptions()
-                                                                                                       {
-                                                                                                           Content = "",
-                                                                                                           CssClass = "e-btn e-danger e-round",
-                                                                                                           IconCss = "fa fa-trash",
-                                                                                                           IconPosition = @IconPosition.Left
-                                                                                                       })">
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                                                    {
+                                                                                        Content = "",
+                                                                                        CssClass = "e-btn e-danger e-round",
+                                                                                        IconCss = "fa fa-trash",
+                                                                                        IconPosition = @IconPosition.Left
+                                                                                    })">
                                         </GridCommandColumn>
                                     </GridCommandColumns>
                                 </GridColumn>
@@ -161,203 +161,204 @@ else
     </div>
 }
 <SfDialog Target="#main"
-              Width="450px"
-              Height="auto"
-              IsModal="true"
-              ShowCloseIcon="false"
-              @bind-Visible="EditDialogVisibility">
-        <DialogTemplates>
-            <Header>
-                <div class="header">
-                    @if (blnEdit)
+          Width="450px"
+          Height="auto"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="EditDialogVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="header">
+                @if (blnEdit)
+                {
+                    <p>@localizerApp["editionMsg"]</p>
+                }
+                else
+                {
+                    <p>@localizerApp["NewMsg"]</p>
+                }
+            </div>
+        </Header>
+        <Content>
+            <EditLocalArquivo SelectedStoragePlace="@SelectedStoragePlace" blnEdit="@blnEdit" />
+        </Content>
+        <FooterTemplate>
+            <!-- Layout: translate button left, others right -->
+            <div class="modal-footer footer-with-sides">
+                <div class="left-actions">
+                    @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedStoragePlace?.Descricao))
                     {
-                        <p>@localizerApp["editionMsg"]</p>
+                        <SfButton CssClass="e-btn e-info e-round-corner translate-btn"
+                                  IconCss="fa fa-language"
+                                  Content="@localizerApp["TituloTraduzir"]"
+                                  @onclick="() => showTranslateModal = true" />
                     }
-                    else
-                    {
-                        <p>@localizerApp["NewMsg"]</p>
-                    }
                 </div>
-            </Header>
-            <Content>
-                <EditLocalArquivo SelectedStoragePlace="@SelectedStoragePlace" blnEdit="@blnEdit" />
-            </Content>
-            <FooterTemplate>
-                <!-- Layout: translate button left, others right -->
-                <div class="modal-footer footer-with-sides">
-                    <div class="left-actions">
-                        @if (blnEdit && !string.IsNullOrWhiteSpace(SelectedStoragePlace?.Descricao))
-                        {
-                            <SfButton CssClass="e-btn e-info e-round-corner translate-btn"
-                                      IconCss="fa fa-language"
-                                      Content="@localizerApp["TituloTraduzir"]"
-                                      @onclick="() => showTranslateModal = true" />
-                        }
-                    </div>
 
-                    <div class="right-actions">
-                        <SfButton CssClass="e-btn e-primary e-round-corner"
-                                  IconCss="fa fa-edit"
-                                  @onclick="AddOrSaveRecord">
-                            &nbsp;@(localizerApp["btnSalvar"])
-                        </SfButton>
-
-                        <SfButton CssClass="e-btn e-outline e-round-corner"
-                                  IconCss="fa fa-times"
-                                  @onclick="Voltar">
-                            &nbsp;@(localizerApp["BtnSalir"])
-                        </SfButton>
-                    </div>
-                </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
-    </SfDialog>
-
-    <SfDialog @bind-Visible="@DeleteRecordConfirmVisibility"
-              Width="450px" Height="auto"
-              ShowCloseIcon="false">
-        <DialogTemplates>
-            <Header>
-                <div class="text-wrap">
-                    @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
-                </div>
-            </Header>
-            <Content>
-                <div class="row">
-                    <div class="col-9">
-                        <AlertMessage Message="@(localizerApp["ConfirmarExclusao"])" MessageType="AlertMessageType.Error"></AlertMessage>
-                    </div>
-                    <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Apagar)" />
-                </div>
-            </Content>
-            <FooterTemplate>
-                <div class="e-footer">
-                    <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-trash"
-                              @onclick="ConfirmDeleteYes">
-                        &nbsp;@(localizerApp["Sim"])
+                <div class="right-actions">
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              @onclick="AddOrSaveRecord">
+                        &nbsp;@(localizerApp["btnSalvar"])
                     </SfButton>
-                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
-                              @onclick="ConfirmDeleteNo">
-                        &nbsp;@(localizerApp["Nao"])
-                    </SfButton>
-                </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
-    </SfDialog>
-    <SfDialog Target="#target"
-              Width="400px"
-              Height="300x"
-              IsModal="true"
-              ShowCloseIcon="false"
-              @bind-Visible="ValidationErrorsVisibility">
-        <DialogTemplates>
-            <Header>
-                <div class="alert-warning">
-                    @localizerApp["DadosEmFalta"]
-                </div>
-            </Header>
-            <Content>
-                <div class="border-warning">
-                    <div>
-                        @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
-                        <br />
-                    </div>
-                    <div>
-                        @pubsCatalogadas.ToString()&nbsp;@(localizerApp["RegistosCatalogados"])
-                    </div>
-                    <div class="border-warning">
-                        <br />
-                        @(localizerApp["OperacaoCancelada"])
-                    </div>
-                </div>
-            </Content>
-            <FooterTemplate>
-                <div class="button-container">
-                    <SfButton CssClass="e-btn e-outline e-round-corner"
-                              @onclick="closeAlertBox">
-                        &nbsp;@(localizerApp["btnFechar"])
-                    </SfButton>
-                </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
-    </SfDialog>
 
-    <SfDialog Target="#target"
-              Width="600px"
-              Height="300x"
-              IsModal="true"
-              ShowCloseIcon="false"
-              @bind-Visible="ErrorVisibility">
-        <DialogTemplates>
-            <Header>
-                @(localizerApp["DadosEmFalta"])
-            </Header>
-            <Content>
-                <AlertMessage Message="@sErrorMsgs" MessageType="AlertMessageType.Warning"></AlertMessage>
-            </Content>
-            <FooterTemplate>
-                <div class="modal-footer">
                     <SfButton CssClass="e-btn e-outline e-round-corner"
                               IconCss="fa fa-times"
-                              @onclick="closeErrorBox">
-                        &nbsp;@(localizerApp["btnFechar"])
+                              @onclick="Voltar">
+                        &nbsp;@(localizerApp["BtnSalir"])
                     </SfButton>
                 </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
-    </SfDialog>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
 
-    <SfDialog Width="60%" Height="90%"
-              IsModal="true"
-              ShowCloseIcon="true"
-              CssClass="sidebar" AllowDragging="true"
-              @bind-Visible="ReadPdfVisibility">
-        <DialogTemplates>
-            <Header>
-                @PdfTitle
-            </Header>
-            <Content>
-                <ReadPDF PdfFile="@DigitalPath" />
-            </Content>
-            <FooterTemplate>
+<SfDialog @bind-Visible="@DeleteRecordConfirmVisibility"
+          Width="450px" Height="auto"
+          ShowCloseIcon="false">
+    <DialogTemplates>
+        <Header>
+            <div class="text-wrap">
+                @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
+            </div>
+        </Header>
+        <Content>
+            <div class="row">
+                <div class="col-9">
+                    <AlertMessage Message="@(localizerApp["ConfirmarExclusao"])" MessageType="AlertMessageType.Error"></AlertMessage>
+                </div>
+                <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Apagar)" />
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div class="e-footer">
+                <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-trash"
+                          @onclick="ConfirmDeleteYes">
+                    &nbsp;@(localizerApp["Sim"])
+                </SfButton>
+                <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                          @onclick="ConfirmDeleteNo">
+                    &nbsp;@(localizerApp["Nao"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
+<SfDialog Target="#target"
+          Width="400px"
+          Height="300x"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="ValidationErrorsVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="alert-warning">
+                @localizerApp["DadosEmFalta"]
+            </div>
+        </Header>
+        <Content>
+            <div class="border-warning">
                 <div>
-                    <SfButton CssClass="e-btn e-outline e-round-corner"
-                              @onclick="FecharPdf">
-                        &nbsp;@(localizerApp["btnFechar"])
-                    </SfButton>
+                    @(localizerApp["lblLocalArquivo"]): @SelectedStoragePlace.Descricao
+                    <br />
                 </div>
-            </FooterTemplate>
-        </DialogTemplates>
-        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
-    </SfDialog>
+                <div>
+                    @pubsCatalogadas.ToString()&nbsp;@(localizerApp["RegistosCatalogados"])
+                </div>
+                <div class="border-warning">
+                    <br />
+                    @(localizerApp["OperacaoCancelada"])
+                </div>
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div class="button-container">
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          @onclick="closeAlertBox">
+                    &nbsp;@(localizerApp["btnFechar"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
 
-    <TranslateText Visible="@showTranslateModal"
-                   InitialText="@SelectedStoragePlace.Descricao"
-                   InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
-                   InitialTargetLanguage="en"
-                   TranslateFunc="@(TranslateClient.TranslateAsync)"
-                   OnTranslateRequested="OnTranslateApplied"
-                   OnClose="@(()=> showTranslateModal = false)" />
+<SfDialog Target="#target"
+          Width="600px"
+          Height="300x"
+          IsModal="true"
+          ShowCloseIcon="false"
+          @bind-Visible="ErrorVisibility">
+    <DialogTemplates>
+        <Header>
+            @(localizerApp["DadosEmFalta"])
+        </Header>
+        <Content>
+            <AlertMessage Message="@sErrorMsgs" MessageType="AlertMessageType.Warning"></AlertMessage>
+        </Content>
+        <FooterTemplate>
+            <div class="modal-footer">
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          @onclick="closeErrorBox">
+                    &nbsp;@(localizerApp["btnFechar"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
 
-    <SfToast @ref="ToastObj"
-             Title="@ToastTitle"
-             Content="@ToastContent"
-             CssClass="@ToastCssClass"
-             Timeout="1500" ShowCloseButton="true">
-        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
-    </SfToast>
+<SfDialog Width="60%" Height="90%"
+          IsModal="true"
+          ShowCloseIcon="true"
+          CssClass="sidebar" AllowDragging="true"
+          @bind-Visible="ReadPdfVisibility">
+    <DialogTemplates>
+        <Header>
+            @PdfTitle
+        </Header>
+        <Content>
+            <ReadPDF PdfFile="@DigitalPath" />
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-btn e-outline e-round-corner"
+                          @onclick="FecharPdf">
+                    &nbsp;@(localizerApp["btnFechar"])
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+</SfDialog>
 
-    <style>
-        .footer-with-sides {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem;
-        }
+<TranslateText Visible="@showTranslateModal"
+               Title="@localizerApp["TituloTraduzirTexto"]"
+               InitialText="@SelectedStoragePlace.Descricao"
+               InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
+               InitialTargetLanguage="en"
+               TranslateFunc="@(TranslateClient.TranslateAsync)"
+               OnTranslateRequested="OnTranslateApplied"
+               OnClose="@(()=> showTranslateModal = false)" />
+
+<SfToast @ref="ToastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         CssClass="@ToastCssClass"
+         Timeout="1500" ShowCloseButton="true">
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+</SfToast>
+
+<style>
+    .footer-with-sides {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+    }
 
         .footer-with-sides .left-actions {
             flex: 0 0 auto;
@@ -372,21 +373,21 @@ else
         .footer-with-sides .e-btn {
             white-space: nowrap;
         }
-    </style>
+</style>
 
-    @code {
-        [Inject] TranslateClientService TranslateClient { get; set; }
+@code {
+    [Inject] TranslateClientService TranslateClient { get; set; }
 
-        protected bool showTranslateModal { get; set; }
+    protected bool showTranslateModal { get; set; }
 
-        protected async Task OnTranslateApplied(TranslateRequestDto dto)
-        {
-            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
-                return;
+    protected async Task OnTranslateApplied(TranslateRequestDto dto)
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+            return;
 
-            SelectedStoragePlace.Descricao = dto.Text;
-            showTranslateModal = false;
-            StateHasChanged();
-            await Task.CompletedTask;
-        }
+        SelectedStoragePlace.Descricao = dto.Text;
+        showTranslateModal = false;
+        StateHasChanged();
+        await Task.CompletedTask;
     }
+}

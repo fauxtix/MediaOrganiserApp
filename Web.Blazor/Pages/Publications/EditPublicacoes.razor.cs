@@ -1,4 +1,5 @@
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
@@ -7,9 +8,10 @@ using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Buttons;
 using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Popups;
+using Syncfusion.Blazor.Spinner;
 using System.Globalization;
+using Web.Blazor.Services.ApiWrappers;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
-using Web.Blazor.Pages.Publications;
 
 namespace Web.Blazor.Pages.Publications
 {
@@ -18,6 +20,8 @@ namespace Web.Blazor.Pages.Publications
         [Parameter] public PubsWithDescriptions SelectedRecord { get; set; }
         [Parameter] public bool blnEdit { get; set; } // true = for Edit Mode, false = Insert
         [Parameter] public int CurrentCategory { get; set; }
+
+        [Inject] TranslateClientService TranslateClient { get; set; }
 
         [Inject] public IPublicacaoService PubsService { get; set; }
         [Inject] public IAutorService autoresService { get; set; }
@@ -54,6 +58,7 @@ namespace Web.Blazor.Pages.Publications
         private IEnumerable<CategoryVM> categoryList;
 
         private SfCheckBox<bool> chkLido;
+
         private bool PdfVisibility = false;
         private bool AuthorVisibility = false;
         private bool SearchApiVisibility = false;
@@ -87,6 +92,7 @@ namespace Web.Blazor.Pages.Publications
 
         protected ApplicationSettingsDto AppSettings;
 
+        private bool TranslateVisible { get; set; } = false;
 
         protected override async Task OnInitializedAsync()
         {
@@ -307,8 +313,8 @@ namespace Web.Blazor.Pages.Publications
                     if (SelectedRecord.ImagemCapa.ToLower().StartsWith("http") ||
                         SelectedRecord.ImagemCapa.ToLower().Contains("photo") ||
                         SelectedRecord.ImagemCapa.ToLower().Contains("image") ||
-                        SelectedRecord.ImagemCapa.ToLower().StartsWith("file") || // local image file, but need to be replaced
-                        SelectedRecord.ImagemCapa.ToLower().Contains("available")) // image path contains "available" (no image available)
+                        SelectedRecord.ImagemCapa.ToLower().StartsWith("file") // local image file, but need to be replaced
+                        || SelectedRecord.ImagemCapa.ToLower().Contains("available")) // image path contains "available" (no image available)
                     {
 
 
@@ -546,5 +552,25 @@ namespace Web.Blazor.Pages.Publications
             "Outdent", "Indent", "|", "CreateTable",
             "Undo", "Redo"
         };
+
+        private Task OpenTranslateDialog()
+        {
+            // Ensure InitialText is read by the TranslateText component (it reads InitialText on parameters set)
+            // Set default languages if you want different defaults
+            TranslateVisible = true;
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleTranslateRequested(TranslateRequestDto dto)
+        {
+
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
+                return;
+
+                SelectedRecord.Resumo = dto.Text;
+                TranslateVisible = false;
+                StateHasChanged();
+                await Task.CompletedTask;
+        }
     }
 }

@@ -162,6 +162,7 @@
     <PackageReference Include="SpotifyApi.NetCore" Version="3.5.0" />
     <PackageReference Include="Syncfusion.Blazor.FileManager.PhysicalFileProvider" Version="31.2.5" />
     <PackageReference Include="Syncfusion.Pdf.Imaging.Net.Core" Version="31.2.5" />
+    <PackageReference Include="z440.atl.core" Version="7.13.0" />
   </ItemGroup>
 
   <ItemGroup>

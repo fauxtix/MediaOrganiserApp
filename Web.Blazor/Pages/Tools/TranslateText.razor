@@ -1,7 +1,6 @@
 @using MediaOrganizerApp.Application.DTOs.AI
-@inject IJSRuntime JS
-@inject Microsoft.Extensions.Localization.IStringLocalizer<App> L
-
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<App> L 
 
 <SfDialog @bind-Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false">
     <DialogTemplates>

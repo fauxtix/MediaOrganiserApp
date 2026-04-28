@@ -1,6 +1,7 @@
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.LookupComponents
 @using Web.Blazor.Pages.LookupTables
+@using Web.Blazor.Pages.Tools
 
 @attribute [Authorize]
 
@@ -82,11 +83,12 @@ else
                             </SfTextBox>
                         </div>
                         <div>
-                            <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4" Disabled="!blnEdit ||
-                                    (string.IsNullOrEmpty(SelectedRecord.Resumo) && string.IsNullOrEmpty(SelectedRecord.DigitalPath))"
-                                        IconCss="fa fa-search"
-                                        Content="Google Books Api"
-                                        @onclick="@(() => SearchApiVisibility = true)" />
+                            <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
+                                      Disabled="!blnEdit || (string.IsNullOrEmpty(SelectedRecord.Resumo) && string.IsNullOrEmpty(SelectedRecord.DigitalPath))"
+                                      IconCss="fa fa-search"
+                                      Content="Google Books Api"
+                                      @onclick="@(() => SearchApiVisibility = true)" />
+
                         </div>
                     </div>
                     <div class="form-row mt-1">
@@ -204,8 +206,21 @@ else
                     </div> *@
                     </div>
                     <div class="form-row mt-1">
-                        <SfRichTextEditor CssClass="custom-class e-corner"
-                                          Placeholder="@localizerApp["lblSinopse"]" @bind-Value="@SelectedRecord.Resumo" />
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end mb-2">
+                                <SfButton CssClass="e-outline e-round-corner"
+                                          IconCss="fa fa-language"
+                                          Title="Translate"
+                                          Disabled="!blnEdit || SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.Resumo)"
+                                          @onclick="OpenTranslateDialog">
+                                    @localizerApp["TituloTraduzir"]
+                                </SfButton>
+                            </div>
+
+                            <SfRichTextEditor CssClass="custom-class e-corner"
+                                              Placeholder="@localizerApp["lblSinopse"]"
+                                              @bind-Value="@SelectedRecord.Resumo" />
+                        </div>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(aiNotes) || aiConfidence is not null)
@@ -275,6 +290,15 @@ else
                         OperationType="AppDefinitions.OpcoesRegisto.Inserir"
                         OnCloseDialog="@(()=>alertUser = false)" />
 }
+        
+<TranslateText Visible="@TranslateVisible"
+               Title="@localizerApp["TituloTraduzirSinopse"]"
+               InitialText="@SelectedRecord.Resumo"
+               InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
+               InitialTargetLanguage="en"
+               TranslateFunc="@(TranslateClient.TranslateAsync)"
+               OnTranslateRequested="HandleTranslateRequested"
+               OnClose="() => TranslateVisible = false" />
 
 <style>
     .search-title {

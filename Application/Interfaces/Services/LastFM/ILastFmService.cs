@@ -7,5 +7,6 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.LastFM
     public interface ILastFmService
     {
         Task<List<ReleaseDto>> GetArtistReleasesAsync(string artist);
+        Task<string?> GetAlbumAsync(string artist, string track);
     }
 }
