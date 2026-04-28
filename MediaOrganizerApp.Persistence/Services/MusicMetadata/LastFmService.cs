@@ -68,20 +68,20 @@ public class LastFmService : ILastFmService
             .Select(g => g.First())];
     }
 
-    public async Task<string?> GetAlbumAsync(string artist, string track)
+    public async Task<string> GetAlbumAsync(string artist, string track, string apiKey)
     {
         artist = Clean(artist);
         track = Clean(track);
 
         //var albumName = await GetFromLastFm(artist, track);
-        var album = await GetAlbumName(artist, track, "a95fd7dd581211aff4ec8d60e1239a1a");
+        var album = await GetAlbumName(artist, track,  apiKey);
         if (!string.IsNullOrEmpty(album))
             return album;
 
         return null;
     }
 
-    private async Task<string?> GetFromLastFm(string artist, string track)
+    private async Task<string> GetFromLastFm(string artist, string track)
     {
         try
         {

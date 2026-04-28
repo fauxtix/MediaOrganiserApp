@@ -28,15 +28,17 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly LastfmClient _lastFMclient;
         private readonly ILastFmService _lastFMService;
         private readonly IMusicMetadataService _MusicBrainzService;
+        private IConfiguration _configuration;
 
 
 
-        public MediaController(ILogger<MediaController> logger, 
-            IMediaRepository repoMedia, 
-            IMapper mapper, 
-            IMusicMetadataService musicBrainzService, 
-            LastfmClient lastFMclient, 
-            ILastFmService lastFMService)
+        public MediaController(ILogger<MediaController> logger,
+            IMediaRepository repoMedia,
+            IMapper mapper,
+            IMusicMetadataService musicBrainzService,
+            LastfmClient lastFMclient,
+            ILastFmService lastFMService,
+            IConfiguration configuration)
         {
             _logger = logger;
             _repoMedia = repoMedia;
@@ -44,6 +46,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _MusicBrainzService = musicBrainzService;
             _lastFMclient = lastFMclient;
             _lastFMService = lastFMService;
+            _configuration = configuration;
         }
 
         [HttpGet("{userId}/{role}")]
@@ -1047,7 +1050,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 return BadRequest("Artist and track are required.");
             try
             {
-                var albumName = await _lastFMService.GetAlbumAsync(artist, track);
+                var apiKey = _configuration["LastFmApiKey"];
+                var albumName = await _lastFMService.GetAlbumAsync(artist, track, apiKey);
 
                 return Ok(albumName);
             }
