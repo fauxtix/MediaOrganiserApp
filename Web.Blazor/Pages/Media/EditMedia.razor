@@ -43,9 +43,9 @@ else
 
                 <div class="row mt-2">
                     <div class="col-md-12 ml-2 e-rte-content">
-                        @if (blnEdit || SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.Notas) || !isMp3)
+                        @if (blnEdit && (SelectedRecord != null && string.IsNullOrWhiteSpace(SelectedRecord.Notas)) && !isMp3)
                         {
-                            <div class="d-flex justify-content-end mb-2">
+                            <div class="d-flex justify-content-end mt-2">
                                 <SfButton CssClass="e-outline e-round-corner"
                                           IconCss="fa fa-language"
                                           @onclick="OpenTranslateDialog"
@@ -108,29 +108,34 @@ else
                         <div>
                             <SfTextBox Enabled="true" Placeholder="@L["frmAutores"]"
                                        CssClass="form-control e-corner font-italic"
-                                       FloatLabelType="@FloatLabelType.Auto" Width="400px"
+                                       FloatLabelType="@FloatLabelType.Auto" Width="350px"
                                        @bind-Value="@SelectedRecord.Autor">
                             </SfTextBox>
                         </div>
-                        @if (!isBusy)
+                        @if (!isBusy && blnEdit && !string.IsNullOrEmpty(SelectedRecord.Autor))
                         {
                             <div class="mt-4">
                                 <SfButton CssClass="e-primary e-outline e-round-corner"
                                           IconCss="fa fa-search"
+                                          Content="Top Albums"
                                           @onclick="@(() => SearchArtistRecordsVisibility = true)" />
                             </div>
                         }
                         <div class="mt-4">
                             <SfButton CssClass="e-success e-outline mr-1  e-round-corner"
                                       IconCss="fa fa-info"
+                                      Content="More Info"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
                                       Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) : false)">
                             </SfButton>
+                        </div>
+                        <div class="mt-4">
                             @if (isBusy)
                             {
                                 <div class="mt-4">
                                     <SfButton CssClass="e-danger e-outline e-round-corner"
                                               IconCss="fa fa-times"
+                                              Content="Cancel"
                                               @onclick="CancelMediaInfo">
                                     </SfButton>
                                 </div>
@@ -203,15 +208,15 @@ else
                                            CssClass="input-control" ValueChange="onMediaTypeChange"></SfRadioButton>
                         </div>
                     </div>
-                    @if (blnEdit)
+                    @* @if (blnEdit)
                     {
                         <div class="col-md-12 col-lg-3 mt-2">
-                            <SfTextBox Enabled="false" class="form-control text-center" @bind-Value="@SelectedRecord.FormatoMedia" />
+                            <p class="fs-5 text-center">@SelectedRecord.FormatoMedia</p>
                         </div>
                         <div class="col-md-12 col-lg-3"></div>
-                    }
+                    } *@
                 </div>
-                <div hidden="@(!ShowStoredPathEntry)" class="row">
+                <div hidden="@(!ShowStoredPathEntry)" class="row mt-2">
                     <div class="col-md-10 e-rte-content">
                         <SfTextBox Multiline="true" Enabled="@(string.IsNullOrEmpty(SelectedRecord.FileUrl))"
                                    Placeholder="@L["lblLocalArquivo"]"

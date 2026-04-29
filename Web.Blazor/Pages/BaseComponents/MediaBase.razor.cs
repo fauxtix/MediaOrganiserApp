@@ -1,4 +1,3 @@
-using Google.Apis.YouTube.v3.Data;
 using MediaInfo;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Enums;

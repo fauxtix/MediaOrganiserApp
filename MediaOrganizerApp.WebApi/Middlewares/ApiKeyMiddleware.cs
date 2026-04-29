@@ -1,9 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading.Tasks;
-
-namespace MediaOrganizerApp.WebApi.Middlewares
+﻿namespace MediaOrganizerApp.WebApi.Middlewares
 {
     public class ApiKeyMiddleware
     {

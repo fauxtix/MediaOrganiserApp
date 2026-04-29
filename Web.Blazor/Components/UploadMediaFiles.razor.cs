@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Spinner;
+using System.Text;
+using Web.Blazor.Services.ApiWrappers;
 
 namespace Web.Blazor.Components
 {
@@ -14,6 +16,7 @@ namespace Web.Blazor.Components
         public IStringLocalizer<App> localizerApp { get; set; }
         [Inject] public IUserService UserService { get; set; }
         [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+        [Inject] public IMediaServiceWrapper MediaService { get; set; }
 
         [Parameter]
         public EventCallback<UploadMediaResult> OnEndUpload { get; set; }
@@ -94,18 +97,23 @@ namespace Web.Blazor.Components
 
         private async void OnSubmit()
         {
+            string songName = string.Empty;
+
             if (selectedFile != null)
             {
                 var userDetails = await UserService.GetAuthenticatedUserDetails(AuthenticationStateProvider);
 
                 await Task.Delay(100);
                 await SpinnerObj?.ShowAsync();
-
                 IsUploadDisabled = true;
                 Stream stream = selectedFile.OpenReadStream(maxFileSize);
                 var path = Path.Combine(env.WebRootPath, "Files", "Uploads", "Media", selectedFile.Name);
 
                 extension = Path.GetExtension(selectedFile.Name);
+                if (extension.ToLower() == ".mp3")
+                {
+                    songName = GetSongName(path);
+                }
 
                 // Set buffer size to 512 KB.
                 int bufferSize = 512 * 1024;
@@ -169,14 +177,40 @@ namespace Web.Blazor.Components
                         await categoriasSVC.CreateCategory(mediaCategory);
 
                         categoryId = await categoriasSVC.GetIdCategoria(mediaGenre);
-                        mediaNotes = $"Criada nova Categoria ({mediaGenre})";
                     }
-                    string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? "Título do album : " + tagFile.Tag.Album : "";
+
+                    string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? tagFile.Tag.Album : "";
                     string duration = tagFile.Properties.Duration.ToString(@"hh\:mm\:ss");
 
                     string fileName = selectedFile.Name;
-                    System.IO.FileInfo fi = new System.IO.FileInfo(path);
+                    FileInfo fi = new FileInfo(path);
                     long tamanho = fi.Length;
+
+                    StringBuilder sb = new StringBuilder();
+
+                    bool hasPerformer = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer);
+                    var artist = hasPerformer ? tagFile.Tag.FirstPerformer : "Verificar Autor";
+                    if (string.IsNullOrEmpty(albumName))
+                    {
+                        albumName = await MediaService.GetMp3Album(artist, songName);
+                    }
+
+                    if (hasPerformer && !string.IsNullOrEmpty(albumName))
+                    {
+
+                        sb.AppendLine("Nome do Album: " + albumName);
+                        var albumInfo = await MediaService.GetAlbumInfo(artist, albumName);
+                        if (!string.IsNullOrEmpty(albumInfo.Notas))
+                        {
+                            sb.AppendLine();
+                            sb.AppendLine("Faixas:");
+                            sb.AppendLine();
+                            sb.AppendLine(albumInfo.Notas);
+                        }
+
+                        if (!string.IsNullOrEmpty(albumInfo.CoverFile))
+                            cover = albumInfo.CoverFile;
+                    }
 
 
                     MediaModel = new()
@@ -188,13 +222,14 @@ namespace Web.Blazor.Components
                         IdFormato_Media = 1, // Download da internet
                         FileUrl = sUrl,
                         TipoMedia = 2, // audio
-                        Notas = !string.IsNullOrEmpty(mediaNotes) ? mediaNotes + "\n" + albumName : albumName,
+                        Notas = !string.IsNullOrEmpty(sb.ToString()) ? sb.ToString() : "",
                         AnoEdicao = tagFile.Tag.Year > 0 ? tagFile.Tag.Year.ToString() : "",
                         Visualizado = true,
                         Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Verificar Autor",
                         Rating = 0,
                         GuardaEmdisco = 1,
                         Tempo = duration,
+                        CoverFile = cover,
                         Tamanho = tamanho.ToString(),
                         DataMov = DateTime.UtcNow,
                         CreatedBy = userDetails.UserId
@@ -220,7 +255,7 @@ namespace Web.Blazor.Components
                     }
 
                     string fileName = selectedFile.Name;
-                    System.IO.FileInfo fi = new System.IO.FileInfo(path);
+                    FileInfo fi = new FileInfo(path);
 
 
                     mediaType = 2;  // TODO implementar em form à parte -- default, para já = áudio (2)
@@ -300,6 +335,17 @@ namespace Web.Blazor.Components
             }
         }
 
+        string GetSongName(string path)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(path);
+
+            int lastDashIndex = fileName.LastIndexOf('-');
+
+            if (lastDashIndex == -1)
+                return fileName; // fallback, caso não exista '-'
+
+            return fileName.Substring(lastDashIndex + 1).Trim();
+        }
         private void SetAlert(string alertClass, string iconClass, string message)
         {
             AlertClass = alertClass;
