@@ -288,25 +288,23 @@
                         }
 
                         resultList = wikiDataResults;
-                        return;
                     }
                     else
                     {
                         SpinnerLabel = $"WikiData returned no results for {AuthorName}; falling back to AI.";
                         await UpdateSpinnerLabelAsync(SpinnerLabel);
                         Logger.LogWarning("WikiData returned no results for {Author}; falling back to AI.", AuthorName);
-                    }
 
-
-                    var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                    if (aiResult != null && aiResult.Count > 0)
-                    {
-                        resultList = aiResult.ToList();
-                        aiFallbackUsed = true;
-                    }
-                    else
-                    {
-                        resultList = new List<GoogleBookInfo>();
+                        var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
+                        if (aiResult != null && aiResult.Count > 0)
+                        {
+                            resultList = aiResult.ToList();
+                            aiFallbackUsed = true;
+                        }
+                        else
+                        {
+                            resultList = new List<GoogleBookInfo>();
+                        }
                     }
                 }
                 else
