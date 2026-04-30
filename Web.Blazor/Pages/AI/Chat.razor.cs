@@ -6,7 +6,6 @@ using Web.Blazor.Services.ApiWrappers;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Syncfusion.Blazor.DropDowns;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 
 namespace Web.Blazor.Pages.AI
 {

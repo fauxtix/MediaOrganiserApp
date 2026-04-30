@@ -51,13 +51,8 @@
             </div>
         </div>
 
-        @* Use provided AuthorName when present; otherwise fall back to loaded author.Descricao *@
-        <div class="d-flex justify-content-around align-items-center mb-2">
+        <div class="mb-2 w-100">
             <AuthorBooks AuthorName="@(string.IsNullOrWhiteSpace(AuthorName) ? author?.Descricao : AuthorName)" PageSize="3" />
-            @* <div class="ms-3">
-                <SfButton CssClass="e-btn e-outline" IconCss="fa fa-redo" 
-                          @onclick="RetryAiAsync">Retry</SfButton>
-            </div> *@
         </div>
     }
 </div>
