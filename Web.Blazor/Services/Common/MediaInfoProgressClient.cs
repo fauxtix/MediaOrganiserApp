@@ -1,22 +1,24 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using System;
-using System.Threading.Tasks;
 
 namespace Web.Blazor.Services.Common;
 
-public class MediaInfoProgressClient
+public sealed class MediaInfoProgressClient
 {
     private HubConnection? _connection;
+
     public event Action<string>? ProgressReceived;
 
-    public async Task StartAsync(string baseUrl)
+    public async Task StartAsync(string apiBaseUrl)
     {
+        var hubUrl = $"{apiBaseUrl.TrimEnd('/')}/media-info-progress";
+
         _connection = new HubConnectionBuilder()
-            .WithUrl("https://localhost:44303/media-info-progress")
+            .WithUrl(hubUrl)
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.On<string, string>("ReceiveProgress", (connectionId, message) =>
+        // Server sends: ReceiveProgress(connectionId, message)
+        _connection.On<string, string>("ReceiveProgress", (_, message) =>
         {
             ProgressReceived?.Invoke(message);
         });
@@ -24,11 +26,11 @@ public class MediaInfoProgressClient
         await _connection.StartAsync();
     }
 
-    public async Task StopAsync()
-    {
-        if (_connection != null)
-            await _connection.StopAsync();
-    }
-
     public string? ConnectionId => _connection?.ConnectionId;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_connection is not null)
+            await _connection.DisposeAsync();
+    }
 }

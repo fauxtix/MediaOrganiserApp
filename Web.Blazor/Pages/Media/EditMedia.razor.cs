@@ -640,7 +640,7 @@ namespace Web.Blazor.Pages.Media
                 {
                     if (!string.IsNullOrEmpty(dvdInfo.Runtime))
                         SelectedRecord.Tempo = MediaService.ConvertIOMDbTimeStringAsTime(dvdInfo.Runtime);
-                    if (!string.IsNullOrEmpty(dvdInfo.Released))
+                    if (!string.IsNullOrEmpty(dvdInfo.Released) && DataFormat.IsValidDate(dvdInfo.Released))
                         SelectedRecord.DataMov = MediaService.ConvertIOMDbStringAsDate(dvdInfo.Released);
                     if (!string.IsNullOrEmpty(dvdInfo.imdbRating))
                         SelectedRecord.Rating = MediaService.ConvertIMDbRatingToFiveScale(dvdInfo.imdbRating);

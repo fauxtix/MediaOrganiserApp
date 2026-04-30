@@ -1,10 +1,7 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.WebApi.Hubs;
+
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Net.Http.Json;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
@@ -14,14 +11,12 @@ public sealed class AiBookClientService
     private readonly ILogger<AiBookClientService> _logger;
     private readonly IConfiguration _env;
     private readonly string _uri;
-    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
 
-    public AiBookClientService(HttpClient httpClient, ILogger<AiBookClientService> logger, IConfiguration env, IHubContext<MediaInfoProgressHub> hubContext)
+    public AiBookClientService(HttpClient httpClient, ILogger<AiBookClientService> logger, IConfiguration env)
     {
         _httpClient = httpClient;
         _logger = logger;
         _env = env;
-        _hubContext = hubContext;
 
         if (!string.IsNullOrWhiteSpace(_env["ApiKey"]))
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
@@ -123,14 +118,6 @@ public sealed class AiBookClientService
         {
             _logger.LogError(ex, "AI - Error generating book summary (summary-only).");
             return null;
-        }
-    }
-
-    public async Task NotifyProgress(string? connectionId, string message)
-    {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-        {
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, message);
         }
     }
 }
