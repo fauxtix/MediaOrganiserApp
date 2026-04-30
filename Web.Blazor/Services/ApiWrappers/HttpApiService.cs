@@ -18,7 +18,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public string GetApiEndpoint(string apiEndpointSetting)
         {
-            string WebApiDomain = Env["BaseUrl"];
+            string WebApiDomain = $"{Env["BaseUrl"]}/api";
             string WebApiKey = Env["ApiKey"];
 
             //string apiEndpointOld = Env[$"API_Endpoints:{apiEndpointSetting}"];

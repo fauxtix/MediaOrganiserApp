@@ -15,7 +15,7 @@ namespace Web.Blazor.Services.ApiWrappers
         {
             _env = env;
             _logger = logger;
-            _appLogUri = $"{_env["BaseUrl"]}/AppLog";
+            _appLogUri = $"{_env["BaseUrl"]}/api/AppLog";
             _httpClient = httpClient;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
 

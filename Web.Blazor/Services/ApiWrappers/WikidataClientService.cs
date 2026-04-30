@@ -14,14 +14,13 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public WikidataClientService(HttpClient http,
             ILogger<WikidataClientService> logger,
-            IConfiguration config,
             IConfiguration env)
         {
             _http = http;
             _logger = logger;
             _env = env;
             _http.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _uri = $"{_env["BaseUrl"]}/wikidata";
+            _uri = $"{_env["BaseUrl"]}/api/wikidata";
         }
 
         public async Task<List<BookResult>?> GetBooksByAuthorAsync(string author, string lang = "en")

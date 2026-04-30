@@ -25,7 +25,7 @@ namespace Web.Blazor.Services.Common
             _env = Env;
 
             httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/mostused";
+            _Uri = $"{_env["BaseUrl"]}/api/mostused";
 
         }
         public async Task<string> GetOpcaoMaisUsada(string field, string table, string key, string description, string tabelaAUsar = "publicacao")

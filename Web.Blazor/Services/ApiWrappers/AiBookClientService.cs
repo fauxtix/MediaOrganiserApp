@@ -20,7 +20,7 @@ public sealed class AiBookClientService
 
         if (!string.IsNullOrWhiteSpace(_env["ApiKey"]))
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-        _uri = $"{_env["BaseUrl"]}/Ai";
+        _uri = $"{_env["BaseUrl"]}/api/Ai";
     }
 
     // Return null on transient failure/cancellation; return list (possibly empty) only on success

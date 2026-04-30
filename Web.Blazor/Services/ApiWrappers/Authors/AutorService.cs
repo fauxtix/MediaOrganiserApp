@@ -33,7 +33,7 @@ namespace Web.Blazor.Services.ApiWrappers.Authors
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/authors";
+            _Uri = $"{_env["BaseUrl"]}/api/authors";
         }
 
         public async Task<IEnumerable<AutorDTO>> GetAllAsync()

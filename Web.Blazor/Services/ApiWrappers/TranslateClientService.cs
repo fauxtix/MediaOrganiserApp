@@ -16,7 +16,7 @@ public sealed class TranslateClientService
         _http = http;
         _logger = logger;
         _http.DefaultRequestHeaders.Add("ApiKey", config["ApiKey"]);
-        _baseUrl = (config["BaseUrl"] ?? string.Empty).TrimEnd('/');
+        _baseUrl = $"{config["BaseUrl"]}/api";
     }
 
     public async Task<TranslateResponseDto?> TranslateAsync(TranslateRequestDto req, CancellationToken cancellationToken = default)

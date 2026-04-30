@@ -36,7 +36,7 @@ namespace Web.Blazor.Services.ApiWrappers
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/publications";
+            _Uri = $"{_env["BaseUrl"]}/api/publications";
             _authenticationStateProvider = authenticationStateProvider;
             _validationService = validationService;
         }

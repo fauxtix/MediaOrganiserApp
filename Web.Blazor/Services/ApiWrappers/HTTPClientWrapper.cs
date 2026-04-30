@@ -31,7 +31,7 @@ public class HTTPClientWrapper<T> : IHTTPClientWrapper<T> where T : class
     {
         _clientFactory = clientFactory;
         _config = config;
-        _apiUrl = config["BaseUrl"];
+        _apiUrl = $"{_config["BaseUrl"]}/api";
         _httpClient = _clientFactory.CreateClient();
         _httpClient.DefaultRequestHeaders.Add("ApiKey", _config["BaseUrl"]);
     }

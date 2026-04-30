@@ -16,7 +16,7 @@
             _logger = logger;
             _env = Env;
             httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/pdf";
+            _Uri = $"{_env["BaseUrl"]}/api/pdf";
 
         }
 

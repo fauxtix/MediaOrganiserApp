@@ -26,7 +26,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _env = env;
 
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _uri = $"{_env["BaseUrl"]}/Playlists";
+            _uri = $"{_env["BaseUrl"]}/api/Playlists";
         }
 
         // ------------- PLAYLISTS -------------

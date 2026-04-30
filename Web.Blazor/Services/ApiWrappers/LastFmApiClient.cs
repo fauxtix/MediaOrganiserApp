@@ -21,7 +21,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
             _env = env;
             _http.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/media";
+            _Uri = $"{_env["BaseUrl"]}/api/media";
         }
 
 

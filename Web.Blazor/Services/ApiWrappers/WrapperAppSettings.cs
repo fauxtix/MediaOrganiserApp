@@ -24,7 +24,7 @@ public class WrapperAppSettings : IAppSettingsService
                                     ILogger<WrapperAppSettings> logger, HttpClientConfigurationService httpClientConfigService)
     {
         _env = env;
-        _url = $"{_env["BaseUrl"]}/appsettings";
+        _url = $"{_env["BaseUrl"]}/api/appsettings";
         _getSettingsUrl = $"{_url}/settings";
         _updateLanguageUrl = $"{_url}/updatelanguage";
         _updateSettingsUrl = $"{_url}/updatesettings";

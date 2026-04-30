@@ -32,7 +32,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _env = Env;
 
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/categorias";
+            _Uri = $"{_env["BaseUrl"]}/api/categorias";
         }
 
         public async Task<IEnumerable<CategoryVM>> GetAllAsync(CategoryType categoryType)

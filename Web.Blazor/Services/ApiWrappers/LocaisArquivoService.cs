@@ -22,7 +22,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
             _env = Env;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/storageplaces";
+            _Uri = $"{_env["BaseUrl"]}/api/storageplaces";
         }
 
         public async Task<IEnumerable<LocalArquivoVM>> GetAllAsync()

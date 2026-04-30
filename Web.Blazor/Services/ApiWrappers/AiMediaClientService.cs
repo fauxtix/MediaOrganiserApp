@@ -19,7 +19,7 @@ public partial class AiMediaClientService
         _env = env;
 
         _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-        _uri = $"{_env["BaseUrl"]}/Ai";
+        _uri = $"{_env["BaseUrl"]}/api/Ai";
     }
 
     public async Task<AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)

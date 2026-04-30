@@ -28,7 +28,7 @@ namespace Web.Blazor.Services.Common
             _env = Env;
             _logger = logger;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/stats";
+            _Uri = $"{_env["BaseUrl"]}/api/stats";
         }
 
         public async Task<int> GetCountFromAuthorsWithoutPubs()

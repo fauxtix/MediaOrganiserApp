@@ -30,7 +30,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
             _env = Env;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _uri = $"{_env["BaseUrl"]}/dashboard";
+            _uri = $"{_env["BaseUrl"]}/api/dashboard";
         }
 
         public async Task<IEnumerable<SummaryDataDTO>> GetSummaryAsync(QueryOptions option)

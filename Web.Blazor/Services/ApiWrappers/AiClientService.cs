@@ -35,7 +35,7 @@ public sealed class AiClientService
         _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
 
         // In this solution BaseUrl seems to already include "/api".
-        _uri = $"{_env["BaseUrl"]}/Ai";
+        _uri = $"{_env["BaseUrl"]}/api/Ai";
     }
 
     public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(string name, string language)

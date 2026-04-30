@@ -32,7 +32,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
             _env = Env;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/publishers";
+            _Uri = $"{_env["BaseUrl"]}/api/publishers";
         }
 
         public async Task<IEnumerable<PublisherVM>> GetAllAsync()

@@ -31,7 +31,7 @@ namespace Web.Blazor.Services.ApiWrappers
             _logger = logger;
             _env = Env;
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/publicationsformats";
+            _Uri = $"{_env["BaseUrl"]}/api/publicationsformats";
         }
 
         public async Task<IEnumerable<FormatoPublicacaoVM>> GetAllAsync()
