@@ -60,8 +60,8 @@ public sealed class AiClientService
         var payload = new
         {
             messages = messages.Select(m => new { role = m.Role, content = m.Content }),
-            connectionId = connectionId,
-            language = language
+            connectionId,
+            language
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
