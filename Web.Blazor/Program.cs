@@ -55,13 +55,13 @@ public class Program
         builder.Services.AddSyncfusionBlazor();
         builder.Services.AddScoped<SfDialogService>();
 
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowAllOrigins", policy =>
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader());
-        });
+        //builder.Services.AddCors(options =>
+        //{
+        //    options.AddPolicy("AllowAllOrigins", policy =>
+        //        policy.AllowAnyOrigin()
+        //              .AllowAnyMethod()
+        //              .AllowAnyHeader());
+        //});
 
         #region Localization
         builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -153,7 +153,10 @@ public class Program
 
         if (app.Environment.IsDevelopment())
         {
-            Static.Endpoints.Initialize("https://localhost:44327/api");
+            var apiBaseUrl = builder.Configuration["BaseUrl"] ??
+                throw new InvalidOperationException("Missing Api:BaseUrl configuration.");
+
+            Static.Endpoints.Initialize(apiBaseUrl.TrimEnd('/') + "/api");
             app.UseDeveloperExceptionPage();
             app.UseMigrationsEndPoint();
             app.UseHttpsRedirection(); // no dev, porta automática

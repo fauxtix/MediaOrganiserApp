@@ -37,6 +37,15 @@ public class Program
         if (connString is null)
             throw new ArgumentNullException(nameof(connString), "Connection string cannot be null");
 
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllOrigins", policy =>
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader());
+        });
+
         // Configure Services
         builder.Services.AddControllers(options =>
         {
