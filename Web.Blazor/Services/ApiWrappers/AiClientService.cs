@@ -24,7 +24,7 @@ public sealed class AiClientService
         // Match existing wrapper convention (e.g., AutorService).
         _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
 
-        _uri = $"{_env["BaseUrl"]}/api/Ai";
+        _uri = $"{_env["BaseUrl"]}/api/ai";
     }
 
     public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(string name, string language)
@@ -55,7 +55,7 @@ public sealed class AiClientService
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var baseUrl = _uri;
-        var requestUri = $"{baseUrl}/ai/chat";
+        var requestUri = $"{baseUrl}/chat";
 
         var payload = new
         {
@@ -115,7 +115,7 @@ public sealed class AiClientService
     {
         if (string.IsNullOrWhiteSpace(connectionId)) return;
         var baseUrl = _uri;
-        var requestUri = $"{baseUrl}/ai/chat/cancel";
+        var requestUri = $"{baseUrl}/chat/cancel";
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
         {
             Content = JsonContent.Create(new { connectionId = connectionId })
