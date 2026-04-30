@@ -1,15 +1,5 @@
-using Microsoft.Extensions.Configuration;
-using System.Net.Http.Json;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using MediaOrganizerApp.Application.DTOs.AI;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
 using System.Text;
 
 namespace Web.Blazor.Services.ApiWrappers;
@@ -34,7 +24,6 @@ public sealed class AiClientService
         // Match existing wrapper convention (e.g., AutorService).
         _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
 
-        // In this solution BaseUrl seems to already include "/api".
         _uri = $"{_env["BaseUrl"]}/api/Ai";
     }
 
@@ -65,7 +54,7 @@ public sealed class AiClientService
         string? language,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        var baseUrl = _uri;
         var requestUri = $"{baseUrl}/ai/chat";
 
         var payload = new
@@ -125,7 +114,7 @@ public sealed class AiClientService
     public async Task CancelChatAsync(string? connectionId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(connectionId)) return;
-        var baseUrl = _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        var baseUrl = _uri;
         var requestUri = $"{baseUrl}/ai/chat/cancel";
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
         {

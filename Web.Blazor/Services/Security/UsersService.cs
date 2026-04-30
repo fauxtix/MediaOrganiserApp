@@ -27,7 +27,7 @@ namespace Web.Blazor.Services.Security
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/users";
+            _Uri = $"{_env["BaseUrl"]}/api/users";
         }
 
         public async Task<string> GetRoleIdByName(string roleName)

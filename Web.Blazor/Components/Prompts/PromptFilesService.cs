@@ -35,8 +35,8 @@ namespace Web.Blazor.Components.Prompts
                 }
             }
 
-            var baseUrl = _env["BaseUrl"] ?? string.Empty;
-            _Uri = string.IsNullOrWhiteSpace(baseUrl) ? "api" : $"{baseUrl.TrimEnd('/')}/AI";
+            var baseUrl = _env["BaseUrl"];
+            _Uri = $"{baseUrl}/api/AI";
         }
 
         public async Task<List<string>> GetPromptFilesAsync(CancellationToken cancellationToken = default)

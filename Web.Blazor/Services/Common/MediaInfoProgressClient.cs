@@ -26,6 +26,32 @@ public sealed class MediaInfoProgressClient
         await _connection.StartAsync();
     }
 
+    public async Task StopAsync()
+    {
+        if (_connection != null)
+        {
+            try
+            {
+                await _connection.StopAsync();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                await _connection.DisposeAsync();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _connection = null;
+        }
+    }
+
     public string? ConnectionId => _connection?.ConnectionId;
 
     public async ValueTask DisposeAsync()

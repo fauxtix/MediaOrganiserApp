@@ -156,7 +156,7 @@ public class Program
             var apiBaseUrl = builder.Configuration["BaseUrl"] ??
                 throw new InvalidOperationException("Missing Api:BaseUrl configuration.");
 
-            Static.Endpoints.Initialize(apiBaseUrl.TrimEnd('/') + "/api");
+            Static.Endpoints.Initialize(apiBaseUrl + "/api");
             app.UseDeveloperExceptionPage();
             app.UseMigrationsEndPoint();
             app.UseHttpsRedirection(); // no dev, porta automática

@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using MediaOrganizerApp.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 
 namespace Web.Blazor.Services.ApiWrappers
 {
@@ -30,33 +23,33 @@ namespace Web.Blazor.Services.ApiWrappers
             }
         }
 
-        private string BaseUrl => _env["BaseUrl"]?.TrimEnd('/') ?? throw new InvalidOperationException("BaseUrl not configured");
+        private string BaseUrl => $"{_env["BaseUrl"]}/api";
 
         public async Task<List<Conversation>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<List<Conversation>>($"{BaseUrl}/api/conversations", ct) ?? new List<Conversation>();
+            var response = await _http.GetFromJsonAsync<List<Conversation>>($"{BaseUrl}/conversations", ct) ?? new List<Conversation>();
             return response;
 
         }
 
         public async Task<Conversation?> GetAsync(string id, CancellationToken ct = default) =>
-            await _http.GetFromJsonAsync<Conversation>($"{BaseUrl}/api/conversations/{id}", ct);
+            await _http.GetFromJsonAsync<Conversation>($"{BaseUrl}/conversations/{id}", ct);
 
         public async Task SaveAsync(Conversation conv, CancellationToken ct = default)
         {
-            using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PutAsJsonAsync(_http, $"{BaseUrl}/api/conversations/{conv.Id}", conv, ct);
+            using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PutAsJsonAsync(_http, $"{BaseUrl}/conversations/{conv.Id}", conv, ct);
             resp.EnsureSuccessStatusCode();
         }
 
         public async Task CreateAsync(Conversation conv, CancellationToken ct = default)
         {
-            using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(_http, $"{BaseUrl}/api/conversations", conv, ct);
+            using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(_http, $"{BaseUrl}/conversations", conv, ct);
             resp.EnsureSuccessStatusCode();
         }
 
         public async Task DeleteAsync(string id, CancellationToken ct = default)
         {
-            using var resp = await _http.DeleteAsync($"{BaseUrl}/api/conversations/{id}", ct);
+            using var resp = await _http.DeleteAsync($"{BaseUrl}/conversations/{id}", ct);
             resp.EnsureSuccessStatusCode();
         }
     }
