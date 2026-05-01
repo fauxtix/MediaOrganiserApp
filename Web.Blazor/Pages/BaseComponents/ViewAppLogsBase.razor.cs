@@ -1,15 +1,12 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
 using Newtonsoft.Json;
 using Syncfusion.Blazor.Calendars;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Spinner;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Web.Blazor.Pages.BaseComponents
 {
@@ -17,6 +14,8 @@ namespace Web.Blazor.Pages.BaseComponents
     {
         [Inject] public ILogService logService { get; set; }
         [Inject] public ILogger<ViewAppLogsBase> logger { get; set; }
+        [Inject] public IStringLocalizer<App> L { get; set; }
+
         protected AppLogDto SelectedAppLog { get; set; }
         protected List<AppLogDto> Logs { get; set; }
         protected int LogId { get; set; }
@@ -38,6 +37,7 @@ namespace Web.Blazor.Pages.BaseComponents
         protected string alertTitle = "";
         protected bool AlertVisibility { get; set; }
         protected string WarningMessage { get; set; }
+        protected bool SendEmailDialogVisible { get; set; } = false;
 
 
 
@@ -94,7 +94,7 @@ namespace Web.Blazor.Pages.BaseComponents
             FilteredRecords = JsonConvert.DeserializeObject<List<AppLogDto>>(JsonConvert.SerializeObject(filteredData));
 
             var result = FilteredRecords?.ToList();
-            if ( result is not null && result.Any())
+            if (result is not null && result.Any())
             {
                 alertTitle = "Log Viewer";
                 DeleteLogEntryCaption = $"Marcou {FilteredRecords.Count()} registos para apagar. Não tem reversão! Backup recomendado antes de continuar";
@@ -221,6 +221,24 @@ namespace Web.Blazor.Pages.BaseComponents
                 LogGrid?.Refresh();
             }
 
+        }
+
+        protected void OpenReportDialog()
+        {
+            // ensure a log entry is selected; if not, open with blank content
+            SendEmailDialogVisible = true;
+        }
+
+
+
+        protected async Task OnEmailSent()
+        {
+            SendEmailDialogVisible = false;
+            // optionally show feedback to user
+            AlertVisibility = true;
+            alertTitle = "E-Mail";
+            WarningMessage = L["msgSuccess"];
+            StateHasChanged();
         }
 
         public void Dispose()

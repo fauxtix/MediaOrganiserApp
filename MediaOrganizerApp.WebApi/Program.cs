@@ -16,6 +16,8 @@ using MediaOrganizerApp.WebApi.Services;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using System.Net;
+using System.Net.Mail;
 
 namespace MediaOrganizerApp.WebApi;
 
@@ -126,6 +128,25 @@ public class Program
         builder.Services.AddSingleton(new LastfmClient(
             "b937bd55da5593aaf00108c65dbe0bb5",
             "3d96efe5880bf77ce36d5641b94fad4c"));
+
+
+        var from = builder.Configuration.GetSection("Mail")["From"];
+
+        var gmailSender = builder.Configuration.GetSection("Gmail")["Sender"];
+        var gmailPassword = builder.Configuration.GetSection("Gmail")["Password"];
+        var smtpServer = builder.Configuration.GetSection("Gmail")["SmtpServer"];
+        var gmailPort = Convert.ToInt32(builder.Configuration.GetSection("Gmail")["Port"]);
+
+        builder.Services.AddFluentEmail(gmailSender)
+            .AddRazorRenderer()
+            .AddSmtpSender(new SmtpClient(smtpServer)
+            {
+                UseDefaultCredentials = false,
+                Port = gmailPort,
+                Credentials = new NetworkCredential(gmailSender, gmailPassword),
+                EnableSsl = true,
+            });
+
 
         var app = builder.Build();
 

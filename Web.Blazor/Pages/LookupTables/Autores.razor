@@ -4,6 +4,7 @@
 
 @using MediaOrganizerApp.Application.DTOs
 @using Web.Blazor.Components
+@using Web.Blazor.Components.Authors
 @using Web.Blazor.Pages.BaseComponents
 @inject IJSRuntime JsRuntime
 
@@ -250,14 +251,24 @@ else
                 <div>
                     <SfButton CssClass="e-btn e-primary e-round-corner"
                               IconCss="fa fa-edit"
-                              @onclick="AddOrSaveRecord">
-                        &nbsp;@(localizerApp["btnSalvar"])
+                              @onclick="AddOrSaveRecord" 
+                              Content="@(localizerApp["btnSalvar"])">
                     </SfButton>
                     <SfButton CssClass="e-btn e-outline e-round-corner"
                               IconCss="fa fa-times"
+                              Content="@(localizerApp["btnFechar"])"
                               @onclick="Voltar">
-                        &nbsp;@(localizerApp["BtnSalir"])
                     </SfButton>
+
+                    @* Button to open the author's books dialog - enabled only in edit mode *@
+                    @if (blnEdit)
+                    {
+                        <SfButton CssClass="e-btn e-info e-round-corner float-left"
+                                  IconCss="fa fa-book"
+                                  @onclick="() => ShowBooksDialogVisibility = true"
+                                  Content="@(localizerApp["TituloLivrosDoAutor"])">
+                        </SfButton>
+                    }
                 </div>
             </FooterTemplate>
         </DialogTemplates>
@@ -293,6 +304,38 @@ else
             </FooterTemplate>
         </DialogTemplates>
         <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    @* New dialog to show the author's books (same behavior as in EditAuthor.razor) *@
+    <SfDialog Width="580px"
+              Height="auto"
+              IsModal="true"
+              MinHeight="380px"
+              ShowCloseIcon="true"
+              @bind-Visible="ShowBooksDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="font-weight-bold" style="font-size:1.25rem;">
+                    <img src="images/book-picture-icon.png" width="36" height="36" />
+                    @SelectedAuthor?.Descricao
+                </div>
+            </Header>
+            <Content>
+                <div class="d-flex justify-content-around align-items-center mb-2">
+                    <AuthorBooks AuthorName="@SelectedAuthor?.Descricao" PageSize="3" />
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              Content="@localizerApp["BtnSalir"]"
+                              @onclick="() => ShowBooksDialogVisibility = false">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=400></DialogAnimationSettings>
     </SfDialog>
 
     <ValidateErrorComponent Visible="@ErrorVisibility"
@@ -345,6 +388,9 @@ else
     {
         {"class", "custom_bold" }
     };
+
+    // dialog visibility to show the author's books from within the Edit dialog footer
+    protected bool ShowBooksDialogVisibility { get; set; }
 
     protected override void OnInitialized()
     {

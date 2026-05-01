@@ -1,5 +1,6 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace MediaOrganizerApp.Application.Interfaces.Services
@@ -12,5 +13,6 @@ namespace MediaOrganizerApp.Application.Interfaces.Services
         Task DeleteAll();
         Task DeleteById(int Id);
         Task DeleteFilteredRecords(IEnumerable<AppLogDto> FilteredRecords);
+        Task<HttpResponseMessage> SendEmail(object payload);
     }
 }

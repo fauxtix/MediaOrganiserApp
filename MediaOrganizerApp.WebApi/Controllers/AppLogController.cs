@@ -1,14 +1,11 @@
 ﻿using AutoMapper;
+using FluentEmail.Core;
+using FluentEmail.Smtp;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Domain.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
-using System.Linq;
+using System.Net.Mail;
 
 namespace MediaOrganizerApp.WebApi.Controllers
 {
@@ -20,12 +17,17 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly ILogger<AppLogController> _logger;
 
         private readonly ILogRepository _logRepository;
+        private readonly IFluentEmail _fluentEmail;
 
-        public AppLogController(ILogRepository logRepository, IMapper mapper, ILogger<AppLogController> logger)
+        public AppLogController(ILogRepository logRepository,
+                                IMapper mapper,
+                                ILogger<AppLogController> logger,
+                                IFluentEmail fluentEmail)
         {
             _logRepository = logRepository;
             _mapper = mapper;
             _logger = logger;
+            _fluentEmail = fluentEmail;
         }
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -160,6 +162,45 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        [HttpPost("send-error-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SendEmail([FromBody] Application.DTOs.EMail.AppLogEmailRequestDto request)
+        {
+            var location = GetControllerActionNames();
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.To))
+                    return BadRequest("Missing 'to' address.");
+
+                var subject = string.IsNullOrWhiteSpace(request.Subject) ? "Application error report" : request.Subject;
+                var body = request.Body ?? string.Empty;
+
+
+                var sendResult = await _fluentEmail
+                    .To(request.To)
+                    .Subject(subject)
+                    .Body(body, true)
+                    .SendAsync();
+
+                if (sendResult is not null && sendResult.Successful)
+                {
+                    return Ok();
+                }
+
+                var errors = sendResult?.ErrorMessages != null
+                    ? string.Join("; ", sendResult.ErrorMessages)
+                    : "Unknown send error";
+                _logger.LogWarning("Email send failed: {Errors}", errors);
+                return StatusCode(500, errors);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, e.Message);
+                return InternalError($"{location}: {e.Message} - {e.InnerException}");
+            }
+        }
 
         private string GetControllerActionNames()
         {

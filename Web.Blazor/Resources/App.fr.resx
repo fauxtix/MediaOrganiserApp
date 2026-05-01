@@ -1234,4 +1234,13 @@
   <data name="TituloTraduzirSinopse" xml:space="preserve">
     <value>Traduire le résumé</value>
   </data>
+  <data name="ReportErrorToAuthor" xml:space="preserve">
+    <value>Signaler un bug à l'auteur de l'application</value>
+  </data>
+  <data name="Email_To" xml:space="preserve">
+    <value>Pour</value>
+  </data>
+  <data name="TituloEnviar" xml:space="preserve">
+    <value>Envoyer</value>
+  </data>
 </root>

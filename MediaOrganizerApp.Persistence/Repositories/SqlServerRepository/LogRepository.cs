@@ -260,5 +260,10 @@ namespace MediaOrganizerApp.Persistence.Repositories.SqlServerRepository
                 return null;
             }
         }
+
+        public Task SendEmail(object payload)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

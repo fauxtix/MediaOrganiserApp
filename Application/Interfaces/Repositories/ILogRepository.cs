@@ -18,6 +18,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Repositories
         void LogLogin(string userId, OpcaoCRUD Operacao, string sessionId);
         Task<IEnumerable<AppLog>> FilterLogins();
         Task DeleteByFilter(IEnumerable<AppLogDto> filteredLogs);
+        Task SendEmail(object payload);
 
     }
 }

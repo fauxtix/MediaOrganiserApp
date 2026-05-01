@@ -1,10 +1,9 @@
 ﻿@page "/admin/viewapplogs"
 @using Microsoft.Extensions.Localization
 @using Web.Blazor.Components
+@using Web.Blazor.Components.Logs
 @using static MediaOrganizerApp.Application.Enums.AppDefinitions
-
-@inject IStringLocalizer<App> L
-@*@attribute [Authorize(Roles = "Admin")]*@
+@inject IConfiguration Configuration
 
 @inherits ViewAppLogsBase
 @{
@@ -43,9 +42,9 @@ else
                     AllowSorting="true"
                     AllowFiltering="true"
                     RowHeight="32"
-                    Toolbar="@Tool" 
-                    EnableAltRow = "true"
-                    EnableStickyHeader = "true"
+                    Toolbar="@Tool"
+                    EnableAltRow="true"
+                    EnableStickyHeader="true"
                     TValue="AppLogDto"
                     AllowTextWrap="true">
                 <GridPageSettings PageSize="15" PageSizes="@(new int[] { 15, 20, 50, 100, 200 })"></GridPageSettings>
@@ -94,17 +93,17 @@ else
                         <GridCommandColumns>
                             <GridCommandColumn Type=CommandButtonType.Edit
                                                ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           CssClass = "e-btn e-success e-round",
-                                                                           IconCss = "fa fa-eye"
-                                                                       })">
+                                                                               {
+                                                                                   CssClass = "e-btn e-success e-round",
+                                                                                   IconCss = "fa fa-eye"
+                                                                               })">
                             </GridCommandColumn>
                             <GridCommandColumn Type=CommandButtonType.Delete
                                                ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           CssClass = "e-btn e-danger e-round",
-                                                                           IconCss = "fa fa-trash"
-                                                                       })">
+                                                                               {
+                                                                                   CssClass = "e-btn e-danger e-round",
+                                                                                   IconCss = "fa fa-trash"
+                                                                               })">
                             </GridCommandColumn>
                         </GridCommandColumns>
                     </GridColumn>
@@ -127,14 +126,26 @@ else
         </Content>
         <FooterTemplate>
             <div>
+                @if (SelectedAppLog.Level.ToLower() == "error")
+                {
+                    <SfButton CssClass="e-outline e-success e-round-corner float-left" IconCss="fa fa-bug"
+                              @onclick="@(() => OpenReportDialog())" Content="@L["btnSendEmail"]">
+                    </SfButton>
+                }
+
                 <SfButton CssClass="e-outline e-success e-round-corner" IconCss="fa fa-times"
-                          @onclick="@(()=>ViewLogVisibility = false)" Content="@L["BtnSalir"]">
+                          @onclick="@(() => ViewLogVisibility = false)" Content="@L["BtnSalir"]">
                 </SfButton>
             </div>
         </FooterTemplate>
     </DialogTemplates>
     <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=500></DialogAnimationSettings>
 </SfDialog>
+
+<SendErrorEmailDialog Visible="SendEmailDialogVisible"
+                      LogEntry="SelectedAppLog"
+                      VisibleChanged="@((value) => SendEmailDialogVisible = value)"
+                      OnSent="OnEmailSent" />
 
 <ConfirmDeleteComponent AlertMessageType="AlertMessageType.Error"
                         DialogTitle="@L["TituloApagarRegistosLog"]"

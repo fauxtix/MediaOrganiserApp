@@ -59,6 +59,21 @@ namespace Web.Blazor.Services.ApiWrappers
             }
         }
 
+        public async Task<HttpResponseMessage> SendEmail(object payload)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{_appLogUri}/send-error-email", payload);
+                return response;
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(exc, "Erro ao enviar email de log (API AppLog)");
+                return new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError);
+            }
+        }
+
+
         public async Task<IEnumerable<AppLogDto>> GetAppLogs()
         {
             try
