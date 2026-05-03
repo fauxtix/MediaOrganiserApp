@@ -14,6 +14,7 @@ using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.ApiWrappers.Authors;
 using Web.Blazor.Services.Common;
 using Web.Blazor.Services.DocumentHelpers;
+using Web.Blazor.Services.EmailServices;
 using Web.Blazor.Services.Recipes;
 using Web.Blazor.Services.Reporting;
 using Web.Blazor.Services.Security;
@@ -106,6 +107,11 @@ namespace Web.Blazor
             services.AddScoped<IUserService, UserService>();
 
             services.AddTransient<HttpClientConfigurationService>();
+
+            // email template service - 05/2026 
+
+            services.AddHttpClient<EmailTemplateService>();
+
 
             // Reporting
 

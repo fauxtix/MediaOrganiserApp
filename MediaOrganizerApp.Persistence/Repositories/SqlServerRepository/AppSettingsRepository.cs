@@ -72,6 +72,15 @@ public class AppSettingsRepository : IAppSettingsRepository
         parameters.Add("@ModelBaseUrl", settings?.ModelBaseUrl);
         parameters.Add("@AiModelName", settings?.AiModelName);
 
+        // new settings
+        parameters.Add("@ApiBaseUrl_Production", settings?.ApiBaseUrl_Production);
+        parameters.Add("@ApiBaseUrl_Development", settings?.ApiBaseUrl_Development);
+        parameters.Add("@FileManagerApiBaseUrl_Development", settings?.FileManagerApiBaseUrl_Development);
+        parameters.Add("@FileManagerApiBaseUrl_Production", settings?.FileManagerApiBaseUrl_Production);
+        parameters.Add("@ApiBaseUrl_Production", settings?.ApiBaseUrl_Production);
+        parameters.Add("@ApiBaseUrl_Production", settings?.ApiBaseUrl_Production);
+        parameters.Add("@IMDbKey", settings?.IMDbKey);
+        parameters.Add("@Database_ConnectionString", settings?.Database_ConnectionString);
         try
         {
             using (var connection = _context.CreateConnection())

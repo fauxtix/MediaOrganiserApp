@@ -35,5 +35,13 @@
         // AI settings
         public string ModelBaseUrl { get; set; }
         public string AiModelName { get; set; }
+
+        // new settings 02-05-2026
+        public string ApiBaseUrl_Production { get; set; }
+        public string ApiBaseUrl_Development { get; set; }
+        public string FileManagerApiBaseUrl_Development { get; set; }
+        public string FileManagerApiBaseUrl_Production { get; set; }
+        public string IMDbKey { get; set; }
+        public string Database_ConnectionString { get; set; }
     }
 }

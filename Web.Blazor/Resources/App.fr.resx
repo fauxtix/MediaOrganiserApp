@@ -1243,4 +1243,25 @@
   <data name="TituloEnviar" xml:space="preserve">
     <value>Envoyer</value>
   </data>
+  <data name="Url_Api_Desenvolvimento" xml:space="preserve">
+    <value>URL de l'API - Production</value>
+  </data>
+  <data name="ApiBaseUrl_Production" xml:space="preserve">
+    <value>URL de l'API - Développement</value>
+  </data>
+  <data name="ApiBaseUrl_Development" xml:space="preserve">
+    <value>URL de l'API - Développement</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Development" xml:space="preserve">
+    <value>Gestionnaire de fichiers - URL de l'API - Développement</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Production" xml:space="preserve">
+    <value>Gestionnaire de fichiers - URL de l'API - Production</value>
+  </data>
+  <data name="IMDbKey" xml:space="preserve">
+    <value>Clé IMDB</value>
+  </data>
+  <data name="Database_ConnectionString" xml:space="preserve">
+    <value>Chaîne de connexion à la base de données</value>
+  </data>
 </root>

@@ -1242,4 +1242,25 @@
   <data name="TituloEnviar" xml:space="preserve">
     <value>Send</value>
   </data>
+  <data name="Url_Api_Desenvolvimento" xml:space="preserve">
+    <value>API URL - Production</value>
+  </data>
+  <data name="ApiBaseUrl_Production" xml:space="preserve">
+    <value>API URL - Production</value>
+  </data>
+  <data name="ApiBaseUrl_Development" xml:space="preserve">
+    <value>API URL - Development</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Development" xml:space="preserve">
+    <value>File Manager - API URL - Development</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Production" xml:space="preserve">
+    <value>File Manager - API URL - Production</value>
+  </data>
+  <data name="IMDbKey" xml:space="preserve">
+    <value>IMDB key</value>
+  </data>
+  <data name="Database_ConnectionString" xml:space="preserve">
+    <value>Database connection string</value>
+  </data>
 </root>

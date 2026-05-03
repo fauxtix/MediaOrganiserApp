@@ -1243,4 +1243,25 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TituloEnviar" xml:space="preserve">
     <value>Enviar</value>
   </data>
+  <data name="Url_Api_Desenvolvimento" xml:space="preserve">
+    <value>URL de la API - Producción</value>
+  </data>
+  <data name="ApiBaseUrl_Production" xml:space="preserve">
+    <value>URL de la API - Production</value>
+  </data>
+  <data name="ApiBaseUrl_Development" xml:space="preserve">
+    <value>URL de la API - Desarrollo</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Development" xml:space="preserve">
+    <value>Gestor de archivos - URL de la API - Desarrollo</value>
+  </data>
+  <data name="FileManagerApiBaseUrl_Production" xml:space="preserve">
+    <value>Gestor de archivos - URL de la API - Producción</value>
+  </data>
+  <data name="IMDbKey" xml:space="preserve">
+    <value>Clave de IMDB</value>
+  </data>
+  <data name="Database_ConnectionString" xml:space="preserve">
+    <value>Cadena de conexión a la base de datos</value>
+  </data>
 </root>
