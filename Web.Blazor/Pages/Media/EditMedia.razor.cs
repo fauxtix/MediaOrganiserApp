@@ -26,6 +26,7 @@ namespace Web.Blazor.Pages.Media
         [Inject] public ICategoriasService categoriasService { get; set; }
         [Inject] public IGetYoutubeVideoMetadata YoutubeService { get; set; }
         [Inject] public IMediaServiceWrapper MediaService { get; set; }
+        [Inject] public IAppSettingsService  AppSettingsService { get; set; }
 
         [Inject] public AiMediaClientService AiMediaClient { get; set; }
 
@@ -38,6 +39,8 @@ namespace Web.Blazor.Pages.Media
         [Inject] IWebHostEnvironment Env { get; set; }
 
         [Inject] TranslateClientService TranslateClient { get; set; }
+
+        protected ApplicationSettingsDto AppSettings;
 
 
         protected SfUploader sfUploaderCover;
@@ -97,6 +100,8 @@ namespace Web.Blazor.Pages.Media
         {
             formatList = await formatosService.Listar();
             categoryList = await categoriasService.AllAsync(CategoryType.Media); // true = Publicacoes, false = Media
+            AppSettings = await AppSettingsService.GetSettingsAsync();
+
         }
 
         protected override void OnParametersSet()
@@ -260,7 +265,9 @@ namespace Web.Blazor.Pages.Media
             }
             var shouldAIBeUsed = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
 
-            await ProgressClient.StartAsync(NavigationManager.BaseUri.TrimEnd('/'));
+            var apiUrlAddress = (await AppSettingsService.GetSettingsAsync()).ApiBaseUrl_Development.TrimEnd('/');
+            await ProgressClient.StartAsync(apiUrlAddress);
+
             ProgressClient.ProgressReceived -= OnProgressReceived;
             ProgressClient.ProgressReceived += OnProgressReceived;
             if (string.IsNullOrWhiteSpace(SelectedRecord.FileName)
