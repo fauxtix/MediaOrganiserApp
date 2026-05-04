@@ -11,6 +11,7 @@ using MediaOrganizerApp.Persistence;
 using MediaOrganizerApp.Persistence.Services.MusicMetadata;
 using MediaOrganizerApp.Persistence.Services.WikiData;
 using MediaOrganizerApp.Persistence.Services.Youtube;
+using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
 using Scalar.AspNetCore;

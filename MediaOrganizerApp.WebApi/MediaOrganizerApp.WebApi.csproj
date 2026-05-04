@@ -9,6 +9,7 @@
   <ItemGroup>
     <None Remove="Prompts\author-books.prompt.txt" />
     <None Remove="Prompts\author-profile.prompt.txt" />
+    <None Remove="Prompts\book-summary-full - Copy.prompt.txt" />
     <None Remove="Prompts\book-summary-full.prompt.txt" />
     <None Remove="Prompts\book-summary-only.prompt.txt" />
     <None Remove="Prompts\media-edition-year.prompt.txt" />
@@ -34,11 +35,26 @@
     <Content Include="Prompts\author-books.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Prompts\book-summary-full - Copy.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\book-summary-only - Copy.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Prompts\media-edition-year.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\media-metadata - Copy.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\media-notes - Copy.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\translate-text - Copy.prompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\translate-text.prompt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
