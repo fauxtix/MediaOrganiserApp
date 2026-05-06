@@ -24,24 +24,27 @@ namespace Web.Blazor.Components.Authors
         private bool aiFallbackUsed;
         private bool googleRateLimited;
         private int currentPage = 1;
-        private string SpinnerLabel { get; set; }
+
+        private string SpinnerLabel { get; set; } = "";
         private bool SpinnerVisible { get; set; }
-        private string MessageLabel { get; set; }
+
+        private string MessageLabel { get; set; } = "";
         private bool MessageVisible { get; set; }
+
         private readonly SemaphoreSlim _spinnerLock = new(1, 1);
         private bool showAISearchDialog = false;
+
+        // holds last provider result until assigned to books
         private List<GoogleBookInfo>? resultList = null;
 
-        string uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
-        private IEnumerable<GoogleBookInfo> FilteredBooks => (books ?? Enumerable.Empty<GoogleBookInfo>()).Where(b =>
-            !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
+        private string uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
         // cache filtered books to avoid repeated deferred LINQ enumeration during render
         private List<GoogleBookInfo>? _filteredBooks;
         private IEnumerable<GoogleBookInfo> CachedFilteredBooks =>
             (_filteredBooks ??= (books ?? Enumerable.Empty<GoogleBookInfo>())
-                .Where(b => !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail)).ToList());
+                .Where(b => !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail))
+                .ToList());
 
         private int TotalPages
         {
@@ -53,7 +56,8 @@ namespace Web.Blazor.Components.Authors
             }
         }
 
-        private IEnumerable<GoogleBookInfo> PagedBooks => CachedFilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
+        private IEnumerable<GoogleBookInfo> PagedBooks =>
+            CachedFilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
 
         protected override async Task OnParametersSetAsync()
         {
@@ -81,6 +85,7 @@ namespace Web.Blazor.Components.Authors
         private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items, string source)> _booksCache = new();
         private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
         private static readonly TimeSpan AiCacheTtl = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan WikidataCacheTtl = TimeSpan.FromMinutes(30);
 
         // Allow external components to clear the client-side cache for an author (e.g. Retry button)
         public static void ClearCacheForAuthor(string? author)
@@ -89,167 +94,257 @@ namespace Web.Blazor.Components.Authors
             _booksCache.TryRemove(author, out _);
         }
 
-        private async Task LoadBooksAsync(CancellationToken ct)
+        // Spec: cache is invalid if first record Id contains 'ratelimited' or 'error'
+        private static bool HasErrorMarkerId(GoogleBookInfo? book) =>
+            book?.Id?.Contains("ratelimited", StringComparison.OrdinalIgnoreCase) == true
+         || book?.Id?.Contains("error", StringComparison.OrdinalIgnoreCase) == true;
+
+        private static TimeSpan GetTtlForSource(string? source)
         {
-            ct.ThrowIfCancellationRequested(); books = null;
-            _filteredBooks = null;
-            if (string.IsNullOrWhiteSpace(AuthorName)) return;
+            if (string.Equals(source, "AI", StringComparison.OrdinalIgnoreCase)) return AiCacheTtl;
+            if (string.Equals(source, "Wikidata", StringComparison.OrdinalIgnoreCase)) return WikidataCacheTtl;
+            return GoogleCacheTtl;
+        }
 
-            // Try cache first
-            if (_booksCache.TryGetValue(AuthorName!, out var cached))
+        private bool TryUseCacheOrClearBadCache(string author)
+        {
+            if (!_booksCache.TryGetValue(author, out var cached))
+                return false;
+
+            var ttl = GetTtlForSource(cached.source);
+            if (DateTime.UtcNow - cached.fetchedAt >= ttl)
             {
-                var ttl = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase) ? AiCacheTtl : GoogleCacheTtl;
-                if (DateTime.UtcNow - cached.fetchedAt < ttl)
-                {
-                    // If cached items exist and contain data, use them. If the cached list is empty,
-                    // remove the cache entry so we will retry the external lookup (which includes AI fallback).
-                    if (cached.items is not null && cached.items.Count > 0)
-                    {
-                        books = cached.items;
-                        if (books.FirstOrDefault()?.Id?.ToLower() != "ratelimited")
-                        {
-                            if (books.FirstOrDefault()?.Id?.ToLower() != "error")
-                            {
-                                aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
-                                MessageLabel = "Books cached result";
-                                UpdateMessageLabelAsync(MessageLabel);
-                                return;
-                            }
-                        }
-                    }
-
-                    // cached but empty -> remove and continue to retry (including AI fallback)
-                    _booksCache.TryRemove(AuthorName!, out _);
-                }
-                else
-                {
-                    // remove stale entry
-                    _booksCache.TryRemove(AuthorName!, out _);
-                }
+                _booksCache.TryRemove(author, out _);
+                return false;
             }
 
-            booksLoading = true;
-            googleRateLimited = false;
+            if (cached.items is null || cached.items.Count == 0)
+            {
+                _booksCache.TryRemove(author, out _);
+                return false;
+            }
 
+            var first = cached.items.FirstOrDefault();
+            if (HasErrorMarkerId(first))
+            {
+                // Spec: if marker is present, clear cache and continue to providers
+                _booksCache.TryRemove(author, out _);
+                return false;
+            }
+
+            books = cached.items;
+            _filteredBooks = null;
+            aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
+
+            MessageLabel = "Books cached result";
+            _ = UpdateMessageLabelAsync(MessageLabel);
+            return true;
+        }
+
+        private void SetBooksAndCache(List<GoogleBookInfo> list, string source)
+        {
+            books = list ?? new List<GoogleBookInfo>();
+            _filteredBooks = null;
+
+            _booksCache[AuthorName!] = (DateTime.UtcNow, books, source);
+        }
+
+        private async Task<List<GoogleBookInfo>?> TryFetchFromGoogleAsync(CancellationToken ct)
+        {
             try
             {
+                await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
+                var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
 
-                try
+                // Normalize marker-style returns
+                if (result != null && result.Count > 0 && HasErrorMarkerId(result.FirstOrDefault()))
                 {
-                    SpinnerLabel = L["LoadingMsg"];
-                    await UpdateSpinnerLabelAsync(SpinnerLabel);
-
-                    var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
-                    if (result != null)
+                    if (result.FirstOrDefault()?.Id?.Contains("ratelimited", StringComparison.OrdinalIgnoreCase) == true
+                        || string.Equals(result.FirstOrDefault()?.Id, "RateLimited", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (result.FirstOrDefault()?.Id == "RateLimited")
-                        {
-                            googleRateLimited = true;
-                            MessageLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
-                            UpdateMessageLabelAsync(MessageLabel);
-                            Logger.LogWarning("Google Books API rate limited for author {Author}", AuthorName);
-                        }
-                        else if (result.FirstOrDefault()?.Id == "Error")
-                        {
-                            MessageLabel = $"Error fetching Google Books for {AuthorName}";
-                            UpdateMessageLabelAsync(MessageLabel);
-                            Logger.LogWarning("Error fetching Google Books for author {Author}", AuthorName);
-                        }
-                    }
-
-                    if (result == null || result.Count == 0 || result.FirstOrDefault()?.Id.ToLower().Contains("ratelimited") == true || result.FirstOrDefault()?.Id.ToLower().Contains("error") == true)
-                    {
-                        // No Google results -> attempt WikiData fallback
-                        MessageLabel = $"No Google results for {AuthorName}; attempting WikiData fallback.";
-                        UpdateMessageLabelAsync(MessageLabel);
-                        Logger.LogInformation("No Google results for {Author}; attempting WikiData fallback.", AuthorName);
-
-                        var wikidataResult = await WikidataClient.GetBooksByAuthorAsync(AuthorName!, uiLanguage);
-                        if (wikidataResult != null && wikidataResult.Count > 0)
-                        {
-                            List<GoogleBookInfo> wikiDataResults = new();
-                            foreach (var b in wikidataResult)
-                            {
-                                wikiDataResults.Add(new GoogleBookInfo
-                                {
-                                    Title = b.Title,
-                                    PublishedDate = b.PublicationYear.ToString(), // year only, but better than nothing
-                                    Thumbnail = b.CoverImage,
-                                    Confidence = null // Wikidata results are not AI-generated, so confidence is not applicable
-                                });
-                            }
-
-                            resultList = wikiDataResults;
-                            return;
-                        }
-                        else
-                        {
-                            MessageLabel = $"WikiData returned no results for {AuthorName}; falling back to AI.";
-                            UpdateMessageLabelAsync(SpinnerLabel);
-                            Logger.LogWarning("WikiData returned no results for {Author}; falling back to AI.", AuthorName);
-                        }
-
-                        showAISearchDialog = true;
-                        // var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                        // if (aiResult != null && aiResult.Count > 0)
-                        // {
-                        //     resultList = aiResult.ToList();
-                        //     aiFallbackUsed = true;
-                        // }
-                        // else
-                        // {
-                        //     resultList = new List<GoogleBookInfo>();
-                        // }
+                        googleRateLimited = true;
+                        MessageLabel = $"Google Books rate-limited for {AuthorName}; trying Wikidata.";
+                        await UpdateMessageLabelAsync(MessageLabel);
                     }
                     else
                     {
-                        resultList = result.ToList();
+                        MessageLabel = $"Error fetching Google Books for {AuthorName}; trying Wikidata.";
+                        await UpdateMessageLabelAsync(MessageLabel);
                     }
+
+                    return null;
                 }
-                catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+
+                if (result == null || result.Count == 0)
                 {
-                    // Google rate-limited -> try AI
-                    MessageLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
-                    UpdateMessageLabelAsync(MessageLabel);
-                    Logger.LogWarning(httpEx, "Google Books rate-limited for {Author}; falling back to AI.", AuthorName);
-                    showAISearchDialog = true;
-
-                    googleRateLimited = true;
-
-                    // var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                    // if (aiResult != null && aiResult.Count > 0)
-                    // {
-                    //     resultList = aiResult.ToList();
-                    //     aiFallbackUsed = true;
-                    // }
-                    // else
-                    // {
-                    //     resultList = new List<GoogleBookInfo>();
-                    // }
+                    MessageLabel = $"No Google results for {AuthorName}; trying Wikidata.";
+                    await UpdateMessageLabelAsync(MessageLabel);
+                    return null;
                 }
-                catch (Exception ex)
+
+                return result.ToList();
+            }
+            catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                googleRateLimited = true;
+                MessageLabel = $"Google Books rate-limited for {AuthorName}; trying Wikidata.";
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
+            catch (Exception)
+            {
+                MessageLabel = $"Error fetching Google Books for {AuthorName}; trying Wikidata.";
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
+        }
+
+        private async Task<List<GoogleBookInfo>?> TryFetchFromWikidataAsync(CancellationToken ct)
+        {
+            try
+            {
+                MessageLabel = $"Searching Wikidata for {AuthorName}...";
+                await UpdateMessageLabelAsync(MessageLabel);
+
+                var wikidataResult = await WikidataClient.GetBooksByAuthorAsync(AuthorName!, uiLanguage);
+                if (wikidataResult == null || wikidataResult.Count == 0)
                 {
-                    // Other errors -> try AI fallback as well
-                    MessageLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
-                    UpdateMessageLabelAsync(MessageLabel);
-                    Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
-                    showAISearchDialog = true;
-
+                    MessageLabel = $"Wikidata returned no results for {AuthorName}.";
+                    await UpdateMessageLabelAsync(MessageLabel);
+                    return null;
                 }
 
-                books = resultList ?? new List<GoogleBookInfo>();
-                // clear cached filtered list so it will be recomputed
-                _filteredBooks = null;
+                var wikiDataResults = new List<GoogleBookInfo>();
+                foreach (var b in wikidataResult)
+                {
+                    wikiDataResults.Add(new GoogleBookInfo
+                    {
+                        Title = b.Title,
+                        PublishedDate = b.PublicationYear.ToString(),
+                        Thumbnail = b.CoverImage,
+                        Confidence = null
+                    });
+                }
 
-                // store in cache (even empty) to avoid hammering API for a short period
-                var source = aiFallbackUsed ? "AI" : "Google";
-                _booksCache[AuthorName!] = (DateTime.UtcNow, books, source);
+                return wikiDataResults;
+            }
+            catch (HttpRequestException)
+            {
+                MessageLabel = $"Error fetching Wikidata results for {AuthorName}.";
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
+            catch (Exception)
+            {
+                MessageLabel = $"Error fetching Wikidata results for {AuthorName}.";
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
+        }
+
+        private async Task LoadBooksAsync(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            books = null;
+            resultList = null;
+            _filteredBooks = null;
+
+            if (string.IsNullOrWhiteSpace(AuthorName))
+                return;
+
+            // reset per-load UI flags
+            booksLoading = true;
+            SpinnerVisible = false;
+            googleRateLimited = false;
+            aiFallbackUsed = false;
+            showAISearchDialog = false;
+            MessageVisible = false;
+            MessageLabel = "";
+
+            try
+            {
+                // 1) Cache
+                if (TryUseCacheOrClearBadCache(AuthorName!))
+                    return;
+
+                // 2) Google
+                var google = await TryFetchFromGoogleAsync(ct);
+                if (google is { Count: > 0 })
+                {
+                    SetBooksAndCache(google, source: "Google");
+                    return;
+                }
+
+                // 3) Wikidata
+                var wiki = await TryFetchFromWikidataAsync(ct);
+                if (wiki is { Count: > 0 })
+                {
+                    SetBooksAndCache(wiki, source: "Wikidata");
+                    return;
+                }
+
+                // 4) Ask confirmation for AI (always opt-in)
+                MessageLabel = googleRateLimited
+                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}. Use AI search?"
+                    : $"No results for {AuthorName} via Google/Wikidata. Use AI search?";
+
+                await UpdateMessageLabelAsync(MessageLabel);
+                showAISearchDialog = true;
             }
             finally
             {
                 booksLoading = false;
                 SpinnerVisible = false;
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+
+        async Task OnConfirmYes()
+        {
+            showAISearchDialog = false;
+
+            await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
+            await SearchBooksUsingAI(AuthorName!, uiLanguage);
+
+            books = resultList ?? new List<GoogleBookInfo>();
+            _filteredBooks = null;
+            aiFallbackUsed = true;
+
+            _booksCache[AuthorName!] = (DateTime.UtcNow, books, "AI");
+
+            SpinnerVisible = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        void OnConfirmNo()
+        {
+            showAISearchDialog = false;
+            MessageLabel = $"AI search cancelled for {AuthorName}.";
+            _ = UpdateMessageLabelAsync(MessageLabel);
+        }
+
+        private async Task SearchBooksUsingAI(string authorName, string uiLanguage)
+        {
+            try
+            {
+                MessageLabel = $"Searching using AI for {AuthorName}...";
+                await UpdateMessageLabelAsync(MessageLabel);
+
+                var aiResult = await AiBookClient.GetAuthorBooksAsync(authorName, uiLanguage);
+                if (aiResult != null && aiResult.Count > 0)
+                {
+                    resultList = aiResult.ToList();
+                }
+                else
+                {
+                    resultList = new List<GoogleBookInfo>();
+                }
+            }
+            catch (Exception)
+            {
+                resultList = new List<GoogleBookInfo>();
+                MessageLabel = $"AI search failed for {AuthorName}.";
+                await UpdateMessageLabelAsync(MessageLabel);
             }
         }
 
@@ -264,62 +359,22 @@ namespace Web.Blazor.Components.Authors
             isImageViewerVisible = false;
         }
 
-        private async Task RunWithSpinnerAsync(string label, Func<Task> work)
-        {
-            await _spinnerLock.WaitAsync();
-            try
-            {
-                SpinnerLabel = label ?? "";
-                await UpdateSpinnerLabelAsync(SpinnerLabel);
-
-                if (work is not null) await work();
-            }
-            finally
-            {
-                SpinnerVisible = false;
-                SpinnerLabel = "";
-                await UpdateSpinnerLabelAsync(SpinnerLabel);
-                _spinnerLock.Release();
-            }
-        }
-        // update the label while spinner is visible (forces immediate render)
-        private Task UpdateSpinnerLabelAsync(string label)
+        // Spinner label update that actually paints
+        private async Task UpdateSpinnerLabelAsync(string label)
         {
             SpinnerLabel = label ?? "";
-            if (!SpinnerVisible)
-                SpinnerVisible = true;
+            SpinnerVisible = true;
 
-            return InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
         }
-        // update the label while spinner is visible (forces immediate render)
-        private void UpdateMessageLabelAsync(string label)
+
+        // Message update: use InvokeAsync for consistency and reliability
+        private Task UpdateMessageLabelAsync(string label)
         {
             MessageLabel = label ?? "";
-            if (!MessageVisible)
-                MessageVisible = true;
-            StateHasChanged();
-        }
-
-        async Task OnConfirmYes()
-        {
-            showAISearchDialog = false;
-            await SearchBooksUsingAI(AuthorName, uiLanguage);
-        }
-
-        void OnConfirmNo() => showAISearchDialog = false;
-
-        async Task SearchBooksUsingAI(string authorName, string uiLanguage)
-        {
-            var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-            if (aiResult != null && aiResult.Count > 0)
-            {
-                aiFallbackUsed = true;
-                resultList = aiResult.ToList();
-            }
-            else
-            {
-                resultList = new List<GoogleBookInfo>();
-            }
+            MessageVisible = true;
+            return InvokeAsync(StateHasChanged);
         }
     }
 }
