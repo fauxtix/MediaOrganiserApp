@@ -11,6 +11,6 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.Api
         Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author);
 
         // Existing method kept for backward compatibility
-        Task<GoogleBook> GetBookAsync(string bookTitle, string author);
+        Task<GoogleBook?> GetBookAsync(string bookTitle, string author);
     }
 }

@@ -19,6 +19,7 @@ namespace Web.Blazor.Services.ApiWrappers
         public async Task<List<GoogleBookInfo>?> GetBooksByAuthorAsync(string author)
         {
             if (string.IsNullOrWhiteSpace(author)) return new List<GoogleBookInfo>();
+
             try
             {
                 var q = $"inauthor:\"{Uri.EscapeDataString(author)}\"";

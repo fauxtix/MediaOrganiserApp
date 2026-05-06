@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Syncfusion.Blazor.Spinner;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Net;
 
 namespace Web.Blazor.Components.Authors
 {
@@ -147,22 +148,29 @@ namespace Web.Blazor.Components.Authors
             try
             {
                 await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
+
                 if (DebugForceGoogle429)
-                {
-                    throw new HttpRequestException("Debug forced 429", inner: null, statusCode: System.Net.HttpStatusCode.TooManyRequests);
-                }
+                    throw new HttpRequestException("Debug forced 429", null, HttpStatusCode.TooManyRequests);
+
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
 
-                if (result == null || result.Count == 0)
+                if (result == null)
+                {
+                    MessageLabel = $"Error fetching Google Books for {AuthorName}; trying Wikidata.";
+                    await UpdateMessageLabelAsync(MessageLabel);
+                    return null;
+                }
+
+                if (result.Count == 0)
                 {
                     MessageLabel = $"No Google results for {AuthorName}; trying Wikidata.";
                     await UpdateMessageLabelAsync(MessageLabel);
                     return null;
                 }
 
-                return result.ToList();
+                return result;
             }
-            catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 googleRateLimited = true;
                 MessageLabel = $"Google Books rate-limited for {AuthorName}; trying Wikidata.";
@@ -176,7 +184,6 @@ namespace Web.Blazor.Components.Authors
                 return null;
             }
         }
-
         private async Task<List<GoogleBookInfo>?> TryFetchFromWikidataAsync(CancellationToken ct)
         {
             try
@@ -264,8 +271,8 @@ namespace Web.Blazor.Components.Authors
 
                 // 4) Ask confirmation for AI (always opt-in)
                 MessageLabel = googleRateLimited
-                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}. Use AI search?"
-                    : $"No results for {AuthorName} via Google/Wikidata. Use AI search?";
+                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}"
+                    : $"No results for {AuthorName} via Google/Wikidata.";
 
                 await UpdateMessageLabelAsync(MessageLabel);
                 showAISearchDialog = true;
