@@ -64,6 +64,9 @@ namespace Web.Blazor.Components.Authors
 
         protected override async Task OnParametersSetAsync()
         {
+
+            Logger.LogWarning("AuthorBooks params: AuthorName={AuthorName}, DebugForceGoogle429={DebugForceGoogle429}",
+                AuthorName, DebugForceGoogle429);
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
 
@@ -270,15 +273,13 @@ namespace Web.Blazor.Components.Authors
 
             try
             {
-                // test
-                var google = await TryFetchFromGoogleAsync(ct);
 
                 // 1) Cache
                 if (TryUseCacheOrClearBadCache(AuthorName!))
                     return;
 
                 // 2) Google
-                //var google = await TryFetchFromGoogleAsync(ct);
+                var google = await TryFetchFromGoogleAsync(ct);
                 if (google is { Count: > 0 })
                 {
                     SetBooksAndCache(google, source: "Google");

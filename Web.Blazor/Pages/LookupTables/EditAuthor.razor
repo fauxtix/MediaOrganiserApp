@@ -123,37 +123,6 @@
 
 </div>
 
-<SfDialog Width="580px"
-          Height="auto"
-          IsModal="true"
-          MinHeight="580px"
-          ShowCloseIcon="true"
-          @bind-Visible="ShowBooksVisibility">
-    <DialogTemplates>
-        <Header>
-            <div class="font-weight-bold" style="font-size:1.5rem;">
-                <img src="images/book-picture-icon.png" width="48" height="48">
-                @SelectedAuthor.Descricao
-            </div>
-        </Header>
-
-        <Content>
-            <div class="d-flex justify-content-around align-items-center mb-2">
-                <AuthorBooks AuthorName="@SelectedAuthor.Descricao" PageSize="3" DebugForceGoogle429="true" />
-            </div>
-        </Content>
-        <FooterTemplate>
-            <div>
-                <SfButton CssClass="e-outline e-round-corner"
-                          IconCss="fa fa-times" Content="@L["BtnSalir"]"
-                          @onclick="() => ShowBooksVisibility = false">
-                </SfButton>
-            </div>
-        </FooterTemplate>
-    </DialogTemplates>
-    <DialogAnimationSettings Effect="DialogEffect.FadeZoom" Duration=400></DialogAnimationSettings>
-</SfDialog>
-
 <TranslateText Visible="@showTranslateModal"
                Title="@L["TituloTraduzirBio"]"
                InitialText="@SelectedAuthor.Sobre"
