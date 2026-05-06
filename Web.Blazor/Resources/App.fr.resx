@@ -1175,7 +1175,7 @@
     <value>Aucun auteur sélectionné</value>
   </data>
   <data name="TituloErroTooManyRequests" xml:space="preserve">
-    <value>Trop de requêtes adressées au service Google ; on se rabat sur l'IA.</value>
+    <value>Trop de requêtes adressées au service Google Books.</value>
   </data>
   <data name="TituloListaLivros" xml:space="preserve">
     <value>Liste des livres</value>
@@ -1263,5 +1263,8 @@
   </data>
   <data name="Database_ConnectionString" xml:space="preserve">
     <value>Chaîne de connexion à la base de données</value>
+  </data>
+  <data name="TituloPesquisaPorAI" xml:space="preserve">
+    <value>Pourquoi ne pas essayer la recherche par IA ?</value>
   </data>
 </root>

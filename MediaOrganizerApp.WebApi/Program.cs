@@ -191,6 +191,10 @@ public class Program
 
         app.MapControllers();
 
+        app.MapHub<MediaInfoProgressHub>("/media-info-progress");
+        app.MapHub<GoogleBooksProgressHub>("/books-info-progress");
+        app.MapHub<GoogleBooksProgressHub>("/chat-progress");
+
         app.Run();
     }
 

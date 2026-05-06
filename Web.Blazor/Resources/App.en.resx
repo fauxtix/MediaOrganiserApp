@@ -1174,7 +1174,7 @@
     <value>No author selected</value>
   </data>
   <data name="TituloErroTooManyRequests" xml:space="preserve">
-    <value>Too many requests to Google service; falling back to AI.</value>
+    <value>Too many requests to Google  Books.</value>
   </data>
   <data name="TituloListaLivros" xml:space="preserve">
     <value>List of books</value>
@@ -1262,5 +1262,8 @@
   </data>
   <data name="Database_ConnectionString" xml:space="preserve">
     <value>Database connection string</value>
+  </data>
+  <data name="TituloPesquisaPorAI" xml:space="preserve">
+    <value>Why not try an AI search?</value>
   </data>
 </root>

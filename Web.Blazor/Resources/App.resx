@@ -1175,7 +1175,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
     <value>Nenhum autor selecionado</value>
   </data>
   <data name="TituloErroTooManyRequests" xml:space="preserve">
-    <value>Demasiadas solicitações ao serviço do Google; recorrendo à IA.</value>
+    <value>Demasiadas solicitações ao serviço do Google Books</value>
   </data>
   <data name="TituloListaLivros" xml:space="preserve">
     <value>Lista de livros</value>
@@ -1263,5 +1263,8 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="Database_ConnectionString" xml:space="preserve">
     <value>String de conexão à base de dados</value>
+  </data>
+  <data name="TituloPesquisaPorAI" xml:space="preserve">
+    <value>Tenta pesquisa por AI?</value>
   </data>
 </root>

@@ -19,7 +19,14 @@
 
 @namespace Web.Blazor.Components.Authors
 
+
 <div class="author-books-component">
+    <SfSpinner Visible="@SpinnerVisible"
+               Label="@SpinnerLabel"
+               Type="@SpinnerType.Tailwind"
+               CssClass="e-spin-overlay">
+    </SfSpinner>
+
     @if (string.IsNullOrWhiteSpace(AuthorName))
     {
         <div class="text-muted">@L["TituloNenhumAutorSelecionado"]</div>
@@ -73,7 +80,7 @@
         }
         else
         {
-            @if (!string.IsNullOrEmpty(SpinnerLabel))
+            @if (!string.IsNullOrEmpty(MessageLabel))
             {
                 <div class="text-muted">
                     <SfMessage Severity="MessageSeverity.Info" ShowCloseIcon="true" CssClass="mt-2">
@@ -93,8 +100,8 @@
                 </div>
 
                 <div class="text-muted">
-                    <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2" Visible="@SpinnerVisible">
-                        @SpinnerLabel
+                    <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2" Visible="@MessageVisible">
+                        @MessageLabel
                     </SfMessage>
                 </div>
             }
@@ -107,305 +114,37 @@
              VisibleChanged="@(v => isImageViewerVisible = v)"
              Title="@SelectedBook.Title" />
 
-<div id="spinner-container">
-    <SfSpinner Visible="@SpinnerVisible"
-               Label="@SpinnerLabel"
-               Type="@SpinnerType.Tailwind"
-               CssClass="e-spin-overlay">
-    </SfSpinner>
-</div>
 
-@code {
-    [Parameter]
-    public string? AuthorName { get; set; }
-
-    [Parameter, EditorRequired]
-    public int PageSize { get; set; } = 4;
-
-    private CancellationTokenSource? _cts;
-    protected SfSpinner SpinnerObj;
-
-    private bool isImageViewerVisible;
-    private GoogleBookInfo? SelectedBook = new();
-    private List<GoogleBookInfo>? books;
-    private bool booksLoading;
-    private bool aiFallbackUsed;
-    private bool googleRateLimited;
-    private int currentPage = 1;
-    private string SpinnerLabel { get; set; }
-    private bool SpinnerVisible { get; set; }
-    private readonly SemaphoreSlim _spinnerLock = new(1, 1);
-
-
-    private IEnumerable<GoogleBookInfo> FilteredBooks => (books ?? Enumerable.Empty<GoogleBookInfo>()).Where(b =>
-        !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail));
-
-    // cache filtered books to avoid repeated deferred LINQ enumeration during render
-    private List<GoogleBookInfo>? _filteredBooks;
-    private IEnumerable<GoogleBookInfo> CachedFilteredBooks =>
-        (_filteredBooks ??= (books ?? Enumerable.Empty<GoogleBookInfo>())
-            .Where(b => !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail)).ToList());
-
-    private int TotalPages
-    {
-        get
-        {
-            var count = CachedFilteredBooks.Count();
-            if (count == 0) return 1;
-            return (int)Math.Ceiling(count / (double)PageSize);
-        }
-    }
-
-    private IEnumerable<GoogleBookInfo> PagedBooks => CachedFilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
-
-    protected override async Task OnParametersSetAsync()
-    {
-        _cts?.Cancel();
-        _cts = new CancellationTokenSource();
-
-        currentPage = 1;
-        await LoadBooksAsync(_cts.Token);
-    }
-
-    private void NextPage()
-    {
-        if (booksLoading) return;
-        if (TotalPages <= 1) return;
-        if (currentPage < TotalPages) currentPage++;
-    }
-
-    private void PrevPage()
-    {
-        if (booksLoading) return;
-        if (TotalPages <= 1) return;
-        if (currentPage > 1) currentPage--;
-    }
-
-    private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items, string source)> _booksCache = new();
-    private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan AiCacheTtl = TimeSpan.FromMinutes(5);
-
-    // Allow external components to clear the client-side cache for an author (e.g. Retry button)
-    public static void ClearCacheForAuthor(string? author)
-    {
-        if (string.IsNullOrWhiteSpace(author)) return;
-        _booksCache.TryRemove(author, out _);
-    }
-
-    private async Task LoadBooksAsync(CancellationToken ct)
-    {
-        ct.ThrowIfCancellationRequested(); books = null;
-        _filteredBooks = null;
-        if (string.IsNullOrWhiteSpace(AuthorName)) return;
-
-        // Try cache first
-        if (_booksCache.TryGetValue(AuthorName!, out var cached))
-        {
-            List<GoogleBookInfo>? resultList = null;
-            var ttl = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase) ? AiCacheTtl : GoogleCacheTtl;
-            if (DateTime.UtcNow - cached.fetchedAt < ttl)
-            {
-                // If cached items exist and contain data, use them. If the cached list is empty,
-                // remove the cache entry so we will retry the external lookup (which includes AI fallback).
-                if (cached.items is not null && cached.items.Count > 0)
-                {
-                    books = cached.items;
-                    aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
-                    StateHasChanged();
-                    return;
-                }
-
-                // cached but empty -> remove and continue to retry (including AI fallback)
-                _booksCache.TryRemove(AuthorName!, out _);
-            }
-            else
-            {
-                // remove stale entry
-                _booksCache.TryRemove(AuthorName!, out _);
-            }
-        }
-
-        booksLoading = true;
-        googleRateLimited = false;
-        var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
-        try
-        {
-
-            List<GoogleBookInfo>? resultList = null;
-            try
-            {
-                SpinnerLabel = L["LoadingMsg"];
-                await UpdateSpinnerLabelAsync(SpinnerLabel);
-
-                var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
-
-                if (result == null || result.Count == 0)
-                {
-                    // No Google results -> attempt WikiData fallback
-                    SpinnerLabel = $"No Google results for {AuthorName}; attempting WikiData fallback.";
-                    await UpdateSpinnerLabelAsync(SpinnerLabel);
-                    Logger.LogInformation("No Google results for {Author}; attempting WikiData fallback.", AuthorName);
-
-                    var wikidataResult = await WikidataClient.GetBooksByAuthorAsync(AuthorName!, uiLanguage);
-                    if(wikidataResult != null && wikidataResult.Count > 0)
-                    {
-                        List<GoogleBookInfo> wikiDataResults = new();
-                        foreach (var b in wikidataResult)
-                        {
-                            wikiDataResults.Add(new GoogleBookInfo
-                            {
-                                Title = b.Title,
-                                PublishedDate = b.PublicationYear.ToString(), // year only, but better than nothing
-                                Thumbnail = b.CoverImage,
-                                Confidence = null // Wikidata results are not AI-generated, so confidence is not applicable
-                            });
-                        }
-
-                        resultList = wikiDataResults;
-                        return;
-                    }
-                    else
-                    {
-                        SpinnerLabel = $"WikiData returned no results for {AuthorName}; falling back to AI.";
-                        await UpdateSpinnerLabelAsync(SpinnerLabel);
-                        Logger.LogWarning("WikiData returned no results for {Author}; falling back to AI.", AuthorName);
-                    }
-
-
-                    var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                    if (aiResult != null && aiResult.Count > 0)
-                    {
-                        resultList = aiResult.ToList();
-                        aiFallbackUsed = true;
-                    }
-                    else
-                    {
-                        resultList = new List<GoogleBookInfo>();
-                    }
-                }
-                else
-                {
-                    resultList = result.ToList();
-                }
-            }
-            catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-            {
-                // Google rate-limited -> try AI
-                SpinnerLabel = $"Google Books rate-limited for {AuthorName}; falling back to AI.";
-                await UpdateSpinnerLabelAsync(SpinnerLabel);
-                Logger.LogWarning(httpEx, "Google Books rate-limited for {Author}; falling back to AI.", AuthorName);
-
-                googleRateLimited = true;
-
-                var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                if (aiResult != null && aiResult.Count > 0)
-                {
-                    resultList = aiResult.ToList();
-                    aiFallbackUsed = true;
-                }
-                else
-                {
-                    resultList = new List<GoogleBookInfo>();
-                }
-            }
-            catch (Exception ex)
-            {
-                // Other errors -> try AI fallback as well
-                SpinnerLabel = $"Error fetching Google Books for {AuthorName}; attempting AI fallback.";
-                await UpdateSpinnerLabelAsync(SpinnerLabel);
-                Logger.LogWarning(ex, "Error fetching Google Books for author {Author}; attempting AI fallback", AuthorName);
-
-                var aiResult = await AiBookClient.GetAuthorBooksAsync(AuthorName!, uiLanguage);
-                if (aiResult != null && aiResult.Count > 0)
-                {
-                    resultList = aiResult.ToList();
-                    aiFallbackUsed = true;
-                }
-                else
-                {
-                    resultList = new List<GoogleBookInfo>();
-                }
-            }
-
-            books = resultList ?? new List<GoogleBookInfo>();
-            // clear cached filtered list so it will be recomputed
-            _filteredBooks = null;
-
-            // store in cache (even empty) to avoid hammering API for a short period
-            var source = aiFallbackUsed ? "AI" : "Google";
-            _booksCache[AuthorName!] = (DateTime.UtcNow, books, source);
-        }
-        finally
-        {
-            booksLoading = false;
-            SpinnerVisible = false;
-            StateHasChanged();
-        }
-    }
-
-    private void ShowImageViewer(GoogleBookInfo book)
-    {
-        SelectedBook = book;
-        isImageViewerVisible = true;
-    }
-
-    private void CloseImageViewer()
-    {
-        isImageViewerVisible = false;
-    }
-
-    private async Task RunWithSpinnerAsync(string label, Func<Task> work)
-    {
-        await _spinnerLock.WaitAsync();
-        try
-        {
-            SpinnerLabel = label ?? "";
-            await UpdateSpinnerLabelAsync(SpinnerLabel);
-
-            if (work is not null) await work();
-        }
-        finally
-        {
-            SpinnerVisible = false;
-            SpinnerLabel = "";
-            await UpdateSpinnerLabelAsync(SpinnerLabel);
-            _spinnerLock.Release();
-        }
-    }
-    // update the label while spinner is visible (forces immediate render)
-    private Task UpdateSpinnerLabelAsync(string label)
-    {
-        SpinnerLabel = label ?? "";
-        if (!SpinnerVisible)
-            SpinnerVisible = true;
-
-        return InvokeAsync(StateHasChanged);
-    }
-}
+<ConfirmAppWarning DialogTitle="Search Books using AI"
+                   Message=@(googleRateLimited ? @L["TituloErroTooManyRequests"] : @L["TituloNenhumResultadoGoogle"])
+                   AlertMessageType="AlertMessageType.Warning" AlertMessageNote="@L["TituloPesquisaPorAI"]"
+                   AlertMessage="Nota: esta pesquisa pode demorar algum tempo..."
+                   Visible="@showAISearchDialog"
+                   OnConfirmationYes="@OnConfirmYes"
+                   OnConfirmationNo="@OnConfirmNo" />
 
 <style>
     .book-card {
-    overflow: hidden;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
     }
 
     .book-body {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
     }
 
     .books-grid {
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-    align-items: stretch;
-    width: 100%;
-    max-width: 100%;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+        align-items: stretch;
+        width: 100%;
+        max-width: 100%;
     }
 
 

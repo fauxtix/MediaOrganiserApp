@@ -30,14 +30,34 @@ namespace Web.Blazor.Services.ApiWrappers
                 // Surface rate-limit to callers by throwing so callers can detect 429 specifically
                 if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
+                    
                     _logger.LogWarning("Google Books API rate limited for author {Author}", author);
-                    throw new HttpRequestException("Google Books API rate limited", null, resp.StatusCode);
+                    var responseWithError = new List<GoogleBookInfo>
+                    {
+                        new GoogleBookInfo
+                        {
+                            Id = "RateLimited",
+                            Title = "Google Books API rate limited",
+                            PublishedDate = null,
+                            Thumbnail = null
+                        }
+                    };
+                    return responseWithError;
                 }
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Google Books API request failed with status {Status} for author {Author}", resp.StatusCode, author);                    
-                    return null;
+                    var responseWithError = new List<GoogleBookInfo>
+                    {
+                        new GoogleBookInfo
+                        {
+                            Id = "Error",
+                            Title = $"Google Books API error: {resp.StatusCode}",
+                            PublishedDate = null,
+                            Thumbnail = null
+                        }
+                    };
+                    return responseWithError;
                 }
 
                 try
