@@ -296,8 +296,8 @@ namespace Web.Blazor.Components.Authors
 
                 // 4) Ask confirmation for AI (always opt-in)
                 MessageLabel = googleRateLimited
-                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}. Use AI search?"
-                    : $"No results for {AuthorName} via Google/Wikidata. Use AI search?";
+                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}"
+                    : $"No results for {AuthorName} via Google/Wikidata";
 
                 await UpdateMessageLabelAsync(MessageLabel);
                 showAISearchDialog = true;
