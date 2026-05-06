@@ -14,6 +14,9 @@ namespace Web.Blazor.Components.Authors
         [Parameter, EditorRequired]
         public int PageSize { get; set; } = 4;
 
+        [Parameter]
+        public bool DebugForceGoogle429 { get; set; } = false;
+
         private CancellationTokenSource? _cts;
         protected SfSpinner SpinnerObj;
 
@@ -154,6 +157,10 @@ namespace Web.Blazor.Components.Authors
             try
             {
                 await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
+                if (DebugForceGoogle429)
+                {
+                    throw new HttpRequestException("Debug forced 429", inner: null, statusCode: System.Net.HttpStatusCode.TooManyRequests);
+                }
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
 
                 // Normalize marker-style returns
@@ -263,12 +270,15 @@ namespace Web.Blazor.Components.Authors
 
             try
             {
+                // test
+                var google = await TryFetchFromGoogleAsync(ct);
+
                 // 1) Cache
                 if (TryUseCacheOrClearBadCache(AuthorName!))
                     return;
 
                 // 2) Google
-                var google = await TryFetchFromGoogleAsync(ct);
+                //var google = await TryFetchFromGoogleAsync(ct);
                 if (google is { Count: > 0 })
                 {
                     SetBooksAndCache(google, source: "Google");
