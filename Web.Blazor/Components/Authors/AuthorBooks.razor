@@ -85,6 +85,24 @@
         {
             @if (!string.IsNullOrEmpty(MessageLabel))
             {
+                @* Option A: show a single user-facing message to avoid duplicated "rate limited" text *@
+                <div class="text-muted">
+                    <SfMessage Severity="MessageSeverity.Info" ShowCloseIcon="true" CssClass="mt-2">
+                        @if (googleRateLimited)
+                        {
+                            @L["TituloErroTooManyRequests"]
+                        }
+                        else if (aiFallbackUsed)
+                        {
+                            @L["TituloNenhumResultadoGoogleUsandoAIFallback"]
+                        }
+                        else
+                        {
+                            @L["TituloNenhumResultadoGoogle"]
+                        }
+                    </SfMessage>
+                </div>
+
                 <div class="text-muted">
                     <SfMessage Severity="MessageSeverity.Warning" ShowCloseIcon="true" CssClass="mt-2" Visible="@MessageVisible">
                         @MessageLabel
