@@ -35,12 +35,15 @@
     {
         <div class="text-muted">@L["LoadingMsg"]</div>
     }
-    else if (googleRateLimited)
-    {
-        <div class="alert alert-warning">@L["TituloErroTooManyRequests"]</div>
-    }
     else
     {
+        @* Do not short-circuit the UI when Google is rate-limited. We still want to show MessageLabel,
+           Wikidata results, and the AI confirmation dialog. *@
+        @if (googleRateLimited)
+        {
+            <div class="alert alert-warning">@L["TituloErroTooManyRequests"]</div>
+        }
+
         var fn = CachedFilteredBooks.ToList();
         if (fn.Any())
         {
