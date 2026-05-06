@@ -30,34 +30,14 @@ namespace Web.Blazor.Services.ApiWrappers
                 // Surface rate-limit to callers by throwing so callers can detect 429 specifically
                 if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
-                    
                     _logger.LogWarning("Google Books API rate limited for author {Author}", author);
-                    var responseWithError = new List<GoogleBookInfo>
-                    {
-                        new GoogleBookInfo
-                        {
-                            Id = "RateLimited",
-                            Title = "Google Books API rate limited",
-                            PublishedDate = null,
-                            Thumbnail = null
-                        }
-                    };
-                    return responseWithError;
+                    throw new HttpRequestException("Google Books API rate limited", null, resp.StatusCode);
                 }
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    var responseWithError = new List<GoogleBookInfo>
-                    {
-                        new GoogleBookInfo
-                        {
-                            Id = "Error",
-                            Title = $"Google Books API error: {resp.StatusCode}",
-                            PublishedDate = null,
-                            Thumbnail = null
-                        }
-                    };
-                    return responseWithError;
+                    _logger.LogWarning("Google Books API GetBooksByAuthorAsync failed with status {Status} for author {Author}", resp.StatusCode, author);
+                    return null;
                 }
 
                 try
@@ -80,6 +60,10 @@ namespace Web.Blazor.Services.ApiWrappers
                     _logger.LogWarning(ex, "Failed to deserialize Google Books response for {Author}. Raw preview: {Raw}", author, raw?.Substring(0, Math.Min(512, raw?.Length ?? 0)));
                     return null;
                 }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                throw; // re-throw so callers can detect 429 specifically
             }
             catch (OperationCanceledException)
             {

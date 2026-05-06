@@ -100,11 +100,6 @@ namespace Web.Blazor.Components.Authors
             _booksCache.TryRemove(author, out _);
         }
 
-        // Spec: cache is invalid if first record Id contains 'ratelimited' or 'error'
-        private static bool HasErrorMarkerId(GoogleBookInfo? book) =>
-            book?.Id?.Contains("ratelimited", StringComparison.OrdinalIgnoreCase) == true
-         || book?.Id?.Contains("error", StringComparison.OrdinalIgnoreCase) == true;
-
         private static TimeSpan GetTtlForSource(string? source)
         {
             if (string.Equals(source, "AI", StringComparison.OrdinalIgnoreCase)) return AiCacheTtl;
@@ -126,14 +121,6 @@ namespace Web.Blazor.Components.Authors
 
             if (cached.items is null || cached.items.Count == 0)
             {
-                _booksCache.TryRemove(author, out _);
-                return false;
-            }
-
-            var first = cached.items.FirstOrDefault();
-            if (HasErrorMarkerId(first))
-            {
-                // Spec: if marker is present, clear cache and continue to providers
                 _booksCache.TryRemove(author, out _);
                 return false;
             }
@@ -165,25 +152,6 @@ namespace Web.Blazor.Components.Authors
                     throw new HttpRequestException("Debug forced 429", inner: null, statusCode: System.Net.HttpStatusCode.TooManyRequests);
                 }
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
-
-                // Normalize marker-style returns
-                if (result != null && result.Count > 0 && HasErrorMarkerId(result.FirstOrDefault()))
-                {
-                    if (result.FirstOrDefault()?.Id?.Contains("ratelimited", StringComparison.OrdinalIgnoreCase) == true
-                        || string.Equals(result.FirstOrDefault()?.Id, "RateLimited", StringComparison.OrdinalIgnoreCase))
-                    {
-                        googleRateLimited = true;
-                        MessageLabel = $"Google Books rate-limited for {AuthorName}; trying Wikidata.";
-                        await UpdateMessageLabelAsync(MessageLabel);
-                    }
-                    else
-                    {
-                        MessageLabel = $"Error fetching Google Books for {AuthorName}; trying Wikidata.";
-                        await UpdateMessageLabelAsync(MessageLabel);
-                    }
-
-                    return null;
-                }
 
                 if (result == null || result.Count == 0)
                 {
@@ -296,8 +264,8 @@ namespace Web.Blazor.Components.Authors
 
                 // 4) Ask confirmation for AI (always opt-in)
                 MessageLabel = googleRateLimited
-                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}. Use AI search?"
-                    : $"No results for {AuthorName} via Google/Wikidata. Use AI search?";
+                    ? $"Google is rate-limited and Wikidata has no results for {AuthorName}."
+                    : $"No results for {AuthorName} via Google/Wikidata.";
 
                 await UpdateMessageLabelAsync(MessageLabel);
                 showAISearchDialog = true;
