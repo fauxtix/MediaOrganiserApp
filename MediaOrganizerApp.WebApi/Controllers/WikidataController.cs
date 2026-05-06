@@ -35,6 +35,26 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        [HttpGet("author-bio/{author}")]
+        public async Task<IActionResult> GetWikiAuthorDetails(string author)
+        {
+            try
+            {
+                var result = await _service.GetWikiDataAuthorDetails(author);
+
+                if (result.bio == null)
+                    return NotFound();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Wikidata error");
+                return StatusCode(500, "Error retrieving data");
+            }
+        }
+
+
         private string GetControllerActionNames()
         {
             var controller = ControllerContext.ActionDescriptor.ControllerName;

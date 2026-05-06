@@ -1,6 +1,7 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Interfaces.Services.WikiData;
 using Microsoft.AspNetCore.Components;
 using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Spinner;
@@ -19,10 +20,10 @@ namespace Web.Blazor.Pages.LookupTables
 
         [Inject] Microsoft.Extensions.Localization.IStringLocalizer<App> L { get; set; }
         [Inject] IAutorService AutoresService { get; set; }
+        [Inject] IWikidataClientService WikiDataService { get; set; }
         [Inject] AiClientService AiClientService { get; set; }
         [Inject] TranslateClientService TranslateClient { get; set; }
         [Inject] NavigationManager NavigationManager { get; set; }
-        [Inject] IConfiguration Configuration { get; set; }
         [Inject] ILogger<App> Logger { get; set; }
         [Inject] IWebHostEnvironment Env { get; set; }
 
@@ -220,6 +221,9 @@ namespace Web.Blazor.Pages.LookupTables
                     (!SelectedAuthor.ImagemAutor.ToLower().Contains("image") ||
                               !SelectedAuthor.ImagemAutor.ToLower().Contains("photo)")
                     );
+
+               //authorDetails = await WikiDataService.GetWikiDataAuthorDetails(authorName);
+
 
                 authorDetails = await AutoresService.GetAuthorDetails(authorName);
 

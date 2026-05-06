@@ -37,10 +37,47 @@ namespace Web.Blazor.Services.ApiWrappers
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Google Books API GetBooksByAuthorAsync failed with status {Status} for author {Author}", resp.StatusCode, author);
+                    string? retryAfter = resp.Headers.TryGetValues("Retry-After", out var ra)
+                        ? string.Join(",", ra)
+                        : null;
+
+                    string? server = resp.Headers.TryGetValues("Server", out var sv)
+                        ? string.Join(",", sv)
+                        : null;
+
+                    string? via = resp.Headers.TryGetValues("Via", out var viaHdr)
+                        ? string.Join(",", viaHdr)
+                        : null;
+
+                    string? cfRay = resp.Headers.TryGetValues("CF-RAY", out var cfr)
+                        ? string.Join(",", cfr)
+                        : null;
+
+                    string? bodyPreview = null;
+                    try
+                    {
+                        var raw = await resp.Content.ReadAsStringAsync();
+                        if (!string.IsNullOrEmpty(raw))
+                            bodyPreview = raw.Substring(0, Math.Min(raw.Length, 800));
+                    }
+                    catch (Exception ex)
+                    {
+                        bodyPreview = $"<failed to read body: {ex.GetType().Name}: {ex.Message}>";
+                    }
+
+                    _logger.LogWarning(
+                        "Google Books GetBooksByAuthorAsync non-success. Status={StatusCode} Author={Author} Url={Url} RetryAfter={RetryAfter} Server={Server} Via={Via} CF-RAY={CFRay} BodyPreview={BodyPreview}",
+                        resp.StatusCode,
+                        author,
+                        url,
+                        retryAfter ?? "<none>",
+                        server ?? "<none>",
+                        via ?? "<none>",
+                        cfRay ?? "<none>",
+                        bodyPreview ?? "<empty>");
+
                     return null;
                 }
-
                 try
                 {
                     var respObj = await resp.Content.ReadFromJsonAsync<GoogleBooksResponse>();

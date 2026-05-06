@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace MediaOrganizerApp.Persistence.Services.WikiData
 {
@@ -193,5 +194,181 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
 
             return null;
         }
+
+
+        //
+        // WikiDataPUBLIC API: Get author details (BIO, photo, birth year)
+        /*
+         * This method demonstrates how to fetch multiple properties in one SPARQL query.
+         * It also includes basic BIO construction logic based on available data.
+         */
+
+        public async Task<(string bio, string photo, string birthDate)> GetWikiDataAuthorDetails(string authorName)
+        {
+            var qid = await GetAuthorQid(authorName);
+
+            if (qid == null)
+                return ("", "images/NoPhoto.png", "");
+
+            var query = $@"
+        SELECT ?description ?occupationLabel ?image ?birthDate WHERE {{
+          BIND(wd:{qid} AS ?author)
+
+          OPTIONAL {{
+            ?author schema:description ?description
+            FILTER (lang(?description) = ""en"")
+          }}
+
+          OPTIONAL {{ ?author wdt:P106 ?occupation. }}
+          OPTIONAL {{ ?author wdt:P18 ?image. }}
+          OPTIONAL {{ ?author wdt:P569 ?birthDate. }}
+
+          SERVICE wikibase:label {{
+            bd:serviceParam wikibase:language ""en"".
+          }}
+        }}";
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://query.wikidata.org/sparql");
+            request.Content = new FormUrlEncodedContent(new[]
+            {
+            new KeyValuePair<string, string>("query", query)
+        });
+
+            request.Headers.Add("Accept", "application/sparql-results+json");
+            request.Headers.Add("User-Agent", "MyApp/1.0");
+
+            var response = await _httpClient.SendAsync(request);
+            var json = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(json);
+
+            var bindings = doc.RootElement
+                .GetProperty("results")
+                .GetProperty("bindings");
+
+            if (bindings.GetArrayLength() == 0)
+                return ("", "images/NoPhoto.png", "");
+
+            // ------------------------
+            // Extract data
+            // ------------------------
+
+            string? description = null;
+            string? imageUrl = null;
+            string? birthDate = null;
+
+            var occupations = new List<string>();
+
+            foreach (var b in bindings.EnumerateArray())
+            {
+                if (description == null && b.TryGetProperty("description", out var desc))
+                    description = desc.GetProperty("value").GetString();
+
+                if (imageUrl == null && b.TryGetProperty("image", out var img))
+                    imageUrl = img.GetProperty("value").GetString();
+
+                if (birthDate == null && b.TryGetProperty("birthDate", out var bd))
+                {
+                    var raw = bd.GetProperty("value").GetString();
+                    if (DateTime.TryParse(raw, out var dt))
+                        birthDate = dt.Year.ToString();
+                }
+
+                if (b.TryGetProperty("occupationLabel", out var occ))
+                {
+                    var val = occ.GetProperty("value").GetString();
+                    if (!string.IsNullOrWhiteSpace(val))
+                        occupations.Add(val);
+                }
+            }
+
+            // ------------------------
+            // Build BIO sentence
+            // ------------------------
+
+            var bio = BuildBio(authorName, description, occupations);
+
+            // ------------------------
+            // Fix image URL (Wikidata → Wikimedia)
+            // ------------------------
+
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                imageUrl = imageUrl
+                    .Replace(" ", "_"); // basic fix for spaces
+            }
+            else
+            {
+                imageUrl = "images/NoPhoto.png";
+            }
+
+            return (bio, imageUrl, birthDate ?? "");
+        }
+
+        // -----------------------------------
+        // QID resolver (simple version)
+        // -----------------------------------
+        private async Task<string?> GetAuthorQid(string name)
+        {
+            var url =
+                $"https://www.wikidata.org/w/api.php" +
+                $"?action=wbsearchentities" +
+                $"&search={Uri.EscapeDataString(name)}" +
+                $"&language=en&format=json";
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd(UserAgentValue);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                using var response = await _httpClient.SendAsync(request);
+                var json = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(json);
+
+                var results = doc.RootElement.GetProperty("search");
+
+                if (results.GetArrayLength() == 0)
+                    return null;
+
+                return results[0].GetProperty("id").GetString();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+
+        // -----------------------------------
+        // BIO builder
+        // -----------------------------------
+        private string BuildBio(string name, string? description, List<string> occupations)
+        {
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                return Capitalize(description) + ".";
+            }
+
+            var distinct = occupations.Distinct().ToList();
+
+            if (distinct.Count == 0)
+                return $"{name} is an author.";
+
+            string occText;
+
+            if (distinct.Count == 1)
+                occText = distinct[0];
+            else
+                occText = string.Join(", ", distinct.Take(distinct.Count - 1))
+                          + " and " + distinct.Last();
+
+            return $"{name} was a {occText}.";
+        }
+
+        private string Capitalize(string s)
+            => char.ToUpper(s[0]) + s.Substring(1);
     }
 }

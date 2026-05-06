@@ -54,5 +54,38 @@ namespace Web.Blazor.Services.ApiWrappers
                 return null;
             }
         }
+
+        public async Task<(string bio, string photo, string birthDate)> GetWikiDataAuthorDetails(string author)
+        {
+            if (string.IsNullOrWhiteSpace(author))
+                return (string.Empty, string.Empty, string.Empty);
+
+            try
+            {
+                var url = $"{_uri}/author-bio/{Uri.EscapeDataString(author)}";
+                _logger.LogDebug("WikidataClientService: GET {Url}", url);
+
+                using var response = await _http.GetAsync(url);
+                var body = await response.Content.ReadAsStringAsync();
+
+                _logger.LogDebug("WikidataClientService: Response {StatusCode} Body: {Body}", (int)response.StatusCode, body);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Return empty tuple to preserve previous behavior and let caller/logging decide;
+                    // we already logged the status and full body for diagnosis.
+                    return (string.Empty, string.Empty, string.Empty);
+                }
+
+                var result = System.Text.Json.JsonSerializer.Deserialize<(string bio, string photo, string birthDate)?>(body);
+                return result ?? (string.Empty, string.Empty, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling Wikidata API");
+                return (string.Empty, string.Empty, string.Empty);
+            }
+        }
+
     }
 }

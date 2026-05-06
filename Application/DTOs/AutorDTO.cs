@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MediaOrganizerApp.Application.DTOs
 {
@@ -23,4 +24,11 @@ namespace MediaOrganizerApp.Application.DTOs
         public string NomeEditora { get; set; }
         public string DigitalPath { get; set; }
     }
+}
+
+public class AuthorSummaryData
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public List<string> Occupations { get; set; } = new();
 }
