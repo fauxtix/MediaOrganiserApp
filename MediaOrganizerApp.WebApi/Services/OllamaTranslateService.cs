@@ -9,6 +9,14 @@ namespace MediaOrganizerApp.WebApi.Services;
 public sealed class OllamaTranslateService : ITranslateService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly HashSet<string> KnownCodeFenceMarkers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "json",
+        "javascript",
+        "js",
+        "csharp",
+        "cs"
+    };
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaTranslateService> _logger;
@@ -264,13 +272,13 @@ public sealed class OllamaTranslateService : ITranslateService
                 if (firstLineBreak >= 0)
                 {
                     var firstLine = cleaned[..firstLineBreak].Trim();
-                    if (firstLine.Length > 0 && firstLine.All(char.IsLetter))
+                    if (KnownCodeFenceMarkers.Contains(firstLine))
                         cleaned = cleaned[(firstLineBreak + 1)..].Trim();
                 }
             }
         }
 
-        cleaned = cleaned.Trim().Trim('`').Trim();
+        cleaned = cleaned.Trim().Trim('`');
 
         var embeddedJson = TryExtractFirstJsonObject(cleaned);
         return string.IsNullOrWhiteSpace(embeddedJson) ? cleaned : embeddedJson;

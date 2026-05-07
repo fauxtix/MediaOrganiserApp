@@ -13,10 +13,13 @@ namespace MediaOrganizerApp.Tests;
 
 public sealed class OllamaTranslateServiceTests
 {
+    private const string FencedJsonResponse = """{"response":"Here is the translation:\n```json\n{\"translatedText\":\"Olá mundo\",\"confidence\":0.91}\n```"}""";
+    private const string BacktickTextResponse = """{"response":"`Olá mundo`"}""";
+
     [Fact]
     public async Task TranslateAsync_Parses_EmbeddedJsonInsideMarkdownFence()
     {
-        var service = CreateService("""{"response":"Here is the translation:\n```json\n{\"translatedText\":\"Olá mundo\",\"confidence\":0.91}\n```"}""");
+        var service = CreateService(FencedJsonResponse);
 
         var result = await service.TranslateAsync(CreateRequest(), CancellationToken.None);
 
@@ -28,7 +31,7 @@ public sealed class OllamaTranslateServiceTests
     [Fact]
     public async Task TranslateAsync_FallsBackToPlainText_WhenResponseIsBacktickWrappedText()
     {
-        var service = CreateService("""{"response":"`Olá mundo`"}""");
+        var service = CreateService(BacktickTextResponse);
 
         var result = await service.TranslateAsync(CreateRequest(), CancellationToken.None);
 
