@@ -27,13 +27,23 @@ public sealed class AiClientService
         _uri = $"{_env["BaseUrl"]}/api/ai";
     }
 
-    public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(string name, string language)
+    public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileAsync(
+        string name,
+        string language,
+        string? connectionId = null,
+        string? correlationId = null)
     {
         try
         {
             using var resp = await _httpClient.PostAsJsonAsync(
                 $"{_uri}/author-profile",
-                new AiAuthorProfileRequestDto { Name = name, Language = language });
+                new AiAuthorProfileRequestDto
+                {
+                    Name = name,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId
+                });
 
             if (!resp.IsSuccessStatusCode)
                 return null;
@@ -51,6 +61,7 @@ public sealed class AiClientService
     public async IAsyncEnumerable<string> StreamChatAsync(
         List<ChatMessageDto> messages,
         string? connectionId,
+        string? correlationId,
         string? language,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -61,6 +72,7 @@ public sealed class AiClientService
         {
             messages = messages.Select(m => new { role = m.Role, content = m.Content }),
             connectionId,
+            correlationId,
             language
         };
 

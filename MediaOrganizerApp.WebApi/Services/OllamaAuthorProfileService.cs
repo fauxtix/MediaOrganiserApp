@@ -20,6 +20,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
 
     private readonly IPromptTemplateProvider _prompts;
     private readonly ILogger<OllamaAuthorProfileService> _logger;
+    private readonly IProgressPublisher _progressPublisher;
     
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -29,16 +30,24 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
     public OllamaAuthorProfileService(HttpClient httpClient,
                                       IAppSettingsRepository appSettingsRepository,
                                       IPromptTemplateProvider prompts,
-                                      ILogger<OllamaAuthorProfileService> logger)
+                                      ILogger<OllamaAuthorProfileService> logger,
+                                      IProgressPublisher progressPublisher)
     {
         _httpClient = httpClient;
         _appSettingsRepository = appSettingsRepository;
         _prompts = prompts;
         _logger = logger;
+        _progressPublisher = progressPublisher;
     }
 
-    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
+    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(
+        string name,
+        string language,
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
     {
+        await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing author profile prompt...", cancellationToken);
         var template = await _prompts.GetTemplateAsync("author-profile.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
@@ -62,6 +71,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
             Content = JsonContent.Create(payload)
         };
 
+        await PublishAsync(connectionId, correlationId, "request_sent", 40, "Sending author profile prompt to AI model...", cancellationToken);
         using var resp = await _httpClient.SendAsync(req, cancellationToken);
 
         resp.EnsureSuccessStatusCode();
@@ -72,12 +82,14 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         var rawBytes = await resp.Content.ReadAsByteArrayAsync(cancellationToken);
         var raw = DecodeUtf8Lossy(rawBytes);
         var text = TryExtractOllamaResponseText(raw);
+        await PublishAsync(connectionId, correlationId, "parsing", 75, "Parsing author profile response...", cancellationToken);
 
         // Use repairer to robustly parse or attempt to repair malformed JSON responses.
         var parsed = await AuthorProfileJsonRepairer.ParseOrRepairAsync(
             text,
             async (repairPrompt) =>
             {
+                await PublishAsync(connectionId, correlationId, "repairing", 85, "Repairing malformed author profile JSON...", cancellationToken);
                 var payload = new OllamaGenerateRequest
                 {
                     Model = _model,
@@ -100,6 +112,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
             _logger,
             language);
 
+        await PublishAsync(connectionId, correlationId, "completed", 100, "Author profile completed.", cancellationToken);
         return parsed;
     }
 
@@ -161,4 +174,27 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
     {
         public string? Response { get; set; }
     }
+
+    private Task PublishAsync(
+        string? connectionId,
+        string? correlationId,
+        string stage,
+        int percent,
+        string message,
+        CancellationToken cancellationToken,
+        string level = "info")
+        => _progressPublisher.PublishAsync(
+            ProgressChannel.BooksInfo,
+            new ProgressUpdateDto
+            {
+                CorrelationId = correlationId,
+                Stage = stage,
+                Percent = percent,
+                Message = message,
+                Level = level,
+                Service = nameof(OllamaAuthorProfileService),
+                Operation = "author-profile"
+            },
+            connectionId,
+            cancellationToken);
 }

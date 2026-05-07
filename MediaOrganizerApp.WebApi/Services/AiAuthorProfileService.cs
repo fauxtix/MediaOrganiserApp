@@ -35,7 +35,12 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
         _chat = new ChatClient(model, apiKey);
     }
 
-    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(string name, string language, CancellationToken cancellationToken = default)
+    public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(
+        string name,
+        string language,
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
     {
         var template = await _prompts.GetTemplateAsync("author-profile.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>

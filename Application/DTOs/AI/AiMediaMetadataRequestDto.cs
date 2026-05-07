@@ -14,4 +14,5 @@ public sealed class AiMediaMetadataRequestDto
     public string? Language { get; set; }
 
     public string? ConnectionId { get; set; }
+    public string? CorrelationId { get; set; }
 }

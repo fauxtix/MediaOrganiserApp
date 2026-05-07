@@ -14,6 +14,7 @@ namespace MediaOrganizerApp.WebApi.Services
         private string _baseUrl;
         private string _model;
         private readonly IAppSettingsRepository _appSettingsRepository;
+        private readonly IProgressPublisher _progressPublisher;
 
 
         public OllamaChatService(
@@ -21,22 +22,26 @@ namespace MediaOrganizerApp.WebApi.Services
             ILogger<OllamaChatService> logger,
             IConfiguration config,
             IPromptTemplateProvider prompts,
-            IAppSettingsRepository appSettingsRepository)
+            IAppSettingsRepository appSettingsRepository,
+            IProgressPublisher progressPublisher)
         {
             _httpClient = httpClient;
             _logger = logger;
             _prompts = prompts;
             _appSettingsRepository = appSettingsRepository;
+            _progressPublisher = progressPublisher;
         }
 
         public async IAsyncEnumerable<string> StreamChatAsync(
             List<ChatMessageDto> messages,
             string? connectionId,
+            string? correlationId,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var (modelBaseUrl, modelName) = await GetAiSettings();
             _baseUrl = modelBaseUrl;
             _model = modelName;
+            await PublishAsync(connectionId, correlationId, "started", 5, "Starting chat request...", cancellationToken);
 
             var payload = new
             {
@@ -54,6 +59,7 @@ namespace MediaOrganizerApp.WebApi.Services
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken);
+            await PublishAsync(connectionId, correlationId, "response_received", 60, "Receiving chat response...", cancellationToken);
 
             // Chat hub removed: progress will be delivered via HTTP streaming only
 
@@ -91,12 +97,36 @@ namespace MediaOrganizerApp.WebApi.Services
             }
 
             // done
+            await PublishAsync(connectionId, correlationId, "completed", 100, "Chat request completed.", cancellationToken);
         }
         private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
         {
             var settings = await _appSettingsRepository.GetSettingsAsync();
             return (settings.ModelBaseUrl, settings.AiModelName);
         }
+
+        private Task PublishAsync(
+            string? connectionId,
+            string? correlationId,
+            string stage,
+            int percent,
+            string message,
+            CancellationToken cancellationToken,
+            string level = "info")
+            => _progressPublisher.PublishAsync(
+                ProgressChannel.Chat,
+                new ProgressUpdateDto
+                {
+                    CorrelationId = correlationId,
+                    Stage = stage,
+                    Percent = percent,
+                    Message = message,
+                    Level = level,
+                    Service = nameof(OllamaChatService),
+                    Operation = "chat"
+                },
+                connectionId,
+                cancellationToken);
 
     }
 }

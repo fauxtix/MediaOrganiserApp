@@ -13,4 +13,10 @@ public sealed class AiAuthorProfileRequestDto
 
     [JsonPropertyName("language")]
     public string? Language { get; set; }
+
+    [JsonPropertyName("connectionId")]
+    public string? ConnectionId { get; set; }
+
+    [JsonPropertyName("correlationId")]
+    public string? CorrelationId { get; set; }
 }

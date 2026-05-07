@@ -67,7 +67,7 @@ public class Program
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IYouTubeSubscriptionService, YouTubeSubscriptionService>();
 
-        // Google Authentication removido - não necessário para esta API
+        // Google Authentication removido - nï¿½o necessï¿½rio para esta API
 
         builder.Services.AddPersistenceInfrastructure();
 
@@ -77,6 +77,7 @@ public class Program
 
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
         builder.Services.AddSignalR();
+        builder.Services.AddScoped<IProgressPublisher, SignalRProgressPublisher>();
 
         // AI services
         builder.Services.AddHttpClient<OllamaBookSummaryService>();
@@ -184,6 +185,7 @@ public class Program
         app.UseStaticFiles();
 
         app.UseRouting();
+        app.UseCors("AllowAllOrigins");
 
         app.UseAuthorization();
 

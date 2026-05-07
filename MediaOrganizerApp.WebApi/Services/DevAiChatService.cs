@@ -17,6 +17,7 @@ namespace MediaOrganizerApp.WebApi.Services
         public async IAsyncEnumerable<string> StreamChatAsync(
             List<ChatMessageDto> messages,
             string? connectionId,
+            string? correlationId,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // One obvious chunk so clients see a response and DI is satisfied.

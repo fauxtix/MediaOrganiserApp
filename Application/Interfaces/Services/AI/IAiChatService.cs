@@ -9,6 +9,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.AI
         IAsyncEnumerable<string> StreamChatAsync(
             List<ChatMessageDto> messages,
             string? connectionId,
+            string? correlationId,
             CancellationToken cancellationToken);
     }
 }

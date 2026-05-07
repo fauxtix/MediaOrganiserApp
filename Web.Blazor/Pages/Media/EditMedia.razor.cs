@@ -162,7 +162,7 @@ namespace Web.Blazor.Pages.Media
                         {
                             string numericPart = SelectedRecord.Tamanho.Replace("MB", "").Trim();
 
-                            // Remover espaços dentro do número
+                            // Remover espaï¿½os dentro do nï¿½mero
                             numericPart = numericPart.Replace(" ", "");
 
                             // Converter para double
@@ -274,7 +274,7 @@ namespace Web.Blazor.Pages.Media
                || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
                 showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e Título";
+                alertMessage = "Por favor preencha os campos Autor e Tï¿½tulo";
                 return;
             }
 
@@ -347,7 +347,7 @@ namespace Web.Blazor.Pages.Media
                     if (ai == null)
                     {
                         showAlertMessage = true;
-                        alertMessage = L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.";
+                        alertMessage = L["AINotesServiceFailed"] ?? "O serviï¿½o de notas AI nï¿½o devolveu qualquer resultado.";
                     }
                     else
                     {
@@ -372,6 +372,7 @@ namespace Web.Blazor.Pages.Media
                         mediaTitle,
                         uiLanguage,
                         ProgressClient.ConnectionId,
+                        null,
                         mediaInfoCts.Token);
 
                     if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
@@ -394,7 +395,7 @@ namespace Web.Blazor.Pages.Media
             catch (OperationCanceledException)
             {
                 showAlertMessage = true;
-                alertMessage = "Operação cancelada.";
+                alertMessage = "Operaï¿½ï¿½o cancelada.";
             }
             catch (Exception ex)
             {
@@ -475,7 +476,7 @@ namespace Web.Blazor.Pages.Media
                 else
                 {
                     showAlertMessage = true;
-                    alertMessage = "Api não devolveu qualquer resultado";
+                    alertMessage = "Api nï¿½o devolveu qualquer resultado";
                 }
             }
             else
@@ -564,7 +565,7 @@ namespace Web.Blazor.Pages.Media
         {
             foreach (var file in args.Files)
             {
-                // Pasta física para capas de media (ajuste o nome se quiser)
+                // Pasta fï¿½sica para capas de media (ajuste o nome se quiser)
                 var pastaCapasMedia = Path.Combine(Env.WebRootPath, "images", "Media");
 
                 Directory.CreateDirectory(pastaCapasMedia);
@@ -590,13 +591,13 @@ namespace Web.Blazor.Pages.Media
 
         protected void OnCoverUploadSuccess(Syncfusion.Blazor.Inputs.SuccessEventArgs args)
         {
-            // opcional: não é necessário para salvar, já salvamos no ValueChange
+            // opcional: nï¿½o ï¿½ necessï¿½rio para salvar, jï¿½ salvamos no ValueChange
         }
         public async Task Voltar()
         {
             ToastTitle = "Download Youtube";
             ToastCssClass = "e-toast-info";
-            ToastContent = "Operação de gravação cancelada";
+            ToastContent = "Operaï¿½ï¿½o de gravaï¿½ï¿½o cancelada";
             ToastIcon = "e-icon-ThumbsDown";
 
             YouTubeDialogVisibility = false;
@@ -621,7 +622,7 @@ namespace Web.Blazor.Pages.Media
             if (SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
                 showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e Título";
+                alertMessage = "Por favor preencha os campos Autor e Tï¿½tulo";
                 StateHasChanged();
                 return;
             }
@@ -676,7 +677,7 @@ namespace Web.Blazor.Pages.Media
                 }
 
                 // If both fail, use AI
-                var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, mediaInfoCts.Token);
+                var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
                 if (ai is not null)
                 {
                     if (!string.IsNullOrEmpty(ai.Tempo))
@@ -718,13 +719,13 @@ namespace Web.Blazor.Pages.Media
                 else
                 {
                     showAlertMessage = true;
-                    alertMessage = "AI não devolveu qualquer resultado";
+                    alertMessage = "AI nï¿½o devolveu qualquer resultado";
                 }
             }
             catch (OperationCanceledException)
             {
                 showAlertMessage = true;
-                alertMessage = "Operação cancelada.";
+                alertMessage = "Operaï¿½ï¿½o cancelada.";
             }
             catch (Exception ex)
             {

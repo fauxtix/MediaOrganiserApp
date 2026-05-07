@@ -144,7 +144,7 @@ namespace Web.Blazor.Pages.AI
             try
             {
                 // Pass null for connectionId and include configured language
-                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, language, chatCts.Token))
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, chatCts.Token))
                 {
                     // first chunk received -> we are no longer waiting for the initial response
                     if (waitingForInitialResponse)

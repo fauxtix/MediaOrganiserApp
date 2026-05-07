@@ -24,11 +24,19 @@ public sealed class AiBookClientService
     }
 
     // Return null on transient failure/cancellation; return list (possibly empty) only on success
-    public async Task<List<GoogleBookInfo>?> GetAuthorBooksAsync(string author, string language = "pt")
+    public async Task<List<GoogleBookInfo>?> GetAuthorBooksAsync(
+        string author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null)
     {
         try
         {
             var endpoint = $"{_uri}/author-books?author={Uri.EscapeDataString(author)}&language={language}";
+            if (!string.IsNullOrWhiteSpace(connectionId))
+                endpoint += $"&connectionId={Uri.EscapeDataString(connectionId)}";
+            if (!string.IsNullOrWhiteSpace(correlationId))
+                endpoint += $"&correlationId={Uri.EscapeDataString(correlationId)}";
             using var resp = await _httpClient.GetAsync(endpoint);
 
             if (!resp.IsSuccessStatusCode)
@@ -63,13 +71,25 @@ public sealed class AiBookClientService
         }
     }
 
-    public async Task<AiBookSummaryResponseDto?> GetBookSummaryAsync(string title, string? author, string language = "pt")
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryAsync(
+        string title,
+        string? author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null)
     {
         try
         {
             using var resp = await _httpClient.PostAsJsonAsync(
                 $"{_uri}/book-summary",
-                new AiBookSummaryRequestDto { Title = title, Author = author, Language = language });
+                new AiBookSummaryRequestDto
+                {
+                    Title = title,
+                    Author = author,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId
+                });
 
             if (!resp.IsSuccessStatusCode)
                 return null;
@@ -83,7 +103,13 @@ public sealed class AiBookClientService
         }
     }
 
-    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(string title, string? author, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(
+        string title,
+        string? author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -94,7 +120,8 @@ public sealed class AiBookClientService
                 Title = title,
                 Author = author,
                 Language = language,
-                ConnectionId = connectionId
+                ConnectionId = connectionId,
+                CorrelationId = correlationId
             };
 
             using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(

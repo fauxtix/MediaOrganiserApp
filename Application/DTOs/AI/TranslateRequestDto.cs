@@ -12,4 +12,10 @@ public sealed class TranslateRequestDto
 
     [JsonPropertyName("targetLanguage")]
     public string TargetLanguage { get; set; } = string.Empty;
+
+    [JsonPropertyName("connectionId")]
+    public string? ConnectionId { get; set; }
+
+    [JsonPropertyName("correlationId")]
+    public string? CorrelationId { get; set; }
 }

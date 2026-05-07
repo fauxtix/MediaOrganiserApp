@@ -22,7 +22,13 @@ public partial class AiMediaClientService
         _uri = $"{_env["BaseUrl"]}/api/Ai";
     }
 
-    public async Task<AiMediaNotesResponseDto?> GetMediaNotesAsync(string artist, string title, string language = "pt", string? connectionId = null, CancellationToken cancellationToken = default)
+    public async Task<AiMediaNotesResponseDto?> GetMediaNotesAsync(
+        string artist,
+        string title,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -32,7 +38,8 @@ public partial class AiMediaClientService
                 Artist = artist,
                 Title = title,
                 Language = language,
-                ConnectionId = connectionId
+                ConnectionId = connectionId,
+                CorrelationId = correlationId
             };
             using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
                 _httpClient,
@@ -60,6 +67,7 @@ public partial class AiMediaClientService
                                                                          string title,
                                                                          string language = "pt",
                                                                          string? connectionId = null,
+                                                                         string? correlationId = null,
                                                                          CancellationToken cancellationToken = default)
     {
         try
@@ -71,7 +79,8 @@ public partial class AiMediaClientService
                     Artist = artist,
                     Title = title,
                     Language = language,
-                    ConnectionId = connectionId
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId
                 },
                 cancellationToken);
 

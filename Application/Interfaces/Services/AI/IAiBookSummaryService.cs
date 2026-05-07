@@ -23,5 +23,6 @@ public interface IAiBookSummaryService
             string? author,
             string language,
             string? connectionId,
+            string? correlationId,
              CancellationToken cancellationToken);
 }

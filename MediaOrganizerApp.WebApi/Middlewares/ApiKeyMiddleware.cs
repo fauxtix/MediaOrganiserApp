@@ -10,23 +10,6 @@
         }
         public async Task InvokeAsync(HttpContext context) 
         {
-            // Allow anonymous access to SignalR hub
-            if (context.Request.Path.StartsWithSegments("/media-info-progress"))
-            {
-                await _next(context);
-                return;
-            }
-            if (context.Request.Path.StartsWithSegments("/books-info-progress"))
-            {
-                await _next(context);
-                return;
-            }
-            if (context.Request.Path.StartsWithSegments("/chat-progress"))
-            {
-                await _next(context);
-                return;
-            }
-
             if (!context.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
             {
                 context.Response.StatusCode = 401; 
@@ -36,7 +19,7 @@
 
             var appSettings = context.RequestServices.GetRequiredService<IConfiguration>();
             var apiKey = appSettings.GetValue<string>(APIKEYNAME); 
-            if (!apiKey.Equals(extractedApiKey)) 
+            if (string.IsNullOrWhiteSpace(apiKey) || !string.Equals(apiKey, extractedApiKey, StringComparison.Ordinal)) 
             { 
                 context.Response.StatusCode = 401; 
                 await context.Response.WriteAsync("Unauthorized client."); 
