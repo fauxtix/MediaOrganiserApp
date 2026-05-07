@@ -1,3 +1,5 @@
+using System;
+
 namespace MediaOrganizerApp.Application.DTOs.AI;
 
 public enum ProgressChannel

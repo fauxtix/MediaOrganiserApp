@@ -98,7 +98,10 @@ public sealed class OllamaTranslateService : ITranslateService
                     return parsed;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing translation response");
+            }
 
             // Fallback: try extract first JSON object
             var extracted = TryExtractFirstJsonObject(text);
