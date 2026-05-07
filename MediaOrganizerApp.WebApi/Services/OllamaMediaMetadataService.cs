@@ -1,8 +1,6 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using MediaOrganizerApp.WebApi.Hubs;
-using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -19,18 +17,18 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     private string _model;
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
-    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
+    private readonly IProgressPublisher _progressPublisher;
 
     public OllamaMediaMetadataService(HttpClient httpClient,
                                       ILogger<OllamaMediaMetadataService> logger,
                                       IPromptTemplateProvider prompts,
-                                      IHubContext<MediaInfoProgressHub> hubContext,
-                                      IAppSettingsRepository appSettingsRepository)
+                                      IProgressPublisher progressPublisher,
+                                       IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _prompts = prompts;
-        _hubContext = hubContext;
+        _progressPublisher = progressPublisher;
         _appSettingsRepository = appSettingsRepository;
     }
 
@@ -39,10 +37,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         string title,
         string language,
         string? connectionId,
+        string? correlationId,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
 
         var template = await _prompts.GetTemplateAsync("media-metadata.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -52,18 +50,20 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             ["title"] = title
         });
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
-        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, connectionId, correlationId, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
 
         return result;
     }
 
-    private async Task<AiMediaMetadataResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
+    private async Task<AiMediaMetadataResponseDto> ExecuteOllamaAsync(
+        string prompt,
+        string? connectionId,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var (modelBaseUrl, modelName) = await GetAiSettings();
@@ -85,10 +85,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
         try
         {
-            if (_hubContext != null && !string.IsNullOrWhiteSpace(connectionId))
+            if (!string.IsNullOrWhiteSpace(connectionId) || !string.IsNullOrWhiteSpace(correlationId))
             {
                 LogProgress("Sending prompt to AI model...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+                await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
@@ -99,11 +99,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(80));
 
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Waiting for AI response...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
-            }
+            LogProgress("Waiting for AI response...");
+            await PublishAsync(connectionId, correlationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
 
             using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
             response.EnsureSuccessStatusCode();
@@ -111,11 +108,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
             var json = Encoding.UTF8.GetString(bytes);
 
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Parsing AI response...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
-            }
+            LogProgress("Parsing AI response...");
+            await PublishAsync(connectionId, correlationId, "parsing", 80, "Parsing AI response...", cancellationToken);
 
             var text = OllamaResponseHelper.TryExtractResponseText(json);
 
@@ -128,13 +122,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
-                if (!string.IsNullOrWhiteSpace(connectionId))
-                {
-                    LogProgress("Done!");
-                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
-                }
+                LogProgress("Done!");
+                await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
+                if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                    await PublishAsync(connectionId, correlationId, "warning", 100, parsed.Warnings, cancellationToken, "warning");
                 return parsed;
             }
 
@@ -144,11 +135,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 parsed = TryParseJsonContract(normalized);
                 if (parsed is not null)
                 {
-                    if (!string.IsNullOrWhiteSpace(connectionId))
-                    {
-                        LogProgress("Done!");
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    }
+                    LogProgress("Done!");
+                    await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                     return parsed;
                 }
             }
@@ -159,11 +147,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                 parsed = TryParseJsonContract(extractedJson);
                 if (parsed is not null)
                 {
-                    if (!string.IsNullOrWhiteSpace(connectionId))
-                    {
-                        LogProgress("Done!");
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    }
+                    LogProgress("Done!");
+                    await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                     return parsed;
                 }
 
@@ -173,21 +158,15 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                     parsed = TryParseJsonContract(normalized);
                     if (parsed is not null)
                     {
-                        if (!string.IsNullOrWhiteSpace(connectionId))
-                        {
-                            LogProgress("Done!");
-                            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                        }
+                        LogProgress("Done!");
+                        await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                         return parsed;
                     }
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Done!");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-            }
+            LogProgress("Done!");
+            await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
             return new AiMediaMetadataResponseDto
             {
                 Confidence = 0,
@@ -196,21 +175,15 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         }
         catch (OperationCanceledException)
         {
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("AI request timed out or was canceled.");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "AI request timed out or was canceled.");
-            }
+            LogProgress("AI request timed out or was canceled.");
+            await PublishAsync(connectionId, correlationId, "cancelled", 100, "AI request timed out or was canceled.", cancellationToken, "warning");
             return new AiMediaMetadataResponseDto { Confidence = 0, Warnings = "AI request timed out or was canceled." };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating media metadata using Ollama.");
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress($"Error: {ex.Message}");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, $"Error: {ex.Message}");
-            }
+            LogProgress($"Error: {ex.Message}");
+            await PublishAsync(connectionId, correlationId, "failed", 100, $"Error: {ex.Message}", cancellationToken, "error");
             return new AiMediaMetadataResponseDto { Confidence = 0, Warnings = ex.Message };
         }
     }
@@ -311,11 +284,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
      string title,
      string language,
      string? connectionId,
+     string? correlationId,
      CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId)
-                .SendAsync("ReceiveProgress", connectionId, "Step 1/2: Preparing AI prompt for edition year...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/2: Preparing AI prompt for edition year...", cancellationToken);
 
         // Robust dynamic hint for the AI
         var additionalInfo = $"Release year not found in external databases for '{title}' by '{artist}'. Only return the year if certain.";
@@ -329,11 +301,9 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             ["AdditionalInfo"] = additionalInfo
         });
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId)
-                .SendAsync("ReceiveProgress", connectionId, "Step 2/2: Sending prompt to AI model...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "request_sent", 45, "Step 2/2: Sending prompt to AI model...", cancellationToken);
 
-        var rawResponse = await ExecuteOllamaEditionYearAsync(prompt, connectionId, cancellationToken);
+        var rawResponse = await ExecuteOllamaEditionYearAsync(prompt, connectionId, correlationId, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(rawResponse))
             return null;
@@ -358,7 +328,11 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         return null;
     }
 
-    private async Task<string?> ExecuteOllamaEditionYearAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
+    private async Task<string?> ExecuteOllamaEditionYearAsync(
+        string prompt,
+        string? connectionId,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
         var (modelBaseUrl, modelName) = await GetAiSettings();
         _baseUrl = modelBaseUrl;
@@ -402,11 +376,13 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
+            await PublishAsync(connectionId, correlationId, "completed", 100, "Edition year response processed.", cancellationToken);
             return text.Trim();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating media edition year using Ollama.");
+            await PublishAsync(connectionId, correlationId, "failed", 100, ex.Message, cancellationToken, "error");
             return null;
         }
     }
@@ -428,5 +404,28 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         var settings = await _appSettingsRepository.GetSettingsAsync();
         return (settings.ModelBaseUrl, settings.AiModelName);
     }
+
+    private Task PublishAsync(
+        string? connectionId,
+        string? correlationId,
+        string stage,
+        int percent,
+        string message,
+        CancellationToken cancellationToken,
+        string level = "info")
+        => _progressPublisher.PublishAsync(
+            ProgressChannel.MediaInfo,
+            new ProgressUpdateDto
+            {
+                CorrelationId = correlationId,
+                Stage = stage,
+                Percent = percent,
+                Message = message,
+                Level = level,
+                Service = nameof(OllamaMediaMetadataService),
+                Operation = "media-metadata"
+            },
+            connectionId,
+            cancellationToken);
 
 }

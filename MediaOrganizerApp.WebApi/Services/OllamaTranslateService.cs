@@ -16,21 +16,25 @@ public sealed class OllamaTranslateService : ITranslateService
     private string _model;
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
+    private readonly IProgressPublisher _progressPublisher;
 
     public OllamaTranslateService(HttpClient httpClient,
                                   ILogger<OllamaTranslateService> logger,
                                   IPromptTemplateProvider prompts,
-                                  IAppSettingsRepository appSettingsRepository)
+                                  IAppSettingsRepository appSettingsRepository,
+                                  IProgressPublisher progressPublisher)
     {
         _httpClient = httpClient;
         _logger = logger;
         _prompts = prompts;
         _appSettingsRepository = appSettingsRepository;
+        _progressPublisher = progressPublisher;
     }
 
     public async Task<TranslateResponseDto> TranslateAsync(TranslateRequestDto request, CancellationToken cancellationToken)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
+        await PublishAsync(request.ConnectionId, request.CorrelationId, "preparing_prompt", 5, "Preparing translation prompt...", cancellationToken);
         var template = await _prompts.GetTemplateAsync("translate-text.prompt.txt", cancellationToken);
 
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -58,6 +62,7 @@ public sealed class OllamaTranslateService : ITranslateService
                 Content = JsonContent.Create(payload)
             };
 
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "request_sent", 40, "Sending translation prompt to AI model...", cancellationToken);
             using var resp = await _httpClient.SendAsync(req, cancellationToken);
             if (!resp.IsSuccessStatusCode)
             {
@@ -74,6 +79,7 @@ public sealed class OllamaTranslateService : ITranslateService
             var json = Encoding.UTF8.GetString(bytes);
 
             var text = TryExtractOllamaResponseText(json, _logger);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "parsing", 80, "Parsing translation response...", cancellationToken);
             if (string.IsNullOrWhiteSpace(text))
                 return new TranslateResponseDto
                 {
@@ -86,7 +92,11 @@ public sealed class OllamaTranslateService : ITranslateService
             try
             {
                 var parsed = JsonSerializer.Deserialize<TranslateResponseDto>(text, JsonOptions);
-                if (parsed is not null) return parsed;
+                if (parsed is not null)
+                {
+                    await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
+                    return parsed;
+                }
             }
             catch { }
 
@@ -97,17 +107,23 @@ public sealed class OllamaTranslateService : ITranslateService
                 try
                 {
                     var parsed = JsonSerializer.Deserialize<TranslateResponseDto>(extracted, JsonOptions);
-                    if (parsed is not null) return parsed;
+                    if (parsed is not null)
+                    {
+                        await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
+                        return parsed;
+                    }
                 }
                 catch { }
             }
 
             // If we reach here return raw text as translatedText with low confidence
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
             return new TranslateResponseDto { TranslatedText = text.Trim(), Confidence = 0.2 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Ollama for translate");
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "failed", 100, ex.Message ?? "Translation failed.", cancellationToken, "error");
             // Return a concise user-facing error message; full exception remains in logs
             return new TranslateResponseDto
             {
@@ -282,5 +298,28 @@ public sealed class OllamaTranslateService : ITranslateService
 
     private static string ResolveLanguageName(string code)
         => LanguageNames.TryGetValue(code, out var name) ? name : code;
+
+    private Task PublishAsync(
+        string? connectionId,
+        string? correlationId,
+        string stage,
+        int percent,
+        string message,
+        CancellationToken cancellationToken,
+        string level = "info")
+        => _progressPublisher.PublishAsync(
+            ProgressChannel.BooksInfo,
+            new ProgressUpdateDto
+            {
+                CorrelationId = correlationId,
+                Stage = stage,
+                Percent = percent,
+                Message = message,
+                Level = level,
+                Service = nameof(OllamaTranslateService),
+                Operation = "translate"
+            },
+            connectionId,
+            cancellationToken);
 
 }

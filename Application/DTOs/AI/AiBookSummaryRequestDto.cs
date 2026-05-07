@@ -13,5 +13,6 @@ public sealed class AiBookSummaryRequestDto
     [JsonPropertyName("language")]
     public string? Language { get; set; }
     public string? ConnectionId { get; set; }
+    public string? CorrelationId { get; set; }
 
 }

@@ -11,5 +11,6 @@ public interface IAiMediaNotesService
         string title,
         string language,
         string? connectionId,
+        string? correlationId,
         CancellationToken cancellationToken);
 }

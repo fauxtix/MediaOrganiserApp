@@ -144,7 +144,7 @@ namespace Web.Blazor.Pages.AI
 
                 var firstChunkReceived = false;
                 // Pass null for connectionId (we're using HTTP streaming) and include the configured language
-                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, language, chatCts.Token))
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, chatCts.Token))
                 {
                     if (!firstChunkReceived)
                     {

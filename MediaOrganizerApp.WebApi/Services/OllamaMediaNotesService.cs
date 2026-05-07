@@ -1,9 +1,7 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using MediaOrganizerApp.WebApi.Hubs;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
 
@@ -19,18 +17,18 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
     private string _model;
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
-    private readonly IHubContext<MediaInfoProgressHub> _hubContext;
+    private readonly IProgressPublisher _progressPublisher;
 
     public OllamaMediaNotesService(HttpClient httpClient,
                                    ILogger<OllamaMediaNotesService> logger,
                                    IPromptTemplateProvider prompts,
-                                   IHubContext<MediaInfoProgressHub> hubContext,
-                                   IAppSettingsRepository appSettingsRepository)
+                                   IProgressPublisher progressPublisher,
+                                    IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _prompts = prompts;
-        _hubContext = hubContext;
+        _progressPublisher = progressPublisher;
         _appSettingsRepository = appSettingsRepository;
     }
 
@@ -39,10 +37,10 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
         string title,
         string language,
         string? connectionId,
+        string? correlationId,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
         var template = await _prompts.GetTemplateAsync("media-notes.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
@@ -50,15 +48,13 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
             ["artist"] = artist,
             ["title"] = title
         });
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
-        var result = await ExecuteOllamaAsync(prompt, artist, title, connectionId, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, artist, title, connectionId, correlationId, cancellationToken);
+        await PublishAsync(connectionId, correlationId, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
         return result;
     }
 
-private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string artist, string title, string? connectionId, CancellationToken cancellationToken)
+private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, string artist, string title, string? connectionId, string? correlationId, CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
         var (modelBaseUrl, modelName) = await GetAiSettings();
@@ -75,10 +71,10 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
         try
         {
             // Progress: sending prompt
-            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            if (!string.IsNullOrWhiteSpace(prompt))
             {
                 LogProgress("Sending prompt to AI model...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+                await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
@@ -87,11 +83,8 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
             };
 
             // Progress: waiting for AI response
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Waiting for AI response...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
-            }
+            LogProgress("Waiting for AI response...");
+            await PublishAsync(connectionId, correlationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -100,11 +93,8 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
             var json = Encoding.UTF8.GetString(bytes);
 
             // Progress: parsing AI response
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Parsing AI response...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Parsing AI response...");
-            }
+            LogProgress("Parsing AI response...");
+            await PublishAsync(connectionId, correlationId, "parsing", 80, "Parsing AI response...", cancellationToken);
 
             var text = OllamaResponseHelper.TryExtractResponseText(json);
             if (string.IsNullOrWhiteSpace(text))
@@ -126,13 +116,10 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
                 {
                     parsed.Warnings = $"AI notes may not be accurate for '{parsed.Artist}' - '{parsed.Title}'.";
                 }
-                if (!string.IsNullOrWhiteSpace(connectionId))
-                {
-                    LogProgress("Done!");
-                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
-                }
+                LogProgress("Done!");
+                await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
+                if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                    await PublishAsync(connectionId, correlationId, "warning", 100, parsed.Warnings, cancellationToken, "warning");
                 return parsed;
             }
 
@@ -197,14 +184,34 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating media notes using Ollama.");
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress($"Error: {ex.Message}");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, $"Error: {ex.Message}");
-            }
+            LogProgress($"Error: {ex.Message}");
+            await PublishAsync(connectionId, correlationId, "failed", 100, $"Error: {ex.Message}", cancellationToken, "error");
             return new AiMediaNotesResponseDto { Notes = string.Empty, Confidence = 0, Warnings = ex.Message };
         }
     }
+
+    private Task PublishAsync(
+        string? connectionId,
+        string? correlationId,
+        string stage,
+        int percent,
+        string message,
+        CancellationToken cancellationToken,
+        string level = "info")
+        => _progressPublisher.PublishAsync(
+            ProgressChannel.MediaInfo,
+            new ProgressUpdateDto
+            {
+                CorrelationId = correlationId,
+                Stage = stage,
+                Percent = percent,
+                Message = message,
+                Level = level,
+                Service = nameof(OllamaMediaNotesService),
+                Operation = "media-notes"
+            },
+            connectionId,
+            cancellationToken);
 
 
     private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()

@@ -9,6 +9,11 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.AI
     {
         // Query books for an author. Do not require a 'maxResults' parameter here;
         // implementations should use their own defaults or internal limits.
-        Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author, string language, CancellationToken cancellationToken = default);
+        Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(
+            string author,
+            string language,
+            string? connectionId = null,
+            string? correlationId = null,
+            CancellationToken cancellationToken = default);
     }
 }

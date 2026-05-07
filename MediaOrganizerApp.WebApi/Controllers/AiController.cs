@@ -268,7 +268,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Field 'name' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-            var resp = await _ai.GetAuthorProfileAsync(request.Name, language, cancellationToken);
+            var resp = await _ai.GetAuthorProfileAsync(
+                request.Name,
+                language,
+                request.ConnectionId,
+                request.CorrelationId,
+                cancellationToken);
             return Ok(resp);
         }
 
@@ -294,7 +299,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-            var resp = await _books.GetBookSummaryOnlyAsync(request.Title, request.Author, language, request.ConnectionId, cancellationToken);
+            var resp = await _books.GetBookSummaryOnlyAsync(
+                request.Title,
+                request.Author,
+                language,
+                request.ConnectionId,
+                request.CorrelationId,
+                cancellationToken);
             return Ok(resp);
         }
 
@@ -302,6 +313,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
         public async Task<ActionResult<List<GoogleBookInfo>>> AuthorBooks(
             string author,
             string language = "pt",
+            string? connectionId = null,
+            string? correlationId = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(author))
@@ -309,7 +322,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             try
             {
-                var books = await _aiBooks.GetBooksByAuthorAsync(author, language, cancellationToken);
+                var books = await _aiBooks.GetBooksByAuthorAsync(author, language, connectionId, correlationId, cancellationToken);
                 return Ok(books);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -349,7 +362,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
             try
             {
-                var resp = await _media.GetMediaNotesAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
+                var resp = await _media.GetMediaNotesAsync(
+                    request.Artist,
+                    request.Title,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
                 return Ok(resp);
             }
             catch (Exception ex)
@@ -369,7 +388,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-            var resp = await _mediaMetadata.GetMediaMetadataAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
+            var resp = await _mediaMetadata.GetMediaMetadataAsync(
+                request.Artist,
+                request.Title,
+                language,
+                request.ConnectionId,
+                request.CorrelationId,
+                cancellationToken);
             return Ok(resp);
         }
 
@@ -383,7 +408,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
-            var year = await _mediaMetadata.GetMediaEditionYearAsync(request.Artist, request.Title, language, request.ConnectionId, cancellationToken);
+            var year = await _mediaMetadata.GetMediaEditionYearAsync(
+                request.Artist,
+                request.Title,
+                language,
+                request.ConnectionId,
+                request.CorrelationId,
+                cancellationToken);
             return Ok(string.IsNullOrWhiteSpace(year) ? "N/A" : year);
         }
 
@@ -408,6 +439,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 await foreach (var chunk in _chat.StreamChatAsync(
                     request.Messages,
                     request.ConnectionId,
+                    request.CorrelationId,
                     cancellationToken))
                 {
                     await Response.WriteAsync(chunk, cancellationToken);

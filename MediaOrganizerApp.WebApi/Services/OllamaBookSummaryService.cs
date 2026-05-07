@@ -1,8 +1,6 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using MediaOrganizerApp.WebApi.Hubs;
-using Microsoft.AspNetCore.SignalR;
 using System.Text;
 using System.Text.Json;
 
@@ -18,18 +16,18 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     private string _model;
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
-    private readonly IHubContext<GoogleBooksProgressHub> _hubContext;
+    private readonly IProgressPublisher _progressPublisher;
 
     public OllamaBookSummaryService(HttpClient httpClient,
                                     ILogger<OllamaBookSummaryService> logger,
                                     IPromptTemplateProvider prompts,
-                                    IHubContext<GoogleBooksProgressHub> hubContext,
+                                    IProgressPublisher progressPublisher,
                                     IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _prompts = prompts;
-        _hubContext = hubContext;
+        _progressPublisher = progressPublisher;
         _appSettingsRepository = appSettingsRepository;
     }
 
@@ -49,8 +47,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         string? connectionId,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing book summary prompt...", cancellationToken);
+        await PublishAsync(connectionId, null, "preparing_prompt", 5, "Step 1/3: Preparing book summary prompt...", cancellationToken);
 
         var template = await _prompts.GetTemplateAsync("book-summary-full.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -60,13 +57,11 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        await PublishAsync(connectionId, null, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
-        var result = await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        var result = await ExecuteOllamaAsync(prompt, connectionId, null, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 3/3: Processing AI response...", cancellationToken);
+        await PublishAsync(connectionId, null, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
 
         return result;
     }
@@ -86,18 +81,18 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         });
 
         // Ensure cancellationToken is passed correctly
-        return await ExecuteOllamaAsync(prompt, null, cancellationToken);
+        return await ExecuteOllamaAsync(prompt, null, null, cancellationToken);
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
             string title,
-            string? author,
-            string language,
-            string? connectionId,
-             CancellationToken cancellationToken)
+        string? author,
+        string language,
+        string? connectionId,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 1/3: Preparing AI prompt...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
 
         var template = await _prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -107,18 +102,21 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
-        if (!string.IsNullOrWhiteSpace(connectionId))
-            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Step 2/3: Sending prompt to AI model...", cancellationToken);
+        await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
 
         // Ensure cancellationToken is passed correctly
-        return await ExecuteOllamaAsync(prompt, connectionId, cancellationToken);
+        return await ExecuteOllamaAsync(prompt, connectionId, correlationId, cancellationToken);
     }
 
 
-    private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(string prompt, string? connectionId, CancellationToken cancellationToken)
+    private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(
+        string prompt,
+        string? connectionId,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
-        void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
+        void LogProgress(string msg) => _logger.LogInformation("Progress for client {ConnectionId}: {Message}", connectionId, msg);
 
         var (modelBaseUrl, modelName) = await GetAiSettings();
         _baseUrl = modelBaseUrl;
@@ -134,10 +132,10 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         try
         {
 
-            if (_hubContext != null && !string.IsNullOrWhiteSpace(prompt) && !string.IsNullOrWhiteSpace(connectionId))
+            if (!string.IsNullOrWhiteSpace(prompt))
             {
                 LogProgress("Sending prompt to AI model...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Sending prompt to AI model...");
+                await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
@@ -146,11 +144,8 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             };
 
             // Progress: waiting for AI response
-            if (!string.IsNullOrWhiteSpace(connectionId))
-            {
-                LogProgress("Waiting for AI response...");
-                await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Waiting for AI response...");
-            }
+            LogProgress("Waiting for AI response...");
+            await PublishAsync(connectionId, correlationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
@@ -187,13 +182,10 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 {
                     parsed.Warnings = $"AI Summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
                 }
-                if (!string.IsNullOrWhiteSpace(connectionId))
-                {
-                    LogProgress("Done!");
-                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    if (!string.IsNullOrWhiteSpace(parsed.Warnings))
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, parsed.Warnings);
-                }
+                LogProgress("Done!");
+                await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
+                if (!string.IsNullOrWhiteSpace(parsed.Warnings))
+                    await PublishAsync(connectionId, correlationId, "warning", 100, parsed.Warnings, cancellationToken, "warning");
                 return parsed;
             }
 
@@ -219,19 +211,13 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                     {
                         parsed.Warnings = $"AI summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
                     }
-                    if (!string.IsNullOrWhiteSpace(connectionId))
-                    {
-                        LogProgress("Done!");
-                        await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                    }
+                    LogProgress("Done!");
+                    await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                     return parsed;
                 }
 
-                if (!string.IsNullOrWhiteSpace(connectionId))
-                {
-                    LogProgress("Done!");
-                    await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveProgress", connectionId, "Done!");
-                }
+                LogProgress("Done!");
+                await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                 string summary = "";
                 var summaryMatch = System.Text.RegularExpressions.Regex.Match(text, "\"notes\"\\s*:\\s*\"(.*?)\"");
 
@@ -269,14 +255,39 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning("AI - Book summary request was canceled by the caller (timeout/user cancel). Prompt={Prompt}", prompt);
+            await PublishAsync(connectionId, correlationId, "cancelled", 100, "Request canceled.", cancellationToken, "warning");
             return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = "Request canceled." };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI - Error generating book summary using Ollama.");
+            await PublishAsync(connectionId, correlationId, "failed", 100, ex.Message, cancellationToken, "error");
             return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = ex.Message };
         }
     }
+
+    private Task PublishAsync(
+        string? connectionId,
+        string? correlationId,
+        string stage,
+        int percent,
+        string message,
+        CancellationToken cancellationToken,
+        string level = "info")
+        => _progressPublisher.PublishAsync(
+            ProgressChannel.BooksInfo,
+            new ProgressUpdateDto
+            {
+                CorrelationId = correlationId,
+                Stage = stage,
+                Percent = percent,
+                Message = message,
+                Level = level,
+                Service = nameof(OllamaBookSummaryService),
+                Operation = "book-summary"
+            },
+            connectionId,
+            cancellationToken);
 
 
     private static AiBookSummaryResponseDto? TryParseJsonContract(string text)

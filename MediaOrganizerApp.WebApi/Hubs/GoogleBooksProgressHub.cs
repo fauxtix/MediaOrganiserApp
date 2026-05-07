@@ -12,58 +12,28 @@ namespace MediaOrganizerApp.WebApi.Hubs
             _logger = logger;
         }
 
-        public async Task SendProgress(string connectionId, string message)
+        private static string GroupName(string correlationId) => $"corr:{correlationId}";
+
+        public Task JoinCorrelation(string correlationId)
         {
-            if (string.IsNullOrWhiteSpace(connectionId))
+            if (string.IsNullOrWhiteSpace(correlationId))
             {
-                _logger.LogWarning("SendProgress called with null/empty connectionId. Message dropped.");
-                return;
+                _logger.LogWarning("JoinCorrelation called with null/empty correlationId.");
+                return Task.CompletedTask;
             }
 
-            try
-            {
-                await Clients.Client(connectionId).SendAsync("ReceiveProgress", message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending progress to connection {ConnectionId}", connectionId);
-            }
+            return Groups.AddToGroupAsync(Context.ConnectionId, GroupName(correlationId));
         }
 
-        public async Task SendChunk(string connectionId, string chunk)
+        public Task LeaveCorrelation(string correlationId)
         {
-            if (string.IsNullOrWhiteSpace(connectionId))
+            if (string.IsNullOrWhiteSpace(correlationId))
             {
-                _logger.LogWarning("SendChunk called with null/empty connectionId. Chunk dropped.");
-                return;
+                _logger.LogWarning("LeaveCorrelation called with null/empty correlationId.");
+                return Task.CompletedTask;
             }
 
-            try
-            {
-                await Clients.Client(connectionId).SendAsync("ReceiveChunk", chunk);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending chunk to connection {ConnectionId}", connectionId);
-            }
-        }
-
-        public async Task SendDone(string connectionId)
-        {
-            if (string.IsNullOrWhiteSpace(connectionId))
-            {
-                _logger.LogWarning("SendDone called with null/empty connectionId.");
-                return;
-            }
-
-            try
-            {
-                await Clients.Client(connectionId).SendAsync("ReceiveDone");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending done to connection {ConnectionId}", connectionId);
-            }
+            return Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(correlationId));
         }
 
         public string GetConnectionId()

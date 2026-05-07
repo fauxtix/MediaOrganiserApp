@@ -11,6 +11,7 @@ public interface IAiMediaMetadataService
         string title,
         string language,
         string? connectionId,
+        string? correlationId,
         CancellationToken cancellationToken);
 
     Task<string?> GetMediaEditionYearAsync(
@@ -18,5 +19,6 @@ public interface IAiMediaMetadataService
         string title,
         string language,
         string? connectionId,
+        string? correlationId,
         CancellationToken cancellationToken);
 }

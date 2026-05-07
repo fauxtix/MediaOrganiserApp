@@ -21,24 +21,32 @@ namespace MediaOrganizerApp.WebApi.Services
         private readonly IConfiguration _config;
         private readonly IPromptTemplateProvider _prompts;
         private readonly IAppSettingsRepository _appSettingsRepository;
+        private readonly IProgressPublisher _progressPublisher;
 
 
-        public OllamaBooksService(HttpClient httpClient, ILogger<OllamaBooksService> logger, IConfiguration config, IPromptTemplateProvider prompts, IAppSettingsRepository appSettingsRepository)
+        public OllamaBooksService(HttpClient httpClient, ILogger<OllamaBooksService> logger, IConfiguration config, IPromptTemplateProvider prompts, IAppSettingsRepository appSettingsRepository, IProgressPublisher progressPublisher)
         {
             _httpClient = httpClient;
             _logger = logger;
             _config = config;
             _prompts = prompts;
             _appSettingsRepository = appSettingsRepository;
+            _progressPublisher = progressPublisher;
         }
 
-        public async Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(string author, string language, CancellationToken cancellationToken = default)
+        public async Task<List<GoogleBookInfo>> GetBooksByAuthorAsync(
+            string author,
+            string language,
+            string? connectionId = null,
+            string? correlationId = null,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(author)) return new List<GoogleBookInfo>();
 
             try
             {
                 var defaultMaxResults = 20;
+                await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing books prompt...", cancellationToken);
                 var template = await _prompts.GetTemplateAsync("author-books.prompt.txt", cancellationToken);
                 var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
                 {
@@ -56,6 +64,7 @@ namespace MediaOrganizerApp.WebApi.Services
                     Content = JsonContent.Create(payload)
                 };
 
+                await PublishAsync(connectionId, correlationId, "request_sent", 40, "Sending books prompt to AI model...", cancellationToken);
                 using var httpResponse = await _httpClient.SendAsync(request, cancellationToken);
                 if (!httpResponse.IsSuccessStatusCode)
                 {
@@ -68,6 +77,7 @@ namespace MediaOrganizerApp.WebApi.Services
                 var raw = Encoding.UTF8.GetString(bytes);
                 _logger.LogDebug("Ollama raw response for {Author}: {Raw}", author, raw);
                 var text = TryExtractOllamaResponseText(raw);
+                await PublishAsync(connectionId, correlationId, "parsing", 75, "Parsing books AI response...", cancellationToken);
 
                 if (string.IsNullOrWhiteSpace(text))
                 {
@@ -249,6 +259,7 @@ namespace MediaOrganizerApp.WebApi.Services
                         }
                     }
 
+                    await PublishAsync(connectionId, correlationId, "completed", 100, "Books response processed.", cancellationToken);
                     return result;
                 }
                 catch (JsonException ex)
@@ -261,12 +272,14 @@ namespace MediaOrganizerApp.WebApi.Services
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("OllamaBooksService request canceled for author {Author}", author);
+                await PublishAsync(connectionId, correlationId, "cancelled", 100, "Books request canceled.", cancellationToken, "warning");
                 // propagate cancellation
                 throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying Ollama for books by {Author}", author);
+                await PublishAsync(connectionId, correlationId, "failed", 100, ex.Message, cancellationToken, "error");
                 throw;
             }
         }
@@ -350,6 +363,29 @@ namespace MediaOrganizerApp.WebApi.Services
             var settings = await _appSettingsRepository.GetSettingsAsync();
             return (settings.ModelBaseUrl, settings.AiModelName);
         }
+
+        private Task PublishAsync(
+            string? connectionId,
+            string? correlationId,
+            string stage,
+            int percent,
+            string message,
+            CancellationToken cancellationToken,
+            string level = "info")
+            => _progressPublisher.PublishAsync(
+                ProgressChannel.BooksInfo,
+                new ProgressUpdateDto
+                {
+                    CorrelationId = correlationId,
+                    Stage = stage,
+                    Percent = percent,
+                    Message = message,
+                    Level = level,
+                    Service = nameof(OllamaBooksService),
+                    Operation = "author-books"
+                },
+                connectionId,
+                cancellationToken);
 
     }
 }
