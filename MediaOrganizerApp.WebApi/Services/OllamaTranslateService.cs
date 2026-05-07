@@ -281,7 +281,12 @@ public sealed class OllamaTranslateService : ITranslateService
         cleaned = cleaned.Trim().Trim('`');
 
         var embeddedJson = TryExtractFirstJsonObject(cleaned);
-        return string.IsNullOrWhiteSpace(embeddedJson) ? cleaned : embeddedJson;
+        if (!string.IsNullOrWhiteSpace(embeddedJson))
+            return embeddedJson;
+
+        return cleaned.Contains('`', StringComparison.Ordinal)
+            ? cleaned.Replace("`", string.Empty, StringComparison.Ordinal).Trim()
+            : cleaned;
     }
 
     private static string DescribeResponseFormat(string text)
