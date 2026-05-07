@@ -71,7 +71,9 @@ public sealed class OllamaTranslateService : ITranslateService
             };
 
             await PublishAsync(request.ConnectionId, request.CorrelationId, "request_sent", 40, "Sending translation prompt to AI model...", cancellationToken);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
             using var resp = await _httpClient.SendAsync(req, cancellationToken);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "response_received", 75, "AI response received.", cancellationToken);
             if (!resp.IsSuccessStatusCode)
             {
                 _logger.LogError("Translate: Ollama request failed. Status={Status}", resp.StatusCode);
