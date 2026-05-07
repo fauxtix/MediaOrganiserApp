@@ -88,35 +88,15 @@ public sealed class OllamaTranslateService : ITranslateService
                     ErrorMessage = "No response received from translation backend."
                 };
 
-            // Attempt to parse direct JSON
-            try
+            var extracted = TryExtractFirstJsonObject(text);
+            if (!string.IsNullOrWhiteSpace(extracted))
             {
-                var parsed = JsonSerializer.Deserialize<TranslateResponseDto>(text, JsonOptions);
+                var parsed = TryDeserializeTranslateResponse(extracted);
                 if (parsed is not null)
                 {
                     await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
                     return parsed;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error parsing translation response");
-            }
-
-            // Fallback: try extract first JSON object
-            var extracted = TryExtractFirstJsonObject(text);
-            if (!string.IsNullOrWhiteSpace(extracted))
-            {
-                try
-                {
-                    var parsed = JsonSerializer.Deserialize<TranslateResponseDto>(extracted, JsonOptions);
-                    if (parsed is not null)
-                    {
-                        await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
-                        return parsed;
-                    }
-                }
-                catch { }
             }
 
             // If we reach here return raw text as translatedText with low confidence
@@ -195,6 +175,25 @@ public sealed class OllamaTranslateService : ITranslateService
         return null;
     }
 
+    private TranslateResponseDto? TryDeserializeTranslateResponse(string text)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<TranslateResponseDto>(text, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Translation response JSON parse failed. Format={Format}. Length={Length}. Preview={Preview}",
+                DescribeResponseFormat(text),
+                text.Length,
+                CreateSafePreview(text));
+
+            return null;
+        }
+    }
+
     private static string? TryExtractOllamaResponseText(string json, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -208,58 +207,17 @@ public sealed class OllamaTranslateService : ITranslateService
                 var responseText = response.GetString();
                 if (!string.IsNullOrWhiteSpace(responseText))
                 {
-                    // Clean common markdown / code-fence wrappers and leading noise
-                    static string CleanResponse(string s)
-                    {
-                        if (string.IsNullOrWhiteSpace(s)) return s;
-                        s = s.Trim();
-
-                        // Triple backtick fences ```json ... ```
-                        if (s.StartsWith("```"))
-                        {
-                            var last = s.LastIndexOf("```", StringComparison.Ordinal);
-                            if (last > 2)
-                            {
-                                var inner = s.Substring(3, last - 3);
-                                return inner.Trim();
-                            }
-                        }
-
-                        // Single backticks `...`
-                        if (s.Length >= 2 && s[0] == '`' && s[^1] == '`')
-                            return s.Substring(1, s.Length - 2).Trim();
-
-                        // If there is leading text before the first JSON object/array, strip it
-                        var firstJsonIndex = s.IndexOfAny(new[] { '{', '[' });
-                        if (firstJsonIndex > 0)
-                            return s.Substring(firstJsonIndex).Trim();
-
-                        return s;
-                    }
-
-                    var cleaned = CleanResponse(responseText);
-
-                    if (!string.IsNullOrWhiteSpace(cleaned) && (cleaned[0] == '{' || cleaned[0] == '['))
-                    {
-                        try
-                        {
-                            using var innerDoc = JsonDocument.Parse(cleaned);
-                            return innerDoc.RootElement.ToString();
-                        }
-                        catch (JsonException ex)
-                        {
-                            logger.LogWarning(ex, "Malformed stringified JSON in response after cleaning; returning raw responseText");
-                            return responseText;
-                        }
-                    }
-
-                    return responseText;
+                    return CleanResponseText(responseText);
                 }
             }
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "Malformed JSON encountered: {Json}", json);
+            logger.LogError(
+                ex,
+                "Malformed Ollama translation payload. Length={Length}. Preview={Preview}",
+                json.Length,
+                CreateSafePreview(json));
             return null;
         }
 
@@ -275,12 +233,80 @@ public sealed class OllamaTranslateService : ITranslateService
             }
             catch (JsonException ex)
             {
-                logger.LogWarning(ex, "Malformed NDJSON line encountered: {Line}", line);
+                logger.LogWarning(
+                    ex,
+                    "Malformed NDJSON line in translation response. Length={Length}. Preview={Preview}",
+                    line.Length,
+                    CreateSafePreview(line));
             }
         }
 
         var merged = sb.ToString();
-        return string.IsNullOrWhiteSpace(merged) ? null : merged;
+        return string.IsNullOrWhiteSpace(merged) ? null : CleanResponseText(merged);
+    }
+
+    private static string CleanResponseText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var cleaned = text.Trim();
+
+        var fenceStart = cleaned.IndexOf("```", StringComparison.Ordinal);
+        if (fenceStart >= 0)
+        {
+            var fenceEnd = cleaned.IndexOf("```", fenceStart + 3, StringComparison.Ordinal);
+            if (fenceEnd > fenceStart)
+            {
+                cleaned = cleaned.Substring(fenceStart + 3, fenceEnd - fenceStart - 3).Trim();
+
+                var firstLineBreak = cleaned.IndexOfAny(new[] { '\r', '\n' });
+                if (firstLineBreak >= 0)
+                {
+                    var firstLine = cleaned[..firstLineBreak].Trim();
+                    if (firstLine.Length > 0 && firstLine.All(char.IsLetter))
+                        cleaned = cleaned[(firstLineBreak + 1)..].Trim();
+                }
+            }
+        }
+
+        cleaned = cleaned.Trim().Trim('`').Trim();
+
+        var embeddedJson = TryExtractFirstJsonObject(cleaned);
+        return string.IsNullOrWhiteSpace(embeddedJson) ? cleaned : embeddedJson;
+    }
+
+    private static string DescribeResponseFormat(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "empty";
+
+        var trimmed = text.TrimStart();
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+            return "markdown_fence";
+
+        if (trimmed.StartsWith('`'))
+            return "backtick_wrapped_text";
+
+        if (trimmed.StartsWith('{'))
+            return "json_object";
+
+        return trimmed.IndexOf('{') >= 0 ? "prose_with_embedded_json" : "plain_text";
+    }
+
+    private static string CreateSafePreview(string text, int maxLength = 160)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var normalized = text
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal)
+            .Trim();
+
+        return normalized.Length <= maxLength
+            ? normalized
+            : normalized[..maxLength];
     }
 
     private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
