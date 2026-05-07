@@ -127,10 +127,6 @@ public class BooksInfoProgressClient
         {
             await _connection.InvokeAsync(methodName, correlationId);
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection is not active.", methodName);
-        }
         catch (ObjectDisposedException ex)
         {
             _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection was disposed.", methodName);
@@ -138,6 +134,11 @@ public class BooksInfoProgressClient
         catch (OperationCanceledException ex)
         {
             _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the operation was canceled.", methodName);
+        }
+
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection is not active.", methodName);
         }
     }
 }
