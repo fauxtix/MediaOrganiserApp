@@ -42,9 +42,15 @@
                             <div>
                                 @if (IsTranslating)
                                 {
-                                    <div class="bouncing-dots">
-                                        @L["TituloTraducao"]
-                                        <span></span><span></span><span></span>
+                                    <div class="translate-progress-wrap">
+                                        <div class="bouncing-dots">
+                                            @L["TituloTraducao"]
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(ProgressMessage))
+                                        {
+                                            <div class="translate-progress-message">@ProgressMessage</div>
+                                        }
                                     </div>
                                 }
                                 else
@@ -145,6 +151,18 @@
             transform: translateY(-8px);
             opacity: 1;
         }
+    }
+
+    .translate-progress-wrap {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .translate-progress-message {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
     }
 
 </style>

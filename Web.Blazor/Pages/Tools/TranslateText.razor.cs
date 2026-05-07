@@ -1,11 +1,17 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
+using Web.Blazor.Services.Common;
 
 namespace Web.Blazor.Pages.Tools
 {
-    public partial class TranslateText
+    public partial class TranslateText : IAsyncDisposable
     {
+        [Inject] public IConfiguration Configuration { get; set; } = default!;
+        [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+        [Inject] public BooksInfoProgressClient ProgressClient { get; set; } = default!;
+
         [Parameter] public string Title { get; set; } = "Translate Text";
         [Parameter] public bool Visible { get; set; }
         [Parameter] public string InitialText { get; set; } = string.Empty;
@@ -21,9 +27,13 @@ namespace Web.Blazor.Pages.Tools
         string SourceLanguage { get; set; } = string.Empty;
         string TargetLanguage { get; set; } = string.Empty;
         string TranslatedText { get; set; } = string.Empty;
+        string ProgressMessage { get; set; } = string.Empty;
         double? Confidence { get; set; }
         string ErrorMessage { get; set; } = string.Empty;
         bool IsTranslating { get; set; } = false;
+        private bool _progressClientOwned;
+        private string? _activeCorrelationId;
+        private bool _wasVisible;
 
         List<LanguageItem> languages = new()
     {
@@ -62,11 +72,24 @@ namespace Web.Blazor.Pages.Tools
                 SourceTextNoHtml = StripHtml(InputText ?? string.Empty);
                 await InvokeAsync(StateHasChanged);
             }
+            else if (_wasVisible)
+            {
+                await CleanupProgressClientAsync();
+            }
+
+            _wasVisible = Visible;
         }
         private async Task Translate()
         {
+            if (!CanTranslate)
+            {
+                ErrorMessage = L["msgFillAllFields"] ?? "Please fill text, source and target languages and ensure they differ.";
+                return;
+            }
+
             IsTranslating = true;
             ErrorMessage = string.Empty;
+            ProgressMessage = string.Empty;
             await InvokeAsync(StateHasChanged);
             await Task.Delay(50);
             TranslatedText = string.Empty;
@@ -74,16 +97,21 @@ namespace Web.Blazor.Pages.Tools
 
             TranslatedText = "";
 
-            if (!CanTranslate)
-            {
-                ErrorMessage = L["msgFillAllFields"] ?? "Please fill text, source and target languages and ensure they differ.";
-                return;
-            }
-
-            var req = new TranslateRequestDto { Text = SourceTextNoHtml, SourceLanguage = SourceLanguage, TargetLanguage = TargetLanguage };
-
             try
             {
+                await EnsureProgressClientAsync();
+                _activeCorrelationId = Guid.NewGuid().ToString("N");
+                await ProgressClient.JoinCorrelationAsync(_activeCorrelationId);
+
+                var req = new TranslateRequestDto
+                {
+                    Text = SourceTextNoHtml,
+                    SourceLanguage = SourceLanguage,
+                    TargetLanguage = TargetLanguage,
+                    ConnectionId = ProgressClient.ConnectionId,
+                    CorrelationId = _activeCorrelationId
+                };
+
                 TranslateResponseDto? resp = null;
                 if (TranslateFunc is not null)
                 {
@@ -124,6 +152,12 @@ namespace Web.Blazor.Pages.Tools
             }
             finally
             {
+                if (!string.IsNullOrWhiteSpace(_activeCorrelationId))
+                {
+                    await ProgressClient.LeaveCorrelationAsync(_activeCorrelationId);
+                    _activeCorrelationId = null;
+                }
+
                 IsTranslating = false;
                 await InvokeAsync(StateHasChanged);
             }
@@ -166,9 +200,61 @@ namespace Web.Blazor.Pages.Tools
 
         private async Task OnExit()
         {
+            await CleanupProgressClientAsync();
             Visible = false;
             if (OnClose.HasDelegate)
                 await OnClose.InvokeAsync();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await CleanupProgressClientAsync();
+        }
+
+        private async Task EnsureProgressClientAsync()
+        {
+            var wasConnected = !string.IsNullOrWhiteSpace(ProgressClient.ConnectionId);
+
+            var apiBase = Configuration["BaseUrl"]?.TrimEnd('/') ?? NavigationManager.BaseUri.TrimEnd('/');
+            if (apiBase.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+            {
+                apiBase = apiBase.Substring(0, apiBase.Length - 4);
+            }
+
+            await ProgressClient.StartAsync(apiBase);
+            if (!wasConnected && !string.IsNullOrWhiteSpace(ProgressClient.ConnectionId))
+            {
+                _progressClientOwned = true;
+            }
+
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressReceived += OnProgressReceived;
+            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+            ProgressClient.ProgressEventReceived += OnProgressEventReceived;
+        }
+
+        private async Task CleanupProgressClientAsync()
+        {
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+
+            if (_progressClientOwned)
+            {
+                await ProgressClient.StopAsync();
+                _progressClientOwned = false;
+            }
+        }
+
+        private void OnProgressReceived(string message)
+        {
+            ProgressMessage = message ?? string.Empty;
+            _ = InvokeAsync(StateHasChanged);
+        }
+
+        private void OnProgressEventReceived(ProgressUpdateDto update)
+        {
+            ProgressMessage = update?.Message ?? string.Empty;
+            _ = InvokeAsync(StateHasChanged);
         }
 
         private class LanguageItem
