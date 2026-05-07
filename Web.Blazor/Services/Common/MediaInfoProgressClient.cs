@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Web.Blazor.Services.Common;
 
@@ -8,10 +9,12 @@ public sealed class MediaInfoProgressClient
 {
     private HubConnection? _connection;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<MediaInfoProgressClient> _logger;
 
-    public MediaInfoProgressClient(IConfiguration configuration)
+    public MediaInfoProgressClient(IConfiguration configuration, ILogger<MediaInfoProgressClient> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     public event Action<string>? ProgressReceived;
@@ -51,16 +54,12 @@ public sealed class MediaInfoProgressClient
 
     public async Task JoinCorrelationAsync(string correlationId)
     {
-        if (_connection == null || string.IsNullOrWhiteSpace(correlationId))
-            return;
-        await _connection.InvokeAsync("JoinCorrelation", correlationId);
+        await InvokeIfConnectedAsync("JoinCorrelation", correlationId);
     }
 
     public async Task LeaveCorrelationAsync(string correlationId)
     {
-        if (_connection == null || string.IsNullOrWhiteSpace(correlationId))
-            return;
-        await _connection.InvokeAsync("LeaveCorrelation", correlationId);
+        await InvokeIfConnectedAsync("LeaveCorrelation", correlationId);
     }
 
     public async Task StopAsync()
@@ -95,5 +94,34 @@ public sealed class MediaInfoProgressClient
     {
         if (_connection is not null)
             await _connection.DisposeAsync();
+    }
+
+    private async Task InvokeIfConnectedAsync(string methodName, string correlationId)
+    {
+        if (_connection == null || string.IsNullOrWhiteSpace(correlationId))
+            return;
+
+        if (_connection.State != HubConnectionState.Connected)
+        {
+            _logger.LogDebug("Skipping hub invoke '{MethodName}' because connection state is {ConnectionState}.", methodName, _connection.State);
+            return;
+        }
+
+        try
+        {
+            await _connection.InvokeAsync(methodName, correlationId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection is not active.", methodName);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection was disposed.", methodName);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the operation was canceled.", methodName);
+        }
     }
 }

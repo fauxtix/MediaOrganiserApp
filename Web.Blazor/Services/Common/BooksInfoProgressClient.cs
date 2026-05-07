@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Web.Blazor.Services.Common;
 
@@ -8,10 +9,12 @@ public class BooksInfoProgressClient
 {
     private HubConnection? _connection;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<BooksInfoProgressClient> _logger;
 
-    public BooksInfoProgressClient(IConfiguration configuration)
+    public BooksInfoProgressClient(IConfiguration configuration, ILogger<BooksInfoProgressClient> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     public event Action<string>? ProgressReceived;
@@ -100,15 +103,41 @@ public class BooksInfoProgressClient
 
     public async Task JoinCorrelationAsync(string correlationId)
     {
-        if (_connection == null || string.IsNullOrWhiteSpace(correlationId))
-            return;
-        await _connection.InvokeAsync("JoinCorrelation", correlationId);
+        await InvokeIfConnectedAsync("JoinCorrelation", correlationId);
     }
 
     public async Task LeaveCorrelationAsync(string correlationId)
     {
+        // Best-effort cleanup: if connection is not active, skip and avoid surfacing UI errors.
+        await InvokeIfConnectedAsync("LeaveCorrelation", correlationId);
+    }
+
+    private async Task InvokeIfConnectedAsync(string methodName, string correlationId)
+    {
         if (_connection == null || string.IsNullOrWhiteSpace(correlationId))
             return;
-        await _connection.InvokeAsync("LeaveCorrelation", correlationId);
+
+        if (_connection.State != HubConnectionState.Connected)
+        {
+            _logger.LogDebug("Skipping hub invoke '{MethodName}' because connection state is {ConnectionState}.", methodName, _connection.State);
+            return;
+        }
+
+        try
+        {
+            await _connection.InvokeAsync(methodName, correlationId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection is not active.", methodName);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the connection was disposed.", methodName);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogDebug(ex, "Skipping hub invoke '{MethodName}' because the operation was canceled.", methodName);
+        }
     }
 }
