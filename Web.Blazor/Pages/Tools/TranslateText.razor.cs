@@ -34,6 +34,7 @@ namespace Web.Blazor.Pages.Tools
         private bool _progressClientOwned;
         private string? _activeCorrelationId;
         private bool _wasVisible;
+        private bool _progressHandlersAttached;
 
         List<LanguageItem> languages = new()
     {
@@ -227,16 +228,12 @@ namespace Web.Blazor.Pages.Tools
                 _progressClientOwned = true;
             }
 
-            ProgressClient.ProgressReceived -= OnProgressReceived;
-            ProgressClient.ProgressReceived += OnProgressReceived;
-            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
-            ProgressClient.ProgressEventReceived += OnProgressEventReceived;
+            EnsureProgressSubscriptions();
         }
 
         private async Task CleanupProgressClientAsync()
         {
-            ProgressClient.ProgressReceived -= OnProgressReceived;
-            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+            RemoveProgressSubscriptions();
 
             if (_progressClientOwned)
             {
@@ -245,16 +242,50 @@ namespace Web.Blazor.Pages.Tools
             }
         }
 
+        private void EnsureProgressSubscriptions()
+        {
+            if (_progressHandlersAttached)
+                return;
+
+            ProgressClient.ProgressReceived += OnProgressReceived;
+            ProgressClient.ProgressEventReceived += OnProgressEventReceived;
+            _progressHandlersAttached = true;
+        }
+
+        private void RemoveProgressSubscriptions()
+        {
+            if (!_progressHandlersAttached)
+                return;
+
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+            _progressHandlersAttached = false;
+        }
+
         private void OnProgressReceived(string message)
         {
-            ProgressMessage = message ?? string.Empty;
-            _ = InvokeAsync(StateHasChanged);
+            _ = UpdateProgressMessageAsync(message);
         }
 
         private void OnProgressEventReceived(ProgressUpdateDto update)
         {
-            ProgressMessage = update?.Message ?? string.Empty;
-            _ = InvokeAsync(StateHasChanged);
+            _ = UpdateProgressMessageAsync(update?.Message);
+        }
+
+        private async Task UpdateProgressMessageAsync(string? message)
+        {
+            try
+            {
+                await InvokeAsync(() =>
+                {
+                    ProgressMessage = message ?? string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+                // ignore during component disposal
+            }
         }
 
         private class LanguageItem
