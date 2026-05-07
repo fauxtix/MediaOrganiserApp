@@ -79,9 +79,7 @@ namespace Web.Blazor.Pages.LookupTables
             // Button is a test hook for the new translate API. Do not change other flows.
             if (string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
             {
-                message = "Sem texto para traduzir";
-                alertVisibility = true;
-                StateHasChanged();
+                ShowAlert("Sem texto para traduzir");
                 return;
             }
 
@@ -105,20 +103,17 @@ namespace Web.Blazor.Pages.LookupTables
                     SelectedAuthor.Sobre = resp.TranslatedText;
                     aiNotes = null;
                     aiConfidence = resp.Confidence;
-                    message = "Bio traduzida pelo serviço de tradução.";
-                    alertVisibility = true;
+                    ShowAlert("Bio traduzida pelo serviço de tradução.");
                 }
                 else
                 {
-                    message = "Serviço de tradução não retornou texto.";
-                    alertVisibility = true;
+                    ShowAlert("Serviço de tradução não retornou texto.");
                 }
             }
             catch (System.Exception ex)
             {
                 Logger.LogError(ex, "Error calling translate service");
-                message = "Erro ao chamar serviço de tradução.";
-                alertVisibility = true;
+                ShowAlert("Erro ao chamar serviço de tradução.");
             }
             finally
             {
@@ -168,15 +163,14 @@ namespace Web.Blazor.Pages.LookupTables
                         else
                         {
                             message = $"O local previsto ({pastaImagensAutores.TrimEnd('\\')}) não é o que está configurado. Experimente mover imagem para esse local e tente de novo.";
-                            StateHasChanged();
-                            alertVisibility = true;
+                            ShowAlert(message);
                         }
 
                     }
                     catch (System.Exception ex)
                     {
                         Logger.LogError(ex.Message);
-                        alertVisibility = true;
+                        ShowAlert(ex.Message);
                     }
                 }
             }
@@ -202,9 +196,7 @@ namespace Web.Blazor.Pages.LookupTables
         {
             if (string.IsNullOrWhiteSpace(SelectedAuthor.Descricao))
             {
-                message = "Sem dados para pesquisar";
-                alertVisibility = true;
-                StateHasChanged();
+                ShowAlert("Sem dados para pesquisar");
                 return;
             }
 
@@ -263,9 +255,7 @@ namespace Web.Blazor.Pages.LookupTables
                     if (SelectedAuthor.Sobre is not null &&
                         !string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
                     {
-                        message = "já existe Bio para o Autor. AI não foi consultada.";
-                        alertVisibility = true;
-                        StateHasChanged();
+                        ShowAlert("Já existe Bio para o Autor. AI não foi consultada.");
                         await Task.Delay(20);
                         await SpinnerObj.HideAsync();
                         return;
@@ -279,17 +269,13 @@ namespace Web.Blazor.Pages.LookupTables
                         aiNotes = ai.Notes;
                         aiConfidence = ai.Confidence;
 
-                        message = "Bio gerada por AI (fallback).";
-                        alertVisibility = true;
-                        StateHasChanged();
+                        ShowAlert("Bio gerada por AI (fallback).");
                         await Task.Delay(20);
                         await SpinnerObj.HideAsync();
                         return;
                     }
 
-                    message = "Não foi possível obter detalhes do autor (API e AI).";
-                    alertVisibility = true;
-                    StateHasChanged();
+                    ShowAlert("Não foi possível obter detalhes do autor (API e AI).");
                     await Task.Delay(20);
                     await SpinnerObj.HideAsync();
                     return;
@@ -323,13 +309,11 @@ namespace Web.Blazor.Pages.LookupTables
                         aiNotes = "Internet unavailable or external API unreachable. " + ai.Notes;
                         aiConfidence = ai.Confidence;
 
-                        message = "Bio gerada por AI (offline/fallback).";
-                        alertVisibility = true;
+                        ShowAlert("Bio gerada por AI (offline/fallback).");
                     }
                     else
                     {
-                        message = "Internet indisponível e AI não devolveu bio.";
-                        alertVisibility = true;
+                        ShowAlert("Internet indisponível e AI não devolveu bio.");
                     }
                 }
                 finally
@@ -404,6 +388,12 @@ namespace Web.Blazor.Pages.LookupTables
             }
         }
 
+        private void ShowAlert(string msg)
+        {
+            message = msg;
+            alertVisibility = true;
+            StateHasChanged();
+        }
 
         private Dictionary<string, object> htmlAttribute = new Dictionary<string, object>()
 {

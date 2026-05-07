@@ -87,6 +87,8 @@ namespace Web.Blazor.Pages.Tools
                 TranslateResponseDto? resp = null;
                 if (TranslateFunc is not null)
                 {
+                    await InvokeAsync(StateHasChanged);
+                    await Task.Yield();
                     resp = await TranslateFunc(req, System.Threading.CancellationToken.None);
                 }
                 else if (OnTranslateRequested.HasDelegate)

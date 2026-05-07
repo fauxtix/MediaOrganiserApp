@@ -12,7 +12,7 @@ public sealed class OllamaTranslateService : ITranslateService
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaTranslateService> _logger;
-    private string _baseUrl;
+    private string _ollamaBaseUrl;
     private string _model;
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IPromptTemplateProvider _prompts;
@@ -41,7 +41,7 @@ public sealed class OllamaTranslateService : ITranslateService
         });
 
         var (modelBaseUrl, modelName) = await GetAiSettings();
-        _baseUrl = modelBaseUrl;
+        _ollamaBaseUrl = modelBaseUrl;
         _model = modelName;
 
         var payload = new
@@ -53,7 +53,7 @@ public sealed class OllamaTranslateService : ITranslateService
 
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
+            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_ollamaBaseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)
             };
