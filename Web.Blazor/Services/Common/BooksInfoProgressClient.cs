@@ -43,7 +43,8 @@ public class BooksInfoProgressClient
             ProgressReceived?.Invoke(message);
         });
 
-        // backward compatibility with previous 2-arg payload
+        // Backward compatibility: older server messages sent (connectionId, message).
+        // The first parameter is ignored on the client because this connection already scopes the stream.
         _connection.On<string, string>("ReceiveProgress", (_, message) =>
         {
             ProgressReceived?.Invoke(message);

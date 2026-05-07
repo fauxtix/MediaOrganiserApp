@@ -23,7 +23,7 @@ public sealed class OllamaMediaNotesService : IAiMediaNotesService
                                    ILogger<OllamaMediaNotesService> logger,
                                    IPromptTemplateProvider prompts,
                                    IProgressPublisher progressPublisher,
-                                    IAppSettingsRepository appSettingsRepository)
+                                   IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;

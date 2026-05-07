@@ -23,7 +23,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
                                       ILogger<OllamaMediaMetadataService> logger,
                                       IPromptTemplateProvider prompts,
                                       IProgressPublisher progressPublisher,
-                                       IAppSettingsRepository appSettingsRepository)
+                                      IAppSettingsRepository appSettingsRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
@@ -85,11 +85,8 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(connectionId) || !string.IsNullOrWhiteSpace(correlationId))
-            {
-                LogProgress("Sending prompt to AI model...");
-                await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
-            }
+            LogProgress("Sending prompt to AI model...");
+            await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {

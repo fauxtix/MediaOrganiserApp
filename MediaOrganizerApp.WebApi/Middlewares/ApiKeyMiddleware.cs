@@ -19,7 +19,7 @@
 
             var appSettings = context.RequestServices.GetRequiredService<IConfiguration>();
             var apiKey = appSettings.GetValue<string>(APIKEYNAME); 
-            if (string.IsNullOrWhiteSpace(apiKey) || !string.Equals(apiKey, extractedApiKey)) 
+            if (string.IsNullOrWhiteSpace(apiKey) || !string.Equals(apiKey, extractedApiKey, StringComparison.Ordinal)) 
             { 
                 context.Response.StatusCode = 401; 
                 await context.Response.WriteAsync("Unauthorized client."); 

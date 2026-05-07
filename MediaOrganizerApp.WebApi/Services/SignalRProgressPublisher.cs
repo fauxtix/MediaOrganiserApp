@@ -30,6 +30,7 @@ public sealed class SignalRProgressPublisher : IProgressPublisher
         {
             if (!string.IsNullOrWhiteSpace(connectionId))
             {
+                // Legacy media client contract expects (connectionId, message).
                 await _mediaHub.Clients.Client(connectionId)
                     .SendAsync("ReceiveProgress", connectionId, update.Message, cancellationToken);
                 await _mediaHub.Clients.Client(connectionId)
@@ -49,6 +50,7 @@ public sealed class SignalRProgressPublisher : IProgressPublisher
 
         if (!string.IsNullOrWhiteSpace(connectionId))
         {
+            // Legacy books/chat client contract expects message only.
             await _booksHub.Clients.Client(connectionId)
                 .SendAsync("ReceiveProgress", update.Message, cancellationToken);
             await _booksHub.Clients.Client(connectionId)
