@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Application\MediaOrganizerApp.Application.csproj" />
+    <ProjectReference Include="..\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
