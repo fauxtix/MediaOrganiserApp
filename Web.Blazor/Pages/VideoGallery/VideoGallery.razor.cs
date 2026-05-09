@@ -6,6 +6,7 @@ using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
+using System.Linq;
 using Web.Blazor.Data;
 using Web.Blazor.Services.ApiWrappers;
 
@@ -13,7 +14,6 @@ namespace Web.Blazor.Pages.VideoGallery
 {
     public partial class VideoGallery
     {
-
         [Inject]
         public IMediaServiceWrapper mediaService { get; set; }
         [Inject]
@@ -34,6 +34,18 @@ namespace Web.Blazor.Pages.VideoGallery
         protected int mediaID { get; set; }
 
         protected int CatId { get; set; } = 0;
+
+        protected string TitleSearch { get; set; } = string.Empty;
+
+        protected IEnumerable<VideoCategoryLocations> FilteredVideoFiles =>
+            string.IsNullOrWhiteSpace(TitleSearch)
+                ? (VideoFiles ?? Enumerable.Empty<VideoCategoryLocations>())
+                : (VideoFiles ?? Enumerable.Empty<VideoCategoryLocations>())
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Autor) &&
+                                v.Autor.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase));
+
+        protected string FilteredVideoFilesCount =>
+            $"{FilteredVideoFiles.Count()} {localizerApp["Files"]}";
 
         private List<CategoryVM> categoryList;
 
@@ -62,7 +74,6 @@ namespace Web.Blazor.Pages.VideoGallery
 
         public bool NoDataVisibility { get; set; } = false;
 
-
         protected override async Task OnInitializedAsync()
         {
             NoDataVisibility = false;
@@ -78,7 +89,6 @@ namespace Web.Blazor.Pages.VideoGallery
             {
                 await SpinnerObj?.HideAsync();
                 NoDataVisibility = true;
-
             }
         }
 
@@ -106,12 +116,9 @@ namespace Web.Blazor.Pages.VideoGallery
                 }
 
                 VideoFilesCount = $"{VideoFiles.Count()} {localizerApp["Files"]}";
-
             }
             catch
             {
-                // No results
-                //VideoFiles = null;
                 ErrorDialogVisibility = true;
                 NoDataVisibility = true;
                 ErrorMessage = "Sem Videos para mostrar. Verifique, p.f.";
@@ -122,6 +129,7 @@ namespace Web.Blazor.Pages.VideoGallery
                 await SpinnerObj.HideAsync();
             }
         }
+
         private async Task GetCategoriesAsync()
         {
             try
@@ -144,7 +152,6 @@ namespace Web.Blazor.Pages.VideoGallery
 
         private async Task UpdateCover(int Id)
         {
-
             var result = await thumbnailService.UpdateMediaCoverRecord(Id);
 
             ToastTitle = "Video Gallery";
@@ -185,7 +192,7 @@ namespace Web.Blazor.Pages.VideoGallery
                     else
                         YouTubePlayerDialogVisibility = true;
                 }
-                else // LP, CD, ...
+                else
                 {
                     Mp3DialogVisibility = false;
                     YouTubePlayerDialogVisibility = false;
@@ -204,15 +211,22 @@ namespace Web.Blazor.Pages.VideoGallery
             SelectedRecord = new MediaVM();
             mediaFilename = "";
         }
+
         private void CloseMp3Player()
         {
             SelectedRecord = new MediaVM();
             mediaFilename = "";
             Mp3DialogVisibility = false;
         }
+
         private void CloseErrorDialog()
         {
             ErrorVisibility = false;
+        }
+
+        protected void ClearTitleSearch()
+        {
+            TitleSearch = string.Empty;
         }
     }
 }

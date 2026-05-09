@@ -3,6 +3,7 @@
 @using Microsoft.Extensions.Localization
 @using MediaOrganizerApp.Domain.Entities
 @using System.IO
+@using System.Linq
 
 @using Syncfusion.Blazor.DropDowns
 @using Web.Blazor.Components.Cards
@@ -28,8 +29,8 @@
     }
     else
     {
-        <div class="row">
-            <div class="col-4 py-3 align-self-md-center">
+        <div class="row align-items-center">
+            <div class="col-lg-4 col-md-4 col-sm-12 py-3 align-self-md-center">
                 <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
                 <SfDropDownList PopupWidth="250px" PopupHeight="450px" @bind-Value="@CatId" AllowFiltering="true"
                                 CssClass="custom-class e-corner"
@@ -39,24 +40,40 @@
                     <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
                 </SfDropDownList>
             </div>
-            <div class="col-3" style="margin-top:60px;">
+
+            <div class="col-lg-3 col-md-3 col-sm-12" style="margin-top:60px;">
                 <SfChip>
                     <ChipItems>
-                        <ChipItem CssClass="e-info e-outline" Text="@VideoFilesCount" style="margin-top:-5px;" />
+                        <ChipItem CssClass="e-info e-outline" Text="@FilteredVideoFilesCount" style="margin-top:-20px;margin-left:-20px;" />
                     </ChipItems>
                 </SfChip>
+            </div>
+
+            <div class="col-lg-5 col-md-5 col-sm-12 py-3">
+                <label class="col-form-label font-weight-bold">Pesquisar por Artista/Autor</label>
+                <div class="d-flex gap-2 align-items-center">
+                    <input class="form-control e-input e-round-corner"
+                           placeholder="Artista/Autor..."
+                           @bind="TitleSearch"
+                           @bind:event="oninput" />
+
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              Disabled="@string.IsNullOrWhiteSpace(TitleSearch)"
+                              @onclick="ClearTitleSearch">
+                    </SfButton>
+                </div>
             </div>
         </div>
     }
 
-    @if (VideoFiles is null)
+    @if (FilteredVideoFiles is null || !FilteredVideoFiles.Any())
     {
         <NoDataAvailable CardTitle="Video files" />
     }
     else
     {
         <div class="row text-lg-start">
-            @foreach (var videoPath in VideoFiles)
+            @foreach (var videoPath in FilteredVideoFiles)
             {
                 <div class="col-lg-4 col-md-6 col-sm-12">
                     <a class="d-block mb-4 h-100">
@@ -84,18 +101,21 @@
                                                                 ? "e-primary"
                                                                 : string.IsNullOrEmpty(videoPath.FileUrl)
                                                                 ? "e-info" : "e-warning")"
-                                              Text="@(videoPath.Formato == "LP" || videoPath.Formato == "CD" || videoPath.Formato.ToLower().StartsWith("dvd")
+                                                      Text="@(videoPath.Formato == "LP" || videoPath.Formato == "CD" || videoPath.Formato.ToLower().StartsWith("dvd")
                                                                                                   ? videoPath.Formato
-                                                                                                  : string.IsNullOrEmpty(videoPath.FileUrl) ? "MP3" : "Youtube")" style="margin-top:-10px;" />
-                                    <ChipItem CssClass="e-primary" Text="@(string.IsNullOrEmpty(videoPath.Tempo) || videoPath.Tempo == "00:00:00"
-                                                                                                                                                                                                              ? "N/A" : videoPath.Tempo)" style="margin-top:-10px;" />
-                                </ChipItems>
-                            </SfChip>
-                            <div class="justify-content-end" style="margin-top:-10px" >@videoPath.AnoEdicao</div>
+                                                                                                  : string.IsNullOrEmpty(videoPath.FileUrl) ? "MP3" : "Youtube")"
+                                                      style="margin-top:-10px;" />
+                                            <ChipItem CssClass="e-primary"
+                                                      Text="@(string.IsNullOrEmpty(videoPath.Tempo) || videoPath.Tempo == "00:00:00"
+                                                            ? "--:--"
+                                                            : videoPath.Tempo)"
+                                                      style="margin-top:-10px;" />
+                                        </ChipItems>
+                                    </SfChip>
+                                    <div class="justify-content-end" style="margin-top:-10px">@videoPath.AnoEdicao</div>
+                                </div>
 
-                        </div>
-
-                        @if (CatId == 0)
+                                @if (CatId == 0)
                                 {
                                     <div class="row mt-2">
                                         <div class="col-md-12">
