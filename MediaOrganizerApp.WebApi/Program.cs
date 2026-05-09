@@ -187,6 +187,7 @@ public class Program
         app.UseRouting();
         app.UseCors("AllowAllOrigins");
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.UseMiddleware<ApiKeyMiddleware>();
