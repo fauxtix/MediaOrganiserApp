@@ -1,12 +1,6 @@
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
-using System;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
