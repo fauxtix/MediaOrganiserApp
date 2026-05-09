@@ -399,7 +399,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Erro ao ler informações sobre as faixas de {album} ({artist}) - {ex.Message}");
+                    _logger.LogWarning($"(LastFm - problema ao ler informações sobre as faixas de {album} ({artist}) - {ex.StackTrace}");
                     tracks = Enumerable.Empty<LastTrack>();
                     tracksInfoRetrievedOk = false;
                 }
@@ -439,7 +439,6 @@ namespace MediaOrganizerApp.WebApi.Controllers
                             catch (Exception ex)
                             {
                                 _logger.LogError(ex, $"Error processing track #{count}: {trackInfo.Name}");
-                                Debug.WriteLine($"Error processing track #{count}: {trackInfo.Name} - {ex.Message}");
                             }
                         }
                     }
@@ -447,7 +446,6 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing tracks list.");
-                    Debug.WriteLine($"Error processing tracks list - {ex.Message}");
                 }
 
 

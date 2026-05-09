@@ -26,7 +26,7 @@ namespace Web.Blazor.Pages.Media
         [Inject] public ICategoriasService categoriasService { get; set; }
         [Inject] public IGetYoutubeVideoMetadata YoutubeService { get; set; }
         [Inject] public IMediaServiceWrapper MediaService { get; set; }
-        [Inject] public IAppSettingsService  AppSettingsService { get; set; }
+        [Inject] public IAppSettingsService AppSettingsService { get; set; }
 
         [Inject] public AiMediaClientService AiMediaClient { get; set; }
 
@@ -95,13 +95,11 @@ namespace Web.Blazor.Pages.Media
 
         private bool TranslateVisible { get; set; } = false;
 
-
         protected override async Task OnInitializedAsync()
         {
             formatList = await formatosService.Listar();
             categoryList = await categoriasService.AllAsync(CategoryType.Media); // true = Publicacoes, false = Media
             AppSettings = await AppSettingsService.GetSettingsAsync();
-
         }
 
         protected override void OnParametersSet()
@@ -232,6 +230,12 @@ namespace Web.Blazor.Pages.Media
 
         protected async Task GetMediaInfo()
         {
+            if (string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
+            {
+                showAlertMessage = true;
+                alertMessage = "Por favor preencha os campos Autor e T�tulo";
+                return;
+            }
 
             if (isMp3 && blnEdit &&
                 string.IsNullOrWhiteSpace(SelectedRecord.Notas))
@@ -254,7 +258,7 @@ namespace Web.Blazor.Pages.Media
                         SelectedRecord.Notas = albumName;
 
                     if (!string.IsNullOrEmpty(albumInfo.AnoEdicao))
-                        SelectedRecord.AnoEdicao = albumInfo.AnoEdicao;
+                        SelectedRecord.AnoEdicao = albumInfo.AnoEdicao != DateTime.Now.Year.ToString() ? albumInfo.AnoEdicao : string.Empty;
 
                     if (!string.IsNullOrEmpty(albumInfo.CoverFile))
                         SelectedRecord.CoverFile = albumInfo.CoverFile;
@@ -263,20 +267,12 @@ namespace Web.Blazor.Pages.Media
                     return;
                 }
             }
+
             var shouldAIBeUsed = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
 
             var apiUrlAddress = (await AppSettingsService.GetSettingsAsync()).ApiBaseUrl_Development.TrimEnd('/');
             await ProgressClient.StartAsync(apiUrlAddress);
 
-            ProgressClient.ProgressReceived -= OnProgressReceived;
-            ProgressClient.ProgressReceived += OnProgressReceived;
-            if (string.IsNullOrWhiteSpace(SelectedRecord.FileName)
-               || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
-            {
-                showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e T�tulo";
-                return;
-            }
 
             isBusy = true;
             busyStatusMessage = "";
@@ -326,7 +322,7 @@ namespace Web.Blazor.Pages.Media
                     var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
                     if (dvdInfo != null && !string.IsNullOrEmpty(dvdInfo.Year))
                     {
-                        SelectedRecord.AnoEdicao = dvdInfo.Year;
+                        SelectedRecord.AnoEdicao = dvdInfo.Year != DateTime.Now.Year.ToString() ? dvdInfo.Year : string.Empty;
                         anoEdicaoFilled = true;
                     }
                     else
@@ -334,11 +330,14 @@ namespace Web.Blazor.Pages.Media
                         var albumInfo = await MediaService.GetAlbumInfo(artist, mediaTitle);
                         if (albumInfo != null && !string.IsNullOrEmpty(albumInfo.AnoEdicao))
                         {
-                            SelectedRecord.AnoEdicao = albumInfo.AnoEdicao;
+                            SelectedRecord.AnoEdicao = albumInfo.AnoEdicao != DateTime.Now.Year.ToString() ? albumInfo.AnoEdicao : string.Empty;
                             anoEdicaoFilled = true;
                         }
                     }
                 }
+
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+                ProgressClient.ProgressReceived += OnProgressReceived;
 
                 // AI fallback for Notas
                 if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
@@ -347,7 +346,7 @@ namespace Web.Blazor.Pages.Media
                     if (ai == null)
                     {
                         showAlertMessage = true;
-                        alertMessage = L["AINotesServiceFailed"] ?? "O servi�o de notas AI n�o devolveu qualquer resultado.";
+                        alertMessage = L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.";
                     }
                     else
                     {
@@ -365,7 +364,7 @@ namespace Web.Blazor.Pages.Media
                 }
 
                 // AI fallback for AnoEdicao
-                if (!anoEdicaoFilled)
+                if (!anoEdicaoFilled || SelectedRecord.AnoEdicao == DateTime.Now.Year.ToString())
                 {
                     var year = await AiMediaClient.GetMediaEditionYearAsync(
                         artist,
@@ -395,7 +394,7 @@ namespace Web.Blazor.Pages.Media
             catch (OperationCanceledException)
             {
                 showAlertMessage = true;
-                alertMessage = "Opera��o cancelada.";
+                alertMessage = "Operação cancelada.";
             }
             catch (Exception ex)
             {
@@ -476,7 +475,7 @@ namespace Web.Blazor.Pages.Media
                 else
                 {
                     showAlertMessage = true;
-                    alertMessage = "Api n�o devolveu qualquer resultado";
+                    alertMessage = "Api não devolveu qualquer resultado";
                 }
             }
             else
@@ -565,7 +564,7 @@ namespace Web.Blazor.Pages.Media
         {
             foreach (var file in args.Files)
             {
-                // Pasta f�sica para capas de media (ajuste o nome se quiser)
+                // Pasta física para capas de media (ajuste o nome se quiser)
                 var pastaCapasMedia = Path.Combine(Env.WebRootPath, "images", "Media");
 
                 Directory.CreateDirectory(pastaCapasMedia);
@@ -591,7 +590,7 @@ namespace Web.Blazor.Pages.Media
 
         protected void OnCoverUploadSuccess(Syncfusion.Blazor.Inputs.SuccessEventArgs args)
         {
-            // opcional: n�o � necess�rio para salvar, j� salvamos no ValueChange
+            // opcional: não é necessário para salvar, já salvamos no ValueChange
         }
         public async Task Voltar()
         {
@@ -622,7 +621,7 @@ namespace Web.Blazor.Pages.Media
             if (SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
                 showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e T�tulo";
+                alertMessage = "Por favor preencha os campos Autor e Título";
                 StateHasChanged();
                 return;
             }
@@ -642,7 +641,21 @@ namespace Web.Blazor.Pages.Media
                 var mediaTitle = SelectedRecord.FileName;
                 var artist = SelectedRecord.Autor;
 
-                // Try OMDb first
+                // Try AlbumInfo first
+                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
+                if (artirstAndAlbumData.Titulo != null)
+                {
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Tempo))
+                        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.CoverFile))
+                        SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
+                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Notas))
+                        SelectedRecord.Notas = artirstAndAlbumData.Notas;
+
+                    return;
+                }
+
+                // Try OMDb next
                 var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
                 if (dvdInfo != null)
                 {
@@ -663,20 +676,11 @@ namespace Web.Blazor.Pages.Media
                     return;
                 }
 
-                // Try AlbumInfo next
-                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
-                if (artirstAndAlbumData.Titulo != null)
-                {
-                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Tempo))
-                        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
-                    if (!string.IsNullOrEmpty(artirstAndAlbumData.CoverFile))
-                        SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
-                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Notas))
-                        SelectedRecord.Notas = artirstAndAlbumData.Notas;
-                    return;
-                }
 
                 // If both fail, use AI
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+                ProgressClient.ProgressReceived += OnProgressReceived;
+
                 var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
                 if (ai is not null)
                 {
@@ -719,13 +723,13 @@ namespace Web.Blazor.Pages.Media
                 else
                 {
                     showAlertMessage = true;
-                    alertMessage = "AI n�o devolveu qualquer resultado";
+                    alertMessage = "AI não devolveu qualquer resultado";
                 }
             }
             catch (OperationCanceledException)
             {
                 showAlertMessage = true;
-                alertMessage = "Opera��o cancelada.";
+                alertMessage = "Operação cancelada.";
             }
             catch (Exception ex)
             {
@@ -739,6 +743,7 @@ namespace Web.Blazor.Pages.Media
                     await spinner.HideAsync();
                 isBusy = false;
                 mediaInfoCts?.Dispose();
+                ProgressClient.ProgressReceived -= OnProgressReceived;
                 mediaInfoCts = null;
                 StateHasChanged();
             }
