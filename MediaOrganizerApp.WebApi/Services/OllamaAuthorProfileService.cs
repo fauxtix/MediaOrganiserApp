@@ -48,13 +48,16 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         CancellationToken cancellationToken = default)
     {
         await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing author profile prompt...", cancellationToken);
+        var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
+        var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
         var template = await _prompts.GetTemplateAsync("author-profile.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["name"] = name,
             ["language"] = language
         });
-        
+        var fullPrompt = $"{systemPrompt}\n\n{prompt}";
+
         var (modelBaseUrl, modelName) = await GetAiSettings();
         _baseUrl = modelBaseUrl;
         _model = modelName;
@@ -62,7 +65,7 @@ public sealed class OllamaAuthorProfileService : IAiAuthorProfileService
         var payload = new OllamaGenerateRequest
         {
             Model = _model,
-            Prompt = prompt,
+            Prompt = fullPrompt,
             Stream = false
         };
 

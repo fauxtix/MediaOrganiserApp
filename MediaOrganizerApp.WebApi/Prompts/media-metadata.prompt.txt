@@ -4,68 +4,67 @@ Return ONLY a single valid JSON object.
 Do NOT include markdown, code fences, or any extra text.
 
 JSON schema:
-{"artist":string,"title":string,"runtime":string,"released":string,"imdbRating":string,"actors":string,"year":string,"tempo":string,"notes":string,"confidence":number,"warnings":string}
+{
+  "artist": string,
+  "title": string,
+  "runtime": string,
+  "released": string,
+  "imdbRating": string,
+  "actors": string,
+  "year": string,
+  "tempo": string,
+  "notes": string,
+  "confidence": number,
+  "warnings": string
+}
 
 Rules:
 
-General:
-- The response MUST strictly follow the JSON schema.
-- Use EXACTLY the keys and casing shown above.
-- Do NOT add, remove, or duplicate keys.
-- Do NOT include HTML.
-- Do not output anything before or after the JSON object.
+GENERAL:
+- Follow the schema EXACTLY (no extra or missing keys).
+- Do NOT include HTML or explanations.
+- Output ONLY JSON.
 
-Input fidelity:
-- The response MUST be about the exact provided Artist and Title.
-- You MUST echo the EXACT input values in "artist" and "title".
-- Do NOT translate, modify, or normalize these fields.
+INPUT FIDELITY:
+- "artist" and "title" MUST exactly match the input values (no changes, no translation, no normalization).
 
-Language:
-- The "notes" and "warnings" fields MUST be written in the specified language: {language}.
-- Do NOT mix languages.
-- If {language} is empty or invalid, default to English.
+DATA ACCURACY:
+- Only include factual values if they are reasonably well-known or highly likely correct.
+- If a value is uncertain, set it to null.
+- Do NOT hallucinate or guess exact runtime, rating, cast, or year.
 
-Data accuracy:
-- If a field is unknown or not highly confident, set it to null.
-- Do NOT guess or fabricate facts.
-- Only include factual values (runtime, released, imdbRating, actors, year, tempo) if highly confident they are correct for the exact match.
+MATCHING RULES:
+- Accept approximate matches (minor spelling differences, punctuation, casing).
+- Treat well-known works as valid matches even if partial input is provided.
+- Only mark as uncertain if there are multiple plausible matches or no clear identification.
 
-Field guidance:
-- Movies/films: prefer runtime, released, imdbRating, actors, year.
-- Albums/music: prefer tempo.
-- Leave irrelevant fields as null.
+FIELD GUIDANCE:
+- Movies/TV: runtime, released, imdbRating, actors, year.
+- Music: tempo (if known).
+- Otherwise leave irrelevant fields as null.
 
-Notes:
+NOTES:
+- 300–800 characters.
 - Plain text only.
-- Length: 300–800 characters.
-- Include awards or notable highlights ONLY if highly confident.
-- Do NOT include plot summaries or detailed descriptions.
+- Include only highly confident facts or notable metadata.
 
-Warnings:
-- Maximum 200 characters.
-- Use ONLY for:
-  - Uncertain title/artist match
-  - Missing or unverifiable data
-- Keep messages brief and generic.
+WARNINGS:
+- Max 200 characters.
+- Only use for real issues (e.g., ambiguous title, multiple possible matches, or missing identification).
+- Do NOT use warnings for minor uncertainty.
 
-Uncertainty handling:
-- If unsure about the match:
-  - Lower "confidence"
-  - Add a brief warning
-- If unsure about specific fields:
-  - Set them to null
-  - Mention briefly in "warnings"
+CONFIDENCE:
+- Float between 0.0 and 1.0.
+- 0.8–1.0: strong match
+- 0.5–0.79: likely match
+- <0.5: uncertain or weak match
 
-Confidence:
-- MUST be a number between 0.0 and 1.0 (not a string).
-- Lower values when uncertain.
+UNCERTAINTY POLICY:
+- Do NOT use a fixed phrase.
+- If uncertain, briefly describe why in "warnings".
+- Avoid overly strict rejection unless necessary.
 
-Behavior:
-- Prioritize factual accuracy and consistency.
-- Keep output conservative and deterministic.
-
-Example output:
-
+EXAMPLE OUTPUT:
 {
   "artist": "Example Artist",
   "title": "Example Title",
@@ -76,8 +75,8 @@ Example output:
   "year": null,
   "tempo": null,
   "notes": "",
-  "confidence": 0.35,
-  "warnings": "Uncertain match; insufficient verified data."
+  "confidence": 0.72,
+  "warnings": ""
 }
 
 INPUT (must match exactly):

@@ -814,7 +814,7 @@ namespace Web.Blazor.Pages.BaseComponents
             SelectedRecord = new MediaVM()
             {
                 DataMov = DateTime.Now,
-                AnoEdicao = DateTime.Now.Year.ToString(),
+                AnoEdicao = "",
                 TipoMedia = 2,
                 Visualizado = true, // vamos presumir que já ouvimos/vimos o título que vamos registar
                 IdFormato_Media = formatoMediaId,
@@ -836,7 +836,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 Titulo = "",
                 DataMov = DateTime.Now,
-                TipoMedia = 1, // Default Audio -- doesn't work !!               
+                TipoMedia = 1, // TODO - Default Audio -- doesn't work !!               
                 Visualizado = true, // we'll assume that we've already listen/read the title about to be created
                 IdFormato_Media = iFormato,
                 IdGenero = iGenero

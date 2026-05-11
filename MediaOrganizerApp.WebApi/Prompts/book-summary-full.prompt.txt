@@ -26,7 +26,7 @@ Language:
 
 Summary:
 - Provide a plain-text book description/synopsis.
-- Length: 600–1200 characters.
+- Length: 300–700 characters.
 - Do NOT include instructional or meta text.
 - Do NOT include HTML.
 - Do NOT place synopsis content in "notes".

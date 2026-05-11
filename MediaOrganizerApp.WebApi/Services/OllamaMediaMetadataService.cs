@@ -42,7 +42,10 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     {
         await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
 
+        var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
         var template = await _prompts.GetTemplateAsync("media-metadata.prompt.txt", cancellationToken);
+        var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
+
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
@@ -50,9 +53,11 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             ["title"] = title
         });
 
+        var fullPrompt = $"{systemPrompt}\n\n{prompt}";
+
         await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
-        var result = await ExecuteOllamaAsync(prompt, connectionId, correlationId, cancellationToken);
+        var result = await ExecuteOllamaAsync(fullPrompt, connectionId, correlationId, cancellationToken);
 
         await PublishAsync(connectionId, correlationId, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
 

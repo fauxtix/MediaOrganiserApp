@@ -48,8 +48,10 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         CancellationToken cancellationToken)
     {
         await PublishAsync(connectionId, null, "preparing_prompt", 5, "Step 1/3: Preparing book summary prompt...", cancellationToken);
-
+        var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
         var template = await _prompts.GetTemplateAsync("book-summary-full.prompt.txt", cancellationToken);
+
+        var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
@@ -57,9 +59,12 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
+        var fullPrompt = $"{systemPrompt}\n\n{prompt}";
+
+
         await PublishAsync(connectionId, null, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
-        var result = await ExecuteOllamaAsync(prompt, connectionId, null, cancellationToken);
+        var result = await ExecuteOllamaAsync(fullPrompt, connectionId, null, cancellationToken);
 
         await PublishAsync(connectionId, null, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
 

@@ -48,6 +48,10 @@ namespace MediaOrganizerApp.WebApi.Services
             {
                 var defaultMaxResults = 20;
                 await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing books prompt...", cancellationToken);
+
+                var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
+                var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
+
                 var template = await _prompts.GetTemplateAsync("author-books.prompt.txt", cancellationToken);
                 var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
                 {
@@ -56,9 +60,11 @@ namespace MediaOrganizerApp.WebApi.Services
                     ["language"] = string.IsNullOrWhiteSpace(language) ? "pt" : language
                 });
 
+                var fullPrompt = $"{systemPrompt}\n\n{prompt}";
+
                 var (modelBaseUrl, modelName) = await GetAiSettings();
 
-                var payload = new { model = modelName, prompt, stream = false };
+                var payload = new { model = modelName, prompt = fullPrompt, stream = false };
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(modelBaseUrl), "/api/generate"))
                 {

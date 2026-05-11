@@ -16,6 +16,7 @@
     <None Remove="Prompts\media-metadata.prompt.txt" />
     <None Remove="Prompts\media-notes.prompt.txt" />
     <None Remove="Prompts\README.md" />
+    <None Remove="Prompts\system.prompt.txt" />
     <None Remove="Prompts\translate-text.prompt.txt" />
     <None Remove="Reports_RDLC\rptAutoresGenerico.rdlc" />
     <None Remove="Reports_RDLC\rptAutoresSemPublicacoes.rdlc" />
@@ -51,6 +52,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\README.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\system.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\translate-text - Copy.prompt.txt">
