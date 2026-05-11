@@ -17,7 +17,6 @@ using MediaOrganizerApp.WebApi.Services;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using System.Configuration;
 using System.Net;
 using System.Net.Mail;
 
@@ -77,17 +76,12 @@ public class Program
 
 
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
-        builder.Services.AddMemoryCache();
-        builder.Services.AddScoped<IAiSettingsProvider, AiSettingsProvider>();
-        builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
-
-
         builder.Services.AddSignalR();
         builder.Services.AddScoped<IProgressPublisher, SignalRProgressPublisher>();
 
         // Shared AI infrastructure: settings caching and system-prompt loading
         builder.Services.AddMemoryCache();
-        builder.Services.AddScoped<IAiSettingsProvider, AiSettingsProvider>();
+        builder.Services.AddScoped<MediaOrganizerApp.WebApi.Services.IAiSettingsProvider, AiSettingsProvider>();
         builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
 
         // AI services

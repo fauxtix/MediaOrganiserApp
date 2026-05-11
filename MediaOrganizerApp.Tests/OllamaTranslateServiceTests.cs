@@ -79,7 +79,7 @@ public sealed class OllamaTranslateServiceTests
             .Setup(x => x.GetTemplateAsync("translate-text.prompt.txt", It.IsAny<CancellationToken>()))
             .ReturnsAsync("Translate {text}");
 
-        var aiSettingsProvider = new Mock<IAiSettingsProvider>();
+        var aiSettingsProvider = new Mock<MediaOrganizerApp.WebApi.Services.IAiSettingsProvider>();
         aiSettingsProvider
             .Setup(x => x.GetAiSettingsAsync())
             .ReturnsAsync(("http://localhost:11434", "test-model"));
