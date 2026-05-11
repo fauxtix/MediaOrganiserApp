@@ -1,12 +1,10 @@
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using System.Text;
 using System.Text.Json;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
-public sealed class OllamaTranslateService : ITranslateService
+public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> KnownCodeFenceMarkers = new(StringComparer.OrdinalIgnoreCase)
@@ -18,24 +16,19 @@ public sealed class OllamaTranslateService : ITranslateService
         "cs"
     };
 
-    private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaTranslateService> _logger;
-    private string _ollamaBaseUrl;
-    private string _model;
-    private readonly IAppSettingsRepository _appSettingsRepository;
-    private readonly IPromptTemplateProvider _prompts;
     private readonly IProgressPublisher _progressPublisher;
 
-    public OllamaTranslateService(HttpClient httpClient,
-                                  ILogger<OllamaTranslateService> logger,
-                                  IPromptTemplateProvider prompts,
-                                  IAppSettingsRepository appSettingsRepository,
-                                  IProgressPublisher progressPublisher)
+    public OllamaTranslateService(
+        HttpClient httpClient,
+        ILogger<OllamaTranslateService> logger,
+        IPromptTemplateProvider prompts,
+        IProgressPublisher progressPublisher,
+        IAiSettingsProvider aiSettingsProvider,
+        ISystemPromptService systemPromptService)
+        : base(httpClient, aiSettingsProvider, systemPromptService, prompts)
     {
-        _httpClient = httpClient;
         _logger = logger;
-        _prompts = prompts;
-        _appSettingsRepository = appSettingsRepository;
         _progressPublisher = progressPublisher;
     }
 
@@ -43,7 +36,7 @@ public sealed class OllamaTranslateService : ITranslateService
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
         await PublishAsync(request.ConnectionId, request.CorrelationId, "preparing_prompt", 5, "Preparing translation prompt...", cancellationToken);
-        var template = await _prompts.GetTemplateAsync("translate-text.prompt.txt", cancellationToken);
+        var template = await Prompts.GetTemplateAsync("translate-text.prompt.txt", cancellationToken);
 
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
@@ -52,53 +45,26 @@ public sealed class OllamaTranslateService : ITranslateService
             ["text"] = request.Text
         });
 
-        var (modelBaseUrl, modelName) = await GetAiSettings();
-        _ollamaBaseUrl = modelBaseUrl;
-        _model = modelName;
-
-        var payload = new
-        {
-            model = _model,
-            prompt,
-            stream = false
-        };
-
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_ollamaBaseUrl), "/api/generate"))
-            {
-                Content = JsonContent.Create(payload)
-            };
-
             await PublishAsync(request.ConnectionId, request.CorrelationId, "request_sent", 40, "Sending translation prompt to AI model...", cancellationToken);
             await PublishAsync(request.ConnectionId, request.CorrelationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
-            using var resp = await _httpClient.SendAsync(req, cancellationToken);
+            var responseText = await ExecuteGenerateAsync(prompt, cancellationToken);
             await PublishAsync(request.ConnectionId, request.CorrelationId, "response_received", 75, "AI response received.", cancellationToken);
-            if (!resp.IsSuccessStatusCode)
-            {
-                _logger.LogError("Translate: Ollama request failed. Status={Status}", resp.StatusCode);
-                return new TranslateResponseDto
-                {
-                    TranslatedText = string.Empty,
-                    Confidence = 0,
-                    ErrorMessage = $"Translation backend returned status {(int)resp.StatusCode} ({resp.StatusCode})."
-                };
-            }
-
-            var bytes = await resp.Content.ReadAsByteArrayAsync(cancellationToken);
-            var json = Encoding.UTF8.GetString(bytes);
-
-            var text = TryExtractOllamaResponseText(json, _logger);
             await PublishAsync(request.ConnectionId, request.CorrelationId, "parsing", 80, "Parsing translation response...", cancellationToken);
-            if (string.IsNullOrWhiteSpace(text))
+
+            if (string.IsNullOrWhiteSpace(responseText))
+            {
                 return new TranslateResponseDto
                 {
                     TranslatedText = string.Empty,
                     Confidence = 0,
                     ErrorMessage = "No response received from translation backend."
                 };
+            }
 
-            var extracted = TryExtractFirstJsonObject(text);
+            var text = CleanResponseText(responseText);
+            var extracted = OllamaResponseHelper.TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extracted))
             {
                 var parsed = TryDeserializeTranslateResponse(extracted);
@@ -109,7 +75,6 @@ public sealed class OllamaTranslateService : ITranslateService
                 }
             }
 
-            // If we reach here return raw text as translatedText with low confidence
             await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
             return new TranslateResponseDto { TranslatedText = text.Trim(), Confidence = 0.2 };
         }
@@ -117,7 +82,6 @@ public sealed class OllamaTranslateService : ITranslateService
         {
             _logger.LogError(ex, "Error calling Ollama for translate");
             await PublishAsync(request.ConnectionId, request.CorrelationId, "failed", 100, ex.Message ?? "Translation failed.", cancellationToken, "error");
-            // Return a concise user-facing error message; full exception remains in logs
             return new TranslateResponseDto
             {
                 TranslatedText = string.Empty,
@@ -125,64 +89,6 @@ public sealed class OllamaTranslateService : ITranslateService
                 ErrorMessage = "Translation service error: " + (ex.Message ?? "Unexpected error")
             };
         }
-    }
-
-    // Reuse helpers from OllamaBookSummaryService via copying minimal implementations
-    private static string? TryExtractFirstJsonObject(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
-
-        var start = text.IndexOf('{');
-        if (start < 0)
-            return null;
-
-        var depth = 0;
-        var inString = false;
-        var escape = false;
-
-        for (var i = start; i < text.Length; i++)
-        {
-            var ch = text[i];
-
-            if (inString)
-            {
-                if (escape)
-                {
-                    escape = false;
-                    continue;
-                }
-
-                if (ch == '\\')
-                {
-                    escape = true;
-                    continue;
-                }
-
-                if (ch == '"')
-                {
-                    inString = false;
-                }
-
-                continue;
-            }
-
-            if (ch == '"')
-            {
-                inString = true;
-                continue;
-            }
-
-            if (ch == '{')
-                depth++;
-            else if (ch == '}')
-                depth--;
-
-            if (depth == 0)
-                return text.Substring(start, i - start + 1);
-        }
-
-        return null;
     }
 
     private TranslateResponseDto? TryDeserializeTranslateResponse(string text)
@@ -202,57 +108,6 @@ public sealed class OllamaTranslateService : ITranslateService
 
             return null;
         }
-    }
-
-    private static string? TryExtractOllamaResponseText(string json, ILogger logger)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
-            {
-                var responseText = response.GetString();
-                if (!string.IsNullOrWhiteSpace(responseText))
-                {
-                    return CleanResponseText(responseText);
-                }
-            }
-        }
-        catch (JsonException ex)
-        {
-            logger.LogError(
-                ex,
-                "Malformed Ollama translation payload. Length={Length}. Preview={Preview}",
-                json.Length,
-                CreateSafePreview(json));
-            return null;
-        }
-
-        // NDJSON fallback
-        var sb = new StringBuilder();
-        foreach (var line in json.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(line);
-                if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
-                    sb.Append(response.GetString());
-            }
-            catch (JsonException ex)
-            {
-                logger.LogWarning(
-                    ex,
-                    "Malformed NDJSON line in translation response. Length={Length}. Preview={Preview}",
-                    line.Length,
-                    CreateSafePreview(line));
-            }
-        }
-
-        var merged = sb.ToString();
-        return string.IsNullOrWhiteSpace(merged) ? null : CleanResponseText(merged);
     }
 
     private static string CleanResponseText(string text)
@@ -282,7 +137,7 @@ public sealed class OllamaTranslateService : ITranslateService
 
         cleaned = cleaned.Trim().Trim('`');
 
-        var embeddedJson = TryExtractFirstJsonObject(cleaned);
+        var embeddedJson = OllamaResponseHelper.TryExtractFirstJsonObject(cleaned);
         if (!string.IsNullOrWhiteSpace(embeddedJson))
             return embeddedJson;
 
@@ -324,12 +179,6 @@ public sealed class OllamaTranslateService : ITranslateService
             : normalized[..maxLength];
     }
 
-    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
-    {
-        var settings = await _appSettingsRepository.GetSettingsAsync();
-        return (settings.ModelBaseUrl, settings.AiModelName);
-    }
-
     private static readonly Dictionary<string, string> LanguageNames = new(StringComparer.OrdinalIgnoreCase)
     {
         ["pt"] = "Portuguese",
@@ -365,5 +214,4 @@ public sealed class OllamaTranslateService : ITranslateService
             },
             connectionId,
             cancellationToken);
-
 }

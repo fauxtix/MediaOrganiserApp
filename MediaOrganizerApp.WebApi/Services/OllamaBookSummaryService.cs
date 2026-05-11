@@ -1,44 +1,35 @@
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using System.Text;
 using System.Text.Json;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
-public sealed class OllamaBookSummaryService : IAiBookSummaryService
+public sealed class OllamaBookSummaryService : OllamaBaseClient, IAiBookSummaryService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaBookSummaryService> _logger;
-    private string _baseUrl;
-    private string _model;
-    private readonly IAppSettingsRepository _appSettingsRepository;
-    private readonly IPromptTemplateProvider _prompts;
     private readonly IProgressPublisher _progressPublisher;
 
-    public OllamaBookSummaryService(HttpClient httpClient,
-                                    ILogger<OllamaBookSummaryService> logger,
-                                    IPromptTemplateProvider prompts,
-                                    IProgressPublisher progressPublisher,
-                                    IAppSettingsRepository appSettingsRepository)
+    public OllamaBookSummaryService(
+        HttpClient httpClient,
+        ILogger<OllamaBookSummaryService> logger,
+        IPromptTemplateProvider prompts,
+        IProgressPublisher progressPublisher,
+        IAiSettingsProvider aiSettingsProvider,
+        ISystemPromptService systemPromptService)
+        : base(httpClient, aiSettingsProvider, systemPromptService, prompts)
     {
-        _httpClient = httpClient;
         _logger = logger;
-        _prompts = prompts;
         _progressPublisher = progressPublisher;
-        _appSettingsRepository = appSettingsRepository;
     }
 
-    public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
+    public Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
         string title,
         string? author,
         string language,
         CancellationToken cancellationToken)
-    {
-        return await GetBookSummaryAsync(title, author, language, null, cancellationToken);
-    }
+        => GetBookSummaryAsync(title, author, language, null, cancellationToken);
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryAsync(
         string title,
@@ -48,26 +39,16 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         CancellationToken cancellationToken)
     {
         await PublishAsync(connectionId, null, "preparing_prompt", 5, "Step 1/3: Preparing book summary prompt...", cancellationToken);
-        var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
-        var template = await _prompts.GetTemplateAsync("book-summary-full.prompt.txt", cancellationToken);
-
-        var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
-        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        var fullPrompt = await BuildFullPromptAsync("book-summary-full.prompt.txt", new Dictionary<string, string?>
         {
             ["language"] = language,
             ["title"] = title,
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
-        });
-
-        var fullPrompt = $"{systemPrompt}\n\n{prompt}";
-
+        }, cancellationToken);
 
         await PublishAsync(connectionId, null, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
-
         var result = await ExecuteOllamaAsync(fullPrompt, connectionId, null, cancellationToken);
-
         await PublishAsync(connectionId, null, "parsing", 85, "Step 3/3: Processing AI response...", cancellationToken);
-
         return result;
     }
 
@@ -77,7 +58,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         string language,
         CancellationToken cancellationToken)
     {
-        var template = await _prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
+        var template = await Prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
@@ -85,12 +66,11 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             ["author"] = string.IsNullOrWhiteSpace(author) ? "(none)" : author
         });
 
-        // Ensure cancellationToken is passed correctly
         return await ExecuteOllamaAsync(prompt, null, null, cancellationToken);
     }
 
     public async Task<AiBookSummaryResponseDto> GetBookSummaryOnlyAsync(
-            string title,
+        string title,
         string? author,
         string language,
         string? connectionId,
@@ -99,7 +79,7 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     {
         await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
 
-        var template = await _prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
+        var template = await Prompts.GetTemplateAsync("book-summary-only.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
@@ -108,12 +88,8 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
         });
 
         await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
-
-
-        // Ensure cancellationToken is passed correctly
         return await ExecuteOllamaAsync(prompt, connectionId, correlationId, cancellationToken);
     }
-
 
     private async Task<AiBookSummaryResponseDto> ExecuteOllamaAsync(
         string prompt,
@@ -123,48 +99,18 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
     {
         void LogProgress(string msg) => _logger.LogInformation("Progress for client {ConnectionId}: {Message}", connectionId, msg);
 
-        var (modelBaseUrl, modelName) = await GetAiSettings();
-        _baseUrl = modelBaseUrl;
-        _model = modelName;
-
-        var payload = new
-        {
-            model = _model,
-            prompt,
-            stream = false
-        };
-
         try
         {
-
             if (!string.IsNullOrWhiteSpace(prompt))
             {
                 LogProgress("Sending prompt to AI model...");
                 await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
-            {
-                Content = JsonContent.Create(payload)
-            };
-
-            // Progress: waiting for AI response
             LogProgress("Waiting for AI response...");
             await PublishAsync(connectionId, correlationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
 
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("AI - Book summary request failed. Status={StatusCode}. Body={Body}", (int)response.StatusCode, errorBody);
-                return new AiBookSummaryResponseDto { Summary = string.Empty, Confidence = 0, Notes = "Failed to generate book summary." };
-            }
-
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-            var json = Encoding.UTF8.GetString(bytes);
-
-            var text = TryExtractOllamaResponseText(json, _logger);
+            var text = await ExecuteGenerateAsync(prompt, cancellationToken);
             if (string.IsNullOrWhiteSpace(text))
             {
                 _logger.LogWarning("AI - Empty response received from Ollama.");
@@ -174,19 +120,15 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             var parsed = TryParseJsonContract(text);
             if (parsed is not null)
             {
-                bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
-                        && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
-                        && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
+                var summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                    && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
+                    && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
-                bool confidenceLow = parsed.Confidence < 0.5;
-                if (summaryValid && !confidenceLow)
-                {
-                    parsed.Warnings = string.Empty;
-                }
-                else
-                {
-                    parsed.Warnings = $"AI Summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
-                }
+                var confidenceLow = parsed.Confidence < 0.5;
+                parsed.Warnings = summaryValid && !confidenceLow
+                    ? string.Empty
+                    : $"AI Summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
+
                 LogProgress("Done!");
                 await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                 if (!string.IsNullOrWhiteSpace(parsed.Warnings))
@@ -194,28 +136,21 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 return parsed;
             }
 
-            var extractedJson = TryExtractFirstJsonObject(text);
+            var extractedJson = OllamaResponseHelper.TryExtractFirstJsonObject(text);
             if (!string.IsNullOrWhiteSpace(extractedJson))
             {
                 parsed = TryParseJsonContract(extractedJson);
-
                 if (parsed is not null)
                 {
-                    // Validate summary: must mention author and title, and confidence should be reasonable
-                    bool summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
+                    var summaryValid = !string.IsNullOrWhiteSpace(parsed.Summary)
                         && parsed.Summary.IndexOf(parsed.Author ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0
                         && parsed.Summary.IndexOf(parsed.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase) >= 0;
 
-                    bool confidenceLow = parsed.Confidence < 0.5;
+                    var confidenceLow = parsed.Confidence < 0.5;
+                    parsed.Warnings = summaryValid && !confidenceLow
+                        ? string.Empty
+                        : $"AI summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
 
-                    if (summaryValid && !confidenceLow)
-                    {
-                        parsed.Warnings = string.Empty;
-                    }
-                    else
-                    {
-                        parsed.Warnings = $"AI summary may not be accurate for '{parsed.Author}' - '{parsed.Title}'.";
-                    }
                     LogProgress("Done!");
                     await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
                     return parsed;
@@ -223,30 +158,26 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
 
                 LogProgress("Done!");
                 await PublishAsync(connectionId, correlationId, "completed", 100, "Done!", cancellationToken);
-                string summary = "";
                 var summaryMatch = System.Text.RegularExpressions.Regex.Match(text, "\"notes\"\\s*:\\s*\"(.*?)\"");
-
                 if (summaryMatch.Success)
                 {
-                    summary = summaryMatch.Groups[1].Value;
+                    var summary = summaryMatch.Groups[1].Value;
                     return new AiBookSummaryResponseDto
                     {
-                        Warnings = $"LLM output may not be accurate for '{parsed.Author}' - '{parsed.Title}'. Raw: {text.Trim()}",
+                        Warnings = $"LLM output may not be accurate. Raw: {text.Trim()}",
                         Summary = string.Empty,
                         Confidence = 0,
                         Notes = summary
                     };
                 }
-                else
+
+                _logger.LogWarning("Could not recover notes from AI response: {Text}", text);
+                return new AiBookSummaryResponseDto
                 {
-                    _logger.LogWarning($"Could not recover notes from AI response: {text}");
-                    return new AiBookSummaryResponseDto
-                    {
-                        Notes = string.Empty,
-                        Confidence = 0,
-                        Warnings = "AI response could not be parsed. No notes available."
-                    };
-                }
+                    Notes = string.Empty,
+                    Confidence = 0,
+                    Warnings = "AI response could not be parsed. No notes available."
+                };
             }
 
             return new AiBookSummaryResponseDto
@@ -255,7 +186,6 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
                 Confidence = 0,
                 Warnings = "AI response could not be parsed. No summary available."
             };
-
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -294,7 +224,6 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             connectionId,
             cancellationToken);
 
-
     private static AiBookSummaryResponseDto? TryParseJsonContract(string text)
     {
         try
@@ -306,124 +235,4 @@ public sealed class OllamaBookSummaryService : IAiBookSummaryService
             return null;
         }
     }
-
-    private static string? TryExtractFirstJsonObject(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
-
-        var start = text.IndexOf('{');
-        if (start < 0)
-            return null;
-
-        var depth = 0;
-        var inString = false;
-        var escape = false;
-
-        for (var i = start; i < text.Length; i++)
-        {
-            var ch = text[i];
-
-            if (inString)
-            {
-                if (escape)
-                {
-                    escape = false;
-                    continue;
-                }
-
-                if (ch == '\\')
-                {
-                    escape = true;
-                    continue;
-                }
-
-                if (ch == '"')
-                {
-                    inString = false;
-                }
-
-                continue;
-            }
-
-            if (ch == '"')
-            {
-                inString = true;
-                continue;
-            }
-
-            if (ch == '{')
-                depth++;
-            else if (ch == '}')
-                depth--;
-
-            if (depth == 0)
-                return text.Substring(start, i - start + 1);
-        }
-
-        return null;
-    }
-
-    private static string? TryExtractOllamaResponseText(string json, ILogger logger)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
-            {
-                var responseText = response.GetString();
-
-                // Check if the response itself is a stringified JSON object
-                if (!string.IsNullOrWhiteSpace(responseText))
-                {
-                    try
-                    {
-                        using var innerDoc = JsonDocument.Parse(responseText);
-                        return innerDoc.RootElement.ToString();
-                    }
-                    catch (JsonException ex)
-                    {
-                        // Log the malformed JSON for debugging
-                        logger.LogWarning(ex, "Malformed stringified JSON in response: {ResponseText}", responseText);
-                        return responseText; // Return raw text if parsing fails
-                    }
-                }
-            }
-        }
-        catch (JsonException ex)
-        {
-            // Log the malformed JSON for debugging
-            logger.LogError(ex, "Malformed JSON encountered: {Json}", json);
-            return null;
-        }
-
-        // NDJSON fallback
-        var sb = new StringBuilder();
-        foreach (var line in json.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(line);
-                if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("response", out var response))
-                    sb.Append(response.GetString());
-            }
-            catch (JsonException ex)
-            {
-                // Log each malformed line for debugging
-                logger.LogWarning(ex, "Malformed NDJSON line encountered: {Line}", line);
-            }
-        }
-
-        var merged = sb.ToString();
-        return string.IsNullOrWhiteSpace(merged) ? null : merged;
-    }
-    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
-    {
-        var settings = await _appSettingsRepository.GetSettingsAsync();
-        return (settings.ModelBaseUrl, settings.AiModelName);
-    }
-
 }
