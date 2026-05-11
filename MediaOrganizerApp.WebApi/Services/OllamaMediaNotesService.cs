@@ -75,13 +75,6 @@ private async Task<AiMediaNotesResponseDto> ExecuteOllamaAsync(string prompt, st
 
         try
         {
-            // Progress: sending prompt
-            if (!string.IsNullOrWhiteSpace(prompt))
-            {
-                LogProgress("Sending prompt to AI model...");
-                await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
-            }
-
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
             {
                 Content = JsonContent.Create(payload)

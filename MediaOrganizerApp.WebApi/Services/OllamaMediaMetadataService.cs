@@ -298,9 +298,9 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
-            ["Artist"] = artist,
-            ["Title"] = title,
-            ["AdditionalInfo"] = additionalInfo
+            ["artist"] = artist,
+            ["title"] = title,
+            ["additionalInfo"] = additionalInfo
         });
 
         await PublishAsync(connectionId, correlationId, "request_sent", 45, "Step 2/2: Sending prompt to AI model...", cancellationToken);

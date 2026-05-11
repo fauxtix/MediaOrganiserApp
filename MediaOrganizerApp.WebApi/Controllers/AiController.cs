@@ -17,6 +17,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiMediaNotesService _media;
         private readonly IAiMediaMetadataService _mediaMetadata;
         private readonly IAiChatService _chat;
+        private readonly ITranslateService _translateService;
         private readonly IPromptTemplateProvider _promptProvider;
         private readonly ILogger<AiController> _logger;
         // Translate is implemented as a separate service resolved per-request to avoid changing constructor signature
@@ -29,7 +30,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             IAiMediaMetadataService mediaMetadata,
             ILogger<AiController> logger,
             IAiChatService chat,
-            IPromptTemplateProvider promptProvider)
+            IPromptTemplateProvider promptProvider,
+            ITranslateService translateService)
         {
             _ai = ai;
             _books = books;
@@ -39,6 +41,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _logger = logger;
             _chat = chat;
             _promptProvider = promptProvider;
+            _translateService = translateService;
         }
 
         private static string MapLanguageCodeToName(string? language)
@@ -177,8 +180,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             try
             {
-                var translateService = HttpContext.RequestServices.GetService(typeof(ITranslateService)) as ITranslateService;
-                if (translateService == null)
+                if (_translateService == null)
                 {
                     _logger.LogError("Translation service not available");
                     return Ok(new TranslateResponseDto
@@ -189,7 +191,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     });
                 }
 
-                var resp = await translateService.TranslateAsync(request, cancellationToken);
+                var resp = await _translateService.TranslateAsync(request, cancellationToken);
 
                 if (resp == null)
                 {
