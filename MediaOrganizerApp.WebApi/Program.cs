@@ -17,6 +17,7 @@ using MediaOrganizerApp.WebApi.Services;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using System.Configuration;
 using System.Net;
 using System.Net.Mail;
 
@@ -76,6 +77,11 @@ public class Program
 
 
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
+        builder.Services.AddMemoryCache();
+        builder.Services.AddScoped<IAiSettingsProvider, AiSettingsProvider>();
+        builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
+
+
         builder.Services.AddSignalR();
         builder.Services.AddScoped<IProgressPublisher, SignalRProgressPublisher>();
 
@@ -88,6 +94,7 @@ public class Program
 
         // Feature flags: allow runtime toggling of AI fallback/badge
         builder.Services.Configure<FeatureFlags>(builder.Configuration.GetSection("Features"));
+
 
         // Initialize FeatureFlagsStore from configuration at startup so the in-memory store matches configured defaults
         try

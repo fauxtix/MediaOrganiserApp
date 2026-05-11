@@ -21,14 +21,6 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
     {
         _prompts = prompts;
         _logger = logger;
-        var apiKey = config["OpenAI:ApiKey"];
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("Missing configuration key: OpenAI:ApiKey");
-
-        var model = config["OpenAI:Model"];
-        if (string.IsNullOrWhiteSpace(model))
-            model = "gpt-4o-mini";
-
         _appSettingsRepository = appSettingsRepository;
     }
 
