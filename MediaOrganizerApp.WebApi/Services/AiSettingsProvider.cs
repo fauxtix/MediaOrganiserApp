@@ -10,7 +10,7 @@ namespace MediaOrganizerApp.WebApi.Services;
 /// </summary>
 public sealed class AiSettingsProvider : IAiSettingsProvider
 {
-    private const string CacheKey = "ai_settings_v1";
+    private const string CacheKey = "ai_settings";
 
     private readonly IAppSettingsRepository _appSettingsRepository;
     private readonly IMemoryCache _cache;
