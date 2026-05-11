@@ -1,7 +1,5 @@
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.WebApi.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -81,14 +79,15 @@ public sealed class OllamaTranslateServiceTests
             .Setup(x => x.GetTemplateAsync("translate-text.prompt.txt", It.IsAny<CancellationToken>()))
             .ReturnsAsync("Translate {text}");
 
-        var appSettingsRepository = new Mock<IAppSettingsRepository>();
-        appSettingsRepository
-            .Setup(x => x.GetSettingsAsync())
-            .ReturnsAsync(new ApplicationSettings
-            {
-                ModelBaseUrl = "http://localhost:11434",
-                AiModelName = "test-model"
-            });
+        var aiSettingsProvider = new Mock<IAiSettingsProvider>();
+        aiSettingsProvider
+            .Setup(x => x.GetAiSettingsAsync())
+            .ReturnsAsync(("http://localhost:11434", "test-model"));
+
+        var systemPromptService = new Mock<ISystemPromptService>();
+        systemPromptService
+            .Setup(x => x.GetSystemPrompt(It.IsAny<CancellationToken>()))
+            .ReturnsAsync("System prompt");
 
         progressPublisher = new Mock<IProgressPublisher>();
         progressPublisher
@@ -104,8 +103,9 @@ public sealed class OllamaTranslateServiceTests
             httpClient,
             Mock.Of<ILogger<OllamaTranslateService>>(),
             promptProvider.Object,
-            appSettingsRepository.Object,
-            progressPublisher.Object);
+            progressPublisher.Object,
+            aiSettingsProvider.Object,
+            systemPromptService.Object);
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
