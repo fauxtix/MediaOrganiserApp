@@ -366,3 +366,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /MediaOrganizerApp.WebApi/client_secrets.json
 /MediaOrganizerApp.WebApi/client_secrets.json
+/MediaOrganizerApp.WebApi/Services/AiSettingsProvider.cs
+/MediaOrganizerApp.WebApi/Services/OllamaBaseClient.cs
