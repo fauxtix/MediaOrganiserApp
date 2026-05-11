@@ -79,6 +79,11 @@ public class Program
         builder.Services.AddSignalR();
         builder.Services.AddScoped<IProgressPublisher, SignalRProgressPublisher>();
 
+        // Shared AI infrastructure: settings caching and system-prompt loading
+        builder.Services.AddMemoryCache();
+        builder.Services.AddScoped<IAiSettingsProvider, AiSettingsProvider>();
+        builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
+
         // AI services
         builder.Services.AddHttpClient<OllamaBookSummaryService>();
         builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
