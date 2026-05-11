@@ -2,7 +2,6 @@
 {
     using FluentValidation.Results;
     using MediaOrganizerApp.Application.Interfaces.Services.Validators;
-    using System.Linq;
 
     public class ValidationServiceAdapter : IValidationService
     {
