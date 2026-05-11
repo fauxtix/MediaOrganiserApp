@@ -36,19 +36,19 @@
     <Content Include="Prompts\author-books.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Prompts\book-summary-full - Copy.prompt.txt">
+    <Content Include="Prompts\BackupOld\book-summary-full - Copy.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Prompts\book-summary-only - Copy.prompt.txt">
+    <Content Include="Prompts\BackupOld\book-summary-only - Copy.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\media-edition-year.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Prompts\media-metadata - Copy.prompt.txt">
+    <Content Include="Prompts\BackupOld\media-metadata - Copy.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Prompts\media-notes - Copy.prompt.txt">
+    <Content Include="Prompts\BackupOld\media-notes - Copy.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\README.md">
@@ -57,7 +57,7 @@
     <Content Include="Prompts\system.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Prompts\translate-text - Copy.prompt.txt">
+    <Content Include="Prompts\BackupOld\translate-text - Copy.prompt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\translate-text.prompt.txt">
