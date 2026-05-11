@@ -1,4 +1,5 @@
 using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using OpenAI.Chat;
 
@@ -10,11 +11,13 @@ namespace MediaOrganizerApp.WebApi.Services;
 /// </summary>
 public sealed class AiAuthorProfileService : IAiAuthorProfileService
 {
-    private readonly ChatClient _chat;
+    private  ChatClient _chat;
     private readonly IPromptTemplateProvider _prompts;
     private readonly ILogger<AiAuthorProfileService> _logger;
+    private readonly IAppSettingsRepository _appSettingsRepository;
 
-    public AiAuthorProfileService(IConfiguration config, IPromptTemplateProvider prompts, ILogger<AiAuthorProfileService> logger)
+
+    public AiAuthorProfileService(IConfiguration config, IPromptTemplateProvider prompts, ILogger<AiAuthorProfileService> logger, IAppSettingsRepository appSettingsRepository)
     {
         _prompts = prompts;
         _logger = logger;
@@ -26,7 +29,7 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
         if (string.IsNullOrWhiteSpace(model))
             model = "gpt-4o-mini";
 
-        _chat = new ChatClient(model, apiKey);
+        _appSettingsRepository = appSettingsRepository;
     }
 
     public async Task<AiAuthorProfileResponseDto> GetAuthorProfileAsync(
@@ -48,6 +51,9 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
             new UserChatMessage(prompt),
         };
 
+
+        await CreateChatClientAsync();
+
         var result = await _chat.CompleteChatAsync(messages, cancellationToken: cancellationToken);
         var text = result.Value.Content[0].Text;
 
@@ -65,5 +71,13 @@ public sealed class AiAuthorProfileService : IAiAuthorProfileService
             language);
 
         return parsed;
+    }
+
+    private async Task CreateChatClientAsync()
+    {
+        var settings =  await _appSettingsRepository.GetSettingsAsync();
+        var baseUrl = settings.ModelBaseUrl;
+        var model = settings.AiModelName;
+        _chat = new ChatClient(model, baseUrl);
     }
 }
