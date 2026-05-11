@@ -1,35 +1,28 @@
 using MediaOrganizerApp.Application.DTOs.AI;
-using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace MediaOrganizerApp.WebApi.Services;
 
-public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
+public sealed class OllamaMediaMetadataService : OllamaBaseClient, IAiMediaMetadataService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly HttpClient _httpClient;
     private readonly ILogger<OllamaMediaMetadataService> _logger;
-    private string _baseUrl;
-    private string _model;
-    private readonly IAppSettingsRepository _appSettingsRepository;
-    private readonly IPromptTemplateProvider _prompts;
     private readonly IProgressPublisher _progressPublisher;
 
-    public OllamaMediaMetadataService(HttpClient httpClient,
-                                      ILogger<OllamaMediaMetadataService> logger,
-                                      IPromptTemplateProvider prompts,
-                                      IProgressPublisher progressPublisher,
-                                      IAppSettingsRepository appSettingsRepository)
+    public OllamaMediaMetadataService(
+        HttpClient httpClient,
+        ILogger<OllamaMediaMetadataService> logger,
+        IPromptTemplateProvider prompts,
+        IProgressPublisher progressPublisher,
+        IAiSettingsProvider aiSettingsProvider,
+        ISystemPromptService systemPromptService)
+        : base(httpClient, aiSettingsProvider, systemPromptService, prompts)
     {
-        _httpClient = httpClient;
         _logger = logger;
-        _prompts = prompts;
         _progressPublisher = progressPublisher;
-        _appSettingsRepository = appSettingsRepository;
     }
 
     public async Task<AiMediaMetadataResponseDto> GetMediaMetadataAsync(
@@ -42,18 +35,12 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     {
         await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Step 1/3: Preparing AI prompt...", cancellationToken);
 
-        var systemTemplate = await _prompts.GetTemplateAsync("system.prompt.txt", cancellationToken);
-        var template = await _prompts.GetTemplateAsync("media-metadata.prompt.txt", cancellationToken);
-        var systemPrompt = PromptTemplateRenderer.Render(systemTemplate, new Dictionary<string, string?>());
-
-        var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
+        var fullPrompt = await BuildFullPromptAsync("media-metadata.prompt.txt", new Dictionary<string, string?>
         {
             ["language"] = language,
             ["artist"] = artist,
             ["title"] = title
-        });
-
-        var fullPrompt = $"{systemPrompt}\n\n{prompt}";
+        }, cancellationToken);
 
         await PublishAsync(connectionId, correlationId, "request_sent", 35, "Step 2/3: Sending prompt to AI model...", cancellationToken);
 
@@ -71,49 +58,19 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         CancellationToken cancellationToken)
     {
         void LogProgress(string msg) => _logger.LogInformation($"Progress for client {connectionId}: {msg}");
-        var (modelBaseUrl, modelName) = await GetAiSettings();
-        _baseUrl = modelBaseUrl;
-        _model = modelName;
-
-        // ✅ Added temperature and deterministic options
-        var payload = new
-        {
-            model = _model,
-            prompt,
-            stream = false,
-            options = new
-            {
-                temperature = 0,
-                top_p = 1,
-            }
-        };
 
         try
         {
             LogProgress("Sending prompt to AI model...");
             await PublishAsync(connectionId, correlationId, "request_sent", 45, "Sending prompt to AI model...", cancellationToken);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
-            {
-                Content = JsonContent.Create(payload)
-            };
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(80));
-
             LogProgress("Waiting for AI response...");
             await PublishAsync(connectionId, correlationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
 
-            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
-            response.EnsureSuccessStatusCode();
-
-            var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
-            var json = Encoding.UTF8.GetString(bytes);
+            var text = await ExecuteGenerateAsync(prompt, cancellationToken, timeoutSeconds: 80, temperature: 0, topP: 1);
 
             LogProgress("Parsing AI response...");
             await PublishAsync(connectionId, correlationId, "parsing", 80, "Parsing AI response...", cancellationToken);
-
-            var text = OllamaResponseHelper.TryExtractResponseText(json);
 
             // ✅ Log raw response for debugging
             _logger.LogInformation("AI raw response: {Response}", text);
@@ -294,7 +251,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         // Robust dynamic hint for the AI
         var additionalInfo = $"Release year not found in external databases for '{title}' by '{artist}'. Only return the year if certain.";
 
-        var template = await _prompts.GetTemplateAsync("media-edition-year.prompt.txt", cancellationToken);
+        var template = await Prompts.GetTemplateAsync("media-edition-year.prompt.txt", cancellationToken);
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
         {
             ["language"] = language,
@@ -336,41 +293,15 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
         string? correlationId,
         CancellationToken cancellationToken)
     {
-        var (modelBaseUrl, modelName) = await GetAiSettings();
-        _baseUrl = modelBaseUrl;
-        _model = modelName;
-
-        // ✅ Added temperature and deterministic options
-        var payload = new
-        {
-            model = _model,
-            prompt,
-            stream = false,
-            options = new
-            {
-                temperature = 0,
-                top_p = 1,
-                num_predict = 20
-            }
-        };
-
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_baseUrl), "/api/generate"))
-            {
-                Content = JsonContent.Create(payload)
-            };
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
-
-            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
-            response.EnsureSuccessStatusCode();
-
-            var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
-            var json = Encoding.UTF8.GetString(bytes);
-
-            var text = OllamaResponseHelper.TryExtractResponseText(json);
+            var text = await ExecuteGenerateAsync(
+                prompt,
+                cancellationToken,
+                timeoutSeconds: 60,
+                temperature: 0,
+                topP: 1,
+                numPredict: 20);
 
             // ✅ Log raw response for debugging
             _logger.LogInformation("AI raw year response: {Response}", text);
@@ -390,7 +321,7 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
     }
 
     // --------------------- Helper: Clean Title ---------------------
-    private string CleanTitle(string title)
+    private static string CleanTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
             return title;
@@ -400,11 +331,6 @@ public sealed class OllamaMediaMetadataService : IAiMediaMetadataService
             .Replace("Remastered", "", StringComparison.OrdinalIgnoreCase)
             .Replace("Special Edition", "", StringComparison.OrdinalIgnoreCase)
             .Trim();
-    }
-    private async Task<(string modelBaseUrl, string modelName)> GetAiSettings()
-    {
-        var settings = await _appSettingsRepository.GetSettingsAsync();
-        return (settings.ModelBaseUrl, settings.AiModelName);
     }
 
     private Task PublishAsync(
