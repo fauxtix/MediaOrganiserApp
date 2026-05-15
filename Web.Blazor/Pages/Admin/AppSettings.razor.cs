@@ -56,13 +56,6 @@ namespace Web.Blazor.Pages.Admin
         private Syncfusion.Blazor.AnimationEffect PreviousEffect = Syncfusion.Blazor.AnimationEffect.SlideLeftIn;
         private Syncfusion.Blazor.AnimationEffect NextEffect = Syncfusion.Blazor.AnimationEffect.SlideRightIn;
 
-        string FileManagerBaseUrl => configuration["FileManagerApiBaseUrl"];
-        string FileOperationsUrl => $"{FileManagerBaseUrl}/FileOperations";
-        string UploadUrl => $"{FileManagerBaseUrl}/Upload";
-        string DownloadUrl => $"{FileManagerBaseUrl}/Download";
-        string GetImageUrl => $"{FileManagerBaseUrl}/GetImage";
-
-
         protected override async Task OnInitializedAsync()
         {
 

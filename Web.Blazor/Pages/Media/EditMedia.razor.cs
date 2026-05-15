@@ -756,6 +756,11 @@ namespace Web.Blazor.Pages.Media
             TranslateVisible = true;
             return Task.CompletedTask;
         }
+        private void ClearNotes()
+        {
+            SelectedRecord.Notas = "";
+            StateHasChanged();
+        }
 
         private async Task HandleTranslateRequested(TranslateRequestDto dto)
         {

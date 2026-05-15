@@ -4,6 +4,8 @@ using Syncfusion.Blazor.Spinner;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
+using Web.Blazor.Services.Common;
+using Microsoft.Extensions.Configuration;
 
 namespace Web.Blazor.Components.Authors
 {
@@ -17,6 +19,13 @@ namespace Web.Blazor.Components.Authors
 
         [Parameter]
         public bool DebugForceGoogle429 { get; set; } = false;
+
+        [Inject] public BooksInfoProgressClient ProgressClient { get; set; } // Inject the client
+        [Inject] public IConfiguration Configuration { get; set; }
+        [Inject] public NavigationManager NavigationManager { get; set; }
+
+        private string aiProgressMessage = "";
+        private bool showAiProgress = false;
 
         private CancellationTokenSource? _cts;
         protected SfSpinner SpinnerObj;
@@ -36,7 +45,7 @@ namespace Web.Blazor.Components.Authors
         private bool MessageVisible { get; set; }
 
         private readonly SemaphoreSlim _spinnerLock = new(1, 1);
-        private bool showAISearchDialog = false;
+        private bool showAISearchDialog { get; set; } = false;
 
         // holds last provider result until assigned to books
         private List<GoogleBookInfo>? resultList = null;
@@ -62,6 +71,12 @@ namespace Web.Blazor.Components.Authors
 
         private IEnumerable<GoogleBookInfo> PagedBooks =>
             CachedFilteredBooks.Skip((currentPage - 1) * PageSize).Take(PageSize);
+
+        protected override async Task OnInitializedAsync()
+        {
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressReceived += OnProgressReceived;
+        }
 
         protected override async Task OnParametersSetAsync()
         {
@@ -316,7 +331,15 @@ namespace Web.Blazor.Components.Authors
                 MessageLabel = $"Searching using AI for {AuthorName}...";
                 await UpdateMessageLabelAsync(MessageLabel);
 
-                var aiResult = await AiBookClient.GetAuthorBooksAsync(authorName, uiLanguage);
+                // Start ProgressClient before AI search
+                var apiBase = Configuration["BaseUrl"]?.TrimEnd('/') ?? NavigationManager.BaseUri.TrimEnd('/');
+                if (apiBase.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+                    apiBase = apiBase.Substring(0, apiBase.Length - 4);
+
+                await ProgressClient.StartAsync(apiBase);
+                var connectionId = ProgressClient.ConnectionId;
+
+                var aiResult = await AiBookClient.GetAuthorBooksAsync(authorName, uiLanguage, connectionId);
                 if (aiResult != null && aiResult.Count > 0)
                 {
                     resultList = aiResult.ToList();
@@ -324,6 +347,8 @@ namespace Web.Blazor.Components.Authors
                 else
                 {
                     resultList = new List<GoogleBookInfo>();
+                    MessageLabel = $"AI search returned no Books for {AuthorName}.";
+                    await UpdateMessageLabelAsync(MessageLabel);
                 }
             }
             catch (Exception)
@@ -331,6 +356,12 @@ namespace Web.Blazor.Components.Authors
                 resultList = new List<GoogleBookInfo>();
                 MessageLabel = $"AI search failed for {AuthorName}.";
                 await UpdateMessageLabelAsync(MessageLabel);
+            }
+            finally
+            {
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+                showAiProgress = false;
+                await InvokeAsync(StateHasChanged);
             }
         }
 
@@ -361,6 +392,13 @@ namespace Web.Blazor.Components.Authors
             MessageLabel = label ?? "";
             MessageVisible = true;
             return InvokeAsync(StateHasChanged);
+        }
+
+        private void OnProgressReceived(string message)
+        {
+            aiProgressMessage = message;
+            showAiProgress = true;
+            InvokeAsync(StateHasChanged);
         }
     }
 }

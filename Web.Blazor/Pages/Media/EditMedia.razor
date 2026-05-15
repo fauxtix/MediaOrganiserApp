@@ -43,7 +43,7 @@ else
 
                 <div class="row mt-2">
                     <div class="col-md-12 ml-2 e-rte-content">
-                        @if (blnEdit && (SelectedRecord != null && string.IsNullOrWhiteSpace(SelectedRecord.Notas)) && !isMp3)
+                        @if (blnEdit && (SelectedRecord != null && !string.IsNullOrWhiteSpace(SelectedRecord.Notas)) && !isMp3)
                         {
                             <div class="d-flex justify-content-end mt-2">
                                 <SfButton CssClass="e-outline e-round-corner"
@@ -61,6 +61,15 @@ else
                                    FloatLabelType="@FloatLabelType.Auto"
                                    @bind-Value="@SelectedRecord.Notas">
                         </SfTextBox>
+
+                        <div class="d-flex justify-content-end mt-2">
+                            <SfButton CssClass="e-outline e-round-corner"
+                                      IconCss="fa fa-times"
+                                      @onclick="ClearNotes"
+                                      Content="@L["btnLimpar"]">
+                            </SfButton>
+                        </div>
+
                     </div>
                 </div>
             </a>
@@ -273,7 +282,7 @@ else
               Height="auto"
               IsModal="true"
               ShowCloseIcon="false"
-              @bind-Visible="SearchArtistRecordsVisibility">
+              Visible="SearchArtistRecordsVisibility">
         <DialogTemplates>
             <Header>
                 <div class="modal-header">
@@ -297,7 +306,7 @@ else
                 </div>
             </FooterTemplate>
         </DialogTemplates>
-        @* <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings> *@
+        <DialogAnimationSettings Effect="@Effects" Duration=700></DialogAnimationSettings>
     </SfDialog>
 
     <TranslateText Visible="@TranslateVisible"

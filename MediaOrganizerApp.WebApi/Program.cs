@@ -81,7 +81,7 @@ public class Program
 
         // Shared AI infrastructure: settings caching and system-prompt loading
         builder.Services.AddMemoryCache();
-        builder.Services.AddScoped<MediaOrganizerApp.WebApi.Services.IAiSettingsProvider, AiSettingsProvider>();
+        builder.Services.AddScoped<Services.IAiSettingsProvider, AiSettingsProvider>();
         builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
 
         // AI services
@@ -131,11 +131,30 @@ public class Program
         // 17-04-2026: Still using MusicBrainz as the primary metadata source, but this is where you'd register an alternative provider if needed.
         builder.Services.AddHttpClient<IMusicMetadataService, MusicMetadataService>();
 
+        var lastFmApiKey = builder.Configuration.GetSection("LastFm")["ApiKey"];
+        var lastFmApiSecret = builder.Configuration.GetSection("LastFm")["ApiSecret"];
+
         builder.Services.AddSingleton<ILastFmService, LastFmService>();
 
-        builder.Services.AddSingleton(new LastfmClient(
-            "b937bd55da5593aaf00108c65dbe0bb5",
-            "3d96efe5880bf77ce36d5641b94fad4c"));
+        builder.Services.AddSingleton(new LastfmClient( lastFmApiKey, lastFmApiSecret));
+
+        /// Last.fm API client registration (commented out because we're currently using a singleton with hardcoded credentials above, but this is how you'd register it if you wanted to pull credentials from configuration or a secrets manager)
+        /// 
+        // builder.Services.AddScoped<ILastFmService, LastFmService>();
+        //builder.Services.AddScoped<IAppSettingsService, WrapperAppSettings>();
+        //builder.Services.AddScoped<LastfmClient>(sp =>
+        //{
+        //    var settingsService = sp.GetRequiredService<IAppSettingsService>();
+
+        //    var settings = settingsService
+        //        .GetSettingsAsync()
+        //        .GetAwaiter()
+        //        .GetResult();
+
+        //    return new LastfmClient(
+        //        settings.LastFmApiKey,
+        //        settings.LastFmApiSecret);
+        //});
 
 
         var from = builder.Configuration.GetSection("Mail")["From"];

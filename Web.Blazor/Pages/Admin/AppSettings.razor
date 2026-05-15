@@ -129,8 +129,7 @@ else
                     </TabItem>
                     <TabItem>
                         <ChildContent>
-                            <TabHeader Text="@L["TituloOtherSettings"]" IconCss="e-settings"></TabHeader>
-
+                            <TabHeader Text="@(L["TituloOtherSettings"] + " 1")" IconCss="e-settings"></TabHeader>
                         </ChildContent>
                         <ContentTemplate>
                             @* <SfMessage CssClass="rounded" Variant="MessageVariant.Filled" ContentAlignment="HorizontalAlign.Center"
@@ -210,8 +209,7 @@ else
                     </TabItem>
                     <TabItem>
                         <ChildContent>
-                            <TabHeader Text="@L["TituloOtherSettings"]" IconCss="e-settings"></TabHeader>
-
+                            <TabHeader Text="@(L["TituloOtherSettings"] + " 2")" IconCss="e-settings"></TabHeader>
                         </ChildContent>
                         <ContentTemplate>
 
@@ -238,6 +236,18 @@ else
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
                                                Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["FileManagerApiBaseUrl_Development"]</h5></SfMessage>
                                     <SfTextBox @bind-Value="settings.FileManagerApiBaseUrl_Development" Placeholder="@L["FileManagerApiBaseUrl_Development"]"></SfTextBox>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["LastFmApiKey"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.LastFmApiKey" Placeholder="@L["LastFmApiKey"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["LastFmApiSecret"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.LastFmApiSecret" Placeholder="@L["LastFmApiSecret"]"></SfTextBox>
                                 </div>
                             </div>
                             <div class="row">

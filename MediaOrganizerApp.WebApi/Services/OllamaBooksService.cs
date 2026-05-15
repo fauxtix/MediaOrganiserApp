@@ -36,7 +36,7 @@ public sealed class OllamaBooksService : OllamaBaseClient, IAiBooksService
         {
             const int defaultMaxResults = 20;
             await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing books prompt...", cancellationToken);
-
+            await Task.Delay(1000);
             var fullPrompt = await BuildFullPromptAsync("author-books.prompt.txt", new Dictionary<string, string?>
             {
                 ["author"] = author,
@@ -232,12 +232,14 @@ public sealed class OllamaBooksService : OllamaBaseClient, IAiBooksService
             }
 
             await PublishAsync(connectionId, correlationId, "completed", 100, "Books response processed.", cancellationToken);
+            await Task.Delay(1000);
             return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning("OllamaBooksService request canceled for author {Author}", author);
             await PublishAsync(connectionId, correlationId, "cancelled", 100, "Books request canceled.", cancellationToken, "warning");
+            await Task.Delay(1000);
             throw;
         }
         catch (Exception ex)

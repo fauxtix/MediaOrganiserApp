@@ -43,5 +43,9 @@
         public string FileManagerApiBaseUrl_Production { get; set; }
         public string IMDbKey { get; set; }
         public string Database_ConnectionString { get; set; }
+
+        // LastFm settings
+        public string LastFmApiKey { get; set; }
+        public string LastFmApiSecret { get; set; }
     }
 }

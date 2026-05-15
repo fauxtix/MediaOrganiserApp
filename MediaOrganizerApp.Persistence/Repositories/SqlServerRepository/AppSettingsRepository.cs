@@ -81,6 +81,9 @@ public class AppSettingsRepository : IAppSettingsRepository
         parameters.Add("@ApiBaseUrl_Production", settings?.ApiBaseUrl_Production);
         parameters.Add("@IMDbKey", settings?.IMDbKey);
         parameters.Add("@Database_ConnectionString", settings?.Database_ConnectionString);
+
+        parameters.Add("@LastFmApiKey", settings?.LastFmApiKey);
+        parameters.Add("@LastFmApiSecret", settings?.LastFmApiSecret);
         try
         {
             using (var connection = _context.CreateConnection())
