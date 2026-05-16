@@ -129,6 +129,8 @@ namespace Web.Blazor.Pages.BaseComponents
         protected bool CanAddSelectedMediaToPlaylist =>
             IsEligibleForPlaylist(SelectedRecord);
 
+        protected bool ShowMediaStatsDialog { get; set; } = false;
+
         protected override async Task OnInitializedAsync()
         {
             showBadge = false;
@@ -582,8 +584,8 @@ namespace Web.Blazor.Pages.BaseComponents
                     showBadge = false;
                     badgeCaption = "";
                     break;
-                case "cover":
-                    await ThumbnailsService.UpdateMediaCoverRecords();
+                case "stats":
+                    ShowMediaStatsDialog = true;
                     break;
                 case "mlpdf":
                     await SpinnerObj.ShowAsync();
@@ -1064,7 +1066,12 @@ namespace Web.Blazor.Pages.BaseComponents
             return string.Equals(ext, ".mp3", StringComparison.OrdinalIgnoreCase);
         }
 
-
+        protected IEnumerable<(string Formato, int Count)> formatoCounts =>
+        mediaFiles?
+            .GroupBy(m => m.FormatoMedia)
+            .Select(g => (Formato: g.Key, Count: g.Count()))
+            .OrderByDescending(x => x.Count)
+            ?? Enumerable.Empty<(string, int)>();
 
         public void Dispose()
         {

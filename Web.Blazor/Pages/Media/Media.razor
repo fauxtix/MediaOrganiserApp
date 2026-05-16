@@ -1,8 +1,6 @@
 ﻿@page "/media"
 @inherits MediaBase
 
-@using MediaOrganizerApp.Domain.Entities
-
 @using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Notifications
@@ -54,13 +52,6 @@
                 Text = localizerApp["msgOtherTypes"],
                 Id = "OTHERS"
              },
-             // new ItemModel()
-             // {
-             //    Align = ItemAlign.Left,
-             //    PrefixIcon = "fa fa-edit",
-             //    Text = localizerApp["msgUpdateCover"],
-             //    Id = "COVER"
-             // },
              new ItemModel()
              {
                 Type = ItemType.Separator,
@@ -82,7 +73,18 @@
                 PrefixIcon = "e-download-icon",
                 Text = localizerApp["TituloListagem"],
                 Id = "MLPDF"
-             }
+             },
+             new ItemModel()
+             {
+                Type = ItemType.Separator,  Visible=true
+             },
+             new ItemModel() {
+                Align = ItemAlign.Left, CssClass="e-primary",
+                PrefixIcon = "fa fa-bar-chart",
+                Text = "Stats",
+                Id = "STATS"
+            },
+
         }
      );
 }
@@ -91,17 +93,15 @@
 
 @if (mediaFiles is null)
 {
-    <div class="spinner-border" role="status">
-        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
-    </div>
+    <LoadingData />
 }
 else
 {
     <div class="button-container my-2">
         <SfButton CssClass="e-btn e-success e-round-corner"
                   IconCss="fa fa-plus" IsPrimary="true"
+                  Content="@(localizerApp["NewMsg"])"
                   @onclick="NotifyAddingRecord">
-            &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;
             <i class="fa fa-file" />
         </SfButton>
         <SfButton CssClass="e-btn e-primary e-round-corner"
@@ -637,6 +637,40 @@ else
         <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
     </SfDialog>
 
+    <SfDialog Width="30%"
+              IsModal="true"
+              ShowCloseIcon="true"
+              Visible="ShowMediaStatsDialog">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Stats
+                    </h5>
+                </div>
+            </Header>
+            <Content>
+                <div class="dashboard-cards">
+                    @foreach (var formato in formatoCounts)
+                    {
+                        <div class="dashboard-card">
+                            <span class="categoria-title">@formato.Formato</span>
+                            <span class="categoria-count">@formato.Count</span>
+                        </div>
+                    }
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="() => ShowMediaStatsDialog = false"
+                              Content="@(localizerApp["BtnSalir"] ?? "Close")" />
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+    </SfDialog>
+
 
     <AddMediaToPlaylistComponent Visible="@AddToPlaylistDialogVisibility"
                              Media="@SelectedRecord"
@@ -726,4 +760,57 @@ else
     .e-attr-bold {
         font-weight: bold;
     }
+
+    .dashboard-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-card {
+        border-radius: 1rem;
+        width: 240px;
+        height: 50px;
+        flex-basis: 240px; /* Ensures all cards are the same width in the flex layout */
+        color: #fff;
+        font-size: 0.72rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: box-shadow 0.2s, transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+        .dashboard-card:nth-child(2n) {
+            background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%);
+        }
+
+        .dashboard-card:nth-child(3n) {
+            background: linear-gradient(90deg, #ff9966 0%, #ff5e62 100%);
+        }
+
+        .dashboard-card:hover {
+            box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+            transform: translateY(-2px) scale(1.03);
+        }
+
+    .categoria-title {
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .categoria-count {
+        font-size: 1rem;
+        font-weight: bold;
+        margin-left: 1.5rem;
+    }
+
 </style>

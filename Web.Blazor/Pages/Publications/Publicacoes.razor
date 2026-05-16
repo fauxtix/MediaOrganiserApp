@@ -40,7 +40,7 @@
         },
         new ItemModel()
         {
-                Type = ItemType.Separator,
+                Type = ItemType.Separator,  Visible=true
         },
         new ItemModel() {
             Align = ItemAlign.Left, CssClass="e-primary",
@@ -48,12 +48,16 @@
             Text = "Stats",
             Id = "STATS"
         },
-        // new ItemModel() {
-        //     Align = ItemAlign.Left,
-        //     PrefixIcon = "fa fa-clone",
-        //     Text = TituloFicheirosPathErrada,
-        //     Id = "FWRP"
-        // }
+        new ItemModel()
+        {
+                Type = ItemType.Separator,
+        },
+        new ItemModel() {
+            Align = ItemAlign.Left,
+            PrefixIcon = "fa fa-clone",
+            Text = TituloFicheirosPathErrada,
+            Id = "FWRP"
+        }
 
     }
     );
@@ -474,7 +478,7 @@ else
         </DialogTemplates>
         <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
     </SfDialog>
-    <SfDialog Width="29%" Height="auto"
+    <SfDialog Width="31%" Height="auto"
               IsModal="true"
               ShowCloseIcon="true"
               Visible="ShowStatsDialog">
@@ -600,9 +604,9 @@ else
 
 .dashboard-card {
     border-radius: 1rem;
-    width: 220px;
+    width: 240px;
     height: 50px;
-    flex-basis: 220px;           /* Ensures all cards are the same width in the flex layout */
+    flex-basis: 240px;           /* Ensures all cards are the same width in the flex layout */
     color: #fff;
     font-size: 0.72rem;
     box-shadow: 0 2px 12px rgba(0,0,0,0.10);

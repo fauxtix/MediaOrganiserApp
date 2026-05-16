@@ -84,6 +84,7 @@ namespace Web.Blazor.Pages.Media
 
         private bool showAlertMessage = false;
         private string alertMessage = "";
+        private string alertMessageColor = "text-white";
 
         private string busyStatusMessage = "";
         private bool isBusy;
@@ -94,6 +95,8 @@ namespace Web.Blazor.Pages.Media
         protected bool fileVerified;
 
         private bool TranslateVisible { get; set; } = false;
+
+        MessageSeverity messageSeverity = MessageSeverity.Info;
 
         protected override async Task OnInitializedAsync()
         {
@@ -107,7 +110,7 @@ namespace Web.Blazor.Pages.Media
             fileVerified = LocalFileOnDisk();
             if (!fileVerified)
             {
-                showAlertMessage = true;
+                ShowMessage(L["TituloFicheiroNaoExisteLocalEspecificado"] + ".", MessageSeverity.Warning);
                 var notFound = L["TituloFicheiroNaoExisteLocalEspecificado"] + ".";
                 var contactAdmin = L["ContactAdmin"];
                 var fileTitle = L["TituloFicheiro"];
@@ -232,8 +235,7 @@ namespace Web.Blazor.Pages.Media
         {
             if (string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
-                showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e T�tulo";
+                ShowMessage("Por favor preencha os campos Autor e Título", MessageSeverity.Warning);
                 return;
             }
 
@@ -345,8 +347,7 @@ namespace Web.Blazor.Pages.Media
                     var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
                     if (ai == null)
                     {
-                        showAlertMessage = true;
-                        alertMessage = L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.";
+                        ShowMessage(L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.", MessageSeverity.Warning);
                     }
                     else
                     {
@@ -356,7 +357,7 @@ namespace Web.Blazor.Pages.Media
                             SelectedRecord.Notas = notesValue;
                             if (!string.IsNullOrWhiteSpace(ai.Warnings))
                             {
-                                showAlertMessage = true;
+                                ShowMessage(ai.Warnings, MessageSeverity.Warning);
                                 alertMessage = ai.Warnings;
                             }
                         }
@@ -376,14 +377,12 @@ namespace Web.Blazor.Pages.Media
 
                     if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
                     {
-                        showAlertMessage = true;
-                        alertMessage = "No available Edition year returned from external API/AI; try to find it in other sources.";
+                        ShowMessage("No available Edition year returned from external API/AI; try to find it in other sources.", MessageSeverity.Warning);
                         return;
                     }
                     if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
                     {
-                        showAlertMessage = true;
-                        alertMessage = $"The Edition year returned from the API is not valid {year}";
+                        ShowMessage($"The Edition year returned from the API is not valid {year}", MessageSeverity.Warning);
                         return;
 
                     }
@@ -393,8 +392,7 @@ namespace Web.Blazor.Pages.Media
             }
             catch (OperationCanceledException)
             {
-                showAlertMessage = true;
-                alertMessage = "Operação cancelada.";
+                ShowMessage("Operação cancelada.", MessageSeverity.Warning);
             }
             catch (Exception ex)
             {
@@ -413,8 +411,7 @@ namespace Web.Blazor.Pages.Media
                 // Show UI explanation if no notes were retrieved
                 if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
                 {
-                    showAlertMessage = true;
-                    alertMessage = L["NoNotesFound"] ?? "Nenhuma nota foi encontrada para este media.";
+                    ShowMessage(L["NoNotesFound"] ?? "Nenhuma nota foi encontrada para este media.", MessageSeverity.Warning);
                 }
 
                 StateHasChanged();
@@ -474,8 +471,7 @@ namespace Web.Blazor.Pages.Media
                 }
                 else
                 {
-                    showAlertMessage = true;
-                    alertMessage = "Api não devolveu qualquer resultado";
+                    ShowMessage("Api não devolveu qualquer resultado", MessageSeverity.Warning);
                 }
             }
             else
@@ -554,8 +550,7 @@ namespace Web.Blazor.Pages.Media
         {
             if (string.IsNullOrEmpty(SelectedRecord.FileUrl))
             {
-                showAlertMessage = false;
-                alertMessage = "";
+                ShowMessage("", MessageSeverity.Info);
                 StateHasChanged();
             }
         }
@@ -616,18 +611,16 @@ namespace Web.Blazor.Pages.Media
         /// </summary>
         public async Task FillMediaInfoWithAI()
         {
-            showAlertMessage = false;
-            alertMessage = "";
+            ShowMessage("", MessageSeverity.Info);
             if (SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
-                showAlertMessage = true;
-                alertMessage = "Por favor preencha os campos Autor e Título";
+                ShowMessage("Por favor preencha os campos Autor e Título", MessageSeverity.Warning);
                 StateHasChanged();
                 return;
             }
 
             isBusy = true;
-            busyStatusMessage = "A obter metadados via AI...";
+            busyStatusMessage = "A obter metadados via AlbumFirst Api...";
             mediaInfoCts?.Cancel();
             mediaInfoCts?.Dispose();
             mediaInfoCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
@@ -652,10 +645,14 @@ namespace Web.Blazor.Pages.Media
                     if (!string.IsNullOrEmpty(artirstAndAlbumData.Notas))
                         SelectedRecord.Notas = artirstAndAlbumData.Notas;
 
+                    ShowMessage("Dados obtidos via AlbumFirst Api", MessageSeverity.Info);
+
                     return;
                 }
 
                 // Try OMDb next
+                busyStatusMessage = "A obter metadados via OMDb Api...";
+
                 var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
                 if (dvdInfo != null)
                 {
@@ -673,11 +670,17 @@ namespace Web.Blazor.Pages.Media
                         SelectedRecord.Notas = dvdInfo.Awards;
                     if (!string.IsNullOrEmpty(dvdInfo.Poster))
                         SelectedRecord.CoverFile = dvdInfo.Poster;
+
+                    ShowMessage("Dados obtidos via OMDb Api", MessageSeverity.Info);
+
                     return;
                 }
 
 
                 // If both fail, use AI
+
+                busyStatusMessage = "A obter metadados via AI...";
+
                 ProgressClient.ProgressReceived -= OnProgressReceived;
                 ProgressClient.ProgressReceived += OnProgressReceived;
 
@@ -716,26 +719,22 @@ namespace Web.Blazor.Pages.Media
                     var warningMsg = !string.IsNullOrEmpty(ai.Warnings) ? ai.Warnings : ai.Warning;
                     if (!string.IsNullOrEmpty(warningMsg))
                     {
-                        showAlertMessage = true;
-                        alertMessage = warningMsg;
+                        ShowMessage(warningMsg, MessageSeverity.Warning);
                     }
                 }
                 else
                 {
-                    showAlertMessage = true;
-                    alertMessage = "AI não devolveu qualquer resultado";
+                    ShowMessage("AI não devolveu qualquer resultado", MessageSeverity.Warning);
                 }
             }
             catch (OperationCanceledException)
             {
-                showAlertMessage = true;
-                alertMessage = "Operação cancelada.";
+                ShowMessage("Operação cancelada.", MessageSeverity.Warning);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error fetching AI media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
-                showAlertMessage = true;
-                alertMessage = "Erro ao obter metadados via AI.";
+                ShowMessage("Erro ao obter metadados via AI.", MessageSeverity.Error);
             }
             finally
             {
@@ -773,6 +772,21 @@ namespace Web.Blazor.Pages.Media
             StateHasChanged();
             await Task.CompletedTask;
         }
+
+        private void ShowMessage(string message, MessageSeverity severity = MessageSeverity.Warning)
+        {
+            showAlertMessage = true;
+            alertMessage = message;
+            messageSeverity = severity;
+            alertMessageColor = severity switch
+            {
+                MessageSeverity.Info => "text-white",
+                MessageSeverity.Warning => "text-warning",
+                MessageSeverity.Error => "text-danger",
+                _ => "text-white"
+            };
+        }
+
 
     }
 }

@@ -63,7 +63,7 @@ else
                         </SfTextBox>
 
                         <div class="d-flex justify-content-end mt-2">
-                            <SfButton CssClass="e-outline e-round-corner"
+                            <SfButton CssClass="e-outline e-round-corner" Disabled="@(string.IsNullOrWhiteSpace(SelectedRecord.Notas))"
                                       IconCss="fa fa-times"
                                       @onclick="ClearNotes"
                                       Content="@L["btnLimpar"]">
@@ -263,10 +263,12 @@ else
             </div> *@
 
             </EditForm>
-            <SfMessage Visible=@showAlertMessage Severity="MessageSeverity.Warning" ShowCloseIcon=true
+            <div class="mt-2">
+            <SfMessage Visible=@showAlertMessage Severity="messageSeverity" ShowCloseIcon=true CssClass="@alertMessageColor"
                        ShowIcon=true Variant="MessageVariant.Filled">
                 @alertMessage
             </SfMessage>
+            </div>
 
             @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))
             {
