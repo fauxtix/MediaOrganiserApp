@@ -80,9 +80,6 @@ namespace Web.Blazor.Components.Authors
 
         protected override async Task OnParametersSetAsync()
         {
-
-            Logger.LogWarning("AuthorBooks params: AuthorName={AuthorName}, DebugForceGoogle429={DebugForceGoogle429}",
-                AuthorName, DebugForceGoogle429);
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
 
@@ -163,9 +160,6 @@ namespace Web.Blazor.Components.Authors
             try
             {
                 await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
-
-                if (DebugForceGoogle429)
-                    throw new HttpRequestException("Debug forced 429", null, HttpStatusCode.TooManyRequests);
 
                 var result = await GoogleBooksService.GetBooksByAuthorAsync(AuthorName!);
 

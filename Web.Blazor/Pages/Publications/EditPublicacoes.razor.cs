@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
 using Syncfusion.Blazor.Buttons;
+using Syncfusion.Blazor.ImageEditor;
 using Syncfusion.Blazor.Inputs;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
@@ -44,6 +45,9 @@ namespace Web.Blazor.Pages.Publications
 
         public string CoverImage { get; set; }
         public int authorKey;
+
+        SfImageEditor ImageEditor;
+        private List<ImageEditorToolbarItemModel> customToolbarItem = new List<ImageEditorToolbarItemModel>() { };
 
         public string Resumo { get; set; }
 
@@ -142,12 +146,12 @@ namespace Web.Blazor.Pages.Publications
                 pubId = SelectedRecord.Id;
                 var isABook = string.IsNullOrEmpty(SelectedRecord.DigitalPath);
                 var isWordDocument = !isABook && Path.GetExtension(SelectedRecord.DigitalPath.ToLower()) == ".docx";
-                var tempCoverImage = isWordDocument ? "/images/microsoft-word.png" : SelectedRecord.ImagemCapa;
+                var tempCoverImage = isWordDocument ? "/images/microsoft-word-logo.jpg" : SelectedRecord.ImagemCapa;
 
                 var isSourceFileDocx = isWordDocument;
                 if (isSourceFileDocx)
                 {
-                    CoverImage = "/images/word64.png";
+                    CoverImage = "/images/word.png";
                 }
                 else
                 {
@@ -192,6 +196,7 @@ namespace Web.Blazor.Pages.Publications
 
             StateHasChanged();
         }
+
 
         private void OnBtnPdfClicked(Microsoft.AspNetCore.Components.Web.MouseEventArgs args)
         {

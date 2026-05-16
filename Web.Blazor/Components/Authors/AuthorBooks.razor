@@ -27,6 +27,15 @@
                CssClass="e-spin-overlay">
     </SfSpinner>
 
+    @if (showAiProgress)
+    {
+        <div class="alert alert-info mt-2">
+            <div class="bouncing-dots">
+                <div class="progress-message">@aiProgressMessage</div>
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    }
 
     @if (string.IsNullOrWhiteSpace(AuthorName))
     {
@@ -59,16 +68,6 @@
                 </div>
                 <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
             </div>
-
-            @if (showAiProgress)
-            {
-                <div class="alert alert-info mt-2">
-                    <div class="bouncing-dots">
-                        <div class="progress-message">@aiProgressMessage</div>
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-            }
 
             <MediaGrid TItem="GoogleBookInfo"
                        Items="PagedBooks"
@@ -120,7 +119,7 @@
                    Message=@(googleRateLimited ? @L["TituloErroTooManyRequests"] : @L["TituloNenhumResultadoGoogle"])
                    AlertMessageType="AlertMessageType.Warning" AlertMessageNote="@L["TituloPesquisaPorAI"]"
                    AlertMessage="Nota: esta pesquisa pode demorar algum tempo..."
-                   PositionX="center" PositionY="bottom"
+                   PositionX="center" PositionY="center"
                    Visible="@showAISearchDialog"
                    OnConfirmationYes="@OnConfirmYes"
                    OnConfirmationNo="@OnConfirmNo" />

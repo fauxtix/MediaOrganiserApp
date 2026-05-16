@@ -1,7 +1,8 @@
+@using Syncfusion.Blazor.ImageEditor
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.LookupComponents
-@using Web.Blazor.Pages.LookupTables
 @using Web.Blazor.Pages.Tools
+
 
 @attribute [Authorize]
 
@@ -19,19 +20,14 @@ else
     <div>
         <div class="form-row">
             <div class="form-group col-md-4">
-                @* @if (blnEdit || (!blnEdit && !dataReceivedFromGoogle))
-                { *@
-
                 <div id="myCarousel">
-                    <a class="d-block mb-4 h-100">
+                    <a class="d-block mb-4 vh-100">
                         <div class="img-box img-fluid">
-                            <img class="img img-responsive img-thumbnail"
+                            <img 
                                  alt="Imagem da publicação" src="@CoverImage" />
                         </div>
                     </a>
                 </div>
-
-                @*  } *@
 
                 <div class="form-group mt-2 mt-md-2 control-wrapper">
                     @*Carregar imagem*@
@@ -82,14 +78,15 @@ else
                                        title="@SelectedRecord.Titulo">
                             </SfTextBox>
                         </div>
-                        <div>
-                            <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"
-                                      Disabled="!blnEdit || (string.IsNullOrEmpty(SelectedRecord.Resumo) && string.IsNullOrEmpty(SelectedRecord.DigitalPath))"
-                                      IconCss="fa fa-search"
-                                      Content="Google Books Api"
-                                      @onclick="@(() => SearchApiVisibility = true)" />
-
-                        </div>
+                        @if(!blnEdit)
+                        {
+                            <div>
+                                <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"                                          
+                                          IconCss="fa fa-search"
+                                          Content="Google Books Api / AI"
+                                          @onclick="@(() => SearchApiVisibility = true)" />
+                            </div>
+                        }
                     </div>
                     <div class="form-row mt-1">
                         <div class="col-4">
@@ -313,5 +310,31 @@ else
         max-width: 350px;
         margin: 0 auto;
         padding: 50px 0px 0px;
+    }
+
+    .img-box {
+        width: 250px;           /* Set desired width */
+        aspect-ratio: 2/3;      /* Standard book cover ratio */
+        overflow: hidden;
+        border-radius: 12px;    /* Rounded corners for modern look */
+        box-shadow: 0 2px 12px rgba(0,0,0,0.10); /* Subtle shadow */
+        background: #f8f9fa;    /* Light background for empty space */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .img-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: fill;      /* Ensures image fills box, cropping if needed */
+        object-position: center;
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+    .img-box img:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     }
 </style>

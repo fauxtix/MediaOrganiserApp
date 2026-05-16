@@ -59,8 +59,14 @@ namespace Web.Blazor.Pages.Publications
 
         string uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
-        protected override void OnInitialized()
+
+
+        protected override async Task OnInitializedAsync()
         {
+
+            ProgressClient.ProgressReceived -= OnProgressReceived;
+            ProgressClient.ProgressReceived += OnProgressReceived;
+
             alertUser = false;
             alertMessage = string.Empty;
             noteMessage = string.Empty;
@@ -96,8 +102,8 @@ namespace Web.Blazor.Pages.Publications
                 }
 
                 await ProgressClient.StartAsync(apiBase);
-                ProgressClient.ProgressReceived -= OnProgressReceived;
-                ProgressClient.ProgressReceived += OnProgressReceived;
+                var connectionId = ProgressClient.ConnectionId;
+
 
             }
             catch (Exception ex)
@@ -467,6 +473,8 @@ namespace Web.Blazor.Pages.Publications
             }
             finally
             {
+                ProgressClient.ProgressReceived -= OnProgressReceived;
+
                 if (spinner is not null)
                     await spinner.HideAsync();
                 isBusy = false;
@@ -490,7 +498,9 @@ namespace Web.Blazor.Pages.Publications
                 aiProgressMessage = "AI - Searching for a book description...";
                 await InvokeAsync(StateHasChanged);
 
-                var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, ProgressClient.ConnectionId);
+                var connectionId = ProgressClient.ConnectionId;
+
+                var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, connectionId);
                 if (resp is null)
                 {
                     aiProgressMessage = "AI - No response returned.";
@@ -540,7 +550,8 @@ namespace Web.Blazor.Pages.Publications
                 aiProgressMessage = "AI - Searching for book metadata/description...";
                 await InvokeAsync(StateHasChanged);
 
-                var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage);
+                var connectionId = ProgressClient.ConnectionId;
+                var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, connectionId);
                 if (resp is null)
                     return null;
 

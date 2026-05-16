@@ -183,6 +183,8 @@ namespace Web.Blazor.Pages.BaseComponents
         protected bool isMobile;
         private int WindowWidth { get; set; }
 
+        protected bool ShowStatsDialog { get; set; } = false;
+
         protected override async Task OnInitializedAsync()
         {
             FileToView = "";
@@ -557,7 +559,7 @@ namespace Web.Blazor.Pages.BaseComponents
         {
             var isABook = string.IsNullOrEmpty(SelectedRecord.DigitalPath);
             var isWordDocument = !isABook && Path.GetExtension(SelectedRecord.DigitalPath.ToLower()) == ".docx";
-            var coverImage = isWordDocument ? "/images/microsoft-word.png" : SelectedRecord.ImagemCapa;
+            var coverImage = isWordDocument ? "/images/microsoft-word-logo.jpg" : SelectedRecord.ImagemCapa;
 
             var publicacao = new PubsWithDescriptions()
             {
@@ -660,7 +662,7 @@ namespace Web.Blazor.Pages.BaseComponents
 
                                         if (isWordDocument)
                                         {
-                                            publicacao.ImagemCapa = Path.Combine("images", "microsoft-word-logo.png");
+                                            publicacao.ImagemCapa = Path.Combine("images", "microsoft-word-logo.jpg");
                                         }
                                         else
                                         {
@@ -869,9 +871,9 @@ namespace Web.Blazor.Pages.BaseComponents
                 ProgressBarVisibility = false;
                 await InvokeAsync(StateHasChanged);
             }
-            else if (args.Item.Id == "FNOD")
+            else if (args.Item.Id == "STATS")
             {
-                var pdfFiles = GetPdfFilesWithoutPublications();
+                ShowStatsDialog = true;
             }
             else if (args.Item.Id == "FWRP")
             {
@@ -1170,7 +1172,7 @@ namespace Web.Blazor.Pages.BaseComponents
                         else
                         {
                             if (extensaoFicheiro == ".docx")
-                                imagePath = Path.Combine("images", "microsoft-word.png");
+                                imagePath = Path.Combine("images", "microsoft-word-logo.jpg");
                         }
 
                         // Fill model to insert
@@ -2063,6 +2065,13 @@ namespace Web.Blazor.Pages.BaseComponents
             List<string> prefixList = new List<string>() { "P", "Q", "R", "S", "T", "U", "V", "X", "Y", "Z" };
             return GetGroupedCategories(prefixList);
         }
+
+        protected IEnumerable<(string Categoria, int Count)> categoriaCounts => publicacoes?
+          .GroupBy(p => p.Categoria)
+          .Select(g => (Categoria: g.Key, Count: g.Count()))
+          .OrderByDescending(x => x.Count)
+          ?? Enumerable.Empty<(string, int)>();
+
 
         protected List<MenuItem> GetGroupedPublishers(List<string> prefixList)
         {
