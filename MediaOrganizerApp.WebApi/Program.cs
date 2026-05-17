@@ -131,6 +131,8 @@ public class Program
         // 17-04-2026: Still using MusicBrainz as the primary metadata source, but this is where you'd register an alternative provider if needed.
         builder.Services.AddHttpClient<IMusicMetadataService, MusicMetadataService>();
 
+        builder.Services.AddHttpClient<IAudioDbService, AudioDbService>();
+
         var lastFmApiKey = builder.Configuration.GetSection("LastFm")["ApiKey"];
         var lastFmApiSecret = builder.Configuration.GetSection("LastFm")["ApiSecret"];
 

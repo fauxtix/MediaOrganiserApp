@@ -1,3 +1,4 @@
+using ATL;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Formatting;
@@ -26,6 +27,7 @@ namespace Web.Blazor.Pages.Media
         [Inject] public ICategoriasService categoriasService { get; set; }
         [Inject] public IGetYoutubeVideoMetadata YoutubeService { get; set; }
         [Inject] public IMediaServiceWrapper MediaService { get; set; }
+        [Inject] public IAudioDbServiceWrapper AudioDbService { get; set; }
         [Inject] public IAppSettingsService AppSettingsService { get; set; }
 
         [Inject] public AiMediaClientService AiMediaClient { get; set; }
@@ -42,9 +44,8 @@ namespace Web.Blazor.Pages.Media
 
         protected ApplicationSettingsDto AppSettings;
 
-
         protected SfUploader sfUploaderCover;
-        private SfSpinner? spinner;
+        private SfSpinner spinner;
 
         public string uploadedCoverFile { get; set; } = "";
 
@@ -83,12 +84,12 @@ namespace Web.Blazor.Pages.Media
         protected YouTubeVideoDetails VideoDetail = new();
 
         private bool showAlertMessage = false;
-        private string alertMessage = "";
-        private string alertMessageColor = "text-white";
+        private string alertMessage { get; set; } = "";
+        private string alertMessageColor { get; set; } = "text-white";
 
-        private string busyStatusMessage = "";
+        private string busyStatusMessage { get; set; } = "";
         private bool isBusy;
-        private CancellationTokenSource? mediaInfoCts;
+        private CancellationTokenSource mediaInfoCts;
 
         [Inject] public MediaInfoProgressClient ProgressClient { get; set; }
 
@@ -634,52 +635,92 @@ namespace Web.Blazor.Pages.Media
                 var mediaTitle = SelectedRecord.FileName;
                 var artist = SelectedRecord.Autor;
 
-                // Try AlbumInfo first
-                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
-                if (artirstAndAlbumData.Titulo != null)
+
+                // AudioDb first
+                busyStatusMessage = "A obter metadados via AudioDb Api...";
+                StateHasChanged();
+                var audioDbData = await AudioDbService.GetAlbumDetailsAsync(artist, mediaTitle);
+                if (audioDbData is not null)
                 {
-                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Tempo))
-                        SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
+                    var totalDuration = audioDbData.TotalDuration.ToString(@"hh\:mm\:ss");
+                    SelectedRecord.Tempo = totalDuration != "00:00:00" ? totalDuration : SelectedRecord.Tempo;
+
+                    var ranking = ConvertToFiveStarInt(audioDbData.Ranking);
+                    if (ranking is not null)
+                        SelectedRecord.Rating = (float)ranking;
+
+                    if (audioDbData.Tracks.Count > 0)
+                    {
+                        var tracks = "";
+                        foreach (var track in audioDbData.Tracks)
+                        {
+                            tracks += track.Title + "\n";
+                        }
+                        SelectedRecord.Notas = tracks;
+                    }
+                    if (audioDbData.YearPublished is not null)
+                    {
+                        SelectedRecord.AnoEdicao = audioDbData.YearPublished.ToString();
+                    }
+                    if (!string.IsNullOrEmpty(audioDbData.CoverUrl))
+                    {
+                        SelectedRecord.CoverFile = audioDbData.CoverUrl;
+                    }
+                    ShowMessage("Dados obtidos via AudioDb Api", MessageSeverity.Info);
+
+                    return;
+                }
+
+                // Try AlbumInfo next
+                var artirstAndAlbumData = await MediaService.GetAlbumInfo(artist, mediaTitle);
+                if (artirstAndAlbumData.Titulo != null &&
+                    artirstAndAlbumData.Tempo != "00:00:00" &&
+                    !string.IsNullOrEmpty(artirstAndAlbumData.Notas))
+                {
+                    SelectedRecord.Tempo = artirstAndAlbumData.Tempo;
+
                     if (!string.IsNullOrEmpty(artirstAndAlbumData.CoverFile))
                         SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
-                    if (!string.IsNullOrEmpty(artirstAndAlbumData.Notas))
-                        SelectedRecord.Notas = artirstAndAlbumData.Notas;
 
+                    SelectedRecord.Notas = artirstAndAlbumData.Notas;
                     ShowMessage("Dados obtidos via AlbumFirst Api", MessageSeverity.Info);
-
                     return;
                 }
 
-                // Try OMDb next
-                busyStatusMessage = "A obter metadados via OMDb Api...";
 
-                var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
-                if (dvdInfo != null)
-                {
-                    if (!string.IsNullOrEmpty(dvdInfo.Runtime))
-                        SelectedRecord.Tempo = MediaService.ConvertIOMDbTimeStringAsTime(dvdInfo.Runtime);
-                    if (!string.IsNullOrEmpty(dvdInfo.Released) && DataFormat.IsValidDate(dvdInfo.Released))
-                        SelectedRecord.DataMov = MediaService.ConvertIOMDbStringAsDate(dvdInfo.Released);
-                    if (!string.IsNullOrEmpty(dvdInfo.imdbRating))
-                        SelectedRecord.Rating = MediaService.ConvertIMDbRatingToFiveScale(dvdInfo.imdbRating);
-                    if (!string.IsNullOrEmpty(dvdInfo.Actors))
-                        SelectedRecord.Autor = dvdInfo.Actors;
-                    if (!string.IsNullOrEmpty(dvdInfo.Year))
-                        SelectedRecord.AnoEdicao = dvdInfo.Year;
-                    if (!string.IsNullOrEmpty(dvdInfo.Awards))
-                        SelectedRecord.Notas = dvdInfo.Awards;
-                    if (!string.IsNullOrEmpty(dvdInfo.Poster))
-                        SelectedRecord.CoverFile = dvdInfo.Poster;
+                // Try OMDb next -- commented, api should not be used for this kind of work (just for movies, etc)
 
-                    ShowMessage("Dados obtidos via OMDb Api", MessageSeverity.Info);
+                //busyStatusMessage = "A obter metadados via OMDb Api...";
+                //StateHasChanged();
 
-                    return;
-                }
+                //var dvdInfo = await MediaService.GetOMDbInfo(mediaTitle, artist);
+                //if (dvdInfo != null)
+                //{
+                //    if (!string.IsNullOrEmpty(dvdInfo.Runtime))
+                //        SelectedRecord.Tempo = MediaService.ConvertIOMDbTimeStringAsTime(dvdInfo.Runtime);
+                //    if (!string.IsNullOrEmpty(dvdInfo.Released) && DataFormat.IsValidDate(dvdInfo.Released))
+                //        SelectedRecord.DataMov = MediaService.ConvertIOMDbStringAsDate(dvdInfo.Released);
+                //    if (!string.IsNullOrEmpty(dvdInfo.imdbRating))
+                //        SelectedRecord.Rating = MediaService.ConvertIMDbRatingToFiveScale(dvdInfo.imdbRating);
+                //    if (!string.IsNullOrEmpty(dvdInfo.Actors))
+                //        SelectedRecord.Autor = dvdInfo.Actors;
+                //    if (!string.IsNullOrEmpty(dvdInfo.Year))
+                //        SelectedRecord.AnoEdicao = dvdInfo.Year;
+                //    if (!string.IsNullOrEmpty(dvdInfo.Awards))
+                //        SelectedRecord.Notas = dvdInfo.Awards;
+                //    if (!string.IsNullOrEmpty(dvdInfo.Poster))
+                //        SelectedRecord.CoverFile = dvdInfo.Poster;
+
+                //    ShowMessage("Dados obtidos via OMDb Api", MessageSeverity.Info);
+
+                //    return;
+                //}
 
 
                 // If both fail, use AI
 
                 busyStatusMessage = "A obter metadados via AI...";
+                StateHasChanged();
 
                 ProgressClient.ProgressReceived -= OnProgressReceived;
                 ProgressClient.ProgressReceived += OnProgressReceived;
@@ -719,7 +760,7 @@ namespace Web.Blazor.Pages.Media
                     var warningMsg = !string.IsNullOrEmpty(ai.Warnings) ? ai.Warnings : ai.Warning;
                     if (!string.IsNullOrEmpty(warningMsg))
                     {
-                        ShowMessage(warningMsg, MessageSeverity.Warning);
+                        ShowMessage(warningMsg, MessageSeverity.Info);
                     }
                 }
                 else
@@ -734,7 +775,7 @@ namespace Web.Blazor.Pages.Media
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error fetching AI media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
-                ShowMessage("Erro ao obter metadados via AI.", MessageSeverity.Error);
+                ShowMessage($"Erro ao obter metadados via AI. ({ex.Message})", MessageSeverity.Error);
             }
             finally
             {
@@ -763,7 +804,6 @@ namespace Web.Blazor.Pages.Media
 
         private async Task HandleTranslateRequested(TranslateRequestDto dto)
         {
-
             if (dto is null || string.IsNullOrWhiteSpace(dto.Text))
                 return;
 
@@ -773,20 +813,32 @@ namespace Web.Blazor.Pages.Media
             await Task.CompletedTask;
         }
 
+        private static int? ConvertToFiveStarInt(double? value)
+        {
+            if (!value.HasValue)
+                return null;
+
+            return Math.Clamp(
+                (int)Math.Round(value.Value / 2.0),
+                0,
+                5);
+        }
         private void ShowMessage(string message, MessageSeverity severity = MessageSeverity.Warning)
         {
-            showAlertMessage = true;
+            if (!showAlertMessage)
+                showAlertMessage = true;
+
             alertMessage = message;
             messageSeverity = severity;
             alertMessageColor = severity switch
             {
                 MessageSeverity.Info => "text-white",
-                MessageSeverity.Warning => "text-warning",
-                MessageSeverity.Error => "text-danger",
+                MessageSeverity.Warning => "text-black",
+                MessageSeverity.Error => "text-red ",
                 _ => "text-white"
             };
+
+            StateHasChanged();
         }
-
-
     }
 }

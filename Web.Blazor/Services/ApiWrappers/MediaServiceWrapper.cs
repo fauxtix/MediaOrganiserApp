@@ -507,7 +507,7 @@ namespace Web.Blazor.Services.ApiWrappers
             var searchJson = await searchResponse.Content.ReadAsStringAsync();
             var searchResult = JsonConvert.DeserializeObject<IMDbSearchResult>(searchJson);
 
-            if (searchResult?.Search == null || searchResult.Search.Length == 0)
+            if (searchResult.Response.ToLower() == "false")
             {
                 return null;
             }
@@ -558,6 +558,9 @@ namespace Web.Blazor.Services.ApiWrappers
 
             return 0;
         }
+
+
+        // AudioDB API Models
 
 
 

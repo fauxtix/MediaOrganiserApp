@@ -39,39 +39,6 @@ else
                         </SfUploader>
                     </div>
                 </div>
-
-
-                <div class="row mt-2">
-                    <div class="col-md-12 ml-2 e-rte-content">
-                        @if (blnEdit && (SelectedRecord != null && !string.IsNullOrWhiteSpace(SelectedRecord.Notas)) && !isMp3)
-                        {
-                            <div class="d-flex justify-content-end mt-2">
-                                <SfButton CssClass="e-outline e-round-corner"
-                                          IconCss="fa fa-language"
-                                          @onclick="OpenTranslateDialog"
-                                          Content="@L["TituloTraduzir"]">
-                                </SfButton>
-                            </div>
-                        }
-
-                        <SfTextBox Enabled="true" Placeholder="@L["lblNotas"]"
-                                   Multiline="true"
-                                   HtmlAttributes="htmlAttribute"
-                                   CssClass="e-field e-corner"
-                                   FloatLabelType="@FloatLabelType.Auto"
-                                   @bind-Value="@SelectedRecord.Notas">
-                        </SfTextBox>
-
-                        <div class="d-flex justify-content-end mt-2">
-                            <SfButton CssClass="e-outline e-round-corner" Disabled="@(string.IsNullOrWhiteSpace(SelectedRecord.Notas))"
-                                      IconCss="fa fa-times"
-                                      @onclick="ClearNotes"
-                                      Content="@L["btnLimpar"]">
-                            </SfButton>
-                        </div>
-
-                    </div>
-                </div>
             </a>
         </div>
         <div class="form-group col-md-8">
@@ -136,8 +103,8 @@ else
                                       Content="More Info"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
                                       Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) &&
-                                                        !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
-                                                        SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
+                                                                                                                                                                                                                !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
+                                                                                                                                                                                                                SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
                             </SfButton>
                         </div>
                         <div class="mt-4">
@@ -154,7 +121,7 @@ else
                         </div>
                     </div>
                 </div>
-                <div class="row py-2 mr-1 mt-4">
+                <div class="row py-2 mr-1 mt-2">
                     <div class="col-sm-12 col-md-6">
                         <label style="font-size:14px;font-weight:bold;">@L["lblCategoria"]</label>
                         <SfDropDownList CssClass="input-control" PopupHeight="450px" AllowFiltering="true" @bind-Value="@SelectedRecord.IdGenero"
@@ -227,7 +194,8 @@ else
                         <div class="col-md-12 col-lg-3"></div>
                     } *@
                 </div>
-                <div hidden="@(!ShowStoredPathEntry)" class="row mt-2">
+                <div hidden="@(!ShowStoredPathEntry || string.IsNullOrEmpty(SelectedRecord.FilePath))"
+                     class="row mt-2">
                     <div class="col-md-10 e-rte-content">
                         <SfTextBox Multiline="true" Enabled="@(string.IsNullOrEmpty(SelectedRecord.FileUrl))"
                                    Placeholder="@L["lblLocalArquivo"]"
@@ -262,12 +230,51 @@ else
             }
             </div> *@
 
+                <div class="row mt-2">
+                    <div class="col-md-12 ml-2 e-rte-content">
+                        <div class="d-flex justify-content-end mt-2" style="gap:8px">
+                            @if (blnEdit && (SelectedRecord != null && !string.IsNullOrWhiteSpace(SelectedRecord.Notas)) && !isMp3)
+                            {
+
+                                <SfButton CssClass="e-outline e-round-corner"
+                                          IconCss="fa fa-language"
+                                          @onclick="OpenTranslateDialog"
+                                          Content="@L["TituloTraduzir"]">
+                                </SfButton>
+                            }
+                            <SfButton CssClass="e-outline e-round-corner" Disabled="@(string.IsNullOrWhiteSpace(SelectedRecord.Notas))"
+                                      IconCss="fa fa-times"
+                                      @onclick="ClearNotes"
+                                      Content="@L["btnLimpar"]">
+                            </SfButton>
+                        </div>
+
+                        <div class="mt-1">
+                            <SfRichTextEditor Placeholder="@L["lblNotas"]"
+                                              CssClass="e-field h-50"
+                                              @bind-Value="@SelectedRecord.Notas">
+                                <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
+                            </SfRichTextEditor>
+                        </div>
+
+                        @*                         <SfTextBox Enabled="true" Placeholder="@L["lblNotas"]"
+                                   Multiline="true"
+                                   HtmlAttributes="htmlAttribute"
+                                   CssClass="e-field e-corner"
+                                   FloatLabelType="@FloatLabelType.Auto"
+                                   @bind-Value="@SelectedRecord.Notas">
+                        </SfTextBox>
+ *@
+
+                    </div>
+                </div>
+
             </EditForm>
             <div class="mt-2">
-            <SfMessage Visible=@showAlertMessage Severity="messageSeverity" ShowCloseIcon=true CssClass="@alertMessageColor"
-                       ShowIcon=true Variant="MessageVariant.Filled">
-                @alertMessage
-            </SfMessage>
+                <SfMessage Visible=@(showAlertMessage && !string.IsNullOrEmpty(alertMessage)) Severity="messageSeverity" ShowCloseIcon=true CssClass="@alertMessageColor"
+                           ShowIcon=true Variant="MessageVariant.Filled">
+                    @alertMessage
+                </SfMessage>
             </div>
 
             @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))

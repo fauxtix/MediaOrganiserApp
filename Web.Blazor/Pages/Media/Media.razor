@@ -11,9 +11,11 @@
 
 @{
     var Filtering = new
-    {@@Operator = "contains"
-    };
-    var Tool = (new List<object>()
+    {
+        @@Operator = "contains"
+}
+;
+var Tool = (new List<object>()
 {
             "Search",
             new ItemModel()
@@ -86,7 +88,7 @@
             },
 
         }
-     );
+ );
 }
 <PageTitle>Media</PageTitle>
 <PageTitleComponent PageTitle="Media" WithBadge=@showBadge PageSubTitle="@badgeCaption" Css="title" />
@@ -112,7 +114,7 @@ else
         </SfButton>
         <SfButton CssClass="e-btn e-warning e-round-corner"
                   IconCss="fa fa-plus"
-                  @onclick="@(()=>UploadMediaVisibility = true)">
+                  @onclick="@(() => UploadMediaVisibility = true)">
             &nbsp;@(localizerApp["NewMsg"])&nbsp;(Local)&nbsp;&nbsp;
             <i class="fa fa-cloud-download" />
         </SfButton>
@@ -234,8 +236,8 @@ else
                                 HideAtMedia="(min-width:  1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="200"></GridColumn>
 
-                    <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="@(localizerApp["lblTipoUtilizador"])" 
-                        Width="110" HideAtMedia="(min-width: 1280px)">
+                    <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="@(localizerApp["lblTipoUtilizador"])"
+                                Width="110" HideAtMedia="(min-width: 1280px)">
                         <Template>
                             <SfChip>
                                 <ChipItems>
@@ -377,37 +379,37 @@ else
                         <GridCommandColumns>
                             <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
                                                ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-primary e-round",
-                                                                           IconCss = "fa fa-edit",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
+                                               {
+                                                   Content = "",
+                                                   CssClass = "e-btn e-primary e-round",
+                                                   IconCss = "fa fa-edit",
+                                                   IconPosition = @IconPosition.Left
+                                               })">
                             </GridCommandColumn>
                             <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
                                                ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-danger e-round",
-                                                                           IconCss = "fa fa-trash",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
+                                               {
+                                                   Content = "",
+                                                   CssClass = "e-btn e-danger e-round",
+                                                   IconCss = "fa fa-trash",
+                                                   IconPosition = @IconPosition.Left
+                                               })">
                             </GridCommandColumn>
                             <GridCommandColumn Type=CommandButtonType.None Title="Play"
                                                ButtonOption="@(new CommandButtonOptions()
-                                                                           {
-                                                                               CssClass = "e-btn e-success e-round",
-                                                                               IconCss = "oi oi-media-play",
-                                                                               IconPosition = @IconPosition.Left
-                                                                           })">
+                                               {
+                                                   CssClass = "e-btn e-success e-round",
+                                                   IconCss = "oi oi-media-play",
+                                                   IconPosition = @IconPosition.Left
+                                               })">
                             </GridCommandColumn>
                             <GridCommandColumn Type=CommandButtonType.None Title="Info"
                                                ButtonOption="@(new CommandButtonOptions()
-                                                               {
-                                                                   CssClass = "e-btn e-info e-round",
-                                                                   IconCss = "oi oi-info",
-                                                                   IconPosition = @IconPosition.Left
-                                                               })">
+                                               {
+                                                   CssClass = "e-btn e-info e-round",
+                                                   IconCss = "oi oi-info",
+                                                   IconPosition = @IconPosition.Left
+                                               })">
                             </GridCommandColumn>
                         </GridCommandColumns>
                     </GridColumn>
@@ -442,7 +444,7 @@ else
                 <div class="modal-footer">
                     <SfButton CssClass="e-btn e-success e-round-corner"
                               IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.Mp3CardInfo)">
+                              @onclick="() => CloseDialog(DialogsVisibility.Mp3CardInfo)">
                         &nbsp;@(localizerApp["BtnSalir"])
                     </SfButton>
                 </div>
@@ -467,7 +469,7 @@ else
                 <div class="modal-footer">
                     <SfButton CssClass="e-btn e-success e-round-corner"
                               IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.MediaCardInfo)">
+                              @onclick="() => CloseDialog(DialogsVisibility.MediaCardInfo)">
                         &nbsp;@(localizerApp["BtnSalir"])
                     </SfButton>
                 </div>
@@ -478,11 +480,12 @@ else
 
 
     <SfDialog Width="900px"
+              Target="#main"
               Height="auto"
               IsModal="true"
               MinHeight="700px"
               ShowCloseIcon="false"
-              @bind-Visible="EditMediaDialogVisibility">
+              Visible="EditMediaDialogVisibility">
         <DialogTemplates>
             <Header>
                 <div>
@@ -490,7 +493,7 @@ else
                 </div>
             </Header>
             <Content>
-                <EditMedia SelectedRecord="@SelectedRecord" blnEdit="@blnEdit"  ShowStoredPathEntry="@showStoredPathEntry"/>
+                <EditMedia SelectedRecord="@SelectedRecord" blnEdit="@blnEdit" ShowStoredPathEntry="@showStoredPathEntry" />
             </Content>
             <FooterTemplate>
                 <div>
@@ -498,14 +501,15 @@ else
                               IconCss="fa fa-edit" Content="@localizerApp["btnSalvar"]"
                               @onclick="AddOrSaveRecord">
                     </SfButton>
-                     <SfButton CssClass="e-btn e-info e-round-corner float-left"
-                          IconCss="fa fa-list"
-                          Disabled="@(!CanAddSelectedMediaToPlaylist)"
-                          @onclick="OpenAddToPlaylistDialog">&nbsp;Add to playlist
-              </SfButton>
+                    <SfButton CssClass="e-btn e-info e-round-corner float-left"
+                              IconCss="fa fa-list"
+                              Disabled="@(!CanAddSelectedMediaToPlaylist)"
+                              @onclick="OpenAddToPlaylistDialog">
+                        &nbsp;Add to playlist
+                    </SfButton>
                     <SfButton CssClass="e-outline e-round-corner"
                               IconCss="fa fa-times" Content="@localizerApp["BtnSalir"]"
-                              @onclick="()=>CloseDialog(DialogsVisibility.EditDialog)">
+                              @onclick="() => CloseDialog(DialogsVisibility.EditDialog)">
                     </SfButton>
                 </div>
             </FooterTemplate>
@@ -530,7 +534,7 @@ else
             <FooterTemplate>
                 <div class="modal-footer">
                     <SfButton CssClass="e-btn e-outline e-success e-round-corner" IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.Mp3Player)">
+                              @onclick="() => CloseDialog(DialogsVisibility.Mp3Player)">
                         &nbsp;@localizerApp["BtnSalir"]
                     </SfButton>
                 </div>
@@ -553,7 +557,7 @@ else
             <FooterTemplate>
                 <div class="modal-footer">
                     <SfButton CssClass="e-success e-round-corner" IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.YouTubePlayer)">
+                              @onclick="() => CloseDialog(DialogsVisibility.YouTubePlayer)">
                         &nbsp;@localizerApp["BtnSalir"]
                     </SfButton>
                 </div>
@@ -583,7 +587,7 @@ else
                         &nbsp;@(localizerApp["btnSalvar"])
                     </SfButton>
                     <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.Youtube)">
+                              @onclick="() => CloseDialog(DialogsVisibility.Youtube)">
                         &nbsp;@(localizerApp["BtnSalir"])
                     </SfButton>
                 </div>
@@ -628,7 +632,7 @@ else
             <FooterTemplate>
                 <div class="modal-footer">
                     <SfButton CssClass="e-success e-round-corner" IconCss="fa fa-times"
-                              @onclick="()=>CloseDialog(DialogsVisibility.UploadFilesDialog)">
+                              @onclick="() => CloseDialog(DialogsVisibility.UploadFilesDialog)">
                         &nbsp;@localizerApp["BtnSalir"]
                     </SfButton>
                 </div>
@@ -673,9 +677,9 @@ else
 
 
     <AddMediaToPlaylistComponent Visible="@AddToPlaylistDialogVisibility"
-                             Media="@SelectedRecord"
-                             OnClose="CloseAddToPlaylistDialog"
-                             OnAdded="HandleMediaAddedToPlaylist" />
+                                 Media="@SelectedRecord"
+                                 OnClose="CloseAddToPlaylistDialog"
+                                 OnAdded="HandleMediaAddedToPlaylist" />
 
     <ConfirmDeleteComponent Visible="@DeleteRecordConfirmVisibility"
                             AlertMessageType="@AlertMessageType.Error"
@@ -714,11 +718,11 @@ else
     }
 
     .circle {
-        width: 100px;         
-        height: 100px;        
+        width: 100px;
+        height: 100px;
         background-color: red;
         border-radius: 50%;
-        border: 2px solid black; 
+        border: 2px solid black;
     }
 
     .icon-advanced {
@@ -726,9 +730,9 @@ else
         background-repeat: no-repeat;
         background-size: cover; /* stretch the background to cover the whole element */
         /*
-                                                                                                           still inline, but has block features
-                                                                                                           meaning height and width can be set
-                                                                                                        */
+                                                                                                               still inline, but has block features
+                                                                                                               meaning height and width can be set
+                                                                                                            */
         display: inline-block;
         height: 20px;
         width: 20px;

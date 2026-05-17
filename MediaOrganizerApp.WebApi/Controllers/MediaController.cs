@@ -9,6 +9,7 @@ using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Application.Interfaces.Services.LastFM;
 using MediaOrganizerApp.Domain.Entities;
+using MediaOrganizerApp.Persistence.Services.MusicMetadata;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Text;
@@ -28,6 +29,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly LastfmClient _lastFMclient;
         private readonly ILastFmService _lastFMService;
         private readonly IMusicMetadataService _MusicBrainzService;
+        private readonly IAudioDbService _audioDbService;
         private IConfiguration _configuration;
 
 
@@ -38,7 +40,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             IMusicMetadataService musicBrainzService,
             LastfmClient lastFMclient,
             ILastFmService lastFMService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IAudioDbService audioDbService)
         {
             _logger = logger;
             _repoMedia = repoMedia;
@@ -47,6 +50,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _lastFMclient = lastFMclient;
             _lastFMService = lastFMService;
             _configuration = configuration;
+            _audioDbService = audioDbService;
         }
 
         [HttpGet("{userId}/{role}")]
@@ -1040,6 +1044,26 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 return StatusCode(500, "Error retrieving artist albums");
             }
         }
+
+        [HttpGet("audiodb-data/{artist}/{album}")]
+        public async Task<IActionResult> GetAudioDbData(string artist, string album )
+        {
+            if (string.IsNullOrWhiteSpace(artist))
+                return BadRequest("Artist is required.");
+
+            try
+            {
+                var albums = await _audioDbService.GetAlbumDetailsAsync(artist, album);
+
+                return Ok(albums);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting AudioDB artist albums");
+                return StatusCode(500, "Error retrieving artist albums");
+            }
+        }
+
 
         [HttpGet("mp3-album/{artist}/{track}")]
         public async Task<IActionResult> GetAlbum(string artist, string track)

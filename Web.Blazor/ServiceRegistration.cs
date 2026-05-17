@@ -50,7 +50,7 @@ namespace Web.Blazor
             // an interface abstraction at this point.
             // If we find that we need to use it in multiple places or if it becomes more complex,
             // we can easily refactor it to implement an interface later on.
-            services.AddHttpClient< PlaylistsClientService>();
+            services.AddHttpClient<PlaylistsClientService>();
 
             services.AddHttpClient<IAutorService, AutorService>();
 
@@ -96,6 +96,7 @@ namespace Web.Blazor
 
             services.AddHttpClient<IGoogleBooksService, GoogleBooksClientService>();
             services.AddHttpClient<IWikidataClientService, WikidataClientService>();
+            services.AddHttpClient<IAudioDbServiceWrapper, AudioDbServiceWrapper>();
 
             services.AddScoped<IGetYoutubeVideoMetadata, GetYoutubeVideoMetadata>();
 
