@@ -58,8 +58,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
             };
         }
 
-        // Note: Hub-based background chat start/cancel endpoints removed. Chat streaming is handled
-        // directly by the /chat endpoint which streams to the HTTP response.
+        /// <summary>
+        /// Returns the content of the README.md file in the Prompts folder, which can contain instructions or documentation 
+        /// for how to create and use prompt templates.
+        /// </summary>
+        /// <returns></returns>
 
         [HttpGet("prompts/readme")]
         public async Task<IActionResult> GetReadme()
@@ -71,6 +74,11 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return NotFound();
         }
 
+        /// <summary>
+        /// prompts endpoint allows the UI to list available prompt template files in the Prompts folder.
+        /// </summary>
+        /// <returns>Action result containing the list of prompt template files.</returns>
+        
         [HttpGet("prompts")]
         public IActionResult GetPromptFiles()
         {
@@ -85,6 +93,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             return Ok(files);
         }
+
+        /// <summary>
+        /// get prompt file endpoint allows the UI to retrieve the content of a specific prompt template file by name.
+        /// </summary>
+        /// <param name="filename">The name of the prompt template file to retrieve.</param>
+        /// <returns>Action result containing the content of the specified prompt template file.</returns>
 
         [HttpGet("prompts/{filename}")]
         public async Task<IActionResult> GetPromptFile(string filename)
@@ -105,6 +119,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
             return Content(await System.IO.File.ReadAllTextAsync(file), "text/plain");
         }
+
+        /// <summary>
+        /// save prompt file endpoint allows the UI to save content to a specific prompt template file by name.
+        /// </summary>
+        /// <param name="filename">The name of the prompt template file to save.</param>
+        /// <param name="content">The content to save to the prompt template file.</param>
+        /// <returns>Action result indicating the success or failure of the save operation.</returns>
 
         [HttpPut("prompts/{filename}")]
         public async Task<IActionResult> SavePromptFile(string filename, [FromBody] string content)
@@ -133,6 +154,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 return BadRequest("Error saving file.");
             }
         }
+
+        /// <summary>
+        /// translate endpoint accepts a text string along with source and target language codes, 
+        /// and returns the translated text along with a confidence score and any error messages.
+        /// </summary>
+        /// <param name="request">The translation request containing the text, source language, and target language.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Action result containing the translation response.</returns>
 
         [HttpPost("translate")]
         public async Task<ActionResult<TranslateResponseDto>> Translate([FromBody] TranslateRequestDto request, CancellationToken cancellationToken)
@@ -218,6 +247,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        /// <summary>
+        /// delete prompt file endpoint allows the UI to delete a specific prompt template file by name, 
+        /// which also invalidates any cached version of that prompt in the application.
+        /// </summary>
+        /// <param name="filename">The name of the prompt template file to delete.</param>
+        /// <returns>Action result indicating the success or failure of the delete operation.</returns>
+
         [HttpDelete("prompts/{filename}")]
         public IActionResult ResetPromptFile(string filename)
         {
@@ -261,6 +297,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return true;
         }
 
+        /// <summary>
+        /// get author profile endpoint accepts an author's name and optional language, and returns an AI-generated profile for that author,
+        /// </summary>
+        /// <param name="request">The request containing the author's name and optional language.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The AI-generated author profile.</returns>
+
         [HttpPost("author-profile")]
         public async Task<ActionResult<AiAuthorProfileResponseDto>> AuthorProfile(
             [FromBody] AiAuthorProfileRequestDto request,
@@ -279,6 +322,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok(resp);
         }
 
+        /// <summary>
+        /// summary endpoint accepts a book title, optional author name and language, 
+        /// and returns an AI-generated summary of the book along with metadata such as 
+        /// category, published date, page count, cover image URL, price, confidence level, and any warnings about the content.
+        /// </summary>
+        /// <param name="request">The request containing the book title, optional author name, and language.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The AI-generated book summary.</returns>
+
         [HttpPost("book-summary")]
         public async Task<ActionResult<AiBookSummaryResponseDto>> BookSummary(
             [FromBody] AiBookSummaryRequestDto request,
@@ -291,6 +343,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
             var resp = await _books.GetBookSummaryAsync(request.Title, request.Author, language, cancellationToken);
             return Ok(resp);
         }
+
+        /// <summary>
+        /// book summary only endpoint accepts a book title, optional author name and language,
+        /// and returns an AI-generated summary of the book without additional metadata.
+        /// </summary>
+        /// <param name="request">The request containing the book title, optional author name, and language.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The AI-generated book summary without additional metadata.</returns>
 
         [HttpPost("book-summary-only")]
         public async Task<ActionResult<AiBookSummaryResponseDto>> BookSummaryOnly(
@@ -311,6 +371,16 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok(resp);
         }
 
+        /// <summary>
+        /// List of the most relevant books by a given author, based on AI analysis of the author's bibliography and influence. 
+        /// Results may include books not written by the author but closely related to their work or frequently associated with them.
+        /// </summary>
+        /// <param name="author">The name of the author.</param>
+        /// <param name="language">The language for the results.</param>
+        /// <param name="connectionId">Optional connection ID for tracking.</param>
+        /// <param name="correlationId">Optional correlation ID for tracking.</param>
+        /// <param name="cancellationToken">Cancellation token for the request.</param>
+        /// <returns>List of books by the specified author.</returns>
         [HttpGet("author-books")]
         public async Task<ActionResult<List<GoogleBookInfo>>> AuthorBooks(
             string author,
@@ -339,12 +409,23 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Get flag values for AI features. This allows the UI to enable/disable features based on these flags without needing a full app configuration refresh.
+        /// </summary>
+        /// <returns>Current feature flags for AI features.</returns>
+        
         [HttpGet("flags")]
         public ActionResult<MediaOrganizerApp.Application.FeatureFlags> GetFlags()
         {
             return Ok(MediaOrganizerApp.WebApi.Services.FeatureFlagsStore.Get());
         }
 
+        /// <summary>
+        /// Update flag values for AI features. This allows dynamic enabling/disabling of features without needing to restart the application or refresh a full configuration.
+        /// </summary>
+        /// <param name="flags">The new feature flags to set.</param>
+        /// <returns>Action result indicating the outcome of the operation.</returns>
+        
         [HttpPut("flags")]
         public ActionResult SetFlags([FromBody] MediaOrganizerApp.Application.FeatureFlags flags)
         {
@@ -352,6 +433,16 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok();
         }
 
+
+        /// <summary>
+        /// Get AI-generated notes for a media item (e.g. song, movie) based on its title and artist.
+        /// The response includes the generated notes, confidence level, and any warnings about the content. 
+        /// This can be used to provide additional context or insights about the media item in the UI.
+        /// </summary>
+        /// <param name="request">The request containing the media item's title, artist, and optional language.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>Action result containing the AI-generated notes for the media item.</returns>
+        
         [HttpPost("media-notes")]
         public async Task<ActionResult<AiMediaNotesResponseDto>> MediaNotes(
             [FromBody] AiMediaNotesRequestDto request,
@@ -380,6 +471,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Get AI-generated metadata for a media item (e.g. song, movie) based on its title and artist.
+        /// The response includes the generated metadata, confidence level, and any warnings about the content.
+        /// This can be used to provide additional context or insights about the media item in the UI.
+        /// </summary>
+        /// <param name="request">The request containing the media item's title, artist, and optional language.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>Action result containing the AI-generated metadata for the media item.</returns>
+
         [HttpPost("media-metadata")]
         public async Task<ActionResult<AiMediaMetadataResponseDto>> MediaMetadata(
             [FromBody] AiMediaMetadataRequestDto request,
@@ -399,6 +499,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 cancellationToken);
             return Ok(resp);
         }
+
+        /// <summary>
+        /// Get the edition year for a media item (e.g. song, movie) based on its title and artist using AI analysis.
+        /// </summary>
+        /// <param name="request">The request containing the media item's title, artist, and optional language.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>Action result containing the AI-generated edition year for the media item.</returns>
 
         [HttpPost("media-edition-year")]
         public async Task<ActionResult<string>> MediaEditionYear(
@@ -420,6 +527,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
             return Ok(string.IsNullOrWhiteSpace(year) ? "N/A" : year);
         }
 
+        /// <summary>
+        /// Chat endpoint that accepts a list of messages and streams AI-generated responses back to the client in real-time.
+        /// </summary>
+        /// <param name="request">The request containing the list of messages and optional language.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>Action result containing the AI-generated responses streamed in real-time.</returns>
+        
         [HttpPost("chat")]
         public async Task Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
         {

@@ -12,7 +12,6 @@ namespace Web.Blazor.Pages.Tools
         [Inject] public NavigationManager NavigationManager { get; set; } = default!;
         [Inject] public BooksInfoProgressClient ProgressClient { get; set; } = default!;
 
-        [Parameter] public string Title { get; set; } = "Translate Text";
         [Parameter] public bool Visible { get; set; }
         [Parameter] public string InitialText { get; set; } = string.Empty;
         [Parameter] public string InitialSourceLanguage { get; set; } = string.Empty;
@@ -21,7 +20,7 @@ namespace Web.Blazor.Pages.Tools
         [Parameter] public EventCallback<TranslateRequestDto> OnTranslateRequested { get; set; }
         [Parameter] public EventCallback OnClose { get; set; }
 
-
+        string Title = "";
         string InputText { get; set; } = string.Empty;
         string SourceTextNoHtml { get; set; } = string.Empty;
         string SourceLanguage { get; set; } = string.Empty;
@@ -48,6 +47,11 @@ namespace Web.Blazor.Pages.Tools
 
         bool CanTranslate => !string.IsNullOrWhiteSpace(InputText) && !string.IsNullOrWhiteSpace(SourceLanguage) && !string.IsNullOrWhiteSpace(TargetLanguage) && SourceLanguage != TargetLanguage;
 
+        protected override async Task OnInitializedAsync()
+        {
+            Title = L["TituloTraduzirTexto"];
+            await base.OnInitializedAsync();
+        }
         protected override async Task OnParametersSetAsync()
         {
             // Copy incoming parameters to internal fields first to avoid races

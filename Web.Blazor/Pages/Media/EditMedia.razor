@@ -9,8 +9,6 @@
 else
 {
     <SfSpinner @ref="spinner" Label="@L["MSG_PreparandoDados"]" Visible="false" />
-
-
     <div class="row">
         <div class="form-group col-md-4">
             <a class="d-block mb-4 h-100">
@@ -103,8 +101,8 @@ else
                                       Content="More Info"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
                                       Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) &&
-                                                                                                                                                                                                                !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
-                                                                                                                                                                                                                SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
+                                                                                  !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
+                                                                                  SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
                             </SfButton>
                         </div>
                         <div class="mt-4">
@@ -176,7 +174,7 @@ else
                 </div>
                 <div class="row">
                     <div class="col-lg-6">
-                        <div class="d-flex justify-content-around align-items-center" style="gap:4px; margin-top:12px;">
+                        <div class="d-flex justify-content-around align-items-center" style="gap:4px; margin-top:8px;">
                             @* <div class="col-md-12 col-lg-6 mt-2"> *@
                             <SfRadioButton TChecked="byte" Value="1" Label="@(L["msgTutorials"])" @bind-Checked="@(SelectedRecord.TipoMedia)"
                                            CssClass="input-control" ValueChange="onMediaTypeChange" Name="Tipo"></SfRadioButton>
@@ -204,31 +202,7 @@ else
                                    @bind-Value="@SelectedRecord.FilePath">
                         </SfTextBox>
                     </div>
-                    @* @if (!string.IsNullOrEmpty(SelectedRecord.FilePath))
-                    {
-                        <div class="col-2 mt-2 py-3">
-                            <SfButton CssClass="e-btn e-normal e-round-corner"
-                                      IconCss="fa fa-search"
-                                      @onclick="CheckFileOnDisk" Content="?">
-                            </SfButton>
-                        </div>
-                    } *@
                 </div>
-                @* <div class="row">
-            <div class="col-md-10  e-rte-content">
-            <SfTextBox Enabled="@(string.IsNullOrEmpty(SelectedRecord.FilePath))" Placeholder="Url"
-            CssClass="form-control e-corner" ShowClearButton="true" OnChange="OnUrlChanged"
-            FloatLabelType="@FloatLabelType.Auto"
-            @bind-Value="@SelectedRecord.FileUrl">
-            </SfTextBox>
-            </div>
-            @if (!string.IsNullOrEmpty(SelectedRecord.FileUrl))
-            {
-            <div class="col-md-2 mt-4">
-            <SfButton CssClass="e-primary e-outline e-round-corner" IconCss="fa fa-youtube" @onclick="GetMetadata" Content="Get info" />
-            </div>
-            }
-            </div> *@
 
                 <div class="row mt-2">
                     <div class="col-md-12 ml-2 e-rte-content">
@@ -256,22 +230,14 @@ else
                                 <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" />
                             </SfRichTextEditor>
                         </div>
-
-                        @*                         <SfTextBox Enabled="true" Placeholder="@L["lblNotas"]"
-                                   Multiline="true"
-                                   HtmlAttributes="htmlAttribute"
-                                   CssClass="e-field e-corner"
-                                   FloatLabelType="@FloatLabelType.Auto"
-                                   @bind-Value="@SelectedRecord.Notas">
-                        </SfTextBox>
- *@
-
                     </div>
                 </div>
 
             </EditForm>
             <div class="mt-2">
-                <SfMessage Visible=@(showAlertMessage && !string.IsNullOrEmpty(alertMessage)) Severity="messageSeverity" ShowCloseIcon=true CssClass="@alertMessageColor"
+                <SfMessage Visible=@(showAlertMessage && !string.IsNullOrEmpty(alertMessage))
+                           Severity="messageSeverity" 
+                           ShowCloseIcon=true CssClass="@alertMessageColor"
                            ShowIcon=true Variant="MessageVariant.Filled">
                     @alertMessage
                 </SfMessage>
@@ -319,7 +285,6 @@ else
     </SfDialog>
 
     <TranslateText Visible="@TranslateVisible"
-                   Title="@L["TituloTraduzirSinopse"]"
                    InitialText="@SelectedRecord.Notas"
                    InitialSourceLanguage="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName"
                    InitialTargetLanguage="en"

@@ -2,7 +2,7 @@
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<App> L 
 
-<SfDialog @bind-Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false">
+<SfDialog Visible="Visible" Width="900px" IsModal="true" ShowCloseIcon="false">
     <DialogTemplates>
         <Header>
             <div class="d-flex justify-content-between align-items-center w-100">
@@ -75,7 +75,7 @@
                             </SfMessage>
                         </div>
                         <div>
-                            <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Title="Close" @onclick="ClearError"></SfButton>
+                            <SfButton CssClass="e-outline e-round-corner" IconCss="fa fa-times" Content="Close" @onclick="ClearError"></SfButton>
                         </div>
                     </div>
                 }
