@@ -1,13 +1,19 @@
 # 📚 Media Organiser App
 
-[Versão em Português](README-PT.md)
+**Multi-User Collection Management System**
+
+[Versão em Português](README-PT.md) | [Architecture Diagrams](docs/architecture/USER_ROLE_DATA_FLOW.md)
 
 Have you ever felt frustrated with managing your media like hundreds of media scattered across different storage mediums/ hard disks? Wouldn't it be great to have it organized, allowing for easy management?
 
-Media Organizer App is an application to organize your media (Videos and MP3 files) and Documents (PDFs and Word documents).  
+Media Organizer App is a **multi-user application** to organize your media (Videos and MP3 files) and Documents (PDFs and Word documents).  
 It also allows you to organize collections of Books, LPs, CDs, DVDs, and documents written on paper (filing cabinets, for example).
 
-This application is designed to streamline the organization, management, and retrieval of media and publication data with a user-friendly interface and robust backend.
+This application is designed to streamline the organization, management, and retrieval of media and publication data with **role-based access control**, **user-specific data isolation**, and a robust backend.
+
+**Perfect for:** Personal collections, families, small libraries, archive projects, collector teams, or any scenario where multiple users need to maintain separate catalogs in a shared system.
+
+> 📊 **[View Interactive Architecture Diagrams](docs/architecture/USER_ROLE_DATA_FLOW.md)** - See how data isolation and role-based access control work
 
 ---
 
@@ -84,11 +90,19 @@ This application is designed to streamline the organization, management, and ret
 - **Media Usage Insights**: Analyze media file usage and identify unused or outdated files.
 - **Customizable Reports**: Generate PDF or Excel reports tailored to your needs.
 
-### 🔐 User Management & Authorization
-- **Role-Based Access Control**: Assign roles (Admin, Editor, Viewer) to users.
-- **User Profiles**: Manage user profiles, including personal details and preferences.
-- **Activity Logs**: Track user activities for accountability.
-- **Authentication**: Secure login using ASP.NET Core Identity with optional MFA.
+### 🔐 Multi-User System & Data Isolation
+- **Multi-User Architecture**: Support multiple users with individual accounts and separate collections.
+- **Role-Based Data Access**: 
+  - **Admin Role**: Full system access — view and manage ALL users' data, system settings, logs, and backups.
+  - **GeneralUser Role**: Access ONLY their own publications, media, and playlists — data is automatically filtered by UserID.
+- **User Management**: Administrators can create, edit, and delete user accounts from the "Manage Users" page.
+- **Data Isolation**: Each user's publications and media are stored with their UserID; queries automatically filter data to show only the logged-in user's items (unless you're an Admin).
+- **Authentication**: Secure login using ASP.NET Core Identity.
+- **Use Cases**: 
+  - **Families**: Each family member manages their own book/media collection.
+  - **Small Libraries/Archives**: Librarian (Admin) oversees; staff members (GeneralUser) catalog their assigned items.
+  - **Collector Teams**: Multiple collectors maintain separate collections in one system.
+  - **Personal with Admin Oversight**: Single user with admin access for maintenance and reporting.
 
 ---
 
@@ -335,40 +349,66 @@ The solution provides a RESTful API for managing publications and media. Key end
 
 ---
 
-## 🔐 User Roles & Authorization
+## 🔐 User Roles & Data Isolation
 
 ### **User Roles**
-The **Media Organizer App** uses **Role-Based Access Control (RBAC)** to differentiate between user types and their permissions. Below is a detailed breakdown of the roles:
+The **Media Organizer App** uses **Role-Based Access Control (RBAC)** with **automatic data isolation**. The system implements two roles:
 
-| Role       | Permissions                                                                 |
-|------------|-----------------------------------------------------------------------------|
-| **Admin**  | Full access to all features, including user management, app settings, logs, and backups. |
-| **Editor** | Manage publications and media files.                                        |
-| **Viewer** | Read-only access to publications and media.                                 |
+| Role            | Data Access                                                                 | System Access |
+|-----------------|-----------------------------------------------------------------------------|---------------|
+| **Admin**       | **Sees ALL users' data** — publications, media, playlists from every user. | Full system access: user management, app settings, logs, backups, prompts. |
+| **GeneralUser** | **Sees ONLY their own data** — publications, media, and playlists are automatically filtered by UserID. | Standard features: create/edit/delete their own publications and media. Cannot access admin pages. |
 
 ---
 
-### **What Differentiates Normal Users from Admins?**
+### **How Data Isolation Works**
 
-#### **Normal Users (Editors & Viewers)**:
-- **Editors**:
-  - Can create, update, and delete publications and media files.
-  - Cannot access system-level settings, logs, or backups.
-- **Viewers**:
-  - Can only view publications and media files.
-  - Cannot make any changes or access advanced features.
+Every publication and media file is tagged with a `UserID` when created. The repository layer automatically filters queries based on the logged-in user's role:
 
-#### **Admins**:
-- **Full System Control**:
-  - Manage all publications, media, and user accounts.
-  - Access advanced system settings and configurations.
-- **Logs Management**:
-  - View and analyze application logs for debugging and monitoring.
-- **Backup & Restore**:
-  - Perform backups of the database and media files.
-  - Restore data from backups in case of system failure.
-- **App Settings**:
-  - Configure application-wide settings, including API keys, storage options, and security policies.
+```csharp
+// Example from PublicacoesRepository.cs
+if (userRole == UserRole.GeneralUser)
+{
+    // Only show this user's publications
+    sbData.Append(" WHERE IdFormato = @IdFormato AND UserID = @UserID");
+    return (await connection.QueryAsync<PubsWithDescriptions>(sbData.ToString(), 
+        new { IdFormato, UserID = iUserID })).ToList();
+}
+else // Admin
+{
+    // Show all publications from all users
+    sbData.Append(" WHERE IdFormato = @IdFormato ");
+    return (await connection.QueryAsync<PubsWithDescriptions>(sbData.ToString(), 
+        new { IdFormato })).ToList();
+}
+```
+
+**Key Points:**
+- **GeneralUser** accounts see a personalized catalog containing only their own items.
+- **Admin** accounts have oversight and can view/manage data across all users.
+- Data isolation is enforced at the **repository level**, not just the UI — ensuring security.
+
+---
+
+### **What Differentiates GeneralUser from Admin?**
+
+#### **GeneralUser**:
+- **Data Scope**: Can ONLY see and manage their own publications, media, and playlists.
+- **Feature Access**: Full CRUD operations on their own data (create, read, update, delete).
+- **Restrictions**: 
+  - Cannot see other users' data.
+  - Cannot access admin pages: Manage Users, App Settings, View Logs, Backup operations.
+- **Perfect for**: Individual users, family members, team members in a shared library.
+
+#### **Admin**:
+- **Data Scope**: Can see and manage **ALL users' data** across the entire system.
+- **System Control**:
+  - **User Management**: Create, edit, delete user accounts via "Manage Users" page.
+  - **App Settings**: Configure API keys, storage options, AI prompts, feature flags.
+  - **Logs Management**: View application logs for debugging and monitoring.
+  - **Backup & Restore**: Perform database and file backups; restore from backups.
+  - **Lookup Tables**: Manage shared lookup data (categories, formats, publishers).
+- **Perfect for**: System administrator, librarian, collection manager with oversight responsibilities.
 
 ---
 

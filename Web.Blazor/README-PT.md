@@ -1,13 +1,19 @@
 # 📚 Aplicação Media Organizer
 
-[Versão em Inglês](README.md)
+**Sistema de Gestão de Coleções Multi-Utilizador**
+
+[Versão em Inglês](README.md) | [Diagramas de Arquitetura](../docs/architecture/USER_ROLE_DATA_FLOW.md)
 
 Já alguma vez sentiu frustração ao gerir os seus ficheiros multimédia, com centenas de ficheiros espalhados por diferentes discos ou dispositivos de armazenamento? Não seria ótimo tê-los organizados, facilitando a sua gestão?
 
-A Aplicação Media Organizer é uma aplicação para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
+A Aplicação Media Organizer é uma **aplicação multi-utilizador** para organizar os seus ficheiros multimédia (vídeos e ficheiros MP3) e documentos (PDFs e documentos Word).  
 Também permite organizar coleções de livros e documentos escritos em papel (armários de arquivo, por exemplo).
 
-Esta aplicação foi concebida para simplificar a organização, gestão e recuperação de dados multimédia e de publicações com uma interface amigável e um backend robusto.
+Esta aplicação foi concebida para simplificar a organização, gestão e recuperação de dados multimédia e de publicações com **controlo de acesso baseado em funções**, **isolamento de dados por utilizador**, e um backend robusto.
+
+**Perfeito para:** Coleções pessoais, famílias, pequenas bibliotecas, projetos de arquivo, equipas de colecionadores, ou qualquer cenário onde múltiplos utilizadores precisam de manter catálogos separados num sistema partilhado.
+
+> 📊 **[Ver Diagramas Interativos de Arquitetura](../docs/architecture/USER_ROLE_DATA_FLOW.md)** - Veja como funciona o isolamento de dados e o controlo de acesso baseado em funções
 
 ---
 
@@ -49,8 +55,15 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 ### 📊 Analítica & Relatórios
 - Estatísticas de publicações/media e export para PDF/Excel.
 
-### 🔐 Gestão de Utilizadores
-- RBAC (Admin, Editor, Viewer), Perfis e Logs.
+### 🔐 Sistema Multi-Utilizador & Isolamento de Dados
+- **Arquitetura Multi-Utilizador**: Suporte para múltiplos utilizadores com contas individuais e coleções separadas.
+- **Acesso a Dados Baseado em Funções**: 
+  - **Função Admin**: Acesso total ao sistema — visualizar e gerir dados de TODOS os utilizadores, configurações do sistema, logs e backups.
+  - **Função GeneralUser**: Acesso APENAS aos seus próprios dados — publicações, media e playlists filtrados automaticamente por UserID.
+- **Gestão de Utilizadores**: Administradores podem criar, editar e eliminar contas na página "Gerir Utilizadores".
+- **Isolamento de Dados**: Dados de cada utilizador armazenados com UserID; consultas filtram automaticamente para mostrar apenas itens do utilizador autenticado (exceto Admins).
+- **Autenticação**: Login seguro usando ASP.NET Core Identity.
+- **Casos de Uso**: Famílias, pequenas bibliotecas/arquivos, equipas de colecionadores, uso pessoal com supervisão admin.
 
 ---
 
@@ -147,10 +160,20 @@ A solução fornece uma API RESTful para gerir publicações e media. Endpoints 
 
 ## 🔐 User Roles & Authorization
 
-### **User Roles**
-- **Admin**: Full access to all features, including user management, app settings, logs, and backups.
-- **Editor**: Manage publications and media files.
-- **Viewer**: Read-only access to publications and media.
+### **Funções de Utilizador**
+A aplicação utiliza **Controlo de Acesso Baseado em Funções (RBAC)** com **isolamento automático de dados**:
+
+| Função         | Acesso a Dados                                                              | Acesso ao Sistema |
+|-----------------|-----------------------------------------------------------------------------|-------------------|
+| **Admin**       | **Vê TODOS os dados** de todos os utilizadores                                | Acesso total: gestão utilizadores, configurações, logs, backups |
+| **GeneralUser** | **Vê APENAS os seus dados** (filtrado automaticamente por UserID)           | Funcionalidades padrão: CRUD nos seus próprios dados |
+
+**Isolamento de Dados:**  
+O repositório filtra automaticamente as consultas:
+- **GeneralUser**: `WHERE UserID = utilizador_atual` (vê apenas os seus dados)
+- **Admin**: Sem filtro UserID (vê todos os dados)
+
+Os dados são isolados ao **nível do repositório**, garantindo segurança real (não apenas na UI).
 
 ---
 
