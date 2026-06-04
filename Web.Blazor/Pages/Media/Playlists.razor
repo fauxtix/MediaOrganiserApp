@@ -225,37 +225,6 @@
                                                         <GridColumn Field=@nameof(PlaylistItemDto.CategoriaMedia)
                                                                     HeaderText="@localizerApp["lblCategoria"]"
                                                                     Width="200" />
-                                                        @*                                         <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
-                                                    HeaderText="@localizerApp["TipoFicheiro"]"
-                                                    Width="200">
-                                            <Template>
-                                                <SfChip>
-                                                    <ChipItems>
-                                                        @{
-                                                            var currentRow = (context as PlaylistItemDto);
-                                                            string msg = "";
-                                                            string classe = "";
-                                                            string icon = "";
-                                                            var audio = currentRow.MediaType == MediaOrganizerApp.Domain.Enums.MediaType.Audio;
-                                                            if (audio)
-                                                            {
-                                                                msg = "Mp3";
-                                                                classe = "e-primary e-round-corner";
-                                                                icon = "oi oi-audio";
-                                                            }
-                                                            else
-                                                            {
-                                                                msg = "Vídeo";
-                                                                classe = "e-success e-round-corner";
-                                                                icon = "oi oi-video";
-                                                            }
-                                                        }
-                                                        <ChipItem Text="@msg" CssClass="@classe"></ChipItem>
-                                                    </ChipItems>
-                                                </SfChip>
-                                            </Template>
-                                        </GridColumn>
- *@        
                                                         <GridColumn Field=@nameof(PlaylistItemDto.TrackTime)
                                                                     HeaderText="@localizerApp["TrackTime"]"
                                                                     Width="140" />
@@ -293,7 +262,8 @@
                 <TabHeader Text="YouTube Playlists"></TabHeader>
             </ChildContent>
             <ContentTemplate>
-                <div class="youtube-search-options">
+                <YoutubePlaylists />
+@*                 <div class="youtube-search-options">
                     <SfDropDownList TItem="string" TValue="string" Width="250px" 
                                     DataSource="@genreMap.Keys.ToList()"
                                     AllowFiltering="true"
@@ -318,23 +288,6 @@
 
                 </div>
 
-                @* <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
-                    <label>YouTube Playlist Name or URL</label>
-                    <SfTextBox @bind-Value="youtubePlaylistQuery" Width="60%" />
-                    <SfButton CssClass="e-btn e-primary e-round-corner"
-                              IconCss="fa fa-search"
-                              Content="@localizerApp["btnLocalizar"]"
-                              @onclick="GetYoutubePlaylist">
-                    </SfButton>
-                    @if (!string.IsNullOrEmpty(youtubePlaylistQuery))
-                    {
-                        <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
-                                  Content="Clear"
-                                  @onclick="ClearUrlSearch">
-                        </SfButton>
-                    }
-
-                </div> *@
                 @if (ShowTitleSearch)
                 {
                     <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
@@ -396,7 +349,7 @@
                             }
                         </div>
                     </div>
-                }
+                } *@
             </ContentTemplate>
         </TabItem>
     </TabItems>
@@ -743,4 +696,15 @@
         margin-top:20px;
     }
 
+    .e-tab .e-tab-header .e-toolbar-item.e-active {
+        background: #d1f4d1;
+    }
+
+    .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+        background: #badfba !important;
+    }
+    .e-tab .e-tab-header .e-toolbar-items {
+        background: white;
+        border: 2px solid  steelblue;
+    }
 </style>

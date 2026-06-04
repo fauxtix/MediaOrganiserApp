@@ -78,16 +78,6 @@ namespace Web.Blazor.Pages.BaseComponents
         protected List<YoutubeVideoDto>? youtubeVideos;
         protected string? youtubeSearchError;
 
-        protected Dictionary<string, string> genreMap = new Dictionary<string, string>
-        {
-            { "Pop", "pop music playlist" },
-            { "Punk", "punk music playlist" },
-            { "Rock", "rock classics playlist" },
-            { "Progressive Rock", "progressive rock classics playlist" },
-            { "Hard Rock", "hard rock classics playlist" },
-            { "Blues", "blues classics playlist" },
-            { "Soul", "soul music playlist" }
-        };
 
         protected List<YoutubePlaylistItem> playlistList = new();
         protected string selectedPlaylistId;
@@ -505,78 +495,6 @@ namespace Web.Blazor.Pages.BaseComponents
             }
         }
 
-        // youtube playlists
-        protected async Task GetYoutubePlaylist()
-        {
-            youtubeSearchError = null;
-            youtubeVideos = null;
-
-            if (string.IsNullOrWhiteSpace(youtubePlaylistQuery))
-            {
-                youtubeSearchError = "Informe o nome ou URL da playlist.";
-                return;
-            }
-
-            try
-            {
-                await SpinnerObj.ShowAsync();
-                youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
-                ShowTitleSearch = youtubeVideos != null && youtubeVideos.Any();
-            }
-            catch (Exception ex)
-            {
-                youtubeSearchError = $"Erro ao pesquisar playlist: {ex.Message}";
-            }
-            finally
-            {
-                await SpinnerObj.HideAsync();
-            }
-        }
-
-        protected async Task OnGenreChange(ChangeEventArgs<string, string> args)
-        {
-            try
-            {
-                await SpinnerObj.ShowAsync();
-                var query = genreMap[args.Value];              
-                playlistList = await YoutubeService.GetPlaylistsAsync(query);
-                //StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
-            }
-            finally
-            {
-                await SpinnerObj.HideAsync();
-            }
-        }
-
-        protected void OnPlaylistChange(ChangeEventArgs<string, YoutubePlaylistItem> args)
-        {
-            try
-            {
-                SpinnerObj.ShowAsync();
-
-                selectedPlaylistId = args.Value;
-                youtubePlaylistQuery = selectedPlaylistId;
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                youtubeSearchError = $"Erro ao processar playlist: {ex.Message}";
-            }
-            finally
-            {
-                 SpinnerObj.HideAsync();
-            }
-        }
-
-
-
-
-
-        // Fim youtube playlists
         protected void ClearUrlSearch()
         {
             youtubePlaylistQuery = string.Empty;
@@ -584,13 +502,6 @@ namespace Web.Blazor.Pages.BaseComponents
         }
 
 
-        protected IEnumerable<YoutubeVideoDto> FilteredYoutubeVideos =>
-            string.IsNullOrWhiteSpace(TitleSearch)
-            ? youtubeVideos ?? Enumerable.Empty<YoutubeVideoDto>()
-            : youtubeVideos?.Where(v =>
-                v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase)
-                || v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase))
-              ?? Enumerable.Empty<YoutubeVideoDto>();
 
 
         protected void ClearTitleSearch()
