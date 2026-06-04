@@ -1,7 +1,7 @@
 ﻿using MediaOrganizerApp.Domain.Enums;
 using System;
 
-namespace MediaOrganizerApp.Application.DTOs
+namespace MediaOrganizerApp.Application.DTOs.PlayLists
 {
     public class PlaylistDto
     {

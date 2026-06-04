@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Google.Apis.YouTube.v3.Data;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.PlayLists;
 using MediaOrganizerApp.Application.Interfaces;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Domain.Entities;

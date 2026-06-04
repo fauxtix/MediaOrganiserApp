@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MediaOrganizerApp.Application.DTOs
+namespace MediaOrganizerApp.Application.DTOs.PlayLists
 {
     public class PlaylistDetailsDto
     {

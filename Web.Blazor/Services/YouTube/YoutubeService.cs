@@ -1,11 +1,13 @@
+using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.PlayLists;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
+using Syncfusion.Blazor.Charts.Chart.Internal;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using MediaOrganizerApp.Application.DTOs;
-using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
 
 
 
@@ -86,6 +88,39 @@ namespace Web.Blazor.Services.YouTube
             if (hashIdx >= 0)
                 playlistId = playlistId.Substring(0, hashIdx);
             return playlistId.Trim();
+        }
+
+        public async Task<List<YoutubePlaylistItem>> GetPlaylistsAsync(string query)
+        {
+            string url =
+                $"https://www.googleapis.com/youtube/v3/search" +
+                $"?part=snippet" +
+                $"&q={Uri.EscapeDataString(query)}" +
+                $"&type=playlist" +
+                $"&maxResults=10" +
+                $"&key={_apiKey}";
+
+            var json = await _httpClient.GetStringAsync(url);
+
+            return ParsePlaylistItems(json);
+        }
+
+
+        public List<YoutubePlaylistItem> ParsePlaylistItems(string json)
+        {
+            var data = JsonSerializer.Deserialize<YouTubeSearchResponse>(json);
+
+            if (data?.Items == null)
+                return new List<YoutubePlaylistItem>();
+
+            return data.Items
+                .Where(x => x?.Id?.PlaylistId != null)
+                .Select(x => new YoutubePlaylistItem
+                {
+                    Id = x.Id.PlaylistId,
+                    Title = x.Snippet?.Title ?? "Sem título"
+                })
+                .ToList();
         }
     }
 }

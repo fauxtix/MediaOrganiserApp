@@ -1,21 +1,25 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.PlayLists;
 using MediaOrganizerApp.Application.Enums;
-using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
+using Syncfusion.Blazor.DropDowns;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
 using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.YouTube;
 
 namespace Web.Blazor.Pages.BaseComponents
 {
     public class PlaylistsBase : ComponentBase
     {
         [Inject] public PlaylistsClientService PlaylistsService { get; set; }
+        [Inject] public YoutubeService YoutubeService { get; set; } = default!;
+
         [Inject] public IMediaServiceWrapper MediaService { get; set; }
         [Inject] public IStringLocalizer<App> localizerApp { get; set; }
         [Inject] public NavigationManager Navigation { get; set; } = default!;
@@ -69,7 +73,24 @@ namespace Web.Blazor.Pages.BaseComponents
 
         protected string TitleSearch { get; set; } = string.Empty;
 
+        protected bool ShowTitleSearch { get; set; } = false;
+        protected string youtubePlaylistQuery = string.Empty;
+        protected List<YoutubeVideoDto>? youtubeVideos;
+        protected string? youtubeSearchError;
 
+        protected Dictionary<string, string> genreMap = new Dictionary<string, string>
+        {
+            { "Pop", "pop music playlist" },
+            { "Punk", "punk music playlist" },
+            { "Rock", "rock classics playlist" },
+            { "Progressive Rock", "progressive rock classics playlist" },
+            { "Hard Rock", "hard rock classics playlist" },
+            { "Blues", "blues classics playlist" },
+            { "Soul", "soul music playlist" }
+        };
+
+        protected List<YoutubePlaylistItem> playlistList = new();
+        protected string selectedPlaylistId;
         protected override async Task OnInitializedAsync()
         {
             await LoadPlaylistsAsync();
@@ -253,7 +274,7 @@ namespace Web.Blazor.Pages.BaseComponents
                     {
                         Name = EditModel.Name,
                         Description = EditModel.Description,
-                        MediaType = EditModel.MediaType,                        
+                        MediaType = EditModel.MediaType,
                     };
                     int? createdId = await PlaylistsService.CreateAsync(createDto);
                     if (createdId <= 0)
@@ -484,10 +505,100 @@ namespace Web.Blazor.Pages.BaseComponents
             }
         }
 
+        // youtube playlists
+        protected async Task GetYoutubePlaylist()
+        {
+            youtubeSearchError = null;
+            youtubeVideos = null;
+
+            if (string.IsNullOrWhiteSpace(youtubePlaylistQuery))
+            {
+                youtubeSearchError = "Informe o nome ou URL da playlist.";
+                return;
+            }
+
+            try
+            {
+                await SpinnerObj.ShowAsync();
+                youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
+                ShowTitleSearch = youtubeVideos != null && youtubeVideos.Any();
+            }
+            catch (Exception ex)
+            {
+                youtubeSearchError = $"Erro ao pesquisar playlist: {ex.Message}";
+            }
+            finally
+            {
+                await SpinnerObj.HideAsync();
+            }
+        }
+
+        protected async Task OnGenreChange(ChangeEventArgs<string, string> args)
+        {
+            try
+            {
+                await SpinnerObj.ShowAsync();
+                var query = genreMap[args.Value];              
+                playlistList = await YoutubeService.GetPlaylistsAsync(query);
+                //StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
+            }
+            finally
+            {
+                await SpinnerObj.HideAsync();
+            }
+        }
+
+        protected void OnPlaylistChange(ChangeEventArgs<string, YoutubePlaylistItem> args)
+        {
+            try
+            {
+                SpinnerObj.ShowAsync();
+
+                selectedPlaylistId = args.Value;
+                youtubePlaylistQuery = selectedPlaylistId;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                youtubeSearchError = $"Erro ao processar playlist: {ex.Message}";
+            }
+            finally
+            {
+                 SpinnerObj.HideAsync();
+            }
+        }
+
+
+
+
+
+        // Fim youtube playlists
+        protected void ClearUrlSearch()
+        {
+            youtubePlaylistQuery = string.Empty;
+            ShowTitleSearch = false;
+        }
+
+
+        protected IEnumerable<YoutubeVideoDto> FilteredYoutubeVideos =>
+            string.IsNullOrWhiteSpace(TitleSearch)
+            ? youtubeVideos ?? Enumerable.Empty<YoutubeVideoDto>()
+            : youtubeVideos?.Where(v =>
+                v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase)
+                || v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase))
+              ?? Enumerable.Empty<YoutubeVideoDto>();
+
+
         protected void ClearTitleSearch()
         {
             TitleSearch = string.Empty;
         }
+
+
 
         protected async Task ScrollToTop()
         {

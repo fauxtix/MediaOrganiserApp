@@ -1,4 +1,5 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.PlayLists;
 using MediaOrganizerApp.Domain.Entities;
 using System.Collections.Generic;
 using System.Threading;

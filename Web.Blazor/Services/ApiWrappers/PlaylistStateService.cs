@@ -1,4 +1,4 @@
-﻿using MediaOrganizerApp.Application.DTOs;
+﻿using MediaOrganizerApp.Application.DTOs.PlayLists;
 using MediaOrganizerApp.Domain.Enums;
 using Web.Blazor.Services.ApiWrappers;
 

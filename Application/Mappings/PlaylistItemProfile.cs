@@ -6,6 +6,7 @@ namespace MediaOrganizerApp.Application.Mappings
 {
     using AutoMapper;
     using MediaOrganizerApp.Application.DTOs;
+    using MediaOrganizerApp.Application.DTOs.PlayLists;
     using MediaOrganizerApp.Domain.Entities;
 
     public class PlaylistItemProfile : Profile

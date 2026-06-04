@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.PlayLists;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;

@@ -1,4 +1,4 @@
-﻿namespace MediaOrganizerApp.Application.DTOs
+﻿namespace MediaOrganizerApp.Application.DTOs.PlayLists
 {
     public class PlaylistItemOrderUpdateDto
     {

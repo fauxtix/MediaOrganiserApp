@@ -2,8 +2,7 @@
 
 @inherits Web.Blazor.Pages.BaseComponents.PlaylistsBase
 
-@using MediaOrganizerApp.Application.DTOs
-@using MediaOrganizerApp.Domain.Enums
+@using MediaOrganizerApp.Application.DTOs.PlayLists
 @using Syncfusion.Blazor.Grids
 @using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Buttons
@@ -11,7 +10,6 @@
 @using Syncfusion.Blazor.Navigations
 @using Web.Blazor.Components
 @using Web.Blazor.Components.Playlists
-@using Web.Blazor.Services.YouTube
 
 @attribute [Authorize]
 
@@ -295,7 +293,32 @@
                 <TabHeader Text="YouTube Playlists"></TabHeader>
             </ChildContent>
             <ContentTemplate>
-                <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
+                <div class="youtube-search-options">
+                    <SfDropDownList TItem="string" TValue="string" Width="250px" 
+                                    DataSource="@genreMap.Keys.ToList()"
+                                    AllowFiltering="true"
+                                    Placeholder="Select genre">
+                        <DropDownListEvents TItem="string" TValue="string" ValueChange="OnGenreChange"></DropDownListEvents>
+
+                    </SfDropDownList>
+
+                    <SfDropDownList TItem="YoutubePlaylistItem" TValue="string"
+                                    DataSource="@playlistList"
+                                    Placeholder="Select playlist"
+                                    AllowFiltering="true">
+                        <DropDownListEvents TItem="YoutubePlaylistItem" TValue="string" ValueChange="OnPlaylistChange"></DropDownListEvents>
+
+                        <DropDownListFieldSettings Text="Title" Value="Id" />
+                    </SfDropDownList>
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-search"
+                              Content="@localizerApp["btnLocalizar"]"
+                              @onclick="GetYoutubePlaylist">
+                    </SfButton>
+
+                </div>
+
+                @* <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
                     <label>YouTube Playlist Name or URL</label>
                     <SfTextBox @bind-Value="youtubePlaylistQuery" Width="60%" />
                     <SfButton CssClass="e-btn e-primary e-round-corner"
@@ -311,22 +334,22 @@
                         </SfButton>
                     }
 
-                </div>
+                </div> *@
                 @if (ShowTitleSearch)
                 {
                     <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
                         <label class="font-weight-bold">Search in the list </label>
                         <input class="form-control e-input e-round-corner" style="width:250px"
-                        placeholder="Text to search"
-                        @bind="TitleSearch"
-                        @bind:event="oninput" />
+                               placeholder="Text to search"
+                               @bind="TitleSearch"
+                               @bind:event="oninput" />
 
                         @if (!string.IsNullOrEmpty(TitleSearch))
                         {
                             <SfButton CssClass="e-btn e-outline e-round-corner"
-                            IconCss="fa fa-times"
-                            Content="Clear"
-                            @onclick="ClearTitleSearch">
+                                      IconCss="fa fa-times"
+                                      Content="Clear"
+                                      @onclick="ClearTitleSearch">
                             </SfButton>
                         }
                     </div>
@@ -372,14 +395,6 @@
                                 </div>
                             }
                         </div>
-                    </div>
-                }
-                else if (FilteredYoutubeVideos is not null && 
-                    !FilteredYoutubeVideos.Any() && 
-                    !string.IsNullOrEmpty(youtubePlaylistQuery))
-                {
-                    <div class="alert alert-info">
-                        @localizerApp["TituloNoDataToShow"]
                     </div>
                 }
             </ContentTemplate>
@@ -563,53 +578,6 @@
                         OnCloseDialog="@(()=>ErrorVisibility=false)"
                         ValidationMessages="@ValidationMessages" />
 
-@code {
-    [Inject] public YoutubeService YoutubeService { get; set; } = default!;
-
-    private bool ShowTitleSearch { get; set; } = false;
-    private string youtubePlaylistQuery = string.Empty;
-    private List<YoutubeVideoDto>? youtubeVideos;
-    private string? youtubeSearchError;
-
-    private async Task GetYoutubePlaylist()
-    {
-        youtubeSearchError = null;
-        youtubeVideos = null;
-
-        if (string.IsNullOrWhiteSpace(youtubePlaylistQuery))
-        {
-            youtubeSearchError = "Informe o nome ou URL da playlist.";
-            return;
-        }
-
-        try
-        {
-            youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
-            ShowTitleSearch = youtubeVideos != null && youtubeVideos.Any();
-        }
-        catch (Exception ex)
-        {
-            youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
-        }
-
-
-    }
-    protected void ClearUrlSearch()
-    {
-        youtubePlaylistQuery = string.Empty;
-        ShowTitleSearch = false;
-    }
-
-
-    protected IEnumerable<YoutubeVideoDto> FilteredYoutubeVideos =>
-        string.IsNullOrWhiteSpace(TitleSearch)
-        ? youtubeVideos ?? Enumerable.Empty<YoutubeVideoDto>()
-        : youtubeVideos?.Where(v =>
-            v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase)
-            || v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase))
-          ?? Enumerable.Empty<YoutubeVideoDto>();
-
-}
 
 <style>
 
@@ -764,6 +732,15 @@
         right: 30px;
         bottom: 30px;
         z-index: 10000;
+    }
+
+    .youtube-search-options{
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        width:75%;
+        margin-bottom: 20px;
+        margin-top:20px;
     }
 
 </style>
