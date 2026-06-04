@@ -10,7 +10,7 @@
 @using Web.Blazor.Pages.Media
 
 <!-- Page Content -->
-<div class="container e-container-style ">
+<div class="container e-container-style">
 
     <div class="title">@localizerApp["lblGaleria"] (Media)</div>
     <div class="underline"></div>
@@ -87,28 +87,34 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start card-title-row">
                                     <p class="info-title"><i>@videoPath.Titulo</i></p>
-                                    <p class="info-author text-right">@videoPath.Autor</p>
+                                    <SfChip>
+                                        <ChipItems>
+                                            <ChipItem style="align-items:center; justify-content:flex-start" CssClass="e-danger e-outline" Text="@videoPath.Autor" />
+                                        </ChipItems>
+                                    </SfChip>
+
+                                    @* <p class="info-author text-right">@videoPath.Autor</p> *@
                                 </div>
 
                                 <div class="d-flex flex-row justify-content-between align-items-center mt-4" style="gap:50px">
                                     <SfChip>
                                         <ChipItems>
                                             <ChipItem CssClass="@(videoPath.Formato == "LP"
-                                                                ? "e-success"
-                                                                : videoPath.Formato == "CD"
-                                                                ? "e-danger"
-                                                                : videoPath.Formato.ToLower().StartsWith("dvd")
-                                                                ? "e-primary"
-                                                                : string.IsNullOrEmpty(videoPath.FileUrl)
-                                                                ? "e-info" : "e-warning")"
+                                                                                                                      ? "e-success"
+                                                                                                                      : videoPath.Formato == "CD"
+                                                                                                                      ? "e-danger"
+                                                                                                                      : videoPath.Formato.ToLower().StartsWith("dvd")
+                                                                                                                      ? "e-primary"
+                                                                                                                      : string.IsNullOrEmpty(videoPath.FileUrl)
+                                                                                                                      ? "e-info" : "e-warning")"
                                                       Text="@(videoPath.Formato == "LP" || videoPath.Formato == "CD" || videoPath.Formato.ToLower().StartsWith("dvd")
-                                                                                                  ? videoPath.Formato
-                                                                                                  : string.IsNullOrEmpty(videoPath.FileUrl) ? "MP3" : "Youtube")"
+                                                                                                                                                        ? videoPath.Formato
+                                                                                                                                                        : string.IsNullOrEmpty(videoPath.FileUrl) ? "MP3" : "Youtube")"
                                                       style="margin-top:-10px;" />
                                             <ChipItem CssClass="e-primary"
                                                       Text="@(string.IsNullOrEmpty(videoPath.Tempo) || videoPath.Tempo == "00:00:00"
-                                                            ? "--:--"
-                                                            : videoPath.Tempo)"
+                                                                                                                  ? "--:--"
+                                                                                                                  : videoPath.Tempo)"
                                                       style="margin-top:-10px;" />
                                         </ChipItems>
                                     </SfChip>
@@ -322,7 +328,7 @@
 
     .info-title, .info-author {
         flex: 1 1 0;
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         line-height: 1.2em;
         display: -webkit-box;
         -webkit-line-clamp: 2;

@@ -11,64 +11,72 @@
 @using Syncfusion.Blazor.Navigations
 @using Web.Blazor.Components
 @using Web.Blazor.Components.Playlists
+@using Web.Blazor.Services.YouTube
 
 @attribute [Authorize]
 
 <PageTitle>Playlists</PageTitle>
 <PageTitleComponent PageTitle="Playlists" WithBadge="false" PageSubTitle="" Css="title" />
 
-@if (isLoading)
-{
-    <LoadingData />
-}
-else
-{
-    <div class="button-container my-2">
-        <SfButton CssClass="e-btn e-success e-round-corner"
-                  IconCss="fa fa-plus" IsPrimary="true"
-                  Content="@localizerApp["NewMsg"]"
-                  @onclick="BeginCreatePlaylist">
-        </SfButton>
-    </div>
+<SfTab>
+    <TabItems>
+        <TabItem>
+            <ChildContent>
+                <TabHeader Text="MP3 Playlists"></TabHeader>
+            </ChildContent>
+            <ContentTemplate>
+                @if (isLoading)
+                {
+                    <LoadingData />
+                }
+                else
+                {
+                    <div class="button-container my-2">
+                        <SfButton CssClass="e-btn e-success e-round-corner"
+                                  IconCss="fa fa-plus" IsPrimary="true"
+                                  Content="@localizerApp["NewMsg"]"
+                                  @onclick="BeginCreatePlaylist">
+                        </SfButton>
+                    </div>
 
-    <div id="target" class="container-fluid">
-        <SfGrid @ref="@gridObj"
-                Width="100%"
-                Height="auto"
-                DataSource="@playLists"
-                AllowFiltering="true"
-                AllowPaging="true"
-                AllowSorting="true"
-                EnableStickyHeader="true"
-                Toolbar="@(new List<object> { "Search" })"
-                RowHeight="26">
+                    <div id="target" class="container-fluid">
+                        <SfGrid @ref="@gridObj"
+                                Width="100%"
+                                Height="auto"
+                                DataSource="@playLists"
+                                AllowFiltering="true"
+                                AllowPaging="true"
+                                AllowSorting="true"
+                                EnableStickyHeader="true"
+                                Toolbar="@(new List<object> { "Search" })"
+                                RowHeight="26">
 
-            <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"></GridPageSettings>
-            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+                            <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"></GridPageSettings>
+                            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
 
-            <GridEvents OnToolbarClick="OnToolbarClick"
-                        CommandClicked="OnCommandClicked"
-                        DetailDataBound="OnDetailDataBound"
-                        TValue="PlaylistDto" />
+                            <GridEvents OnToolbarClick="OnToolbarClick"
+                                        CommandClicked="OnCommandClicked"
+                                        DetailDataBound="OnDetailDataBound"
+                                        TValue="PlaylistDto" />
 
-            <GridColumns>
-                @* <GridColumn Field=@nameof(PlaylistDto.Id)
+                            <GridColumns>
+                                @* <GridColumn Field=@nameof(PlaylistDto.Id)
                             HeaderText="ID#" IsPrimaryKey="true"
                             AllowSorting="true" TextAlign="TextAlign.Center"
                             Width="80"></GridColumn> *@
 
-                <GridColumn Field=@nameof(PlaylistDto.Name)
-                            HeaderText="@localizerApp["lblNomeAutor"]"
-                            TextAlign="TextAlign.Left"
-                            CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold"}})"
-                            Width="200"></GridColumn>
+                                <GridColumn Field=@nameof(PlaylistDto.Name)
+                                            HeaderText="@localizerApp["lblNomeAutor"]"
+                                            TextAlign="TextAlign.Left"
+                                            CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold"}})"
+                                            Width="200"></GridColumn>
 
-                <GridColumn Field=@nameof(PlaylistDto.Description)
-                            HeaderText="@localizerApp["rbtDescricao"]"
-                            ClipMode="ClipMode.EllipsisWithTooltip"
-                            TextAlign="TextAlign.Left"
-                            Width="300"></GridColumn>
-                @* <GridColumn Field=@nameof(PlaylistDto.MediaType)
+                                <GridColumn Field=@nameof(PlaylistDto.Description)
+                                            HeaderText="@localizerApp["rbtDescricao"]"
+                                            ClipMode="ClipMode.EllipsisWithTooltip"
+                                            TextAlign="TextAlign.Left"
+                                            Width="300"></GridColumn>
+                                @* <GridColumn Field=@nameof(PlaylistDto.MediaType)
                             HeaderText="@localizerApp["lblTipoUtilizador"]"
                             ClipMode="ClipMode.EllipsisWithTooltip"
                             TextAlign="TextAlign.Left"
@@ -100,126 +108,126 @@ else
                     </Template>
                 </GridColumn> *@
 
-                <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
-                            HeaderText="@localizerApp["TituloCriadoEm"]"
-                            Format="dd/MM/yyyy"
-                            TextAlign="TextAlign.Center"
-                            Width="160"></GridColumn>
+                                <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
+                                            HeaderText="@localizerApp["TituloCriadoEm"]"
+                                            Format="dd/MM/yyyy"
+                                            TextAlign="TextAlign.Center"
+                                            Width="160"></GridColumn>
 
-                <GridColumn HeaderText=""
-                            AllowFiltering="false"
-                            AllowSorting="false"
-                            TextAlign="TextAlign.Center"
-                            Width="220">
-                    <GridCommandColumns>
-                        <GridCommandColumn Type="CommandButtonType.Edit"
-                                           Title="@localizerApp["EditMsg"]"
-                                           ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-primary e-round",
-                                                                           IconCss = "fa fa-edit"
-                                                                       })">
-                        </GridCommandColumn>
-                        <GridCommandColumn Type="CommandButtonType.Delete"
-                                           Title="@localizerApp["DeleteMsg"]"
-                                           ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-danger e-round",
-                                                                           IconCss = "fa fa-trash"
-                                                                       })">
-                        </GridCommandColumn>
-                        <GridCommandColumn Type="CommandButtonType.None"
-                                           Title="@localizerApp["PlayMp3"]"
-                                           ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-btn e-info e-round",
-                                                                           IconCss = "fa fa-play"
-                                                                       })">
-                        </GridCommandColumn>
-                    </GridCommandColumns>
-                </GridColumn>
-            </GridColumns>
-            <GridTemplates>
-                <DetailTemplate Context="playlistObj">
-                    @{
-                        var playlist = playlistObj as PlaylistDto;
-                        if (playlist is null) return;
+                                <GridColumn HeaderText=""
+                                            AllowFiltering="false"
+                                            AllowSorting="false"
+                                            TextAlign="TextAlign.Center"
+                                            Width="220">
+                                    <GridCommandColumns>
+                                        <GridCommandColumn Type="CommandButtonType.Edit"
+                                                           Title="@localizerApp["EditMsg"]"
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                           {
+                                                               Content = "",
+                                                               CssClass = "e-btn e-primary e-round",
+                                                               IconCss = "fa fa-edit"
+                                                           })">
+                                        </GridCommandColumn>
+                                        <GridCommandColumn Type="CommandButtonType.Delete"
+                                                           Title="@localizerApp["DeleteMsg"]"
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                           {
+                                                               Content = "",
+                                                               CssClass = "e-btn e-danger e-round",
+                                                               IconCss = "fa fa-trash"
+                                                           })">
+                                        </GridCommandColumn>
+                                        <GridCommandColumn Type="CommandButtonType.None"
+                                                           Title="@localizerApp["PlayMp3"]"
+                                                           ButtonOption="@(new CommandButtonOptions()
+                                                           {
+                                                               Content = "",
+                                                               CssClass = "e-btn e-info e-round",
+                                                               IconCss = "fa fa-play"
+                                                           })">
+                                        </GridCommandColumn>
+                                    </GridCommandColumns>
+                                </GridColumn>
+                            </GridColumns>
+                            <GridTemplates>
+                                <DetailTemplate Context="playlistObj">
+                                    @{
+                                        var playlist = playlistObj as PlaylistDto;
+                                        if (playlist is null) return;
 
-                        var playlistId = playlist.Id;
+                                        var playlistId = playlist.Id;
 
-                        var isLoading = LoadingPlaylists.Contains(playlistId);
+                                        var isLoading = LoadingPlaylists.Contains(playlistId);
 
-                        // Lista do cache
-                        var itemsList = PlaylistItemsCache.ContainsKey(playlistId)
-                        ? PlaylistItemsCache[playlistId]
-                        : null;
-                    }
+                                        // Lista do cache
+                                        var itemsList = PlaylistItemsCache.ContainsKey(playlistId)
+                                        ? PlaylistItemsCache[playlistId]
+                                        : null;
+                                    }
 
-                    <div class="p-2 w-100">
-                        <h5>@localizerApp["TituloItensPlaylist"]</h5>
-                        <hr />
-                        <div class="button-container my-2">
-                            <SfButton CssClass="e-btn e-success e-round-corner"
-                                      IconCss="fa fa-plus" Content="@localizerApp["NewMsg"]"
-                                      @onclick="() => OpenAddItemDialog(playlistId)">
-                            </SfButton>
-                        </div>
+                                    <div class="p-2 w-100">
+                                        <h5>@localizerApp["TituloItensPlaylist"]</h5>
+                                        <hr />
+                                        <div class="button-container my-2">
+                                            <SfButton CssClass="e-btn e-success e-round-corner"
+                                                      IconCss="fa fa-plus" Content="@localizerApp["NewMsg"]"
+                                                      @onclick="() => OpenAddItemDialog(playlistId)">
+                                            </SfButton>
+                                        </div>
 
-                        @if (isLoading)
-                        {
-                            <div class="p-3">
-                                <span>Carregando...</span>
-                            </div>
-                        }
-                        else if (itemsList is null)
-                        {
-                            <div class="p-3">
-                                <span>Inicializando...</span>
-                            </div>
-                        }
-                        else if (!itemsList.Any())
-                        {
-                            <div class="alert alert-info">
-                                @localizerApp["TituloNoDataToShow"]
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="container-fluid">
-                                <SfGrid DataSource="@itemsList"
-                                        Width="100%"
-                                        AllowPaging="true"
-                                        AllowRowDragAndDrop="true"
-                                        AllowSorting="true"
-                                        AllowFiltering="true">
-                                    <GridRowDropSettings TargetID="@($"playlistItemsGrid-{playlistId}")" />
+                                        @if (isLoading)
+                                        {
+                                            <div class="p-3">
+                                                <span>Carregando...</span>
+                                            </div>
+                                        }
+                                        else if (itemsList is null)
+                                        {
+                                            <div class="p-3">
+                                                <span>Inicializando...</span>
+                                            </div>
+                                        }
+                                        else if (!itemsList.Any())
+                                        {
+                                            <div class="alert alert-info">
+                                                @localizerApp["TituloNoDataToShow"]
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="container-fluid">
+                                                <SfGrid DataSource="@itemsList"
+                                                        Width="100%"
+                                                        AllowPaging="true"
+                                                        AllowRowDragAndDrop="true"
+                                                        AllowSorting="true"
+                                                        AllowFiltering="true">
+                                                    <GridRowDropSettings TargetID="@($"playlistItemsGrid-{playlistId}")" />
 
-                                    <GridPageSettings PageSize="5" PageCount="5" PageSizes="true"></GridPageSettings>
-                                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
-                                    <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple">
-                                    </GridSelectionSettings>
-                                    <GridEvents CommandClicked="OnDetailDeleteCommandClicked"
-                                                TValue="PlaylistItemDto"
-                                                RowDragStarting="RowDragStartingHandler"
-                                                RowDropping="RowDroppingHandler"
-                                                RowDropped="RowDroppedHandler" />
-                                    <GridColumns>
-                                        <GridColumn Field=@nameof(PlaylistItemDto.Id)
-                                                    HeaderText="ID#" Visible="false" IsPrimaryKey="true"
-                                                    Width="10" />
-                                        <GridColumn Field=@nameof(PlaylistItemDto.Title)
-                                                    HeaderText="@localizerApp["lblTitulo"]"
-                                                    Width="350" />
-                                        <GridColumn Field=@nameof(PlaylistItemDto.Author)
-                                                    HeaderText="@localizerApp["lblAutor"]"
-                                                    Width="200" />
-                                        <GridColumn Field=@nameof(PlaylistItemDto.CategoriaMedia)
-                                                    HeaderText="@localizerApp["lblCategoria"]"
-                                                    Width="200" />
-                                        @*                                         <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
+                                                    <GridPageSettings PageSize="5" PageCount="5" PageSizes="true"></GridPageSettings>
+                                                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
+                                                    <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple">
+                                                    </GridSelectionSettings>
+                                                    <GridEvents CommandClicked="OnDetailDeleteCommandClicked"
+                                                                TValue="PlaylistItemDto"
+                                                                RowDragStarting="RowDragStartingHandler"
+                                                                RowDropping="RowDroppingHandler"
+                                                                RowDropped="RowDroppedHandler" />
+                                                    <GridColumns>
+                                                        <GridColumn Field=@nameof(PlaylistItemDto.Id)
+                                                                    HeaderText="ID#" Visible="false" IsPrimaryKey="true"
+                                                                    Width="10" />
+                                                        <GridColumn Field=@nameof(PlaylistItemDto.Title)
+                                                                    HeaderText="@localizerApp["lblTitulo"]"
+                                                                    Width="350" />
+                                                        <GridColumn Field=@nameof(PlaylistItemDto.Author)
+                                                                    HeaderText="@localizerApp["lblAutor"]"
+                                                                    Width="200" />
+                                                        <GridColumn Field=@nameof(PlaylistItemDto.CategoriaMedia)
+                                                                    HeaderText="@localizerApp["lblCategoria"]"
+                                                                    Width="200" />
+                                                        @*                                         <GridColumn Field=@nameof(PlaylistItemDto.MediaType)
                                                     HeaderText="@localizerApp["TipoFicheiro"]"
                                                     Width="200">
                                             <Template>
@@ -250,36 +258,104 @@ else
                                             </Template>
                                         </GridColumn>
  *@        
-                                        <GridColumn Field=@nameof(PlaylistItemDto.TrackTime)
-                                                    HeaderText="@localizerApp["TrackTime"]"
-                                                    Width="140" />
-                                        <GridColumn HeaderText=""
-                                                    AllowFiltering="false"
-                                                    AllowSorting="false"
-                                                    TextAlign="TextAlign.Center"
-                                                    Width="120">
-                                            <GridCommandColumns>
-                                                <GridCommandColumn Type="CommandButtonType.Delete"
-                                                                   Title=""
-                                                                   ButtonOption="@(new CommandButtonOptions()
-                                                                                                                       {
-                                                                                                                           Content = "",
-                                                                                                                           CssClass = "e-btn e-danger e-round",
-                                                                                                                           IconCss = "fa fa-trash"
-                                                                                                                       })">
-                                                </GridCommandColumn>
-                                            </GridCommandColumns>
-                                        </GridColumn>
-                                    </GridColumns>
-                                </SfGrid>
-                            </div>
-                        }
+                                                        <GridColumn Field=@nameof(PlaylistItemDto.TrackTime)
+                                                                    HeaderText="@localizerApp["TrackTime"]"
+                                                                    Width="140" />
+                                                        <GridColumn HeaderText=""
+                                                                    AllowFiltering="false"
+                                                                    AllowSorting="false"
+                                                                    TextAlign="TextAlign.Center"
+                                                                    Width="120">
+                                                            <GridCommandColumns>
+                                                                <GridCommandColumn Type="CommandButtonType.Delete"
+                                                                                   Title=""
+                                                                                   ButtonOption="@(new CommandButtonOptions()
+                                                                                   {
+                                                                                       Content = "",
+                                                                                       CssClass = "e-btn e-danger e-round",
+                                                                                       IconCss = "fa fa-trash"
+                                                                                   })">
+                                                                </GridCommandColumn>
+                                                            </GridCommandColumns>
+                                                        </GridColumn>
+                                                    </GridColumns>
+                                                </SfGrid>
+                                            </div>
+                                        }
+                                    </div>
+                                </DetailTemplate>
+                            </GridTemplates>
+                        </SfGrid>
                     </div>
-                </DetailTemplate>
-            </GridTemplates>
-        </SfGrid>
-    </div>
-}
+                }
+            </ContentTemplate>
+        </TabItem>
+        <TabItem>
+            <ChildContent>
+                <TabHeader Text="YouTube Playlists"></TabHeader>
+            </ChildContent>
+            <ContentTemplate>
+                    <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
+                        <label>Nome ou URL da Playlist do YouTube</label>
+                        <SfTextBox @bind-Value="youtubePlaylistQuery" Width="60%" />
+                        <SfButton CssClass="e-btn e-primary e-round-corner"
+                                  IconCss="fa fa-search"
+                                  Content="@localizerApp["btnLocalizar"]"
+                                  @onclick="GetYoutubePlaylist">
+                        </SfButton>
+                    </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(youtubeSearchError))
+                {
+                    <div class="alert alert-danger">
+                        @youtubeSearchError
+                    </div>
+                }
+                else if (youtubeVideos is not null)
+                {
+                    @if (!youtubeVideos.Any())
+                    {
+                        <div class="alert alert-info">
+                            @localizerApp["TituloNoDataToShow"]
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="container e-container-style">
+                            <div class="row text-lg-start">
+                                @foreach (var video in youtubeVideos)
+                                {
+                                    <div class="col-lg-4 col-md-6 col-sm-12">
+                                        <a class="d-block mb-4 h-100" href="@($"https://www.youtube.com/watch?v={video.VideoId}")" target="_blank" style="text-decoration:none;">
+                                            <div class="img-box fixed-img-box">
+                                                <img class="img-fluid img-thumbnail fixed-img"
+                                                     src="@video.ThumbnailUrl"
+                                                     alt="@video.Title" />
+                                            </div>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <p class="info-title"><i>@video.Title</i></p>
+                                                        <SfChip>
+                                                            <ChipItems>
+                                                                <ChipItem CssClass="e-success" Text="@video.PublishedAt.ToString()" />
+                                                            </ChipItems>
+                                                        </SfChip>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </ContentTemplate>
+        </TabItem>
+    </TabItems>
+</SfTab>
 
 <SfToast @ref="ToastObj"
          Title="@ToastTitle"
@@ -311,7 +387,7 @@ else
             <div>
                 <h3>
                     <img src="/images/media-documents-icon.png" width="32" height="32" />
-                    &nbsp;@(IsEditMode? localizerApp["EditMsg"] + " '" + EditModel.Name + "'" : localizerApp["NewMsg"])
+                    &nbsp;@(IsEditMode ? localizerApp["EditMsg"] + " '" + EditModel.Name + "'" : localizerApp["NewMsg"])
                 </h3>
             </div>
         </Header>
@@ -457,7 +533,41 @@ else
                         OnCloseDialog="@(()=>ErrorVisibility=false)"
                         ValidationMessages="@ValidationMessages" />
 
+@code {
+    [Inject] public YoutubeService YoutubeService { get; set; } = default!;
+
+    private string youtubePlaylistQuery = string.Empty;
+    private List<YoutubeVideoDto>? youtubeVideos;
+    private string? youtubeSearchError;
+
+    private async Task GetYoutubePlaylist()
+    {
+        youtubeSearchError = null;
+        youtubeVideos = null;
+
+        if (string.IsNullOrWhiteSpace(youtubePlaylistQuery))
+        {
+            youtubeSearchError = "Informe o nome ou URL da playlist.";
+            return;
+        }
+
+        try
+        {
+            youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
+        }
+        catch (Exception ex)
+        {
+            youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
+        }
+    }
+}
+
 <style>
+
+    .e-container-style {
+        background-color: #f0f0f0;
+    }
+
     .button-container {
         display: flex;
         justify-content: flex-end;
@@ -476,8 +586,128 @@ else
         border-color: #2196f3;
         background-color: blue;
     }
- .e-attr-bold {
+
+    .e-attr-bold {
         font-weight: bold;
+    }
+
+    .video-gallery-thumb {
+        position: relative;
+        transition: .5s;
+        max-height: 230px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        border-radius: 0px 100px;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .video-gallery-img {
+        max-width: 100%;
+        border: 3px solid #FFC107;
+        position: relative;
+        width: 250px;
+        height: 200px;
+        object-fit: fill;
+        object-position: center;
+    }
+
+    .video-gallery-thumb::before {
+        content: '';
+        border-left: 3px solid #ffffff;
+        border-top: 3px solid #ffffff;
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        width: 50px;
+        height: 50px;
+        z-index: 1;
+        transition: .5s;
+    }
+
+    .video-gallery-thumb::after {
+        content: '';
+        border-right: 3px solid #ffffff;
+        border-bottom: 3px solid #ffffff;
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        width: 50px;
+        height: 50px;
+        z-index: 2;
+        transition: .5s;
+    }
+
+    .video-gallery-thumb:hover {
+        transform: scale(1.04);
+    }
+
+        .video-gallery-thumb:hover::before {
+            left: 10px;
+            top: 10px;
+        }
+
+        .video-gallery-thumb:hover::after {
+            right: 10px;
+            bottom: 10px;
+        }
+
+    .small-text {
+        font-size: 0.8rem;
+    }
+
+    .fixed-img-box {
+        width: 100%;
+        height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f8f8f8;
+        border-radius: 16px;
+    }
+
+    .fixed-img {
+        width: 100%;
+        height: 100%;
+        max-width: 340px;
+        max-height: 240px;
+        object-fit:fill;
+        border-radius: 16px;
+    }
+
+    .fixed-card {
+        min-height: 170px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .info-title {
+        margin-left: 3px;
+        font-weight: 500;
+        flex: 1 1 0;
+        font-size: 0.85rem;
+        line-height: 1.2em;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        margin-bottom: 0;
+    }
+
+    .card-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        min-height: 2.5em;
+        max-height: 2.5em;
+        overflow: hidden;
     }
 
 </style>

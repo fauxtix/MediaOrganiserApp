@@ -19,6 +19,7 @@ using Web.Blazor.Services.Recipes;
 using Web.Blazor.Services.Reporting;
 using Web.Blazor.Services.Security;
 using Web.Blazor.Services.User;
+using Web.Blazor.Services.YouTube;
 
 
 namespace Web.Blazor
@@ -67,6 +68,17 @@ namespace Web.Blazor
 
             // AI wrapper for media fallback (e.g., missing awards/liner notes).
             services.AddHttpClient<AiMediaClientService>();
+
+            // YoutubeService para integração com playlists do YouTube
+            services.AddHttpClient("YouTube");
+            services.AddScoped<Web.Blazor.Services.YouTube.YoutubeService>(sp =>
+            {
+                var apiKey = Web.Blazor.Static.Keys.YouTubeApiKey;
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                var logger = sp.GetRequiredService<ILogger<YoutubeService>>();
+                var httpClient = httpClientFactory.CreateClient("YouTube");
+                return new Web.Blazor.Services.YouTube.YoutubeService(httpClient, apiKey, logger);
+            });
 
             services.AddHttpClient<ICategoriasService, CategoriasService>();
             services.AddHttpClient<IEditorasService, EditorasService>();

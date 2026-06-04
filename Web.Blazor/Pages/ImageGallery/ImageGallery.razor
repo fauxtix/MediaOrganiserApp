@@ -1,4 +1,6 @@
-﻿@page "/imagegallery"
+﻿
+@inject IJSRuntime js
+@page "/imagegallery"
 @page "/imagegallery/{Categoria:int}"
 
 @using MediaOrganizerApp.Application.Interfaces.Services.Api
@@ -25,10 +27,11 @@
 
     @if (categoryList is not null)
     {
-        <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
-        <div class="d-flex justify-content-start align-items-center mb-3" style="gap:16px;">
-            <div>
-                <SfDropDownList Enabled="@(!allCategories)" Width="350px"
+        <div class="options-container mb-3">
+            <!-- ComboBox -->
+            <div class="combo-col">
+                <label class="col-form-label font-weight-bold">@localizerApp["lblCategoria"]</label>
+                <SfDropDownList Enabled="@(!allCategories)" Width="100%"
                                 PopupWidth="350px" PopupHeight="450px" @bind-Value="@CatId" AllowFiltering="true"
                                 CssClass="custom-class e-corner"
                                 FilterBarPlaceholder="@localizerApp["TituloPesquisaCategorias"]" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
@@ -37,17 +40,35 @@
                     <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
                 </SfDropDownList>
             </div>
-            <div>
-                <SfChip>
-                    <ChipItems>
-                        <ChipItem CssClass="e-info e-outline" Text="@PubsFilesCount"/>
-                    </ChipItems>
-                </SfChip>
-            </div>
-            <div>
+            <!-- Checkbox and Chip count -->
+            <div class="mt-4">
                 <SfCheckBox @bind-Checked="allCategories" Label="@localizerApp["msgAll"]" @onchange="onAllCategories"
                             LabelPosition="Syncfusion.Blazor.Buttons.LabelPosition.After" />
             </div>
+            <div class="mt-4">
+                <SfChip>
+                    <ChipItems>
+                        <ChipItem CssClass="e-info e-outline mt-2" Text="@PubsFilesCount" />
+                    </ChipItems>
+                </SfChip>
+            </div>
+            <!-- Search (only visible when allCategories) -->
+            @if (allCategories)
+            {
+                <div class="search-col d-flex flex-column align-items-start ms-auto">
+                    <label class="col-form-label font-weight-bold">Pesquisar categoria</label>
+                    <div class="d-flex align-items-center w-100 mt-1">
+                        <input class="form-control e-input e-round-corner search-input"
+                               placeholder="Categoria..."
+                               @bind="CategoryGroupSearch"
+                               @bind:event="oninput" />
+                        <SfButton CssClass="e-btn e-outline e-round-corner ml-1" IconCss="fa fa-times"
+                                  Disabled="@string.IsNullOrWhiteSpace(CategoryGroupSearch)"
+                                  @onclick="() => CategoryGroupSearch = string.Empty">
+                        </SfButton>
+                    </div>
+                </div>
+            }
         </div>
     }
     else
@@ -104,7 +125,7 @@
                                 <div class="img-box">
                                     <img class="img-fluid img-thumbnail"
                                          @onclick="() => ShowPubDetail(ImagePath.Id)"
-                                         src="@(! imageSourceOnInternet? "images/no-image-available.png":imageCover)"
+                                         src="@(!imageSourceOnInternet ? "images/no-image-available.png" : imageCover)"
                                          alt="">
                                 </div>
                                 <p class="small-text text-center">@Path.GetFileName(ImagePath.Titulo)  (@ImagePath.AnoEdicao)</p>
@@ -127,9 +148,15 @@
                             {
                                 <AccordionItem>
                                     <HeaderTemplate>
-                                        @group.Key
-                                    </HeaderTemplate>
-                                    <ContentTemplate>
+
+                                        <div class="accordion-search-target"
+                                             id="@($"accordion-group-{group.Key}")">
+
+                                            @group.Key
+
+                                        </div>
+
+                                    </HeaderTemplate>                                    <ContentTemplate>
                                         <div class="row">
                                             @foreach (var image in group)
                                             {
@@ -172,7 +199,7 @@
                                                             <div class="img-box">
                                                                 <img class="img-fluid img-thumbnail"
                                                                      @onclick="() => ShowPubDetail(image.Id)"
-                                                                     src="@(!imageSourceOnInternet? "/images/No-image-icon.png":imageCover)"
+                                                                     src="@(!imageSourceOnInternet ? "/images/No-image-icon.png" : imageCover)"
                                                                      alt="">
                                                             </div>
                                                             <p class="small-text text-center">@Path.GetFileName(image.Titulo)  (@image.AnoEdicao)</p>
@@ -293,8 +320,23 @@
     protected bool allCategories;
 
     private List<IGrouping<string, ImageCategoryLocations>> imageCategoryGroups;
+    // For deferred scroll
+    private string? pendingScrollGroupKey;
 
     protected int[] ExpandItems = new int[] { 0 };
+    private string _categoryGroupSearch = string.Empty;
+    protected string CategoryGroupSearch
+    {
+        get => _categoryGroupSearch;
+        set
+        {
+            if (_categoryGroupSearch != value)
+            {
+                _categoryGroupSearch = value;
+                UpdateAccordionExpansion();
+            }
+        }
+    }
 
     protected string PubsFilesCount { get; set; } = "";
 
@@ -376,6 +418,7 @@
             await GetImagesAsync();
             imageCategoryGroups = ImagePaths.GroupBy(img => img.Categoria).ToList();
             imageCategoryGroups = imageCategoryGroups.OrderBy(p => p.Key).ToList();
+            UpdateAccordionExpansion();
         }
         else
         {
@@ -383,6 +426,64 @@
             await GetImagesAsync();
         }
         StateHasChanged();
+    }
+    private void UpdateAccordionExpansion()
+    {
+        if (imageCategoryGroups == null || imageCategoryGroups.Count == 0)
+        {
+            ExpandItems = Array.Empty<int>();
+            pendingScrollGroupKey = null;
+            return;
+        }
+
+        // Empty search
+        if (string.IsNullOrWhiteSpace(CategoryGroupSearch))
+        {
+            ExpandItems = new int[] { 0 };
+            pendingScrollGroupKey = null;
+
+            InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var search = CategoryGroupSearch
+            .Trim()
+            .ToLowerInvariant();
+
+        var index = imageCategoryGroups.FindIndex(g =>
+            !string.IsNullOrWhiteSpace(g.Key) &&
+            g.Key.ToLowerInvariant().Contains(search));
+
+        ExpandItems = index >= 0
+            ? new int[] { index }
+            : Array.Empty<int>();
+
+        pendingScrollGroupKey =
+            index >= 0
+            ? imageCategoryGroups[index].Key
+            : null;
+
+        InvokeAsync(StateHasChanged);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(pendingScrollGroupKey))
+        {
+            var elementId =
+                $"accordion-group-{pendingScrollGroupKey}";
+
+            // prevent repeated scrolling
+            pendingScrollGroupKey = null;
+
+            // wait for Syncfusion accordion animation
+            await Task.Delay(350);
+
+            await js.InvokeVoidAsync(
+                "scrollElementIntoViewWhenVisible",
+                elementId);
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
     }
     private async Task GetCategoriesAsync()
     {
@@ -432,13 +533,13 @@
 
 <style>
     /*     .e-accordion .e-acrdn-item .e-acrdn-header .e-toggle-icon .e-icons {
-                        color: black;
-                    }
-                 */
+                                color: black;
+                            }
+                         */
     .e-accordion .e-acrdn-item.e-select > .e-acrdn-header {
         background-color: whitesmoke !important;
         text-align: left;
-        align-items:center;
+        align-items: center;
     }
 
     .e-container-style {
@@ -447,6 +548,34 @@
 
     .e-round-corner {
         border-radius: 10px;
+    }
+
+    .options-container {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .combo-col {
+        max-width: 350px;
+        min-width: 220px;
+        flex: 0 1 350px;
+    }
+
+    .search-col {
+        max-width: 340px;
+        min-width: 220px;
+        flex: 0 1 340px;
+        display: flex;
+        flex-wrap: wrap;
+        margin-left: auto;
+    }
+
+    .search-input {
+        max-width: 220px;
     }
 
     .img-box {
@@ -461,10 +590,31 @@
         overflow: hidden;
     }
 
-    .img-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: fill;
-        object-position: center;
+        .img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            object-position: center;
+        }
+
+    .accordion-search-target {
+        padding: 6px 10px;
+        border-radius: 8px;
+        transition: background-color 0.3s ease;
+    }
+
+    .highlight-scroll {
+        animation: flashHighlight 1.5s ease;
+    }
+
+    @@keyframes flashHighlight {
+
+        0% {
+            background-color: #fff3cd;
+        }
+
+        100% {
+            background-color: transparent;
+        }
     }
 </style>
