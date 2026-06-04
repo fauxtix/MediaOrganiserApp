@@ -3,6 +3,7 @@ using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
@@ -24,6 +25,7 @@ namespace Web.Blazor.Pages.VideoGallery
         public IStringLocalizer<App> localizerApp { get; set; }
         [Inject]
         IWebHostEnvironment hostingEnvironment { get; set; }
+        [Inject] IJSRuntime JS { get; set; }
 
         protected IEnumerable<VideoCategoryLocations> VideoFiles;
         protected MediaVM SelectedRecord = new MediaVM();
@@ -228,5 +230,13 @@ namespace Web.Blazor.Pages.VideoGallery
         {
             TitleSearch = string.Empty;
         }
+
+        protected async Task ScrollToTop()
+        {
+            await JS.InvokeVoidAsync(
+                "window.scrollTo",
+                new { top = 0, behavior = "smooth" });
+        }
+
     }
 }

@@ -1,8 +1,10 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Enums;
+using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 using Syncfusion.Blazor.Grids;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
@@ -17,7 +19,7 @@ namespace Web.Blazor.Pages.BaseComponents
         [Inject] public IMediaServiceWrapper MediaService { get; set; }
         [Inject] public IStringLocalizer<App> localizerApp { get; set; }
         [Inject] public NavigationManager Navigation { get; set; } = default!;
-
+        [Inject] IJSRuntime JS { get; set; }
 
         protected SfGrid<PlaylistDto> gridObj;
         protected SfToast ToastObj;
@@ -65,11 +67,15 @@ namespace Web.Blazor.Pages.BaseComponents
 
         protected string message = string.Empty;
 
+        protected string TitleSearch { get; set; } = string.Empty;
+
+
         protected override async Task OnInitializedAsync()
         {
             await LoadPlaylistsAsync();
             await OpenAddMediaDialog();
         }
+
 
         protected async Task LoadPlaylistsAsync()
         {
@@ -476,6 +482,18 @@ namespace Web.Blazor.Pages.BaseComponents
                 SelectedPlaylistItem = data;
                 DeletePlaylistItemConfirmVisibility = true;
             }
+        }
+
+        protected void ClearTitleSearch()
+        {
+            TitleSearch = string.Empty;
+        }
+
+        protected async Task ScrollToTop()
+        {
+            await JS.InvokeVoidAsync(
+                "window.scrollTo",
+                new { top = 0, behavior = "smooth" });
         }
     }
 }

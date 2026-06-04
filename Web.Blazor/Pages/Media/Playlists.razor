@@ -295,15 +295,42 @@
                 <TabHeader Text="YouTube Playlists"></TabHeader>
             </ChildContent>
             <ContentTemplate>
-                    <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
-                        <label>Nome ou URL da Playlist do YouTube</label>
-                        <SfTextBox @bind-Value="youtubePlaylistQuery" Width="60%" />
-                        <SfButton CssClass="e-btn e-primary e-round-corner"
-                                  IconCss="fa fa-search"
-                                  Content="@localizerApp["btnLocalizar"]"
-                                  @onclick="GetYoutubePlaylist">
+                <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
+                    <label>YouTube Playlist Name or URL</label>
+                    <SfTextBox @bind-Value="youtubePlaylistQuery" Width="60%" />
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-search"
+                              Content="@localizerApp["btnLocalizar"]"
+                              @onclick="GetYoutubePlaylist">
+                    </SfButton>
+                    @if (!string.IsNullOrEmpty(youtubePlaylistQuery))
+                    {
+                        <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                                  Content="Clear"
+                                  @onclick="ClearUrlSearch">
                         </SfButton>
+                    }
+
+                </div>
+                @if (ShowTitleSearch)
+                {
+                    <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
+                        <label class="font-weight-bold">Search in the list </label>
+                        <input class="form-control e-input e-round-corner" style="width:250px"
+                        placeholder="Text to search"
+                        @bind="TitleSearch"
+                        @bind:event="oninput" />
+
+                        @if (!string.IsNullOrEmpty(TitleSearch))
+                        {
+                            <SfButton CssClass="e-btn e-outline e-round-corner"
+                            IconCss="fa fa-times"
+                            Content="Clear"
+                            @onclick="ClearTitleSearch">
+                            </SfButton>
+                        }
                     </div>
+                }
 
 
                 @if (!string.IsNullOrWhiteSpace(youtubeSearchError))
@@ -312,45 +339,48 @@
                         @youtubeSearchError
                     </div>
                 }
-                else if (youtubeVideos is not null)
+                else if (youtubeVideos is not null && youtubeVideos.Any())
                 {
-                    @if (!youtubeVideos.Any())
-                    {
-                        <div class="alert alert-info">
-                            @localizerApp["TituloNoDataToShow"]
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="container e-container-style">
-                            <div class="row text-lg-start">
-                                @foreach (var video in youtubeVideos)
-                                {
-                                    <div class="col-lg-4 col-md-6 col-sm-12">
-                                        <a class="d-block mb-4 h-100" href="@($"https://www.youtube.com/watch?v={video.VideoId}")" target="_blank" style="text-decoration:none;">
-                                            <div class="img-box fixed-img-box">
-                                                <img class="img-fluid img-thumbnail fixed-img"
-                                                     src="@video.ThumbnailUrl"
-                                                     alt="@video.Title" />
-                                            </div>
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <div class="d-flex justify-content-between align-items-start">
-                                                        <p class="info-title"><i>@video.Title</i></p>
-                                                        <SfChip>
-                                                            <ChipItems>
-                                                                <ChipItem CssClass="e-success" Text="@video.PublishedAt.ToString()" />
-                                                            </ChipItems>
-                                                        </SfChip>
-                                                    </div>
+                    <div class="container e-container-style">
+                        <div class="row text-lg-start">
+                            @foreach (var video in FilteredYoutubeVideos)
+                            {
+                                <SfFab IconCss="fa fa-arrow-up"
+                                       Position="FabPosition.BottomRight"
+                                       OnClick="ScrollToTop">
+                                </SfFab>
+                                <div class="col-lg-4 col-md-6 col-sm-12">
+                                    <a class="d-block mb-4 h-100" href="@($"https://www.youtube.com/watch?v={video.VideoId}")" target="_blank" style="text-decoration:none;">
+                                        <div class="img-box fixed-img-box">
+                                            <img class="img-fluid img-thumbnail fixed-img"
+                                                 src="@video.ThumbnailUrl"
+                                                 alt="@video.Title" />
+                                        </div>
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <p class="info-title"><i>@video.Title</i></p>
+                                                    <SfChip>
+                                                        <ChipItems>
+                                                            <ChipItem CssClass="e-success" Text="@video.PublishedAt.ToString()" />
+                                                        </ChipItems>
+                                                    </SfChip>
                                                 </div>
                                             </div>
-                                        </a>
-                                    </div>
-                                }
-                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            }
                         </div>
-                    }
+                    </div>
+                }
+                else if (FilteredYoutubeVideos is not null && 
+                    !FilteredYoutubeVideos.Any() && 
+                    !string.IsNullOrEmpty(youtubePlaylistQuery))
+                {
+                    <div class="alert alert-info">
+                        @localizerApp["TituloNoDataToShow"]
+                    </div>
                 }
             </ContentTemplate>
         </TabItem>
@@ -536,6 +566,7 @@
 @code {
     [Inject] public YoutubeService YoutubeService { get; set; } = default!;
 
+    private bool ShowTitleSearch { get; set; } = false;
     private string youtubePlaylistQuery = string.Empty;
     private List<YoutubeVideoDto>? youtubeVideos;
     private string? youtubeSearchError;
@@ -554,12 +585,30 @@
         try
         {
             youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
+            ShowTitleSearch = youtubeVideos != null && youtubeVideos.Any();
         }
         catch (Exception ex)
         {
             youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
         }
+
+
     }
+    protected void ClearUrlSearch()
+    {
+        youtubePlaylistQuery = string.Empty;
+        ShowTitleSearch = false;
+    }
+
+
+    protected IEnumerable<YoutubeVideoDto> FilteredYoutubeVideos =>
+        string.IsNullOrWhiteSpace(TitleSearch)
+        ? youtubeVideos ?? Enumerable.Empty<YoutubeVideoDto>()
+        : youtubeVideos?.Where(v =>
+            v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase)
+            || v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase))
+          ?? Enumerable.Empty<YoutubeVideoDto>();
+
 }
 
 <style>
@@ -674,7 +723,7 @@
         height: 100%;
         max-width: 340px;
         max-height: 240px;
-        object-fit:fill;
+        object-fit: fill;
         border-radius: 16px;
     }
 
@@ -708,6 +757,13 @@
         min-height: 2.5em;
         max-height: 2.5em;
         overflow: hidden;
+    }
+
+    .youtube-fab {
+        position: fixed !important;
+        right: 30px;
+        bottom: 30px;
+        z-index: 10000;
     }
 
 </style>

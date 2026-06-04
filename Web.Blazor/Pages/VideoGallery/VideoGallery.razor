@@ -75,6 +75,11 @@
         <div class="row text-lg-start">
             @foreach (var videoPath in FilteredVideoFiles)
             {
+                <SfFab IconCss="fa fa-arrow-up"
+                       Position="FabPosition.BottomRight"
+                       OnClick="ScrollToTop">
+                </SfFab>
+
                 <div class="col-lg-4 col-md-6 col-sm-12">
                     <a class="d-block mb-4 h-100">
                         <div class="img-box fixed-img-box">

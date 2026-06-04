@@ -1,5 +1,4 @@
-﻿
-@inject IJSRuntime js
+﻿@inject IJSRuntime js
 @page "/imagegallery"
 @page "/imagegallery/{Categoria:int}"
 
@@ -146,6 +145,11 @@
                         <AccordionItems>
                             @foreach (var group in imageCategoryGroups)
                             {
+                                <SfFab IconCss="fa fa-arrow-up"
+                                       Position="FabPosition.BottomRight"
+                                       OnClick="ScrollToTop">
+                                </SfFab>
+
                                 <AccordionItem>
                                     <HeaderTemplate>
 
@@ -156,67 +160,68 @@
 
                                         </div>
 
-                                    </HeaderTemplate>                                    <ContentTemplate>
-                                        <div class="row">
-                                            @foreach (var image in group)
+                                    </HeaderTemplate>        
+                                    <ContentTemplate>
+                                    <div class="row">
+                                        @foreach (var image in group)
+                                        {
+                                            var pubImage = string.Empty;
+                                            var imageCover = image.ImagemCapa;
+                                            if (imageCover.ToLower().Contains("image"))
                                             {
-                                                var pubImage = string.Empty;
-                                                var imageCover = image.ImagemCapa;
-                                                if (imageCover.ToLower().Contains("image"))
-                                                {
-                                                    imageCover = imageCover.Replace("/images", "images");
-                                                }
-                                                else if (imageCover.ToLower().Contains("http"))
-                                                {
-                                                    imageSourceOnInternet = true;
-                                                }
-                                                if (!imageSourceOnInternet)
-                                                    pubImage = Path.Combine(hostingEnvironment.WebRootPath, imageCover);
-                                                else
-                                                {
-                                                    pubImage = imageCover;
-                                                }
-
-                                                if (File.Exists(pubImage))
-                                                {
-                                                    var imageName = Path.GetFileName(image.Titulo);
-                                                    <div class="col-lg-3 col-md-4 col-6">
-                                                        <a class="d-block mb-4 h-100">
-                                                            <div class="img-box">
-                                                                <img class="img-fluid img-thumbnail"
-                                                                     @onclick="() => ShowPubDetail(image.Id)"
-                                                                     src="@fileService.DecodeImage(image.ImagemCapa)"
-                                                                     alt="">
-                                                            </div>
-                                                            <p class="small-text text-center">@imageName (@image.AnoEdicao)</p>
-                                                        </a>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="col-lg-3 col-md-4 col-6">
-                                                        <a class="d-block mb-4 h-100">
-                                                            <div class="img-box">
-                                                                <img class="img-fluid img-thumbnail"
-                                                                     @onclick="() => ShowPubDetail(image.Id)"
-                                                                     src="@(!imageSourceOnInternet ? "/images/No-image-icon.png" : imageCover)"
-                                                                     alt="">
-                                                            </div>
-                                                            <p class="small-text text-center">@Path.GetFileName(image.Titulo)  (@image.AnoEdicao)</p>
-                                                        </a>
-                                                    </div>
-                                                }
+                                                imageCover = imageCover.Replace("/images", "images");
                                             }
-                                        </div>
-                                    </ContentTemplate>
-                                </AccordionItem>
-                            }
-                        </AccordionItems>
-                    </SfAccordion>
-                }
+                                            else if (imageCover.ToLower().Contains("http"))
+                                            {
+                                                imageSourceOnInternet = true;
+                                            }
+                                            if (!imageSourceOnInternet)
+                                                pubImage = Path.Combine(hostingEnvironment.WebRootPath, imageCover);
+                                            else
+                                            {
+                                                pubImage = imageCover;
+                                            }
+
+                                            if (File.Exists(pubImage))
+                                            {
+                                                var imageName = Path.GetFileName(image.Titulo);
+                                                <div class="col-lg-3 col-md-4 col-6">
+                                                    <a class="d-block mb-4 h-100">
+                                                        <div class="img-box">
+                                                            <img class="img-fluid img-thumbnail"
+                                                                 @onclick="() => ShowPubDetail(image.Id)"
+                                                                 src="@fileService.DecodeImage(image.ImagemCapa)"
+                                                                 alt="">
+                                                        </div>
+                                                        <p class="small-text text-center">@imageName (@image.AnoEdicao)</p>
+                                                    </a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="col-lg-3 col-md-4 col-6">
+                                                    <a class="d-block mb-4 h-100">
+                                                        <div class="img-box">
+                                                            <img class="img-fluid img-thumbnail"
+                                                                 @onclick="() => ShowPubDetail(image.Id)"
+                                                                 src="@(!imageSourceOnInternet ? "/images/No-image-icon.png" : imageCover)"
+                                                                 alt="">
+                                                        </div>
+                                                        <p class="small-text text-center">@Path.GetFileName(image.Titulo)  (@image.AnoEdicao)</p>
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </ContentTemplate>
+                            </AccordionItem>
+                        }
+                    </AccordionItems>
+                </SfAccordion>
             }
         }
-    </div>
+    }
+</div>
 </div>
 
 <SfDialog Width="900px"
@@ -521,6 +526,14 @@
 
     }
 
+    protected async Task ScrollToTop()
+    {
+        await js.InvokeVoidAsync(
+            "window.scrollTo",
+            new { top = 0, behavior = "smooth" });
+    }
+
+
     private void CloseViewDialog()
     {
         ViewDialogVisibility = false;
@@ -533,9 +546,9 @@
 
 <style>
     /*     .e-accordion .e-acrdn-item .e-acrdn-header .e-toggle-icon .e-icons {
-                                color: black;
-                            }
-                         */
+                                    color: black;
+                                }
+                             */
     .e-accordion .e-acrdn-item.e-select > .e-acrdn-header {
         background-color: whitesmoke !important;
         text-align: left;
