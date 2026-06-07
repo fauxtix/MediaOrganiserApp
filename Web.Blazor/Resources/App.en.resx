@@ -1278,4 +1278,22 @@
   <data name="PublishedDate" xml:space="preserve">
     <value>Published on</value>
   </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>-- Conversations --</value>
+  </data>
+  <data name="TypeMessage" xml:space="preserve">
+    <value>Write a message</value>
+  </data>
+  <data name="StartNewConversation" xml:space="preserve">
+    <value>Start a new conversation</value>
+  </data>
+  <data name="StartNewConversationMessage" xml:space="preserve">
+    <value>This will delete the current messages and start a new conversation. Do you want to continue?</value>
+  </data>
+  <data name="ChatDeleteMessasagesTitle" xml:space="preserve">
+    <value>Delete conversation</value>
+  </data>
+  <data name="ChatDeleteMessage" xml:space="preserve">
+    <value>This will permanently delete the selected conversation. Continue?</value>
+  </data>
 </root>

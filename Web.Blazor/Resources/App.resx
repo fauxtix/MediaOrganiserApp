@@ -1279,4 +1279,22 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="PublishedDate" xml:space="preserve">
     <value>Publicado em</value>
   </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>-- Conversações --</value>
+  </data>
+  <data name="TypeMessage" xml:space="preserve">
+    <value>Escreva mensagem</value>
+  </data>
+  <data name="StartNewConversation" xml:space="preserve">
+    <value>Iniciar uma nova conversa</value>
+  </data>
+  <data name="StartNewConversationMessage" xml:space="preserve">
+    <value>Isto irá apagar as mensagens atuais e iniciar um novo contexto de conversa. Deseja continuar?</value>
+  </data>
+  <data name="ChatDeleteMessasagesTitle" xml:space="preserve">
+    <value>Apagar conversa</value>
+  </data>
+  <data name="ChatDeleteMessage" xml:space="preserve">
+    <value>Isto irá eliminar definitivamente a conversa selecionada. Deseja continuar?</value>
+  </data>
 </root>

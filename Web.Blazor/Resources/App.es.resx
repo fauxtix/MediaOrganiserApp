@@ -1279,4 +1279,22 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="PublishedDate" xml:space="preserve">
     <value>Publicado el</value>
   </data>
+  <data name="Conversations" xml:space="preserve">
+    <value>-- Conversaciones --</value>
+  </data>
+  <data name="TypeMessage" xml:space="preserve">
+    <value>Escribe un mensaje</value>
+  </data>
+  <data name="StartNewConversation" xml:space="preserve">
+    <value>Iniciar una nueva conversación</value>
+  </data>
+  <data name="StartNewConversationMessage" xml:space="preserve">
+    <value>Esto borrará los mensajes actuales y iniciará una nueva conversación. ¿Deseas continuar?</value>
+  </data>
+  <data name="ChatDeleteMessasagesTitle" xml:space="preserve">
+    <value>Borrar conversación</value>
+  </data>
+  <data name="ChatDeleteMessage" xml:space="preserve">
+    <value>Esto eliminará definitivamente la conversación seleccionada. ¿Deseas continuar?</value>
+  </data>
 </root>

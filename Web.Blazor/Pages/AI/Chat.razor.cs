@@ -6,11 +6,20 @@ using Web.Blazor.Services.ApiWrappers;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Syncfusion.Blazor.DropDowns;
 using System.Text.Json;
+using Microsoft.Extensions.Localization;
 
 namespace Web.Blazor.Pages.AI
 {
     public partial class Chat : IAsyncDisposable
     {
+
+        [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
+        [Inject] private IJSRuntime JS { get; set; } = null!;
+
+        [Inject] private IConfiguration Configuration { get; set; } = null!;
+        [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
+        [Inject] private IStringLocalizer<App> Localizer { get; set; } = null!;
+
         private bool ShowSpinnerOverlay;
         private CancellationTokenSource spinnerCts;
 
@@ -48,12 +57,9 @@ namespace Web.Blazor.Pages.AI
         public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
 
-        [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
-        [Inject] private IJSRuntime JS { get; set; } = null!;
 
-        [Inject] private IConfiguration Configuration { get; set; } = null!;
-        [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
 
+        private string? InputStyle { get; set; }
         protected override async Task OnInitializedAsync()
         {
             await LoadConversations(); // load from server before render
@@ -61,17 +67,37 @@ namespace Web.Blazor.Pages.AI
 
 
 
+        //protected override async Task OnAfterRenderAsync(bool firstRender)
+        //{
+        //    if (!firstRender) return;
+
+        //    // attach client-side JS handlers once after first render to avoid
+        //    // duplicate handlers / race conditions that could cause Enter/Shift+Enter
+        //    // to misbehave.
+        //    dotNetRef = DotNetObjectReference.Create(this);
+        //    try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
+        //}
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (!firstRender) return;
+            if (firstRender)
+            {
+                dotNetRef = DotNetObjectReference.Create(this);
+            }
 
-            // attach client-side JS handlers once after first render to avoid
-            // duplicate handlers / race conditions that could cause Enter/Shift+Enter
-            // to misbehave.
-            dotNetRef = DotNetObjectReference.Create(this);
-            try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
+            // Aguarda um ciclo do CPU para garantir que o DOM do browser está 100% atualizado
+            await Task.Yield();
+
+            try
+            {
+                // Chamamos sempre para garantir que o input ganha os handlers, mesmo mudando de conversa
+                await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao anexar handlers do chat: {ex.Message}");
+            }
         }
-
         private void OnProgressReceived(string? message)
         {
             // show informational progress coming from the server (HTTP streaming)
@@ -127,7 +153,17 @@ namespace Web.Blazor.Pages.AI
             chatCts = new CancellationTokenSource();
 
             userInput = string.Empty;
+
+            InputStyle = "height: auto;";
+
+            // 3. Renderiza o HTML limpo no browser
             await InvokeAsync(StateHasChanged);
+
+            // 4. Chama o JS apenas para limpar resíduos físicos locais
+            try { await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef); } catch { }
+
+            // 5. Restaura a propriedade para nula para que o CSS volte a mandar a 100% no futuro
+            InputStyle = null;
 
             try
             {
@@ -236,8 +272,12 @@ namespace Web.Blazor.Pages.AI
                 await InvokeAsync(StateHasChanged);
             }
         }
-        [JSInvokable] public async Task OnEnterPressedFromJs() => await Send();
-
+        [JSInvokable]
+        public async Task OnEnterPressedFromJs()
+        {
+            await Task.Delay(10);
+            await Send();
+        }
 
         async Task ShowConfirmNewConversation()
         {
@@ -421,8 +461,8 @@ namespace Web.Blazor.Pages.AI
                 {
                     if (toastObj != null)
                     {
-                        ToastTitle = "Conversation";
-                        ToastContent = "Conversation deleted";
+                        ToastTitle = Localizer["TituloApagarRegisto"];
+                        ToastContent = Localizer["SuccessDelete"];
                         ToastCssClass = "e-toast-success";
                         await InvokeAsync(StateHasChanged);
                         await toastObj.ShowAsync();
@@ -479,9 +519,6 @@ namespace Web.Blazor.Pages.AI
 
             await InvokeAsync(StateHasChanged);
         }
-        // Migration helper intentionally disabled: localStorage helpers were removed.
-        // If you still have local data and need to migrate it, restore the getConversations JS
-        // helpers temporarily and re-enable this method to import them to the server.
         private Task MigrateLocalConversationsAsync() => Task.CompletedTask;
 
 

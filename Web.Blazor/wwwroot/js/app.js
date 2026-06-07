@@ -158,8 +158,9 @@ setTimeout(() => window.updateAppToolbarHeight(), 800);
 // Initialize theme
 document.documentElement.setAttribute('data-theme', window.getTheme());
 
-// Chat input helpers (INTACTO)
 window.chatInput = (function () {
+    let isResetting = false; // Flag para bloquear execuções fantasmas
+
     function insertNewlineAtCaret(el) {
         if (!el) return;
         const start = el.selectionStart;
@@ -173,15 +174,55 @@ window.chatInput = (function () {
 
     function autoResize(el) {
         if (!el) return;
+
+        // SE ESTIVER A FAZER RESET OU O INPUT ESTIVER VAZIO:
+        // Limpa o estilo inline imediatamente e aborta o cálculo do scrollHeight antigo
+        if (isResetting || !el.value || el.value.trim() === '') {
+            el.style.height = '';
+            el.style.removeProperty('height');
+            return;
+        }
+
         el.style.height = 'auto';
         el.style.height = (el.scrollHeight + 2) + 'px';
     }
 
-    function attachHandlers(el, dotNetRef) {
-        if (!el) return;
+    function resetHeight(el) {
+        const target = el instanceof HTMLElement ? el : document.querySelector('.chat-input');
+        if (!target) return;
 
-        if (el.__chatInputHandler) {
-            el.__chatInputDotNetRef = dotNetRef;
+        isResetting = true; // Ativa o escudo protetor
+
+        // 1. Limpeza agressiva imediata no DOM
+        target.value = '';
+        target.style.height = '';
+        target.style.removeProperty('height');
+
+        // 2. Ciclo de segurança duplo para queimar qualquer evento "input" residual
+        let attempts = 0;
+        const forceClear = () => {
+            if (target) {
+                target.value = '';
+                target.style.height = '';
+                target.style.removeProperty('height');
+            }
+            attempts++;
+            if (attempts < 3) {
+                requestAnimationFrame(forceClear);
+            } else {
+                isResetting = false; // Desativa o escudo após a poeira assentar
+            }
+        };
+
+        requestAnimationFrame(forceClear);
+    }
+
+    function attachHandlers(el, dotNetRef) {
+        const target = el instanceof HTMLElement ? el : document.querySelector('.chat-input');
+        if (!target) return;
+
+        if (target.__chatInputHandler) {
+            target.__chatInputDotNetRef = dotNetRef;
             return;
         }
 
@@ -189,43 +230,49 @@ window.chatInput = (function () {
             if (e.key === 'Enter') {
                 if (!e.shiftKey) {
                     e.preventDefault();
-                    const ref = (el && el.__chatInputDotNetRef) || dotNetRef;
+
+                    // Força a atualização do binding do Blazor antes de disparar o C#
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+
+                    const ref = target.__chatInputDotNetRef || dotNetRef;
                     if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs');
                 } else {
                     e.preventDefault();
-                    insertNewlineAtCaret(el);
+                    insertNewlineAtCaret(target);
                 }
             }
         };
 
-        const resizeHandler = function () { autoResize(el); };
+        const resizeHandler = function () { autoResize(target); };
 
-        el.__chatInputHandler = handler;
-        el.__chatInputResizeHandler = resizeHandler;
-        el.__chatInputDotNetRef = dotNetRef;
+        target.__chatInputHandler = handler;
+        target.__chatInputResizeHandler = resizeHandler;
+        target.__chatInputDotNetRef = dotNetRef;
 
-        el.addEventListener('keydown', handler);
-        el.addEventListener('input', resizeHandler);
+        target.addEventListener('keydown', handler);
+        target.addEventListener('input', resizeHandler);
 
-        autoResize(el);
+        autoResize(target);
     }
 
     function detachHandlers(el) {
-        if (!el) return;
-        if (el.__chatInputHandler) {
-            el.removeEventListener('keydown', el.__chatInputHandler);
-            delete el.__chatInputHandler;
+        const target = el instanceof HTMLElement ? el : document.querySelector('.chat-input');
+        if (!target) return;
+
+        if (target.__chatInputHandler) {
+            target.removeEventListener('keydown', target.__chatInputHandler);
+            delete target.__chatInputHandler;
         }
-        if (el.__chatInputResizeHandler) {
-            el.removeEventListener('input', el.__chatInputResizeHandler);
-            delete el.__chatInputResizeHandler;
+        if (target.__chatInputResizeHandler) {
+            target.removeEventListener('input', target.__chatInputResizeHandler);
+            delete target.__chatInputResizeHandler;
         }
     }
 
-    return { attachHandlers, detachHandlers, insertNewlineAtCaret };
+    return { attachHandlers, detachHandlers, insertNewlineAtCaret, resetHeight };
 })();
 
-// Copilot input (INTACTO)
 window.copilotInput = (function () {
     function attachHandlers(el) {
         if (!el) return;
