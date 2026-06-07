@@ -12,7 +12,6 @@ namespace MediaOrganizerApp.WebApi.Services
         private readonly IAiSettingsProvider _aiSettingsProvider;
         private readonly IProgressPublisher _progressPublisher;
 
-
         public OllamaChatService(
             HttpClient httpClient,
             ILogger<OllamaChatService> logger,
@@ -32,16 +31,21 @@ namespace MediaOrganizerApp.WebApi.Services
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var (baseUrl, model) = await _aiSettingsProvider.GetAiSettingsAsync();
-            await PublishAsync(connectionId, correlationId, "started", 5, "Starting chat request...", cancellationToken);
+
+            await PublishAsync(connectionId, correlationId, "started", 5,
+                "Starting chat request...", cancellationToken);
 
             var payload = new
             {
                 model,
                 messages,
+                temperature = 0.7,
                 stream = true
             };
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"{baseUrl}/api/chat"))
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                new Uri($"{baseUrl}/api/chat"))
             {
                 Content = JsonContent.Create(payload)
             };
@@ -50,15 +54,28 @@ namespace MediaOrganizerApp.WebApi.Services
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken);
-            await PublishAsync(connectionId, correlationId, "response_received", 60, "Receiving chat response...", cancellationToken);
 
-            // Chat hub removed: progress will be delivered via HTTP streaming only
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                _logger.LogError("Ollama error: {StatusCode} - {Error}",
+                    response.StatusCode,
+                    error);
+
+                yield break;
+            }
+
+            await PublishAsync(connectionId, correlationId, "response_received", 60,
+                "Receiving chat response...", cancellationToken);
+
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var reader = new StreamReader(stream);
 
             string? line;
-            while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
+
+            while ((line = await reader.ReadLineAsync()) != null
+                   && !cancellationToken.IsCancellationRequested)
             {
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
@@ -68,27 +85,54 @@ namespace MediaOrganizerApp.WebApi.Services
                 try
                 {
                     using var json = JsonDocument.Parse(line);
-
-                    if (json.RootElement.TryGetProperty("message", out var msg))
-                    {
-                        content = msg.GetProperty("content").GetString();
-                    }
+                    content = ExtractContent(json.RootElement);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Erro a processar chunk do Ollama");
-                    continue;
                 }
 
-                if (!string.IsNullOrEmpty(content))
+                if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // yield chunk for HTTP streaming clients
                     yield return content;
                 }
             }
 
-            // done
-            await PublishAsync(connectionId, correlationId, "completed", 100, "Chat request completed.", cancellationToken);
+            await PublishAsync(connectionId, correlationId, "completed", 100,
+                "Chat request completed.", cancellationToken);
+        }
+
+        private static string? ExtractContent(JsonElement root)
+        {
+            if (!root.TryGetProperty("message", out var msg))
+                return null;
+
+            string? content = msg.TryGetProperty("content", out var c)
+                ? c.GetString()
+                : null;
+
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                return Clean(content);
+            }
+
+            string? thinking = msg.TryGetProperty("thinking", out var t)
+                ? t.GetString()
+                : null;
+
+            if (!string.IsNullOrWhiteSpace(thinking))
+            {
+                return Clean(thinking);
+            }
+
+            return null;
+        }
+
+        private static string Clean(string text)
+        {
+            return text
+                .Replace("<think>", "")
+                .Replace("</think>", "");
         }
 
         private Task PublishAsync(
@@ -113,6 +157,5 @@ namespace MediaOrganizerApp.WebApi.Services
                 },
                 connectionId,
                 cancellationToken);
-
     }
 }

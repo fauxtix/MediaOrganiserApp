@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml;
 
 
 
@@ -47,6 +48,8 @@ namespace Web.Blazor.Services.YouTube
                         continue;
                     if (!snippet.TryGetProperty("title", out var titleProp))
                         continue;
+                    if (!snippet.TryGetProperty("description", out var descriptionProp))
+                        continue;
                     if (!snippet.TryGetProperty("thumbnails", out var thumbs))
                         continue;
                     if (!thumbs.TryGetProperty("medium", out var thumbDefault))
@@ -56,10 +59,19 @@ namespace Web.Blazor.Services.YouTube
                     DateOnly publishedAt = DateOnly.FromDateTime(snippet.GetProperty("publishedAt").GetDateTime());
                     var videoId = videoIdProp.GetString();
                     var title = titleProp.GetString();
+                    var description = descriptionProp.GetString();
                     var thumb = thumbUrlProp.GetString();
                     if (!string.IsNullOrWhiteSpace(videoId) && !string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(thumb))
-                        videos.Add(new YoutubeVideoDto { VideoId = videoId, Title = title, ThumbnailUrl = thumb, PublishedAt = publishedAt });
+                        videos.Add(
+                            new YoutubeVideoDto { 
+                                VideoId = videoId, 
+                                Title = title,  
+                                Description = description, 
+                                ThumbnailUrl = thumb, 
+                                PublishedAt = publishedAt });
                 }
+
+                await FillVideoDurations(videos);
                 return videos;
             }
             catch (Exception ex)
@@ -121,6 +133,42 @@ namespace Web.Blazor.Services.YouTube
                     Title = x.Snippet?.Title ?? "Sem título"
                 })
                 .ToList();
+        }
+
+        private async Task FillVideoDurations(List<YoutubeVideoDto> videos)
+        {
+            if (!videos.Any())
+                return;
+
+            var ids = string.Join(",", videos.Select(v => v.VideoId));
+
+            var url =
+                $"https://www.googleapis.com/youtube/v3/videos" +
+                $"?part=contentDetails" +
+                $"&id={ids}" +
+                $"&key={_apiKey}";
+
+            var json = await _httpClient.GetStringAsync(url);
+
+            using var doc = JsonDocument.Parse(json);
+
+            var durations = doc.RootElement
+                .GetProperty("items")
+                .EnumerateArray()
+                .ToDictionary(
+                    item => item.GetProperty("id").GetString(),
+                    item => XmlConvert.ToTimeSpan(
+                        item.GetProperty("contentDetails")
+                            .GetProperty("duration")
+                            .GetString()));
+
+            foreach (var video in videos)
+            {
+                if (durations.TryGetValue(video.VideoId, out var duration))
+                {
+                    video.Duration = duration;
+                }
+            }
         }
     }
 }

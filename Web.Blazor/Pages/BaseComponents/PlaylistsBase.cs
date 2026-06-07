@@ -100,7 +100,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao carregar playlists.", ex.Message);
+                ShowError("Error loading playlists.", ex.Message);
             }
             finally
             {
@@ -145,7 +145,7 @@ namespace Web.Blazor.Pages.BaseComponents
             var ok = await PlaylistsService.UpdateSortOrderAsync(items);
             if (!ok)
             {
-                ShowError("Erro", "API returned non-success while updating SortOrder.");
+                ShowError("Error", "API returned non-success while updating SortOrder.");
                 return;
             }
 
@@ -206,7 +206,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao carregar detalhes da playlist.", ex.Message);
+                ShowError("Error loading playlist details.", ex.Message);
             }
             finally
             {
@@ -248,7 +248,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 if (string.IsNullOrWhiteSpace(EditModel.Name))
                 {
-                    ShowError("Validação", "Nome é obrigatório.");
+                    ShowError("Validation", "Name is required.");
                     return;
                 }
 
@@ -256,7 +256,7 @@ namespace Web.Blazor.Pages.BaseComponents
                 {
                     var ok = await PlaylistsService.UpdateAsync(EditingPlaylistId, EditModel);
                     if (!ok)
-                        throw new System.Exception("Erro ao atualizar playlist.");
+                        throw new System.Exception("Error updating playlist.");
                 }
                 else
                 {
@@ -268,7 +268,7 @@ namespace Web.Blazor.Pages.BaseComponents
                     };
                     int? createdId = await PlaylistsService.CreateAsync(createDto);
                     if (createdId <= 0)
-                        throw new System.Exception("Erro ao criar playlist.");
+                        throw new System.Exception("Error creating playlist.");
                 }
 
                 EditDialogVisibility = false;
@@ -298,7 +298,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao apagar playlist.", ex.Message);
+                ShowError("Error deleting playlist.", ex.Message);
             }
         }
 
@@ -319,7 +319,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao apagar playlist.", ex.Message);
+                ShowError("Error deleting playlist item.", ex.Message);
             }
         }
 
@@ -348,7 +348,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao carregar arquivos de mídia.", ex.Message);
+                ShowError("Error loading media files.", ex.Message);
             }
         }
 
@@ -385,7 +385,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao adicionar item", ex.Message);
+                ShowError("Error adding item", ex.Message);
             }
         }
 
@@ -436,7 +436,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao adicionar arquivo", ex.Message);
+                ShowError("Error adding file", ex.Message);
             }
         }
 

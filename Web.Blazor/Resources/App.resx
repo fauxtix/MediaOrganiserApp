@@ -1267,4 +1267,16 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>Tenta pesquisa por AI?</value>
   </data>
+  <data name="TituloSelecionarGeneroMusical" xml:space="preserve">
+    <value>Selecione género</value>
+  </data>
+  <data name="TituloSelecionarPlaylist" xml:space="preserve">
+    <value>Selecione playlist</value>
+  </data>
+  <data name="InitializingMsg" xml:space="preserve">
+    <value>Inicializando</value>
+  </data>
+  <data name="PublishedDate" xml:space="preserve">
+    <value>Publicado em</value>
+  </data>
 </root>

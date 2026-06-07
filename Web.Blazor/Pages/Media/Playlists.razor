@@ -20,7 +20,7 @@
     <TabItems>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="MP3 Playlists"></TabHeader>
+                <TabHeader Text="MP3"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 @if (isLoading)
@@ -177,13 +177,13 @@
                                         @if (isLoading)
                                         {
                                             <div class="p-3">
-                                                <span>Carregando...</span>
+                                                <span>@localizerApp["LoadingMsg"]</span>
                                             </div>
                                         }
                                         else if (itemsList is null)
                                         {
                                             <div class="p-3">
-                                                <span>Inicializando...</span>
+                                                <span>@localizerApp["InitializingMsg"]</span>
                                             </div>
                                         }
                                         else if (!itemsList.Any())
@@ -259,97 +259,10 @@
         </TabItem>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="YouTube Playlists"></TabHeader>
+                <TabHeader Text="YouTube" IconCss="fa fa-times" IconPosition="IconPosition.Left"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 <YoutubePlaylists />
-@*                 <div class="youtube-search-options">
-                    <SfDropDownList TItem="string" TValue="string" Width="250px" 
-                                    DataSource="@genreMap.Keys.ToList()"
-                                    AllowFiltering="true"
-                                    Placeholder="Select genre">
-                        <DropDownListEvents TItem="string" TValue="string" ValueChange="OnGenreChange"></DropDownListEvents>
-
-                    </SfDropDownList>
-
-                    <SfDropDownList TItem="YoutubePlaylistItem" TValue="string"
-                                    DataSource="@playlistList"
-                                    Placeholder="Select playlist"
-                                    AllowFiltering="true">
-                        <DropDownListEvents TItem="YoutubePlaylistItem" TValue="string" ValueChange="OnPlaylistChange"></DropDownListEvents>
-
-                        <DropDownListFieldSettings Text="Title" Value="Id" />
-                    </SfDropDownList>
-                    <SfButton CssClass="e-btn e-primary e-round-corner"
-                              IconCss="fa fa-search"
-                              Content="@localizerApp["btnLocalizar"]"
-                              @onclick="GetYoutubePlaylist">
-                    </SfButton>
-
-                </div>
-
-                @if (ShowTitleSearch)
-                {
-                    <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
-                        <label class="font-weight-bold">Search in the list </label>
-                        <input class="form-control e-input e-round-corner" style="width:250px"
-                               placeholder="Text to search"
-                               @bind="TitleSearch"
-                               @bind:event="oninput" />
-
-                        @if (!string.IsNullOrEmpty(TitleSearch))
-                        {
-                            <SfButton CssClass="e-btn e-outline e-round-corner"
-                                      IconCss="fa fa-times"
-                                      Content="Clear"
-                                      @onclick="ClearTitleSearch">
-                            </SfButton>
-                        }
-                    </div>
-                }
-
-
-                @if (!string.IsNullOrWhiteSpace(youtubeSearchError))
-                {
-                    <div class="alert alert-danger">
-                        @youtubeSearchError
-                    </div>
-                }
-                else if (youtubeVideos is not null && youtubeVideos.Any())
-                {
-                    <div class="container e-container-style">
-                        <div class="row text-lg-start">
-                            @foreach (var video in FilteredYoutubeVideos)
-                            {
-                                <SfFab IconCss="fa fa-arrow-up"
-                                       Position="FabPosition.BottomRight"
-                                       OnClick="ScrollToTop">
-                                </SfFab>
-                                <div class="col-lg-4 col-md-6 col-sm-12">
-                                    <a class="d-block mb-4 h-100" href="@($"https://www.youtube.com/watch?v={video.VideoId}")" target="_blank" style="text-decoration:none;">
-                                        <div class="img-box fixed-img-box">
-                                            <img class="img-fluid img-thumbnail fixed-img"
-                                                 src="@video.ThumbnailUrl"
-                                                 alt="@video.Title" />
-                                        </div>
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <p class="info-title"><i>@video.Title</i></p>
-                                                    <SfChip>
-                                                        <ChipItems>
-                                                            <ChipItem CssClass="e-success" Text="@video.PublishedAt.ToString()" />
-                                                        </ChipItems>
-                                                    </SfChip>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                } *@
             </ContentTemplate>
         </TabItem>
     </TabItems>

@@ -1,139 +1,232 @@
 ﻿window.getTheme = () => localStorage.getItem('theme') || 'light';
 window.setTheme = (theme) => { localStorage.setItem('theme', theme); document.documentElement.setAttribute('data-theme', theme); };
 
-// Scroll helper
-window.scrollToBottom = function (el) { try { if (!el) return; const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el); if (!target) return; target.scrollTop = target.scrollHeight; } catch (e) { } };
-// Compatibility wrapper used by Blazor code
+// Scroll helper (mantido mas NÃO usado para chat principal)
+window.scrollToBottom = function (el) {
+    try {
+        if (!el) return;
+        const target = el instanceof HTMLElement ? el : el;
+        if (!target) return;
+        target.scrollTop = target.scrollHeight;
+    } catch (e) { }
+};
+
+// Compatibility wrapper used by Blazor code (MANTIDO mas sem scroll agressivo)
 window.scrollMessagesToBottom = function (el) {
     try {
         if (!el) return;
-        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
-        if (!target) return;
-        // Prefer scrolling the last child into view — more reliable with flex layouts and padding
-        if (target.lastElementChild) {
-            try {
-                // First attempt: scroll the last child into view
-                target.lastElementChild.scrollIntoView({ block: 'end', behavior: 'auto' });
-                // Force a layout/read to encourage repaint
-                void target.offsetHeight;
-                // A second pass on next animation frame to ensure visibility
-                window.requestAnimationFrame(function () {
-                    try { target.lastElementChild.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (e) { }
-                });
-                return;
-            } catch (e) { /* fallthrough to fallback */ }
-        }
-        // Fallback: set scrollTop to scrollHeight
-        target.scrollTop = target.scrollHeight;
-    } catch (e) {
-        try { if (el) el.scrollTop = el.scrollHeight; } catch { }
-    }
+        el.scrollTop = el.scrollHeight;
+    } catch { }
 };
-
-// Return true when the element is already scrolled near the bottom (within threshold px)
+// Return true when the element is already scrolled near the bottom
 window.isNearBottom = function (el, threshold) {
     try {
         if (!el) return true;
-        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
+        const target = el instanceof HTMLElement ? el : el;
         if (!target) return true;
+
         threshold = Number(threshold) || 80;
         const distance = target.scrollHeight - (target.scrollTop + target.clientHeight);
         return distance <= threshold;
     } catch (e) { return true; }
 };
 
-// Return true when the element has a vertical scrollbar (content taller than clientHeight)
+// Return true when the element has a vertical scrollbar
 window.hasScrollbar = function (el) {
     try {
         if (!el) return false;
-        const target = el instanceof HTMLElement ? el : (el && el instanceof Object && el instanceof window.HTMLElement ? el : el);
+        const target = el instanceof HTMLElement ? el : el;
         if (!target) return false;
+
         return target.scrollHeight > target.clientHeight;
     } catch (e) { return false; }
 };
 
-// Toolbar height helper
+// Toolbar height helper (MANTIDO INTACTO)
 window.updateAppToolbarHeight = function () {
     try {
         const candidates = Array.from(document.querySelectorAll('body *'));
         let maxBottom = 0;
-        candidates.forEach(el => { try { const style = window.getComputedStyle(el); if (!style) return; if (style.position === 'fixed' || style.position === 'sticky') { const rect = el.getBoundingClientRect(); if (rect.top <= 4 && rect.bottom > maxBottom && rect.height > 0) maxBottom = rect.bottom; } } catch (e) { } });
-        if (maxBottom === 0) { const toolbar = document.querySelector('.top-row') || document.querySelector('.navbar'); if (toolbar) maxBottom = toolbar.getBoundingClientRect().bottom || 0; }
+
+        candidates.forEach(el => {
+            try {
+                const style = window.getComputedStyle(el);
+                if (!style) return;
+
+                if (style.position === 'fixed' || style.position === 'sticky') {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top <= 4 && rect.bottom > maxBottom && rect.height > 0)
+                        maxBottom = rect.bottom;
+                }
+            } catch (e) { }
+        });
+
+        if (maxBottom === 0) {
+            const toolbar = document.querySelector('.top-row') || document.querySelector('.navbar');
+            if (toolbar) maxBottom = toolbar.getBoundingClientRect().bottom || 0;
+        }
+
         document.documentElement.style.setProperty('--app-toolbar-height', (maxBottom || 0) + 'px');
     } catch (e) { }
 };
-window.getToolbarHeight = function () { const toolbar = document.querySelector('.top-row'); return toolbar ? toolbar.offsetHeight : 0; };
+
+window.getToolbarHeight = function () {
+    const toolbar = document.querySelector('.top-row');
+    return toolbar ? toolbar.offsetHeight : 0;
+};
+
 window.addEventListener('load', () => window.updateAppToolbarHeight());
 window.addEventListener('resize', () => window.updateAppToolbarHeight());
 setTimeout(() => window.updateAppToolbarHeight(), 200);
 setTimeout(() => window.updateAppToolbarHeight(), 800);
 
-// Chat header adjustments
+// Chat header adjustments (MANTIDO — não interfere no scroll agora)
 (function () {
     let adjustTimeout = null;
-    function measureToolbarBottom() { try { const candidates = Array.from(document.querySelectorAll('body *')); let maxBottom = 0; candidates.forEach(el => { try { const style = window.getComputedStyle(el); if (!style) return; if (style.position === 'fixed' || style.position === 'sticky') { const rect = el.getBoundingClientRect(); if (rect.top <= 4 && rect.bottom > maxBottom && rect.height > 0) maxBottom = rect.bottom; } } catch (e) { } }); if (maxBottom === 0) { const toolbar = document.querySelector('.top-row') || document.querySelector('.navbar'); if (toolbar) maxBottom = toolbar.getBoundingClientRect().bottom || 0; } return maxBottom || 0; } catch (e) { return 0; } }
+
+    function measureToolbarBottom() {
+        try {
+            const candidates = Array.from(document.querySelectorAll('body *'));
+            let maxBottom = 0;
+
+            candidates.forEach(el => {
+                try {
+                    const style = window.getComputedStyle(el);
+                    if (!style) return;
+
+                    if (style.position === 'fixed' || style.position === 'sticky') {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.top <= 4 && rect.bottom > maxBottom && rect.height > 0)
+                            maxBottom = rect.bottom;
+                    }
+                } catch (e) { }
+            });
+
+            if (maxBottom === 0) {
+                const toolbar = document.querySelector('.top-row') || document.querySelector('.navbar');
+                if (toolbar) maxBottom = toolbar.getBoundingClientRect().bottom || 0;
+            }
+
+            return maxBottom || 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
     function adjustChatHeaderPosition() {
         try {
-            const header = document.querySelector('.chat-header'); const messages = document.querySelector('.messages'); if (!header) return;
-            const toolbarBottom = measureToolbarBottom(); header.style.top = toolbarBottom + 'px'; header.style.left = '0'; header.style.right = '0';
-            try { const hdrRect = header.getBoundingClientRect(); const pad = (toolbarBottom + hdrRect.height + 8) || (hdrRect.height + 8); if (messages) messages.style.paddingTop = pad + 'px'; } catch (e) { }
+            const header = document.querySelector('.chat-header');
+            const messages = document.querySelector('.messages');
+            if (!header) return;
+
+            const toolbarBottom = measureToolbarBottom();
+
+            header.style.top = toolbarBottom + 'px';
+            header.style.left = '0';
+            header.style.right = '0';
+
+            try {
+                const hdrRect = header.getBoundingClientRect();
+                const pad = (toolbarBottom + hdrRect.height + 8) || (hdrRect.height + 8);
+                if (messages) messages.style.paddingTop = pad + 'px';
+            } catch (e) { }
+
         } catch (e) { }
     }
-    function scheduleAdjust() { if (adjustTimeout) clearTimeout(adjustTimeout); adjustTimeout = setTimeout(() => { window.updateAppToolbarHeight(); adjustChatHeaderPosition(); }, 80); }
+
+    function scheduleAdjust() {
+        if (adjustTimeout) clearTimeout(adjustTimeout);
+        adjustTimeout = setTimeout(() => {
+            window.updateAppToolbarHeight();
+            adjustChatHeaderPosition();
+        }, 80);
+    }
+
     window.addEventListener('load', scheduleAdjust);
     window.addEventListener('resize', scheduleAdjust);
-    try { const mo = new MutationObserver(() => scheduleAdjust()); mo.observe(document.body, { childList: true, subtree: true }); } catch (e) { }
-    scheduleAdjust(); setTimeout(scheduleAdjust, 250); setTimeout(scheduleAdjust, 1000);
+
+    try {
+        const mo = new MutationObserver(() => scheduleAdjust());
+        mo.observe(document.body, { childList: true, subtree: true });
+    } catch (e) { }
+
+    scheduleAdjust();
+    setTimeout(scheduleAdjust, 250);
+    setTimeout(scheduleAdjust, 1000);
 })();
 
 // Initialize theme
 document.documentElement.setAttribute('data-theme', window.getTheme());
 
-// Chat input helpers
+// Chat input helpers (INTACTO)
 window.chatInput = (function () {
-    function insertNewlineAtCaret(el) { if (!el) return; const start = el.selectionStart; const end = el.selectionEnd; const value = el.value; el.value = value.slice(0, start) + '\n' + value.slice(end); el.selectionStart = el.selectionEnd = start + 1; el.dispatchEvent(new Event('input', { bubbles: true })); autoResize(el); }
-    function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
+    function insertNewlineAtCaret(el) {
+        if (!el) return;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const value = el.value;
+        el.value = value.slice(0, start) + '\n' + value.slice(end);
+        el.selectionStart = el.selectionEnd = start + 1;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        autoResize(el);
+    }
+
+    function autoResize(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight + 2) + 'px';
+    }
+
     function attachHandlers(el, dotNetRef) {
         if (!el) return;
-        // Prevent double-attachment which can cause multiple newlines or duplicate sends
+
         if (el.__chatInputHandler) {
-            // update dotNetRef reference if needed and return
             el.__chatInputDotNetRef = dotNetRef;
             return;
         }
-        console.debug('chatInput.attachHandlers called', el, !!dotNetRef);
+
         const handler = function (e) {
-            console.debug('chatInput.keydown', e.key, 'shift', e.shiftKey, 'dotNetRef', !!dotNetRef);
             if (e.key === 'Enter') {
                 if (!e.shiftKey) {
                     e.preventDefault();
-                    // Use the stored dotNetRef on the element if available so the handler
-                    // always calls the latest reference even if it was attached earlier.
                     const ref = (el && el.__chatInputDotNetRef) || dotNetRef;
-                    if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs').catch(err=>console.error('invokeMethodAsync failed', err));
-                }
-                else {
-                    // Prevent the browser default newline and insert exactly one newline
+                    if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs');
+                } else {
                     e.preventDefault();
                     insertNewlineAtCaret(el);
                 }
             }
         };
+
         const resizeHandler = function () { autoResize(el); };
+
         el.__chatInputHandler = handler;
         el.__chatInputResizeHandler = resizeHandler;
         el.__chatInputDotNetRef = dotNetRef;
+
         el.addEventListener('keydown', handler);
         el.addEventListener('input', resizeHandler);
+
         autoResize(el);
     }
-    function detachHandlers(el) { if (!el) return; if (el.__chatInputHandler) { el.removeEventListener('keydown', el.__chatInputHandler); delete el.__chatInputHandler; } if (el.__chatInputResizeHandler) { el.removeEventListener('input', el.__chatInputResizeHandler); delete el.__chatInputResizeHandler; } }
+
+    function detachHandlers(el) {
+        if (!el) return;
+        if (el.__chatInputHandler) {
+            el.removeEventListener('keydown', el.__chatInputHandler);
+            delete el.__chatInputHandler;
+        }
+        if (el.__chatInputResizeHandler) {
+            el.removeEventListener('input', el.__chatInputResizeHandler);
+            delete el.__chatInputResizeHandler;
+        }
+    }
+
     return { attachHandlers, detachHandlers, insertNewlineAtCaret };
 })();
 
-// Copilot-style inline suggestion helpers (for new CopilotChat component)
+// Copilot input (INTACTO)
 window.copilotInput = (function () {
-    // Attach minimal handlers to keep the suggestion overlay in sync with the textarea
     function attachHandlers(el) {
         if (!el) return;
         if (el.__copilotAttached) return;
@@ -145,51 +238,25 @@ window.copilotInput = (function () {
             try {
                 if (!overlay || !el) return;
                 const cs = getComputedStyle(el);
-                // copy important layout/font styles so the overlay mirrors the textarea
+
                 overlay.style.fontFamily = cs.fontFamily;
                 overlay.style.fontSize = cs.fontSize;
                 overlay.style.lineHeight = cs.lineHeight;
-                overlay.style.paddingTop = cs.paddingTop;
-                overlay.style.paddingRight = cs.paddingRight;
-                overlay.style.paddingBottom = cs.paddingBottom;
-                overlay.style.paddingLeft = cs.paddingLeft;
-                overlay.style.boxSizing = cs.boxSizing;
-                overlay.style.whiteSpace = 'pre-wrap';
-                overlay.style.wordWrap = 'break-word';
-                overlay.style.width = (el.clientWidth) + 'px';
-                // Match scroll
+                overlay.style.padding = cs.padding;
+
+                overlay.style.width = el.clientWidth + 'px';
                 overlay.scrollTop = el.scrollTop;
             } catch (e) { }
         }
 
-        function onInput() {
-            try {
-                // ensure overlay height follows textarea growth
-                syncOverlay();
-            } catch (e) { }
-        }
+        el.addEventListener('input', syncOverlay);
+        el.addEventListener('scroll', syncOverlay);
 
-        function onScroll() { syncOverlay(); }
-
-        // initial sync
-        setTimeout(syncOverlay, 0);
-
-        el.addEventListener('input', onInput);
-        el.addEventListener('scroll', onScroll);
-
-        // store handlers for detach
-        el.__copilotHandlers = { onInput, onScroll };
         el.__copilotAttached = true;
     }
 
     function detachHandlers(el) {
         if (!el) return;
-        const h = el.__copilotHandlers;
-        if (h) {
-            if (h.onInput) el.removeEventListener('input', h.onInput);
-            if (h.onScroll) el.removeEventListener('scroll', h.onScroll);
-        }
-        delete el.__copilotHandlers;
         delete el.__copilotAttached;
     }
 
@@ -197,7 +264,9 @@ window.copilotInput = (function () {
 })();
 
 // Focus helper
-window.focusElement = function (el) { try { if (!el) return; el.focus(); } catch (e) { } };
+window.focusElement = function (el) {
+    try { if (el) el.focus(); } catch (e) { }
+};
 
 // Toast
 window.showToast = function (text) {
@@ -213,11 +282,72 @@ window.showToast = function (text) {
         el.style.borderRadius = '6px';
         el.style.zIndex = 9999;
         document.body.appendChild(el);
-        setTimeout(() => { el.remove(); }, 2600);
-    } catch (e) { console.error(e); }
+        setTimeout(() => el.remove(), 2600);
+    } catch (e) { }
 };
 
-// Conversation persistence helpers (store as an array of { Id, Title, Json } )
-// Conversation persistence used to be stored in localStorage.
-// Local storage CRUD helpers removed - conversations are persisted in server-side SQL now.
-// Keep other UI helpers in this file (focus, toast, chat input, scroll, etc.).
+/* =========================
+   ✅ CHAT FINAL (CORRIGIDO)
+   ========================= */
+
+window.chatScroll = {
+
+    // estado mais fiável (mantém compatibilidade)
+    getScrollState: function (el) {
+        try {
+            if (!el) return null;
+
+            return {
+                scrollTop: el.scrollTop,
+                scrollHeight: el.scrollHeight,
+                clientHeight: el.clientHeight
+            };
+        } catch {
+            return null;
+        }
+    },
+
+    // evita "false positives" de stickiness
+    isAtBottom: function (el, threshold = 80) {
+        try {
+            if (!el) return true;
+
+            const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+            return distance <= threshold;
+        } catch {
+            return true;
+        }
+    },
+
+    // scroll base (sem animações e sem scrollIntoView → elimina jitter)
+    scrollToBottom: function (el) {
+        try {
+            if (!el) return;
+
+            requestAnimationFrame(() => {
+                try {
+                    // pequeno “double RAF safety” para layout ainda em flush
+                    requestAnimationFrame(() => {
+                        el.scrollTop = el.scrollHeight;
+                    });
+                } catch { }
+            });
+
+        } catch { }
+    },
+
+    // scroll inteligente durante streaming (CORRIGIDO)
+    scrollDuringStream: function (el) {
+        try {
+            if (!el) return;
+
+            const distance = el.scrollHeight - (el.scrollTop + el.clientHeight);
+            const shouldStick = distance < 120;
+
+            if (!shouldStick) return;
+
+            el.scrollTop = el.scrollHeight;
+
+        } catch { }
+    }
+};

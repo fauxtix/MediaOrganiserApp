@@ -7,56 +7,58 @@
     <SfDropDownList TItem="string" TValue="string" Width="250px"
                     DataSource="@genreMap.Keys.ToList()"
                     AllowFiltering="true"
-                    Placeholder="Select genre">
+                    Placeholder="@localizerApp["TituloSelecionarGeneroMusical"]">
         <DropDownListEvents TItem="string" TValue="string" ValueChange="OnGenreChange"></DropDownListEvents>
 
     </SfDropDownList>
 
     <SfDropDownList TItem="YoutubePlaylistItem" TValue="string"
                     DataSource="@playlistList"
-                    Placeholder="Select playlist"
+                    Placeholder="@localizerApp["TituloSelecionarPlaylist"]"
                     AllowFiltering="true">
         <DropDownListEvents TItem="YoutubePlaylistItem" TValue="string" ValueChange="OnPlaylistChange"></DropDownListEvents>
 
         <DropDownListFieldSettings Text="Title" Value="Id" />
     </SfDropDownList>
-    <SfButton CssClass="e-btn e-primary e-round-corner"
+
+    <SfButton CssClass="e-primary e-round-corner"
               IconCss="fa fa-search"
-              Content="@localizerApp["btnLocalizar"]"
+              Disabled="@(!CanSearch)"
               @onclick="GetYoutubePlaylist">
     </SfButton>
-
 </div>
 
-@* @if (ShowTitleSearch)
+@if (youtubeVideos != null && youtubeVideos.Count > 0)
 {
-    <div class="d-flex justify-content-start align-items-center my-4" style="gap:8px">
-        <label class="font-weight-bold">Search in the list </label>
-        <input class="form-control e-input e-round-corner" style="width:250px"
-               placeholder="Text to search"
-               @bind="TitleSearch"
-               @bind:event="oninput" />
-
+    <div class="d-flex flex-row justify-content-start my-2" style="gap:8px">
+        <SfTextBox Placeholder="Pesquisar título..."
+                   Input="OnTitleInput" Width="250px"
+                   @bind-Value="TitleSearch" />
         @if (!string.IsNullOrEmpty(TitleSearch))
         {
-            <SfButton CssClass="e-btn e-outline e-round-corner"
+            <SfButton CssClass="e-btn e-outline e-round"
                       IconCss="fa fa-times"
-                      Content="Clear"
                       @onclick="ClearTitleSearch">
             </SfButton>
         }
     </div>
-} *@
-
+}
 
 @if (!string.IsNullOrWhiteSpace(youtubeSearchError))
 {
-    <div class="alert alert-danger">
+    <SfMessage CssClass="e-error"
+               Severity="MessageSeverity.Error"
+               ShowCloseIcon="true"
+               Variant="MessageVariant.Text">
         @youtubeSearchError
-    </div>
+    </SfMessage>
+    @* <div class="alert alert-danger">
+        @youtubeSearchError
+    </div> *@
 }
 else if (youtubeVideos is not null && youtubeVideos.Any())
 {
+    <hr />
     <div class="container e-container-style">
         <div class="row text-lg-start">
             @foreach (var video in FilteredYoutubeVideos)
@@ -74,13 +76,33 @@ else if (youtubeVideos is not null && youtubeVideos.Any())
                         </div>
                         <div class="card">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <p class="info-title"><i>@video.Title</i></p>
-                                    <SfChip>
-                                        <ChipItems>
-                                            <ChipItem CssClass="e-success" Text="@video.PublishedAt.ToString()" />
-                                        </ChipItems>
-                                    </SfChip>
+                                <div class="d-flex justify-content-start align-items-center small-text w-100">
+                                    <p class="info-title mb-0"
+                                       data-bs-toggle="tooltip"
+                                       data-bs-placement="top"
+                                       title="@video.Title">
+                                        @video.Title
+                                    </p>
+                                </div>
+                                <hr />
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <SfChip>
+                                            <ChipItems>
+                                                <ChipItem CssClass="e-success e-outline fs-5"
+                                                          Text="@($"{localizerApp["PublishedDate"]}: {video.PublishedAt}")" />
+                                            </ChipItems>
+                                        </SfChip>
+                                    </div>
+                                    <div>
+                                        <SfChip>
+                                            <ChipItems>
+                                                <ChipItem CssClass="e-warning e-outline fs-5"
+                                                          Text="@($"{localizerApp["TrackTime"]}: {video.DurationFormatted}")" />
+                                            </ChipItems>
+                                        </SfChip>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -88,125 +110,16 @@ else if (youtubeVideos is not null && youtubeVideos.Any())
                 </div>
             }
         </div>
-    </div>  
+    </div>
 }
 
 <div class="e-spin-material">
-<SfSpinner Label="@localizerApp["LoadingMsg"]"  
-           Type="@SpinnerType.Material"
-           @bind-Visible="@VisibleProperty"
-           CssClass="e-customClass">
-</SfSpinner>
+    <SfSpinner Label="@localizerApp["LoadingMsg"]"
+               Type="@SpinnerType.Material"
+               @bind-Visible="@SpinnerVisibleProperty"
+               CssClass="e-customClass">
+    </SfSpinner>
 </div>
-
-@code {
-
-    [Inject] public IStringLocalizer<App> localizerApp { get; set; }
-    [Inject] IJSRuntime JS { get; set; }
-    [Inject] public YoutubeService YoutubeService { get; set; } = default!;
-
-    protected List<YoutubePlaylistItem> playlistList = new();
-    protected string selectedPlaylistId;
-    protected string youtubePlaylistQuery = string.Empty;
-    protected bool ShowTitleSearch { get; set; } = false;
-    protected string? youtubeSearchError;
-    protected string TitleSearch { get; set; } = string.Empty;
-    protected List<YoutubeVideoDto>? youtubeVideos;
-    protected bool VisibleProperty { get; set; } = false; 
-
-    protected Dictionary<string, string> genreMap = new Dictionary<string, string>
-        {
-            { "Pop", "pop music playlist" },
-            { "Punk", "punk music playlist" },
-            { "Rock", "rock classics playlist" },
-            { "Progressive Rock", "progressive rock classics playlist" },
-            { "Hard Rock", "hard rock classics playlist" },
-            { "Blues", "blues classics playlist" },
-            { "Soul", "soul music playlist" }
-        };
-
-    protected IEnumerable<YoutubeVideoDto> FilteredYoutubeVideos =>
-    string.IsNullOrWhiteSpace(TitleSearch)
-    ? youtubeVideos ?? Enumerable.Empty<YoutubeVideoDto>()
-    : youtubeVideos?.Where(v =>
-        v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase)
-        || v.Title.Contains(TitleSearch, StringComparison.OrdinalIgnoreCase))
-      ?? Enumerable.Empty<YoutubeVideoDto>();
-
-    protected async Task GetYoutubePlaylist()
-    {
-        youtubeSearchError = null;
-        youtubeVideos = null;
-
-        if (string.IsNullOrWhiteSpace(youtubePlaylistQuery))
-        {
-            youtubeSearchError = "Informe o nome ou URL da playlist.";
-            return;
-        }
-
-        try
-        {
-            VisibleProperty = true;
-            youtubeVideos = await YoutubeService.GetVideosFromPlaylist(youtubePlaylistQuery);
-            ShowTitleSearch = youtubeVideos != null && youtubeVideos.Any();
-        }
-        catch (Exception ex)
-        {
-            youtubeSearchError = $"Erro ao pesquisar playlist: {ex.Message}";
-        }
-        finally
-        {
-            VisibleProperty = false;
-        }
-    }
-
-    protected async Task OnGenreChange(ChangeEventArgs<string, string> args)
-    {
-        try
-        {
-            VisibleProperty = true;
-            var query = genreMap[args.Value];
-            playlistList = await YoutubeService.GetPlaylistsAsync(query);
-            //StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            youtubeSearchError = $"Erro ao buscar playlist: {ex.Message}";
-        }
-        finally
-        {
-            VisibleProperty = false;
-        }
-    }
-
-    protected void OnPlaylistChange(ChangeEventArgs<string, YoutubePlaylistItem> args)
-    {
-        try
-        {
-            VisibleProperty = true;
-
-            selectedPlaylistId = args.Value;
-            youtubePlaylistQuery = selectedPlaylistId;
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            youtubeSearchError = $"Erro ao processar playlist: {ex.Message}";
-        }
-        finally
-        {
-            VisibleProperty = false;
-        }
-    }
-
-    protected async Task ScrollToTop()
-    {
-        await JS.InvokeVoidAsync(
-            "window.scrollTo",
-            new { top = 0, behavior = "smooth" });
-    }
-
-}
 
 <style>
     .youtube-search-options {
@@ -245,41 +158,37 @@ else if (youtubeVideos is not null && youtubeVideos.Any())
         justify-content: space-between;
     }
 
+    /*     .info-title {
+            margin-left: 2px;
+            font-weight: 500;
+            flex: 1 1 0;
+            font-size: 0.3rem;
+            line-height: 1.3em;
+            margin-bottom: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+     */
     .info-title {
-        margin-left: 3px;
-        font-weight: 500;
-        flex: 1 1 0;
-        font-size: 0.85rem;
-        line-height: 1.2em;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
+        font-size: 0.95rem !important;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
-        word-break: break-word;
-        margin-bottom: 0;
-    }
-
-    .card-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 10px;
-        min-height: 2.5em;
-        max-height: 2.5em;
-        overflow: hidden;
+        white-space: nowrap;
     }
 
     .youtube-fab {
         position: fixed !important;
-        right: 30px;
+        right: 50px;
         bottom: 30px;
         z-index: 10000;
     }
 
     .e-customClass {
         .e-spinner-pane.e-customClass .e-spinner-inner .e-spin-material {
-            stroke: #808080;
+            stroke: ivory;
         }
     }
 </style>

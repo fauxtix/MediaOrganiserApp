@@ -24,6 +24,8 @@ namespace Web.Blazor.Pages.AI
         private bool ignoreHubChunks = false;
         private CancellationTokenSource? chatCts;
 
+        private bool userAtBottom = true;
+
 
         private ElementReference chatInputRef;
         private DotNetObjectReference<Chat>? dotNetRef;
@@ -104,13 +106,22 @@ namespace Web.Blazor.Pages.AI
 
         async Task Send()
         {
-            if (string.IsNullOrWhiteSpace(userInput) || isConnecting) return;
+            if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
+                return;
 
             messages.Add(new ChatMessage { Role = "user", Content = userInput });
-            currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+
+            currentAssistantMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = ""
+            };
+
             messages.Add(currentAssistantMessage);
 
-            try { await SafeScrollToBottomAsync(); } catch { }
+            // scroll único inicial (sem duplicação)
+            await InvokeAsync(StateHasChanged);
+            await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
 
             chatCts?.Cancel();
             chatCts = new CancellationTokenSource();
@@ -120,30 +131,31 @@ namespace Web.Blazor.Pages.AI
 
             try
             {
-                try { await SafeScrollToBottomAsync(); } catch { }
+                var dtoList = messages
+                    .Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content })
+                    .ToList();
 
-                // Use HTTP streaming only
-                var dtoList = messages.Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content }).ToList();
-                // Obtain language from app settings service (falls back to DefaultLanguage)
                 string? language = null;
+
                 try
                 {
                     var settings = await AppSettingsService.GetSettingsAsync();
                     language = settings?.Language ?? settings?.DefaultLanguage;
+
                     if (!string.IsNullOrWhiteSpace(language))
-                    {
-                        // Normalize culture like "pt-PT" or "en_US" to the short code before sending
                         language = language.Split(new[] { '-', '_' })[0];
-                    }
                 }
-                catch { language = null; }
+                catch
+                {
+                    language = null;
+                }
 
                 ProgressStatus = "Thinking...";
                 isProcessing = true;
                 await InvokeAsync(StateHasChanged);
 
                 var firstChunkReceived = false;
-                // Pass null for connectionId (we're using HTTP streaming) and include the configured language
+
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, chatCts.Token))
                 {
                     if (!firstChunkReceived)
@@ -155,28 +167,35 @@ namespace Web.Blazor.Pages.AI
 
                     if (currentAssistantMessage is null)
                     {
-                        currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+                        currentAssistantMessage = new ChatMessage
+                        {
+                            Role = "assistant",
+                            Content = ""
+                        };
+
                         messages.Add(currentAssistantMessage);
                     }
 
                     currentAssistantMessage.Content += chunk;
+
                     await InvokeAsync(StateHasChanged);
-                    await SafeScrollToBottomAsync();
-                }
 
-                try { await SaveCurrentConversationAsync(); } catch { }
-
-                try
-                {
-                    if (toastObj != null)
+                    // scroll CONTROLADO (não agressivo)
+                    if (userAtBottom)
                     {
-                        ToastTitle = "AI";
-                        ToastContent = "Response received";
-                        ToastCssClass = "e-toast-success";
-                        await toastObj.ShowAsync();
+                        await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
                     }
                 }
-                catch { }
+
+                await SaveCurrentConversationAsync();
+
+                if (toastObj != null)
+                {
+                    ToastTitle = "AI";
+                    ToastContent = "Response received";
+                    ToastCssClass = "e-toast-success";
+                    await toastObj.ShowAsync();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -189,33 +208,34 @@ namespace Web.Blazor.Pages.AI
                     currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
                     messages.Add(currentAssistantMessage);
                 }
+
                 currentAssistantMessage.Content += $"\n\n[Error receiving response: {ex.Message}]";
+
                 ProgressStatus = string.Empty;
-                try
+
+                if (toastObj != null)
                 {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = "Error";
-                        ToastCssClass = "e-toast-danger";
-                        ToastContent = currentAssistantMessage.Content;
-                        await InvokeAsync(StateHasChanged);
-                        await toastObj.ShowAsync();
-                    }
+                    ToastTitle = "Error";
+                    ToastCssClass = "e-toast-danger";
+                    ToastTimeOut = 4000;
+                    ToastContent = currentAssistantMessage.Content;
+                    await InvokeAsync(StateHasChanged);
+                    await toastObj.ShowAsync();
                 }
-                catch { }
             }
             finally
             {
                 chatCts?.Dispose();
                 chatCts = null;
+
                 isProcessing = false;
                 ProgressStatus = string.Empty;
 
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
+
                 await InvokeAsync(StateHasChanged);
             }
         }
-
         [JSInvokable] public async Task OnEnterPressedFromJs() => await Send();
 
 
@@ -471,6 +491,20 @@ namespace Web.Blazor.Pages.AI
             chatCts?.Dispose();
             try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
             dotNetRef?.Dispose();
+        }
+
+        private async Task OnScroll()
+        {
+            var state = await JS.InvokeAsync<ScrollState>("chatScroll.getScrollState", messagesDiv);
+
+            userAtBottom = (state.ScrollHeight - state.ScrollTop - state.ClientHeight) < 80;
+        }
+
+        public class ScrollState
+        {
+            public double ScrollTop { get; set; }
+            public double ScrollHeight { get; set; }
+            public double ClientHeight { get; set; }
         }
     }
 }

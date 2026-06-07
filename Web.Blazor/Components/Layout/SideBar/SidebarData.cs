@@ -37,6 +37,7 @@ public class SidebarData
             {
                 new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
                 new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
+                new(href: "/ai/copilot", title: "Copilot Chat", icon: "fa fa-comment"),
             }),
         };
         return menu;

@@ -1266,4 +1266,16 @@
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>Why not try an AI search?</value>
   </data>
+  <data name="TituloSelecionarGeneroMusical" xml:space="preserve">
+    <value>Select genre</value>
+  </data>
+  <data name="TituloSelecionarPlaylist" xml:space="preserve">
+    <value>Select playlist</value>
+  </data>
+  <data name="InitializingMsg" xml:space="preserve">
+    <value>Initializing</value>
+  </data>
+  <data name="PublishedDate" xml:space="preserve">
+    <value>Published on</value>
+  </data>
 </root>
