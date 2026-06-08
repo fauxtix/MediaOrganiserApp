@@ -1297,4 +1297,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="ChatDeleteMessage" xml:space="preserve">
     <value>Isto irá eliminar definitivamente a conversa selecionada. Deseja continuar?</value>
   </data>
+  <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
+    <value>Pesquisar título</value>
+  </data>
 </root>

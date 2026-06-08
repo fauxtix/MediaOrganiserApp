@@ -20,7 +20,7 @@
     <TabItems>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="MP3"></TabHeader>
+                <TabHeader Text="🎧 [MP3]"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 @if (isLoading)
@@ -74,37 +74,6 @@
                                             ClipMode="ClipMode.EllipsisWithTooltip"
                                             TextAlign="TextAlign.Left"
                                             Width="300"></GridColumn>
-                                @* <GridColumn Field=@nameof(PlaylistDto.MediaType)
-                            HeaderText="@localizerApp["lblTipoUtilizador"]"
-                            ClipMode="ClipMode.EllipsisWithTooltip"
-                            TextAlign="TextAlign.Left"
-                            Width="100">
-                    <Template>
-                        <SfChip>
-                            <ChipItems>
-                                @{
-                                    string classe = "";
-                                    string icon = "";
-                                    string msg = "";
-                                    var currentRow = (context as PlaylistDto);
-                                    if (currentRow.MediaType == MediaType.Audio)
-                                    {
-                                        msg = "Audio";
-                                        classe = "e-info";
-                                        icon = "oi oi-audio e-round-corner";
-                                    }
-                                    else
-                                    {
-                                        msg = "Video";
-                                        classe = "e-success";
-                                        icon = "oi oi-video e-round-corner";
-                                    }
-                                    <ChipItem Text="@msg" LeadingIconCss="@icon" CssClass="@classe"></ChipItem>
-                                }
-                            </ChipItems>
-                        </SfChip>
-                    </Template>
-                </GridColumn> *@
 
                                 <GridColumn Field=@nameof(PlaylistDto.CreatedAt)
                                             HeaderText="@localizerApp["TituloCriadoEm"]"
@@ -259,7 +228,7 @@
         </TabItem>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="YouTube" IconCss="fa fa-times" IconPosition="IconPosition.Left"></TabHeader>
+                <TabHeader Text="▶️ YouTube" IconCss="fa fa-times" IconPosition="IconPosition.Left"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 <YoutubePlaylists />

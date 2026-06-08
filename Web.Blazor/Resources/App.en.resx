@@ -1296,4 +1296,7 @@
   <data name="ChatDeleteMessage" xml:space="preserve">
     <value>This will permanently delete the selected conversation. Continue?</value>
   </data>
+  <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
+    <value>Search title</value>
+  </data>
 </root>

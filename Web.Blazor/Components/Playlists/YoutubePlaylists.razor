@@ -1,7 +1,5 @@
 ﻿@using MediaOrganizerApp.Application.DTOs.PlayLists
-@using Microsoft.Extensions.Localization
 @using Syncfusion.Blazor.Spinner
-@using Web.Blazor.Services.YouTube
 
 <div class="youtube-search-options">
     <SfDropDownList TItem="string" TValue="string" Width="250px"
@@ -31,8 +29,9 @@
 @if (youtubeVideos != null && youtubeVideos.Count > 0)
 {
     <div class="d-flex flex-row justify-content-start my-2" style="gap:8px">
-        <SfTextBox Placeholder="Pesquisar título..."
-                   Input="OnTitleInput" Width="250px"
+        <SfTextBox Placeholder="@localizerApp["TituloPesquisaTituloPlaylist"]"
+                   CssClass="form-control p-1 align-items-center e-round-corner"
+                   Input="OnTitleInput" Width="300px"
                    @bind-Value="TitleSearch" />
         @if (!string.IsNullOrEmpty(TitleSearch))
         {
@@ -52,9 +51,6 @@
                Variant="MessageVariant.Text">
         @youtubeSearchError
     </SfMessage>
-    @* <div class="alert alert-danger">
-        @youtubeSearchError
-    </div> *@
 }
 else if (youtubeVideos is not null && youtubeVideos.Any())
 {
@@ -158,19 +154,6 @@ else if (youtubeVideos is not null && youtubeVideos.Any())
         justify-content: space-between;
     }
 
-    /*     .info-title {
-            margin-left: 2px;
-            font-weight: 500;
-            flex: 1 1 0;
-            font-size: 0.3rem;
-            line-height: 1.3em;
-            margin-bottom: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 0;
-        }
-     */
     .info-title {
         font-size: 0.95rem !important;
         min-width: 0;

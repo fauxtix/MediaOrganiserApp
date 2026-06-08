@@ -27,7 +27,6 @@ namespace Web.Blazor.Pages.AI
         private string userInput = "";
         private ChatMessage? currentAssistantMessage;
         private ElementReference messagesDiv;
-        // Using HTTP streaming only
         private bool isConnecting = false;
         private bool isProcessing = false;
         private bool ignoreHubChunks = false;
@@ -62,21 +61,8 @@ namespace Web.Blazor.Pages.AI
         private string? InputStyle { get; set; }
         protected override async Task OnInitializedAsync()
         {
-            await LoadConversations(); // load from server before render
+            await LoadConversations(); 
         }
-
-
-
-        //protected override async Task OnAfterRenderAsync(bool firstRender)
-        //{
-        //    if (!firstRender) return;
-
-        //    // attach client-side JS handlers once after first render to avoid
-        //    // duplicate handlers / race conditions that could cause Enter/Shift+Enter
-        //    // to misbehave.
-        //    dotNetRef = DotNetObjectReference.Create(this);
-        //    try { await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef); } catch { }
-        //}
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -85,12 +71,10 @@ namespace Web.Blazor.Pages.AI
                 dotNetRef = DotNetObjectReference.Create(this);
             }
 
-            // Aguarda um ciclo do CPU para garantir que o DOM do browser está 100% atualizado
             await Task.Yield();
 
             try
             {
-                // Chamamos sempre para garantir que o input ganha os handlers, mesmo mudando de conversa
                 await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
             }
             catch (Exception ex)
@@ -100,10 +84,8 @@ namespace Web.Blazor.Pages.AI
         }
         private void OnProgressReceived(string? message)
         {
-            // show informational progress coming from the server (HTTP streaming)
             ProgressStatus = message ?? string.Empty;
 
-            // Update UI and ensure the messages area scrolls so the status is visible
             _ = InvokeAsync(async () =>
             {
                 StateHasChanged();
@@ -115,7 +97,6 @@ namespace Web.Blazor.Pages.AI
         {
             try
             {
-                // Keep messages scroll behavior stable; scroll after content appended.
                 await Task.Delay(50);
                 if (messagesDiv.Context != null)
                     await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
@@ -145,7 +126,6 @@ namespace Web.Blazor.Pages.AI
 
             messages.Add(currentAssistantMessage);
 
-            // scroll único inicial (sem duplicação)
             await InvokeAsync(StateHasChanged);
             await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
 
@@ -156,13 +136,10 @@ namespace Web.Blazor.Pages.AI
 
             InputStyle = "height: auto;";
 
-            // 3. Renderiza o HTML limpo no browser
             await InvokeAsync(StateHasChanged);
 
-            // 4. Chama o JS apenas para limpar resíduos físicos locais
             try { await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef); } catch { }
 
-            // 5. Restaura a propriedade para nula para que o CSS volte a mandar a 100% no futuro
             InputStyle = null;
 
             try
@@ -216,7 +193,6 @@ namespace Web.Blazor.Pages.AI
 
                     await InvokeAsync(StateHasChanged);
 
-                    // scroll CONTROLADO (não agressivo)
                     if (userAtBottom)
                     {
                         await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
@@ -281,7 +257,6 @@ namespace Web.Blazor.Pages.AI
 
         async Task ShowConfirmNewConversation()
         {
-            // Only show confirmation if there are messages in the UI
             if (messages.Count > 0)
             {
                 showConfirmNewConversation = true;
@@ -289,7 +264,6 @@ namespace Web.Blazor.Pages.AI
             }
             else
             {
-                // No messages: start a new conversation immediately
                 await NewConversation();
             }
         }
@@ -297,7 +271,6 @@ namespace Web.Blazor.Pages.AI
 
         async Task OnConfirmYes()
         {
-            // Do not auto-save here: conversations are saved automatically when a response completes.
             showConfirmNewConversation = false;
             await NewConversation();
         }
@@ -410,7 +383,6 @@ namespace Web.Blazor.Pages.AI
 
         private async Task SaveCurrentConversationAsync()
         {
-            // Require at least one non-empty message to save
             if (!messages.Any(m => !string.IsNullOrWhiteSpace(m.Content))) return;
 
             var json = JsonSerializer.Serialize(messages);
@@ -418,7 +390,6 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrEmpty(selectedConversationId))
             {
                 var id = Guid.NewGuid().ToString();
-                // Derive a friendly title from the first user message (fallback to timestamp)
                 var firstUser = messages.FirstOrDefault(m => m.Role == "user" && !string.IsNullOrWhiteSpace(m.Content))?.Content?.Trim();
                 var title = !string.IsNullOrEmpty(firstUser)
                     ? (firstUser.Length > 60 ? firstUser.Substring(0, 60).TrimEnd() + "..." : firstUser)
@@ -439,20 +410,17 @@ namespace Web.Blazor.Pages.AI
         private async Task DeleteSelectedConversationAsync()
         {
             if (string.IsNullOrEmpty(selectedConversationId)) return;
-            var deletedId = selectedConversationId; // capture before reloading
+            var deletedId = selectedConversationId; 
 
             try
             {
                 await ConversationsClient.DeleteAsync(deletedId);
-                // reload conversations from server so the dropdown is up-to-date
                 await LoadConversations();
 
-                // if the deleted conversation is no longer present, clear UI messages
                 if (!conversations.Any(c => c.Id == deletedId))
                 {
                     messages.Clear();
                     currentAssistantMessage = null;
-                    // select the first conversation if any (or leave null)
                     selectedConversationId = conversations.FirstOrDefault()?.Id;
                 }
 
@@ -486,7 +454,6 @@ namespace Web.Blazor.Pages.AI
                 catch { }
             }
         }
-
 
         private async Task ShowSpinnerWithDelay(int delayMs = 300)
         {

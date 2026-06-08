@@ -1,7 +1,6 @@
 ﻿window.getTheme = () => localStorage.getItem('theme') || 'light';
 window.setTheme = (theme) => { localStorage.setItem('theme', theme); document.documentElement.setAttribute('data-theme', theme); };
 
-// Scroll helper (mantido mas NÃO usado para chat principal)
 window.scrollToBottom = function (el) {
     try {
         if (!el) return;
@@ -11,14 +10,12 @@ window.scrollToBottom = function (el) {
     } catch (e) { }
 };
 
-// Compatibility wrapper used by Blazor code (MANTIDO mas sem scroll agressivo)
 window.scrollMessagesToBottom = function (el) {
     try {
         if (!el) return;
         el.scrollTop = el.scrollHeight;
     } catch { }
 };
-// Return true when the element is already scrolled near the bottom
 window.isNearBottom = function (el, threshold) {
     try {
         if (!el) return true;
@@ -31,7 +28,6 @@ window.isNearBottom = function (el, threshold) {
     } catch (e) { return true; }
 };
 
-// Return true when the element has a vertical scrollbar
 window.hasScrollbar = function (el) {
     try {
         if (!el) return false;
@@ -42,7 +38,6 @@ window.hasScrollbar = function (el) {
     } catch (e) { return false; }
 };
 
-// Toolbar height helper (MANTIDO INTACTO)
 window.updateAppToolbarHeight = function () {
     try {
         const candidates = Array.from(document.querySelectorAll('body *'));
@@ -80,7 +75,6 @@ window.addEventListener('resize', () => window.updateAppToolbarHeight());
 setTimeout(() => window.updateAppToolbarHeight(), 200);
 setTimeout(() => window.updateAppToolbarHeight(), 800);
 
-// Chat header adjustments (MANTIDO — não interfere no scroll agora)
 (function () {
     let adjustTimeout = null;
 
@@ -155,11 +149,10 @@ setTimeout(() => window.updateAppToolbarHeight(), 800);
     setTimeout(scheduleAdjust, 1000);
 })();
 
-// Initialize theme
 document.documentElement.setAttribute('data-theme', window.getTheme());
 
 window.chatInput = (function () {
-    let isResetting = false; // Flag para bloquear execuções fantasmas
+    let isResetting = false;
 
     function insertNewlineAtCaret(el) {
         if (!el) return;
@@ -175,8 +168,6 @@ window.chatInput = (function () {
     function autoResize(el) {
         if (!el) return;
 
-        // SE ESTIVER A FAZER RESET OU O INPUT ESTIVER VAZIO:
-        // Limpa o estilo inline imediatamente e aborta o cálculo do scrollHeight antigo
         if (isResetting || !el.value || el.value.trim() === '') {
             el.style.height = '';
             el.style.removeProperty('height');
@@ -191,14 +182,12 @@ window.chatInput = (function () {
         const target = el instanceof HTMLElement ? el : document.querySelector('.chat-input');
         if (!target) return;
 
-        isResetting = true; // Ativa o escudo protetor
+        isResetting = true; 
 
-        // 1. Limpeza agressiva imediata no DOM
         target.value = '';
         target.style.height = '';
         target.style.removeProperty('height');
 
-        // 2. Ciclo de segurança duplo para queimar qualquer evento "input" residual
         let attempts = 0;
         const forceClear = () => {
             if (target) {
@@ -210,7 +199,7 @@ window.chatInput = (function () {
             if (attempts < 3) {
                 requestAnimationFrame(forceClear);
             } else {
-                isResetting = false; // Desativa o escudo após a poeira assentar
+                isResetting = false; 
             }
         };
 
@@ -230,8 +219,7 @@ window.chatInput = (function () {
             if (e.key === 'Enter') {
                 if (!e.shiftKey) {
                     e.preventDefault();
-
-                    // Força a atualização do binding do Blazor antes de disparar o C#
+                    
                     target.dispatchEvent(new Event('change', { bubbles: true }));
                     target.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -310,12 +298,10 @@ window.copilotInput = (function () {
     return { attachHandlers, detachHandlers };
 })();
 
-// Focus helper
 window.focusElement = function (el) {
     try { if (el) el.focus(); } catch (e) { }
 };
 
-// Toast
 window.showToast = function (text) {
     try {
         const el = document.createElement('div');
@@ -333,13 +319,9 @@ window.showToast = function (text) {
     } catch (e) { }
 };
 
-/* =========================
-   ✅ CHAT FINAL (CORRIGIDO)
-   ========================= */
 
 window.chatScroll = {
 
-    // estado mais fiável (mantém compatibilidade)
     getScrollState: function (el) {
         try {
             if (!el) return null;
@@ -354,7 +336,6 @@ window.chatScroll = {
         }
     },
 
-    // evita "false positives" de stickiness
     isAtBottom: function (el, threshold = 80) {
         try {
             if (!el) return true;
@@ -366,14 +347,12 @@ window.chatScroll = {
         }
     },
 
-    // scroll base (sem animações e sem scrollIntoView → elimina jitter)
     scrollToBottom: function (el) {
         try {
             if (!el) return;
 
             requestAnimationFrame(() => {
                 try {
-                    // pequeno “double RAF safety” para layout ainda em flush
                     requestAnimationFrame(() => {
                         el.scrollTop = el.scrollHeight;
                     });
@@ -383,7 +362,6 @@ window.chatScroll = {
         } catch { }
     },
 
-    // scroll inteligente durante streaming (CORRIGIDO)
     scrollDuringStream: function (el) {
         try {
             if (!el) return;

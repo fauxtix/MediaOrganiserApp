@@ -32,12 +32,10 @@ public class SidebarData
             new(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
             new(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
 
-            // AI submenu: Edit Prompts and Chat grouped under a single parent
             new(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
             {
                 new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
                 new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
-                new(href: "/ai/copilot", title: "Copilot Chat", icon: "fa fa-comment"),
             }),
         };
         return menu;

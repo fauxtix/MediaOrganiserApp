@@ -52,7 +52,7 @@
             </div>
         }
 
-        @* Place the progress/status message inside the messages area so it's near the expected reply *@
+
         @if (!string.IsNullOrWhiteSpace(ProgressStatus))
         {
             <div class="msg assistant assistant-status" aria-live="polite">
@@ -138,7 +138,6 @@
         top: 0;
     }
 
-    /* HEADER */
     .chat-header {
         flex: 0 0 auto;
         background: #fff;
@@ -146,7 +145,6 @@
         border-bottom: 1px solid #eee;
     }
 
-    /* HEADER LAYOUT */
     .header-inner {
         width: 100%;
         max-width: none;
@@ -174,7 +172,6 @@
         margin-left: auto;
     }
 
-    /* MESSAGES (ÚNICO SCROLL) */
     .messages {
         flex: 1;
         overflow-y: auto;
@@ -186,7 +183,6 @@
         align-items: stretch;
     }
 
-    /* MESSAGE BUBBLES */
     .msg {
         max-width: 70%;
         padding: 8px;
@@ -206,7 +202,6 @@
             background: #e5e5ea;
         }
 
-    /* INPUT AREA FIXA (SEM STICKY) */
     .input-area {
         flex: 0 0 auto;
         background: #fff;
@@ -214,7 +209,6 @@
         border-top: 1px solid #eee;
     }
 
-    /* INPUT LAYOUT */
     .input-inner {
         display: flex;
         gap: 12px;
@@ -233,7 +227,6 @@
         box-sizing: border-box;
     }
 
-    /* BUTTON */
     .send-button {
         padding: 0 14px;
         border-radius: 10px;
@@ -248,7 +241,6 @@
         align-self: flex-start;
     }
 
-    /* DROPDOWN */
     .conversation-list {
         display: inline-block;
         margin-right: 12px;
@@ -262,7 +254,6 @@
         box-sizing: border-box;
     }
 
-    /* CURSOR */
     .cursor {
         display: inline-block;
         width: 8px;
@@ -276,7 +267,6 @@
         }
     }
 
-    /* SPINNER */
     .spinner-overlay {
         position: fixed;
         top: 0;
@@ -322,7 +312,6 @@
             border-radius: 8px;
         }
 
-    /* STATUS (ASSISTANT TYPING) */
     .assistant-status {
         margin-left: 12px;
         color: #666;
@@ -377,7 +366,6 @@
         }
     }
 
-    /* SEND CONTROLS */
     .send-controls {
         display: inline-flex;
         gap: 8px;
@@ -407,7 +395,6 @@
             cursor: not-allowed;
         }
 
-    /* Ícone STOP */
     .stop-icon {
         width: 12px;
         height: 12px;

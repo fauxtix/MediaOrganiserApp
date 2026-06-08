@@ -1297,4 +1297,7 @@
   <data name="ChatDeleteMessage" xml:space="preserve">
     <value>Cela supprimera définitivement la conversation sélectionnée. Voulez-vous continuer ?</value>
   </data>
+  <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
+    <value>Recherche titre</value>
+  </data>
 </root>
