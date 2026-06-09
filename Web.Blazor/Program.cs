@@ -6,6 +6,7 @@ using MediaOrganizerApp.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
@@ -15,6 +16,9 @@ using System.Globalization;
 using Web.Blazor.Areas.Identity.Data;
 using Web.Blazor.Services.DocumentHelpers;
 using Web.Blazor.Shared;
+
+using OllamaSharp;
+using OpenAI;
 
 namespace Web.Blazor;
 
@@ -138,6 +142,9 @@ public class Program
         builder.Services.AddScoped<PdfGeneratorService>();
         builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 
+        IChatClient chatClient = new OllamaApiClient(new Uri("http://localhost:11434"), "phi4-mini:latest");
+
+        builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
         var app = builder.Build();
 
         // ----------------------

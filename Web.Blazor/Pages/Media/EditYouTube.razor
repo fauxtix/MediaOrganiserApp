@@ -13,8 +13,8 @@ else
             <div>
                 <div class="e-input-url" hidden="@(!hideLowerDiv)">
                     <div>
-                        <SfTextBox Enabled="true" Placeholder="Url" Width="500px"
-                                   CssClass="form-control e-corner" ShowClearButton="true"
+                        <SfTextBox Multiline="true"  Enabled="true" Placeholder="Url" Width="570px" 
+                                   CssClass="form-control e-primary e-round-corner" ShowClearButton="true"
                                    FloatLabelType="@FloatLabelType.Auto"
                                    @bind-Value="@SelectedRecord.FileUrl">
                         </SfTextBox>

@@ -27,16 +27,8 @@ public class SidebarData
                 new(href: "/admin/manageusers", title: _localizer["frmUsers"], icon: "oi oi-people"),
                 new(href: "/admin/managelookuptables", title: _localizer["TituloTabelasAuxiliares"], icon: "fa fa-table"),
              }),
-
-            new(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
-            new(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
+           new(href: "/admin/filemanager", title: _localizer["FileManager"], icon: "fa fa-folder-open"),
             new(href: "/admin/viewapplogs", title: _localizer["Logs"], icon: "fa fa-table"),
-
-            new(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
-            {
-                new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
-                new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
-            }),
         };
         return menu;
     }
@@ -61,6 +53,20 @@ public class SidebarData
                 new(href: "/videogallery", title: _localizer["lblGaleria"], icon: "fa fa-image"),
                 new(href: "/media/playlists", title: _localizer["Playlists"], icon: "fa fa-play"),
             }),
+            new(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
+            {
+                new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
+                new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
+                new(href: "/aichat", title: "AI Chat", icon: "fa fa-comment"),
+            }),
+
+        };
+    }
+    public List<MenuItem> GetFooterMenuItems()
+    {
+        return new List<MenuItem>
+        {
+            new(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
         };
     }
 }

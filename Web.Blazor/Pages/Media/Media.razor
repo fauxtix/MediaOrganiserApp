@@ -299,7 +299,7 @@ else
                                                 msg = "Video";
                                                 icon = "oi oi-video";
                                             }
-                                            else if (string.IsNullOrEmpty(currentRow.FileUrl) && mediaFormatIsLP_or_CD_or_DVD)
+                                            else if (mediaFormatIsLP_or_CD_or_DVD)
                                             {
                                                 if (currentRow.IdFormato_Media == 3) // LP
                                                 {
@@ -568,7 +568,7 @@ else
 
 
     <SfDialog Target="#main"
-              Width="30%"
+              Width="35%"
               Height="auto"
               IsModal="true"
               ShowCloseIcon="false"
@@ -582,7 +582,7 @@ else
             </Content>
             <FooterTemplate>
                 <div>
-                    <SfButton CssClass="e-btn e-primary e-round-corner-corner" IconCss="fa fa-edit"
+                    <SfButton CssClass="e-btn e-primary e-round-corner" IconCss="fa fa-edit"
                               @onclick="AddOrSaveRecord">
                         &nbsp;@(localizerApp["btnSalvar"])
                     </SfButton>

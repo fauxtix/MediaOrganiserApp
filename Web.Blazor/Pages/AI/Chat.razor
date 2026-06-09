@@ -1,5 +1,6 @@
 ﻿@page "/ai/chat"
 
+@using Markdig
 @inject NavigationManager Nav
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Buttons
@@ -52,7 +53,6 @@
             </div>
         }
 
-
         @if (!string.IsNullOrWhiteSpace(ProgressStatus))
         {
             <div class="msg assistant assistant-status" aria-live="polite">
@@ -72,7 +72,7 @@
                       placeholder="@Localizer["TypeMessage"]"
                       disabled="@(isConnecting)"
                       aria-label="@Localizer["TypeMessage"]"></textarea>
-                      <div class="send-controls">
+            <div class="send-controls">
                 <button class="chat-action-button"
                         @onclick="@(isProcessing ? CancelSend : Send)"
                         disabled="@isConnecting">
@@ -116,6 +116,17 @@
                    OnConfirmationYes="@OnConfirmDeleteYes"
                    OnConfirmationNo="@OnConfirmDeleteNo" />
 
+<AlertUserComponent Visibility="@AlertVisibility"
+                    Title="@Localizer["AvisoSistema"]"
+                    Message="@ToastContent"
+                    AlertMessageType="AlertMessageType.Success"
+                    XPosition="center"
+                    YPosition="center"
+                    OnCloseDialog="@(()=>AlertVisibility = false)"
+                    DialogWidth="400"
+                    ShowRightSideIcon="true"/>
+
+
 <div>
     <SfToast @ref="toastObj"
              Title="@ToastTitle"
@@ -132,7 +143,7 @@
         padding: 0 !important;
         display: flex;
         flex-direction: column;
-        height: calc(100vh - 64px);
+        height: calc(100vh - 80px);
         overflow: hidden;
         position: relative;
         top: 0;
@@ -140,9 +151,11 @@
 
     .chat-header {
         flex: 0 0 auto;
-        background: #fff;
+        background: #E6F0F2;
         z-index: 10;
         border-bottom: 1px solid #eee;
+        border-radius: 10px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .header-inner {
@@ -181,6 +194,12 @@
         flex-direction: column;
         justify-content: flex-start;
         align-items: stretch;
+
+        border: 1px solid #ddd;
+        background-color: #FFFCFC;
+        border-radius: 10px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-top: 16px;
     }
 
     .msg {

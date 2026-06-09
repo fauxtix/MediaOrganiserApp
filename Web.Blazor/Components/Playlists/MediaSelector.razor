@@ -25,7 +25,9 @@
                 <Template Context="ImageRow">
                     @{
                         var currentRow = (ImageRow as MediaVM);
+                        var FormatId = currentRow.IdFormato_Media;
                         var mediaFormat = currentRow.FormatoMedia;
+                        var fileUrl = currentRow.FileUrl;
                         var mediaImage = "";
                         if (!string.IsNullOrEmpty(currentRow.CoverFile))
                         {
@@ -46,15 +48,15 @@
                         }
                         else
                         {
-                            switch (mediaFormat.ToLower())
+                            switch (FormatId)
                             {
-                                case "lp":
+                                case 3: //LP
                                     mediaImage = "/images/music-bg.jpg";
                                     break;
-                                case "cd":
+                                case 2: // CD
                                     mediaImage = "/images/music-icon2.png";
                                     break;
-                                case "a partir de url":
+                                case int n when (n == 6 && !string.IsNullOrEmpty(fileUrl)): // a partir de url
                                     if (string.IsNullOrEmpty(currentRow.CoverFile))
                                     {
                                         if (currentRow.FileUrl.ToLower().Contains("youtube"))
@@ -67,11 +69,10 @@
                                         }
                                     }
                                     break;
-                                case "armazenamento média":
-                                case "download da internet":
+                                case int n when ( (n == 9 || n== 1)  && !string.IsNullOrEmpty(currentRow.FilePath)): // MP3 ou Download da internet
                                     mediaImage = "/images/mp3Image.png";
                                     break;
-                                case "dvd - filme":
+                                case int n when (n == 4) && (string.IsNullOrEmpty(currentRow.FileUrl) || string.IsNullOrEmpty(currentRow.FilePath)): // DVD Film
                                     mediaImage = "/images/dvd-image.jpg";
                                     break;
                                 default:

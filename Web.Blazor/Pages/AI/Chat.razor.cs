@@ -7,6 +7,7 @@ using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Syncfusion.Blazor.DropDowns;
 using System.Text.Json;
 using Microsoft.Extensions.Localization;
+using Markdig;
 
 namespace Web.Blazor.Pages.AI
 {
@@ -55,13 +56,12 @@ namespace Web.Blazor.Pages.AI
 
         public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
-
-
-
         private string? InputStyle { get; set; }
+        protected bool AlertVisibility { get; set; } = false;
+
         protected override async Task OnInitializedAsync()
         {
-            await LoadConversations(); 
+            await LoadConversations();
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -104,17 +104,67 @@ namespace Web.Blazor.Pages.AI
             catch { }
         }
 
+        //private string FormatMessage(string content, bool showCursor)
+        //{
+        //    var escaped = System.Net.WebUtility.HtmlEncode(content).Replace("\n", "<br>");
+        //    if (showCursor) escaped += "<span class='cursor'>|</span>";
+        //    return escaped;
+        //}
+
         private string FormatMessage(string content, bool showCursor)
         {
-            var escaped = System.Net.WebUtility.HtmlEncode(content).Replace("\n", "<br>");
-            if (showCursor) escaped += "<span class='cursor'>|</span>";
-            return escaped;
+            if (string.IsNullOrEmpty(content))
+            {
+                return showCursor ? "<span class='cursor'>|</span>" : "";
+            }
+
+            var htmlContent = Markdown.ToHtml(content);
+
+            if (showCursor)
+            {
+                if (htmlContent.EndsWith("</p>\n"))
+                {
+                    htmlContent = htmlContent.Substring(0, htmlContent.Length - 5) + "<span class='cursor'>|</span></p>";
+                }
+                else
+                {
+                    htmlContent += "<span class='cursor'>|</span>";
+                }
+            }
+
+            return htmlContent;
         }
 
         async Task Send()
         {
+
+            //if (!IsPromptValid(userInput))
+            //{
+            //    ToastContent = "O prompt não foi usado corretamente. Por favor, faça uma pergunta relacionada com autores, publicações, músicas, vídeos ou livros";
+            //    AlertVisibility = true;
+            //    return;
+            //}
+
             if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
                 return;
+
+            string modeloAtual = (await AppSettingsService.GetSettingsAsync()).AiModelName;
+            int limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : 8192;
+            var simulacaoMensagens = messages.ToList();
+            simulacaoMensagens.Add(new ChatMessage { Role = "user", Content = userInput });
+
+            int tokensEstimados = EstimateTokens(simulacaoMensagens);
+
+            // 4. Validar se ultrapassou o limite
+            if (tokensEstimados > limiteTokens)
+            {
+                ToastContent = $"Atenção: A conversa atual possui aproximadamente {tokensEstimados} tokens, o que ultrapassa o limite de {limiteTokens} do modelo {modeloAtual}. Limpe o chat ou inicie uma nova conversa para evitar alucinações.";
+                AlertVisibility = true;
+
+                await InvokeAsync(StateHasChanged);
+                return; // Bloqueia o envio para proteger a API e evitar respostas erradas
+            }
+
 
             messages.Add(new ChatMessage { Role = "user", Content = userInput });
 
@@ -410,7 +460,7 @@ namespace Web.Blazor.Pages.AI
         private async Task DeleteSelectedConversationAsync()
         {
             if (string.IsNullOrEmpty(selectedConversationId)) return;
-            var deletedId = selectedConversationId; 
+            var deletedId = selectedConversationId;
 
             try
             {
@@ -453,6 +503,46 @@ namespace Web.Blazor.Pages.AI
                 }
                 catch { }
             }
+        }
+
+
+        private int EstimateTokens(List<ChatMessage> messageList)
+        {
+            int totalCharacters = 0;
+            foreach (var msg in messageList)
+            {
+                totalCharacters += msg.Role.Length;
+                totalCharacters += msg.Content?.Length ?? 0;
+            }
+
+            // Dividir por 3.8 dá uma margem de segurança realista para o português
+            return (int)Math.Ceiling(totalCharacters / 3.8);
+        }
+        private bool IsPromptValid(string userPrompt)
+        {
+            // Lista de palavras-chave obrigatórias
+            var keywords = new[]
+            {
+                "autor",
+                "author",
+                "publica",
+                "mp3",
+                "mp4",
+                "video",
+                "lp",
+                "cd",
+                "dvd",
+                "livro",
+                "book",
+                "top",
+                "obras",
+                "works",
+                "artist"
+            };
+
+            string lowerPrompt = userPrompt.ToLower();
+
+            return keywords.Any(keyword => lowerPrompt.Contains(keyword));
         }
 
         private async Task ShowSpinnerWithDelay(int delayMs = 300)
@@ -510,5 +600,12 @@ namespace Web.Blazor.Pages.AI
             public double ScrollHeight { get; set; }
             public double ClientHeight { get; set; }
         }
+
+        private static readonly Dictionary<string, int> ModelContextLimits = new()
+        {
+            { "mistral:latest", 32768 },
+            { "qwen2.5:latest", 128000 },
+            { "phi4-mini:latest", 128000 }
+        };
     }
 }

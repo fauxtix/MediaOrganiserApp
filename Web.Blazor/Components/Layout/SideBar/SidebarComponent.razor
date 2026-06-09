@@ -38,6 +38,13 @@
                             {
                                 <MenuItemComponent MenuItem="@menuItem" MenuItemClickCallback="MenuItemClick" />
                             }
+                            <hr  class="bg-info m-1"/>
+                            <li class="menu-header"><span> @Localizer["menu-admin-main"]</span></li>
+                            @foreach (var menuItem in footerlMenuItems)
+                            {
+                                <MenuItemComponent MenuItem="@menuItem" MenuItemClickCallback="MenuItemClick" />
+                            }
+
                         </Authorized>
                     </AuthorizeView>
 
@@ -57,12 +64,14 @@
 
     private List<MenuItem> standardItems;
     private List<MenuItem> generalMenuItems;
+    private List<MenuItem> footerlMenuItems;
 
     protected override void OnInitialized()
     {
         var sidebarData = new SidebarData(Localizer); // Passa o localizer
         standardItems = sidebarData.GetStandardMenuItems();
         generalMenuItems = sidebarData.GetGeneralMenuItems();
+        footerlMenuItems = sidebarData.GetFooterMenuItems();
     }
 
 

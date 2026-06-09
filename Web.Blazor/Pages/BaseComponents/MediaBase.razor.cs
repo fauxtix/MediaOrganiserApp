@@ -832,8 +832,8 @@ namespace Web.Blazor.Pages.BaseComponents
 
         public async Task NotifyAddingYoutubeRecord()
         {
-            int iFormato = await MediaService.GetMediaFormatByDescription("A partir de URL");
-            int iGenero = await MediaService.GetMediaCategoryByDescription("Tutorial - Vídeo - .Net");
+            int iFormato = 6; // TODO: await MediaService.GetMediaFormatByDescription("A partir de URL");
+            int iGenero = 51; // TODO: await MediaService.GetMediaCategoryByDescription("Tutorial - Vídeo - .Net");
             SelectedRecord = new MediaVM()
             {
                 Titulo = "",
@@ -1073,6 +1073,11 @@ namespace Web.Blazor.Pages.BaseComponents
             .OrderByDescending(x => x.Count)
             ?? Enumerable.Empty<(string, int)>();
 
+
+        private int GetId_FromUrlDescription()
+        {
+            return 6;
+        }
         public void Dispose()
         {
             //GC.SuppressFinalize(this);

@@ -111,7 +111,12 @@
     <script src="@Assets["js/YTDownloader.js"]"></script>
     <script src="@Assets["js/Mp3AudioPlayer.js"]"></script>
     <script src="@Assets["js/PlaylistPlayer.js"]"></script>
-    <!-- resize.js temporariamente desabilitado - causando erro de inicialização -->
-    <!-- <script src="@Assets["js/resize.js"]"></script> -->
+    <script>
+        window.chatScrollToBottom = (element) => {
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+        };
+    </script>
 </body>
 </html>
