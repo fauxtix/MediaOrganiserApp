@@ -1300,4 +1300,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
     <value>Pesquisar título</value>
   </data>
+  <data name="AiModelsTitle" xml:space="preserve">
+    <value>Modeos de IA</value>
+  </data>
 </root>

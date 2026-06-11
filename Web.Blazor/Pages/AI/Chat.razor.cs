@@ -35,7 +35,7 @@ namespace Web.Blazor.Pages.AI
 
         private bool userAtBottom = true;
 
-
+        private string modeloAtual = "";
         private ElementReference chatInputRef;
         private DotNetObjectReference<Chat>? dotNetRef;
         private bool showConfirmNewConversation = false;
@@ -62,24 +62,39 @@ namespace Web.Blazor.Pages.AI
         protected override async Task OnInitializedAsync()
         {
             await LoadConversations();
+            modeloAtual = (await AppSettingsService.GetSettingsAsync()).AiModelName;
         }
+
+        //protected override async Task OnAfterRenderAsync(bool firstRender)
+        //{
+        //    if (firstRender)
+        //    {
+        //        dotNetRef = DotNetObjectReference.Create(this);
+        //    }
+
+        //    await Task.Yield();
+
+        //    try
+        //    {
+        //        await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Erro ao anexar handlers do chat: {ex.Message}");
+        //    }
+        //}
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
                 dotNetRef = DotNetObjectReference.Create(this);
-            }
 
-            await Task.Yield();
+                // 🔥 Isto garante que o textarea já existe no DOM
+                await Task.Delay(50);
 
-            try
-            {
+                // 🔥 Agora sim, o JS consegue anexar os handlers
                 await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro ao anexar handlers do chat: {ex.Message}");
             }
         }
         private void OnProgressReceived(string? message)
@@ -114,25 +129,35 @@ namespace Web.Blazor.Pages.AI
         private string FormatMessage(string content, bool showCursor)
         {
             if (string.IsNullOrEmpty(content))
-            {
                 return showCursor ? "<span class='cursor'>|</span>" : "";
-            }
 
-            var htmlContent = Markdown.ToHtml(content);
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+
+            var html = Markdown.ToHtml(content, pipeline);
+
+            // remover whitespace no fim
+            html = html.TrimEnd('\n', '\r', ' ');
+
+            // substituir <p> por <div> para remover margens entre parágrafos
+            html = html.Replace("<p>", "<div>").Replace("</p>", "</div>");
 
             if (showCursor)
             {
-                if (htmlContent.EndsWith("</p>\n"))
+                var trimmed = html.TrimEnd();
+
+                if (trimmed.EndsWith("</div>", StringComparison.OrdinalIgnoreCase))
                 {
-                    htmlContent = htmlContent.Substring(0, htmlContent.Length - 5) + "<span class='cursor'>|</span></p>";
+                    html = trimmed[..^6] + "<span class='cursor'>|</span></div>";
                 }
                 else
                 {
-                    htmlContent += "<span class='cursor'>|</span>";
+                    html += "<span class='cursor'>|</span>";
                 }
             }
 
-            return htmlContent;
+            return html;
         }
 
         async Task Send()
@@ -148,7 +173,6 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
                 return;
 
-            string modeloAtual = (await AppSettingsService.GetSettingsAsync()).AiModelName;
             int limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : 8192;
             var simulacaoMensagens = messages.ToList();
             simulacaoMensagens.Add(new ChatMessage { Role = "user", Content = userInput });
@@ -183,14 +207,13 @@ namespace Web.Blazor.Pages.AI
             chatCts = new CancellationTokenSource();
 
             userInput = string.Empty;
-
-            InputStyle = "height: auto;";
-
             await InvokeAsync(StateHasChanged);
 
-            try { await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef); } catch { }
+            // 🔥 Esperar o Blazor terminar o re-render
+            await Task.Delay(10);
 
-            InputStyle = null;
+            // 🔥 Agora sim, o textarea está realmente vazio
+            try { await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef); } catch { }
 
             try
             {

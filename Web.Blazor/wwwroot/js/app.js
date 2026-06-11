@@ -161,7 +161,6 @@ window.chatInput = (function () {
         const value = el.value;
         el.value = value.slice(0, start) + '\n' + value.slice(end);
         el.selectionStart = el.selectionEnd = start + 1;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
         autoResize(el);
     }
 
@@ -182,16 +181,16 @@ window.chatInput = (function () {
         const target = el instanceof HTMLElement ? el : document.querySelector('.chat-input');
         if (!target) return;
 
-        isResetting = true; 
+        isResetting = true;
 
-        target.value = '';
+        //target.value = '';
         target.style.height = '';
         target.style.removeProperty('height');
 
         let attempts = 0;
         const forceClear = () => {
             if (target) {
-                target.value = '';
+                //target.value = '';
                 target.style.height = '';
                 target.style.removeProperty('height');
             }
@@ -199,7 +198,7 @@ window.chatInput = (function () {
             if (attempts < 3) {
                 requestAnimationFrame(forceClear);
             } else {
-                isResetting = false; 
+                isResetting = false;
             }
         };
 
@@ -217,20 +216,24 @@ window.chatInput = (function () {
 
         const handler = function (e) {
             if (e.key === 'Enter') {
-                if (!e.shiftKey) {
-                    e.preventDefault();
-                    
-                    target.dispatchEvent(new Event('change', { bubbles: true }));
-                    target.dispatchEvent(new Event('input', { bubbles: true }));
 
-                    const ref = target.__chatInputDotNetRef || dotNetRef;
-                    if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs');
-                } else {
+                // SHIFT+ENTER → nova linha
+                if (e.shiftKey) {
                     e.preventDefault();
+                    insertNewlineAtCaret(target);
+                    return;
                 }
+
+                // ENTER normal → enviar
+                e.preventDefault();
+
+                target.dispatchEvent(new Event('change', { bubbles: true }));
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+
+                const ref = target.__chatInputDotNetRef || dotNetRef;
+                if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs');
             }
         };
-
         const resizeHandler = function () { autoResize(target); };
 
         target.__chatInputHandler = handler;

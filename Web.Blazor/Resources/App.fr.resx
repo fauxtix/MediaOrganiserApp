@@ -1300,4 +1300,7 @@
   <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
     <value>Recherche titre</value>
   </data>
+  <data name="AiModelsTitle" xml:space="preserve">
+    <value>Modèles d'IA</value>
+  </data>
 </root>

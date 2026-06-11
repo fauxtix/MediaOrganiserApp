@@ -1299,4 +1299,7 @@
   <data name="TituloPesquisaTituloPlaylist" xml:space="preserve">
     <value>Search title</value>
   </data>
+  <data name="AiModelsTitle" xml:space="preserve">
+    <value>AI models</value>
+  </data>
 </root>

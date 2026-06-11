@@ -9,12 +9,13 @@
 @using Web.Blazor.Components
 @inject Web.Blazor.Services.ApiWrappers.AiClientService AiClient
 
-
 <div class="chat-container">
     <div class="chat-header">
         <div class="header-inner">
             <div class="header-title">Chat room</div>
+
             <div class="header-actions">
+                <div>@modeloAtual</div>
                 <div class="conversation-list">
                     <SfDropDownList TValue="string" TItem="ConversationItem"
                                     DataSource="@conversations"
@@ -28,10 +29,11 @@
                     </SfDropDownList>
                 </div>
 
-                <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation" AriaLabel="Start new conversation">
-                    <span class="sf-btn-icon" aria-hidden="true">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation">
+                    <span class="sf-btn-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"
+                                  stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </span>
                     <span class="btn-text">@Localizer["NewMsg"]</span>
@@ -39,27 +41,25 @@
 
                 <SfButton CssClass="delete-conversation"
                           OnClick="ShowConfirmDeleteConversation"
-                          Disabled="@(string.IsNullOrEmpty(selectedConversationId))"
-                          Content="@Localizer["DeleteMsg"]">
-                </SfButton>
+                          Disabled="@string.IsNullOrEmpty(selectedConversationId)"
+                          Content="@Localizer["DeleteMsg"]" />
             </div>
         </div>
     </div>
 
-
-    <div class="messages" @ref="messagesDiv">
+    <div class="messages" @ref="messagesDiv" @onscroll="OnScroll">
         @foreach (var msg in messages)
         {
             <div class="msg @(msg.Role)">
-                @((MarkupString)FormatMessage(msg.Content, msg.Role == "assistant" && currentAssistantMessage == msg))
+                @((MarkupString)FormatMessage(msg.Content, msg == currentAssistantMessage))
             </div>
         }
 
         @if (!string.IsNullOrWhiteSpace(ProgressStatus))
         {
-            <div class="msg assistant assistant-status" aria-live="polite">
+            <div class="msg assistant assistant-status">
                 <span class="status-text">@((MarkupString)FormatMessage(ProgressStatus, false))</span>
-                <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="dots"><span></span><span></span><span></span></span>
             </div>
         }
     </div>
@@ -69,23 +69,22 @@
             <textarea class="chat-input"
                       style="@InputStyle"
                       @bind="userInput"
-                      @bind:event="oninput"
+                      
                       @ref="chatInputRef"
                       placeholder="@Localizer["TypeMessage"]"
-                      disabled="@(isConnecting)"
-                      aria-label="@Localizer["TypeMessage"]"></textarea>
+                      disabled="@isConnecting"></textarea>
+
             <div class="send-controls">
                 <button class="chat-action-button"
                         @onclick="@(isProcessing ? CancelSend : Send)"
                         disabled="@isConnecting">
-
                     @if (isProcessing)
                     {
                         <span class="stop-icon"></span>
                     }
                     else
                     {
-                        <span class="fa fa-paper-plane" />
+                        <span class="fa fa-paper-plane"></span>
                     }
                 </button>
             </div>
@@ -97,10 +96,7 @@
 {
     <div class="global-spinner-overlay">
         <div class="spinner-container">
-            <SfSpinner Visible="true"
-                       Label="@SpinnerLabel"
-                       Type="@SpinnerType.Tailwind">
-            </SfSpinner>
+            <SfSpinner Visible="true" Label="@SpinnerLabel" Type="@SpinnerType.Tailwind" />
         </div>
     </div>
 }
@@ -111,6 +107,7 @@
                    Visible="@showConfirmNewConversation"
                    OnConfirmationYes="@OnConfirmYes"
                    OnConfirmationNo="@OnConfirmNo" />
+
 <ConfirmAppWarning DialogTitle="@Localizer["ChatDeleteMessasagesTitle"]"
                    AlertMessage="@Localizer["ChatDeleteMessage"]"
                    AlertMessageType="AlertMessageType.Warning"
@@ -118,26 +115,14 @@
                    OnConfirmationYes="@OnConfirmDeleteYes"
                    OnConfirmationNo="@OnConfirmDeleteNo" />
 
-<AlertUserComponent Visibility="@AlertVisibility"
-                    Title="@Localizer["AvisoSistema"]"
-                    Message="@ToastContent"
-                    AlertMessageType="AlertMessageType.Success"
-                    XPosition="center"
-                    YPosition="center"
-                    OnCloseDialog="@(()=>AlertVisibility = false)"
-                    DialogWidth="400"
-                    ShowRightSideIcon="true"/>
-
-
-<div>
-    <SfToast @ref="toastObj"
-             Title="@ToastTitle"
-             Content="@ToastContent"
-             CssClass="@ToastCssClass"
-             Timeout="@ToastTimeOut" ShowCloseButton="true">
-        <ToastPosition X="right" Y="bottom"></ToastPosition>
-    </SfToast>
-</div>
+<SfToast @ref="toastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         CssClass="@ToastCssClass"
+         Timeout="@ToastTimeOut"
+         ShowCloseButton="true">
+    <ToastPosition X="right" Y="bottom" />
+</SfToast>
 
 <style>
     .chat-container {
@@ -210,7 +195,15 @@
         font-size: 0.8rem;
         margin: 4px 5px;
         border-radius: 12px;
+        white-space: pre-line;
     }
+
+        .msg p {
+            margin: 0;
+        }
+        .msg div {
+            margin: 0;
+        }
 
         .msg.user {
             align-self: flex-end;
