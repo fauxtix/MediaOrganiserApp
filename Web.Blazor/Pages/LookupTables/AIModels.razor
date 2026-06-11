@@ -1,0 +1,263 @@
+﻿@page "/aimodels"
+@inherits AModelsBase
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Navigations
+
+@using MediaOrganizerApp.Application.Enums
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.BaseComponents
+@using Web.Blazor.Pages.Tools
+
+@attribute [Authorize]
+
+@{
+    var Tool = (new List<object>()
+{
+        "Search",
+    }
+    );
+}
+
+<div class="title">@localizerApp["frmCategorias"] (@localizerApp["frmLivros"])</div>
+<div class="underline"></div>
+<br />
+
+<div id="spinnerContainer"></div>
+<SfSpinner @ref="SpinnerObj"
+           Label="@localizerApp["LoadingMsg"]"
+           Type="@SpinnerType.Bootstrap4"
+           CssClass="e-spin-overlay">
+</SfSpinner>
+
+@if (models == null || !models.Any())
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">@localizerApp["LoadingMsg"]</span>
+    </div>
+}
+else
+{
+    <div class="col-lg-12 control-section">
+        <div class="content-wrapper">
+            <div class="row">
+                <div class="e-dddata">
+                    <SfButton CssClass="e-btn e-success e-round-corner"
+                              IconCss="fa fa-plus"
+                              @onclick="NotifyAddingRecord">
+                        &nbsp;@(localizerApp["btnNovo"])&nbsp;@(localizerApp["Record"])
+                    </SfButton>
+                    <br /><br />
+                </div>
+                <hr>
+                <div id="target">
+                    <SfGrid @ref="gridObj"
+                            DataSource="@models"
+                            Height="100%"
+                            Width="75%"
+                            Toolbar="@Tool"
+                            AllowFiltering="false"
+                            AllowGrouping="false"
+                            AllowPaging="true"
+                            AllowSorting="true"
+                            RowHeight="32"
+                            AllowTextWrap="true">
+                        <GridPageSettings PageSize="12" PageCount="12" PageSizes="true"></GridPageSettings>
+                        <GridEvents CommandClicked="OnCommandClicked"
+                                    TValue="AIModelVM"></GridEvents>
+                        <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" />
+                        <GridColumns>
+                            <GridColumn Field=@nameof(AIModelVM.Id)
+                                        HeaderText="ID#" IsPrimaryKey="true" AllowSorting="true" Visible="false"
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="60"></GridColumn>
+                            <GridColumn Field=@nameof(AIModelVM.Descricao) HeaderText=@(localizerApp["rbtDescricao"])
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="150"></GridColumn>
+
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" Width="60">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           CssClass = "e-btn e-primary e-round",
+                                                           IconCss = "fa fa-edit",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           CssClass = "e-btn e-danger e-round",
+                                                           IconCss = "fa fa-trash",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
+                        </GridColumns>
+                    </SfGrid>
+                </div>
+            </div>
+        </div>
+    </div>
+    <SfDialog Target="#main"
+              Width="450px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="true"
+              @bind-Visible="EditDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="header">
+                    @if (blnEdit)
+                    {
+                        <p>@localizerApp["editionMsg"]</p>
+                    }
+                    else
+                    {
+                        <p>@localizerApp["NewMsg"]</p>
+                    }
+                </div>
+            </Header>
+            <Content>
+                <EditAIModel SelectedRecord="@SelectedModel" blnEdit="@blnEdit" />
+            </Content>
+            <FooterTemplate>
+                <div>
+                    <SfButton CssClass="e-btn e-primary e-round-corner"
+                              IconCss="fa fa-edit"
+                              Content="@localizerApp["btnSalvar"]"
+                              @onclick="AddOrSaveRecord">
+                    </SfButton>
+
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              Content="@localizerApp["BtnSalir"]"
+                              @onclick="Voltar">
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog @bind-Visible="@DeleteRecordConfirmVisibility"
+              Width="450px" Height="auto"
+              ShowCloseIcon="false">
+        <DialogTemplates>
+            <Header>
+                <div>
+                    @(localizerApp["lblCategoria"]): @SelectedModel.Descricao
+                </div>
+            </Header>
+            <Content>
+                <div class="row">
+                    <div class="col-9">
+                        <AlertMessage Message="@(localizerApp["ConfirmarExclusao"])" MessageType="AlertMessageType.Error"></AlertMessage>
+                    </div>
+                    <RightSideImageComponent Operation="@(AppDefinitions.OpcoesRegisto.Apagar)" />
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="e-footer">
+                    <SfButton CssClass="e-btn e-danger e-round-corner" IconCss="fa fa-trash"
+                              @onclick="ConfirmDeleteYes">
+                        &nbsp;@(localizerApp["Sim"])
+                    </SfButton>
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              @onclick="ConfirmDeleteNo">
+                        &nbsp;@(localizerApp["Nao"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog Width="400px"
+              Height="300x"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ValidationErrorsVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="alert-warning">
+                    @(localizerApp["DadosEmFalta"]).
+                </div>
+            </Header>
+            <Content>
+                <div class="border-warning">
+                    <div>
+                        @(localizerApp["lblCategoria"]): @SelectedModel.Descricao
+                        <br />
+                    </div>
+                    <AlertMessage Message="@(localizerApp["OperacaoCancelada"])" MessageType="AlertMessageType.Warning"></AlertMessage>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="button-container">
+                    <SfButton CssClass="e-btn e-btn-warning e-round-corner"
+                              @onclick="closeAlertBox">
+                        &nbsp;@(localizerApp["btnSalir"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+    <SfDialog Width="60%"
+              Height="auto" style="min-width:480px;"
+              MinHeight="640px"
+              IsModal="true"
+              ShowCloseIcon="false"
+              @bind-Visible="ErrorVisibility">
+        <DialogTemplates>
+            <Header>
+                @(localizerApp["DadosEmFalta"])
+            </Header>
+            <Content>
+                <AlertMessage Message="@sErrorMsgs" MessageType="AlertMessageType.Warning"></AlertMessage>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-outline e-round-corner"
+                              IconCss="fa fa-times"
+                              @onclick="closeErrorBox">
+                        &nbsp;@(localizerApp["btnFechar"])
+                    </SfButton>
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="@Effects" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
+    <SfToast @ref="ToastObj"
+             Title="@ToastTitle"
+             Content="@ToastContent"
+             CssClass="@ToastCssClass"
+             Timeout="1500"
+             ShowCloseButton="true">
+        <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+    </SfToast>
+
+    <style>
+        .footer-with-sides {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+        }
+
+            .footer-with-sides .left-actions {
+                flex: 0 0 auto;
+            }
+
+        .right-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex: 0 0 auto;
+        }
+
+            .right-actions.e-btn {
+                white-space: nowrap;
+            }
+    </style>
+}

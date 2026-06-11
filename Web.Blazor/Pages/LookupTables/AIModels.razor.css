@@ -1,0 +1,89 @@
+﻿.avatar {
+    vertical-align: middle;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.e-btn-hide {
+    display: none;
+}
+
+.Table {
+    border-collapse: separate;
+    border-spacing: 10px;
+    width: 85%;
+    margin: 0px -5px 0px;
+}
+
+.dlgbtn {
+    margin-right: 10px;
+}
+
+#target {
+    height: auto;
+    min-height: 350px;
+}
+
+.dlgbtn {
+    margin-right: 10px;
+}
+
+.fabric #target #prompt_dialog.e-dialog {
+    height: 291px;
+}
+
+.material #target #prompt_dialog.e-dialog {
+    height: 270px;
+}
+
+#target #prompt_dialog.e-dialog {
+    height: 270px;
+}
+
+.bootstrap4 #target #prompt_dialog.e-dialog {
+    height: 285px;
+}
+
+.e-plus-icon::before {
+    content: '\e823';
+}
+
+.company-header-avatar {
+    width: 60px;
+    height: 60px;
+    -webkit-border-radius: 60px;
+    -webkit-background-clip: padding-box;
+    -moz-border-radius: 60px;
+    -moz-background-clip: padding;
+    border-radius: 60px;
+    background-clip: padding-box;
+    margin: 7px 0 0 5px;
+    float: left;
+}
+
+.circular {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+}
+
+    .circular img {
+        min-width: 100%;
+        min-height: 100%;
+        width: auto;
+        height: auto;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        -moz-transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+
+.e-round-corner {
+    border-radius: 15px;
+}

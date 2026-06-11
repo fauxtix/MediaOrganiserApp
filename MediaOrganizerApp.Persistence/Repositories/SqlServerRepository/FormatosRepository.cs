@@ -15,7 +15,6 @@ namespace MediaOrganizerApp.Persistence.Repositories.SqlServerRepository
     public class FormatosRepository : SQLServerBaseRepository<Formato>, IFormatosRepository
     {
         private readonly IPublicacoesRepository m_repoPubs;
-        private readonly StringBuilder sbData = new();
         private readonly IDapperContext _context;
 
         public FormatosRepository(IPublicacoesRepository repoPubs, IDapperContext context)

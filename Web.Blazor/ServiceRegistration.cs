@@ -85,6 +85,9 @@ namespace Web.Blazor
             services.AddHttpClient<IFormatosService, FormatosService>();
             services.AddHttpClient<IFormatos_MediaService, Formatos_MediaService>();
             services.AddHttpClient<ILocaisArquivoService, LocaisArquivoService>();
+            // 06/2026 
+            services.AddHttpClient<IAiModelsService, AIModelsApiWrapper>();
+
             services.AddHttpClient<IMostUsedService, MostUsedService>();
             services.AddHttpClient<IUsersService, UsersService>();
             services.AddHttpClient<IPdfService, PdfService>();
@@ -159,6 +162,8 @@ namespace Web.Blazor
             services.AddTransient<IValidator<FormatoPublicacaoVM>, FormatoValidator>();
             services.AddTransient<IValidator<MediaVM>, MediaValidator>();
             services.AddTransient<IValidator<PubsWithDescriptions>, PublicacaoValidator>();
+            //06/2026 - Added new validator for AIModelVM, which is used in the AI fallback mechanism for metadata retrieval.
+            services.AddTransient<IValidator<AIModelVM>, AIModelValidator>();
 
             // Register the generic validator
             services.AddTransient(typeof(IValidator<>), typeof(TabAuxGenericValidator<>));

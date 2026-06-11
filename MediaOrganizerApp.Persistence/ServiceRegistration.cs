@@ -39,6 +39,10 @@ namespace MediaOrganizerApp.Persistence
             services.AddScoped<IFormatosRepository, FormatosRepository>();
             services.AddScoped<IHelpManagerRepository, HelpManagerRepository>();
             services.AddScoped<ILocalArquivoRepository, LocaisArquivoRepository>();
+
+            // 06/2026 
+            services.AddScoped<IAIModelsRepository, AIModelsRepository>();
+
             services.AddScoped<IStatsRepository, StatsRepository>();
             services.AddScoped<ITipoCategoriaRepository, TipoCategoriaRepository>();
 

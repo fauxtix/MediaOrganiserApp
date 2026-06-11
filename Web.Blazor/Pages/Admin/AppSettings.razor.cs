@@ -15,6 +15,8 @@ namespace Web.Blazor.Pages.Admin
 {
     public partial class AppSettings
     {
+
+        [Inject] public IAiModelsService? AIModelsSrvice { get; set; }
         [Inject] public IStringLocalizer<App>? L { get; set; }
         [Inject] public IConfiguration? configuration { get; set; }
         [Inject] public ILogger<App>? logger { get; set; }
@@ -24,6 +26,7 @@ namespace Web.Blazor.Pages.Admin
 
         [Inject] IJSRuntime JSRuntime { get; set; }
 
+        private IEnumerable<AIModelVM>? AiModels { get; set; } = [];
         private ApplicationSettingsDto? settings;
         private SfButton? ToggleBtnObj;
         private string IconCss = "fa fa-play";
@@ -76,6 +79,7 @@ namespace Web.Blazor.Pages.Admin
 
             try
             {
+                AiModels = (await AIModelsSrvice.GetAllAsync()).ToList();
                 settings = await AppSettingsService.GetSettingsAsync();
             }
             catch

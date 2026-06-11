@@ -11,6 +11,7 @@ namespace MediaOrganizerApp.Application.Mappings
             CreateMap<Categoria, CategoryVM>().ReverseMap();
             CreateMap<Editora, PublisherVM>().ReverseMap();
             CreateMap<Formato, FormatoPublicacaoVM>().ReverseMap();
+            CreateMap<AiModel, AIModelVM>().ReverseMap();
             CreateMap<Formato_Media, FormatoMediaVM>().ReverseMap();
             CreateMap<Publicacao, PubsWithDescriptions>().ReverseMap();
             CreateMap<Editora, PublisherVM>().ReverseMap();

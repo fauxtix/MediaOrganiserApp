@@ -227,7 +227,6 @@ window.chatInput = (function () {
                     if (ref) ref.invokeMethodAsync('OnEnterPressedFromJs');
                 } else {
                     e.preventDefault();
-                    insertNewlineAtCaret(target);
                 }
             }
         };
