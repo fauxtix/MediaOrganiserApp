@@ -9,7 +9,7 @@
 
 <PageTitle>@L["menu-admin-main"]</PageTitle>
 <PageTitleComponent PageTitle="@L["menu-admin-main"]"></PageTitleComponent>
-@if (settings is null)
+@if (settings is null || AiModels is null || !AiModels.Any())
 {
     <LoadingData />
 }
@@ -206,9 +206,7 @@ else
                                                     DataSource="@AiModels"
                                                     @bind-Value="settings.AiModelName"
                                                     Placeholder="@L["TituloAIModelName"]">
-
-                                        <DropDownListFieldSettings Text="Descricao" Value="Id"></DropDownListFieldSettings>
-
+                                        <DropDownListFieldSettings Text="Descricao" Value="Descricao" />
                                     </SfDropDownList>
 
                                 </div>
