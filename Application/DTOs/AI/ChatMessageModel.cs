@@ -1,4 +1,4 @@
-﻿namespace Web.Blazor.Pages.AI
+﻿namespace MediaOrganizerApp.Application.DTOs.AI
 {
     public class ChatMessageModel
     {

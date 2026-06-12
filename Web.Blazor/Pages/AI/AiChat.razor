@@ -4,6 +4,7 @@
 @using Markdig
 @using Microsoft.Extensions.AI
 @using System.Text
+@using MediaOrganizerApp.Application.DTOs.AI
 @rendermode InteractiveServer
 
 @inject IChatClient ChatClient
@@ -38,7 +39,7 @@
 @code {
     private string userInput = string.Empty;
     private ElementReference messagesContainer;
-    private List<ChatMessageModel> Messages = new List<ChatMessageModel>();
+    private List<ChatMessageModel> Messages = new();
     private bool isStreaming = false;
 
     private async Task SendMessage()
