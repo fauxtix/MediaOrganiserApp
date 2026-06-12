@@ -1,13 +1,14 @@
-using MediaOrganizerApp.Application.DTOs.AI;
-using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using Syncfusion.Blazor.Notifications;
-using Web.Blazor.Services.ApiWrappers;
-using MediaOrganizerApp.Application.Interfaces.Services.Api;
-using Syncfusion.Blazor.DropDowns;
-using System.Text.Json;
-using Microsoft.Extensions.Localization;
 using Markdig;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
+using Syncfusion.Blazor.DropDowns;
+using Syncfusion.Blazor.Notifications;
+using System.Text.Json;
+using Web.Blazor.Services.ApiWrappers;
 
 namespace Web.Blazor.Pages.AI
 {
@@ -36,6 +37,12 @@ namespace Web.Blazor.Pages.AI
         private bool userAtBottom = true;
 
         private string modeloAtual = "";
+        private int limiteTokens { get; set; }
+        private int tokensEstimados { get; set; }
+        private int tokensUsados { get; set; } = 0;
+        private bool ShowTokenWarning => limiteTokens > 0 && ((double)tokensEstimados / limiteTokens) >= 0.80;
+
+
         private ElementReference chatInputRef;
         private DotNetObjectReference<Chat>? dotNetRef;
         private bool showConfirmNewConversation = false;
@@ -58,6 +65,8 @@ namespace Web.Blazor.Pages.AI
         public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
         private string? InputStyle { get; set; }
         protected bool AlertVisibility { get; set; } = false;
+
+        private string? lastUserPrompt;
 
         protected override async Task OnInitializedAsync()
         {
@@ -131,18 +140,22 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrEmpty(content))
                 return showCursor ? "<span class='cursor'>|</span>" : "";
 
+            // Pipeline que converte \n em <br> (ESSENCIAL para o lado direito)
             var pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
+                .UseSoftlineBreakAsHardlineBreak()
                 .Build();
 
+            // Converter Markdown → HTML
             var html = Markdown.ToHtml(content, pipeline);
 
-            // remover whitespace no fim
+            // Remover whitespace no fim (sem cortar tags)
             html = html.TrimEnd('\n', '\r', ' ');
 
-            // substituir <p> por <div> para remover margens entre parágrafos
+            // Substituir <p> por <div> para remover margens entre parágrafos
             html = html.Replace("<p>", "<div>").Replace("</p>", "</div>");
 
+            // Inserir cursor de forma segura
             if (showCursor)
             {
                 var trimmed = html.TrimEnd();
@@ -173,11 +186,11 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
                 return;
 
-            int limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : 8192;
+            limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : 8192;
             var simulacaoMensagens = messages.ToList();
             simulacaoMensagens.Add(new ChatMessage { Role = "user", Content = userInput });
 
-            int tokensEstimados = EstimateTokens(simulacaoMensagens);
+            tokensEstimados = EstimateTokens(simulacaoMensagens);
 
             // 4. Validar se ultrapassou o limite
             if (tokensEstimados > limiteTokens)
@@ -204,7 +217,12 @@ namespace Web.Blazor.Pages.AI
             await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
 
             chatCts?.Cancel();
+            chatCts?.Dispose();
+
             chatCts = new CancellationTokenSource();
+            var localToken = chatCts.Token;
+
+            lastUserPrompt = userInput;
 
             userInput = string.Empty;
             await InvokeAsync(StateHasChanged);
@@ -242,7 +260,7 @@ namespace Web.Blazor.Pages.AI
 
                 var firstChunkReceived = false;
 
-                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, chatCts.Token))
+                await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, localToken))
                 {
                     if (!firstChunkReceived)
                     {
@@ -272,6 +290,9 @@ namespace Web.Blazor.Pages.AI
                     }
                 }
 
+                tokensUsados = EstimateTokens(messages);
+                await InvokeAsync(StateHasChanged);
+
                 await SaveCurrentConversationAsync();
 
                 if (toastObj != null)
@@ -284,26 +305,56 @@ namespace Web.Blazor.Pages.AI
             }
             catch (OperationCanceledException)
             {
-                ProgressStatus = "Request cancelled.";
-            }
-            catch (Exception ex)
-            {
+                // Garantir que existe uma mensagem do assistente
                 if (currentAssistantMessage is null)
                 {
-                    currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+                    currentAssistantMessage = new ChatMessage
+                    {
+                        Role = "assistant",
+                        Content = ""
+                    };
                     messages.Add(currentAssistantMessage);
                 }
 
-                currentAssistantMessage.Content += $"\n\n[Error receiving response: {ex.Message}]";
+                // Mensagem amigável para cancelamento ou timeout
+                currentAssistantMessage.Content += "\n\n⚠️ O pedido foi cancelado ou interrompido. Tente novamente.";
 
                 ProgressStatus = string.Empty;
 
                 if (toastObj != null)
                 {
-                    ToastTitle = "Error";
-                    ToastCssClass = "e-toast-danger";
+                    ToastTitle = "AI";
+                    ToastCssClass = "e-toast-warning";
+                    ToastTimeOut = 3000;
+                    ToastContent = "O pedido foi cancelado ou interrompido.";
+                    await InvokeAsync(StateHasChanged);
+                    await toastObj.ShowAsync();
+                }
+            }
+            catch (Exception)
+            {
+                // Garantir que existe uma mensagem do assistente
+                if (currentAssistantMessage is null)
+                {
+                    currentAssistantMessage = new ChatMessage
+                    {
+                        Role = "assistant",
+                        Content = ""
+                    };
+                    messages.Add(currentAssistantMessage);
+                }
+
+                // Mensagem amigável para o utilizador
+                currentAssistantMessage.Content += "\n\n⚠️ Não foi possível obter resposta da IA neste momento. Tente novamente dentro de alguns segundos.";
+
+                ProgressStatus = string.Empty;
+
+                if (toastObj != null)
+                {
+                    ToastTitle = "AI";
+                    ToastCssClass = "e-toast-warning";
                     ToastTimeOut = 4000;
-                    ToastContent = currentAssistantMessage.Content;
+                    ToastContent = "A resposta foi interrompida. Tente novamente.";
                     await InvokeAsync(StateHasChanged);
                     await toastObj.ShowAsync();
                 }
@@ -528,19 +579,95 @@ namespace Web.Blazor.Pages.AI
             }
         }
 
-
-        private int EstimateTokens(List<ChatMessage> messageList)
+        private async void HandleKeyDown(KeyboardEventArgs e)
         {
-            int totalCharacters = 0;
-            foreach (var msg in messageList)
+            if (isProcessing)
+                return;
+
+            if (e.Key == "ArrowUp")
             {
-                totalCharacters += msg.Role.Length;
-                totalCharacters += msg.Content?.Length ?? 0;
+                if (!string.IsNullOrWhiteSpace(lastUserPrompt) &&
+                    string.IsNullOrWhiteSpace(userInput))
+                {
+                    userInput = lastUserPrompt;
+
+                    await InvokeAsync(StateHasChanged);
+
+                    try
+                    {
+                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
+                    }
+                    catch { }
+                }
             }
 
-            // Dividir por 3.8 dá uma margem de segurança realista para o português
-            return (int)Math.Ceiling(totalCharacters / 3.8);
+            if (e.Key == "ArrowDown")
+            {
+                if (userInput == lastUserPrompt)
+                {
+                    userInput = string.Empty;
+
+                    await InvokeAsync(StateHasChanged);
+
+                    try
+                    {
+                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
+                    }
+                    catch { }
+                }
+            }
         }
+        private int EstimateTokens(List<ChatMessage> messageList)
+        {
+            int total = 0;
+
+            foreach (var msg in messageList)
+            {
+                if (!string.IsNullOrEmpty(msg.Role))
+                    total += msg.Role.Length;
+
+                if (!string.IsNullOrEmpty(msg.Content))
+                    total += msg.Content.Length;
+            }
+
+            // Média realista: 1 token ≈ 4 caracteres (línguas latinas)
+            return (int)Math.Ceiling(total / 4.0);
+        }
+        private string GetTokenPercent()
+        {
+            if (limiteTokens <= 0) return "0%";
+            double ratio = (double)tokensEstimados / limiteTokens;
+            ratio = Math.Clamp(ratio, 0, 1);
+            return (ratio * 100).ToString("0.##") + "%";
+        }
+
+        private string GetTokenClass()
+        {
+            if (limiteTokens <= 0) return "";
+
+            double ratio = (double)tokensEstimados / limiteTokens;
+
+            if (ratio < 0.40)
+                return "token-low";      // verde
+            else if (ratio < 0.75)
+                return "token-medium";   // amarelo
+            else
+                return "token-high";     // vermelho
+        }
+
+        private string GetWarningClass()
+        {
+            if (limiteTokens <= 0) return "";
+
+            double ratio = (double)tokensEstimados / limiteTokens;
+
+            if (ratio >= 0.90)
+                return "token-warning-high";   // vermelho forte
+            else
+                return "token-warning-medium"; // amarelo
+        }
+
+
         private bool IsPromptValid(string userPrompt)
         {
             // Lista de palavras-chave obrigatórias
@@ -627,7 +754,7 @@ namespace Web.Blazor.Pages.AI
         private static readonly Dictionary<string, int> ModelContextLimits = new()
         {
             { "mistral:latest", 32768 },
-            { "qwen2.5:latest", 128000 },
+            { "qwen3.5:latest", 128000 },
             { "phi4-mini:latest", 128000 }
         };
     }

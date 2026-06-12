@@ -78,7 +78,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         /// prompts endpoint allows the UI to list available prompt template files in the Prompts folder.
         /// </summary>
         /// <returns>Action result containing the list of prompt template files.</returns>
-        
+
         [HttpGet("prompts")]
         public IActionResult GetPromptFiles()
         {
@@ -413,7 +413,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         /// Get flag values for AI features. This allows the UI to enable/disable features based on these flags without needing a full app configuration refresh.
         /// </summary>
         /// <returns>Current feature flags for AI features.</returns>
-        
+
         [HttpGet("flags")]
         public ActionResult<MediaOrganizerApp.Application.FeatureFlags> GetFlags()
         {
@@ -425,7 +425,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         /// </summary>
         /// <param name="flags">The new feature flags to set.</param>
         /// <returns>Action result indicating the outcome of the operation.</returns>
-        
+
         [HttpPut("flags")]
         public ActionResult SetFlags([FromBody] MediaOrganizerApp.Application.FeatureFlags flags)
         {
@@ -442,7 +442,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         /// <param name="request">The request containing the media item's title, artist, and optional language.</param>
         /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
         /// <returns>Action result containing the AI-generated notes for the media item.</returns>
-        
+
         [HttpPost("media-notes")]
         public async Task<ActionResult<AiMediaNotesResponseDto>> MediaNotes(
             [FromBody] AiMediaNotesRequestDto request,
@@ -533,13 +533,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
         /// <param name="request">The request containing the list of messages and optional language.</param>
         /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
         /// <returns>Action result containing the AI-generated responses streamed in real-time.</returns>
-        
+
         [HttpPost("chat")]
         public async Task Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
         {
             Response.ContentType = "text/plain";
 
-            // If Language present, insert a system message so the LLM replies in the requested language.
             if (!string.IsNullOrWhiteSpace(request?.Language))
             {
                 var langName = MapLanguageCodeToName(request.Language);
@@ -559,6 +558,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     cancellationToken))
                 {
                     await Response.WriteAsync(chunk, cancellationToken);
+
                     await Response.Body.FlushAsync(cancellationToken);
                 }
             }

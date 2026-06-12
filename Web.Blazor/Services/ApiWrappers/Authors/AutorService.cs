@@ -384,7 +384,7 @@ namespace Web.Blazor.Services.ApiWrappers.Authors
                     if (birthDateElement.ValueKind == JsonValueKind.String)
                     {
                         authorBirthDate = birthDateElement.GetString();
-                        if(authorBirthDate.Length == 4) // year only
+                        if (authorBirthDate.Length == 4) // year only
                         {
                             authorBirthDate = "01/01/" + authorBirthDate;
                         }
@@ -439,7 +439,7 @@ namespace Web.Blazor.Services.ApiWrappers.Authors
                         authorPhotoUrl = image;
                     }
                     else
-                    { 
+                    {
                         authorPhotoUrl = "images/NoPhoto.png";
                     }
                 }
@@ -487,29 +487,27 @@ namespace Web.Blazor.Services.ApiWrappers.Authors
             string apiUrl = "https://api.mymemory.translated.net/get";
             string requestUrl = $"{apiUrl}?q={Uri.EscapeDataString(text)}&langpair={sourceLang}|{targetLang}";
 
-            using (var httpClient = new HttpClient())
+            var response = await _httpClient.GetAsync(requestUrl);
+
+            if (!response.IsSuccessStatusCode)
             {
-                var response = await httpClient.GetAsync(requestUrl);
+                throw new Exception($"Erro ao acessar a API: {response.StatusCode}");
+            }
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new Exception($"Erro ao acessar a API: {response.StatusCode}");
-                }
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jsonResponse = JsonDocument.Parse(responseContent);
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonDocument.Parse(responseContent);
-
-                if (jsonResponse.RootElement.TryGetProperty("responseData", out var responseData) &&
-                    responseData.TryGetProperty("translatedText", out var translatedText))
-                {
-                    return translatedText.GetString();
-                }
-                else
-                {
-                    throw new Exception("Erro ao processar a resposta da API.");
-                }
+            if (jsonResponse.RootElement.TryGetProperty("responseData", out var responseData) &&
+                responseData.TryGetProperty("translatedText", out var translatedText))
+            {
+                return translatedText.GetString();
+            }
+            else
+            {
+                throw new Exception("Erro ao processar a resposta da API.");
             }
         }
+
 
 
         /// <summary>

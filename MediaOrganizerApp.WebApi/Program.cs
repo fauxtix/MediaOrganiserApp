@@ -27,19 +27,15 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        // Add a configuration provider that reflects runtime feature flags from FeatureFlagsStore
         ((IConfigurationBuilder)builder.Configuration).Add(new Configuration.FeatureFlagsConfigurationSource());
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets<Program>();
         }
 
-
-        // Get connection string
         var connString = builder.Configuration.GetConnectionString("SqlServerCon");
         if (connString is null)
             throw new ArgumentNullException(nameof(connString), "Connection string cannot be null");
-
 
         builder.Services.AddCors(options =>
         {
@@ -49,15 +45,12 @@ public class Program
                       .AllowAnyHeader());
         });
 
-        // Configure Services
         builder.Services.AddControllers(options =>
         {
             options.SuppressAsyncSuffixInActionNames = false;
         });
 
         builder.Services.AddAutoMapper(typeof(AppMappings));
-
-        // Add OpenAPI services (required for Scalar)
         builder.Services.AddOpenApi();
 
         builder.Services.AddSingleton<IConnectionFactory>(s => new SqlConnectionFactory(connString));
@@ -66,36 +59,76 @@ public class Program
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IYouTubeSubscriptionService, YouTubeSubscriptionService>();
-
-        // Google Authentication removido - n�o necess�rio para esta API
-
         builder.Services.AddPersistenceInfrastructure();
 
-        // HttpClient used by AI providers (e.g., Ollama local HTTP API).
+        // Cliente genérico mantido apenas para outras integrações genéricas se necessário
         builder.Services.AddHttpClient();
-
 
         builder.Services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
         builder.Services.AddSignalR();
         builder.Services.AddScoped<IProgressPublisher, SignalRProgressPublisher>();
 
-        // Shared AI infrastructure: settings caching and system-prompt loading
         builder.Services.AddMemoryCache();
         builder.Services.AddScoped<Services.IAiSettingsProvider, AiSettingsProvider>();
         builder.Services.AddScoped<ISystemPromptService, SystemPromptService>();
 
-        // AI services
-        builder.Services.AddHttpClient<OllamaBookSummaryService>();
-        builder.Services.AddScoped<IAiBookSummaryService, OllamaBookSummaryService>();
-        // Ollama-based books provider (LLM fallback for Google Books lookups)
-        builder.Services.AddHttpClient<OllamaBooksService>();
-        builder.Services.AddScoped<IAiBooksService, OllamaBooksService>();
+        // ----------------------------------------------------------------
+        // CONFIGURAÇÃO RESILIENTE DO POOL DE PORTAS TCP PARA O OLLAMA
+        // ----------------------------------------------------------------
+        builder.Services.AddHttpClient("OllamaSharedClient", client =>
+        {
+            client.BaseAddress = new Uri("http://localhost:11434");
+            client.Timeout = TimeSpan.FromMinutes(10); // Evita o Timeout infinito perigoso
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5), // Recicla sockets de forma invisível
+            EnableMultipleHttp2Connections = true,               // Permite múltiplas chamadas em paralelo
+            KeepAlivePingDelay = TimeSpan.FromSeconds(30),       // Mantém o "túnel" aberto com o Ollama
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(15)
+        });
 
-        // Feature flags: allow runtime toggling of AI fallback/badge
+        // Configuração dos Serviços do Ollama utilizando o Client gerido acima
+        builder.Services.AddScoped<IAiBookSummaryService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaBookSummaryService>(sp, httpClient);
+        });
+
+        builder.Services.AddScoped<IAiBooksService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaBooksService>(sp, httpClient);
+        });
+
+        builder.Services.AddScoped<IAiMediaNotesService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaMediaNotesService>(sp, httpClient);
+        });
+
+        builder.Services.AddScoped<IAiMediaMetadataService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaMediaMetadataService>(sp, httpClient);
+        });
+
+        builder.Services.AddScoped<ITranslateService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaTranslateService>(sp, httpClient);
+        });
+
+        builder.Services.AddScoped<IAiChatService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaChatService>(sp, httpClient);
+        });
+
+        // ----------------------------------------------------------------
+
         builder.Services.Configure<FeatureFlags>(builder.Configuration.GetSection("Features"));
 
-
-        // Initialize FeatureFlagsStore from configuration at startup so the in-memory store matches configured defaults
         try
         {
             var initial = builder.Configuration.GetSection("Features").Get<FeatureFlags>() ?? new FeatureFlags();
@@ -106,60 +139,17 @@ public class Program
             // ignore any errors reading initial flags
         }
 
-        builder.Services.AddHttpClient<OllamaMediaNotesService>();
-        builder.Services.AddScoped<IAiMediaNotesService, OllamaMediaNotesService>();
-
-        builder.Services.AddHttpClient<OllamaMediaMetadataService>();
-        builder.Services.AddScoped<IAiMediaMetadataService, OllamaMediaMetadataService>();
-
-        // Translation service (generic) using Ollama
-        builder.Services.AddHttpClient<OllamaTranslateService>();
-        builder.Services.AddScoped<ITranslateService, OllamaTranslateService>();
         builder.Services.AddScoped<IWikidataService, WikidataService>();
-
-        // Register a concrete IAiChatService so AiController can be activated.
-        // If you later add a real chat implementation, replace DevAiChatService with that class
-        builder.Services.AddHttpClient<OllamaChatService>();
-        builder.Services.AddScoped<IAiChatService, OllamaChatService>();
-
-        // AI fallback services (server-side). Used only when external metadata APIs fail.
-        // Provider selection is delegated to ServiceRegistration.AddAiServices to ensure
-        // typed HttpClient registration for Ollama-backed implementations.
         builder.Services.AddAiServices(builder.Configuration);
 
-        // Music metadata service (external API) 
-        // 17-04-2026: Still using MusicBrainz as the primary metadata source, but this is where you'd register an alternative provider if needed.
         builder.Services.AddHttpClient<IMusicMetadataService, MusicMetadataService>();
-
         builder.Services.AddHttpClient<IAudioDbService, AudioDbService>();
 
         var lastFmApiKey = builder.Configuration.GetSection("LastFm")["ApiKey"];
         var lastFmApiSecret = builder.Configuration.GetSection("LastFm")["ApiSecret"];
 
         builder.Services.AddSingleton<ILastFmService, LastFmService>();
-
-        builder.Services.AddSingleton(new LastfmClient( lastFmApiKey, lastFmApiSecret));
-
-        /// Last.fm API client registration (commented out because we're currently using a singleton with hardcoded credentials above, but this is how you'd register it if you wanted to pull credentials from configuration or a secrets manager)
-        /// 
-        // builder.Services.AddScoped<ILastFmService, LastFmService>();
-        //builder.Services.AddScoped<IAppSettingsService, WrapperAppSettings>();
-        //builder.Services.AddScoped<LastfmClient>(sp =>
-        //{
-        //    var settingsService = sp.GetRequiredService<IAppSettingsService>();
-
-        //    var settings = settingsService
-        //        .GetSettingsAsync()
-        //        .GetAwaiter()
-        //        .GetResult();
-
-        //    return new LastfmClient(
-        //        settings.LastFmApiKey,
-        //        settings.LastFmApiSecret);
-        //});
-
-
-        var from = builder.Configuration.GetSection("Mail")["From"];
+        builder.Services.AddSingleton(new LastfmClient(lastFmApiKey, lastFmApiSecret));
 
         var gmailSender = builder.Configuration.GetSection("Gmail")["Sender"];
         var gmailPassword = builder.Configuration.GetSection("Gmail")["Password"];
@@ -176,10 +166,8 @@ public class Program
                 EnableSsl = true,
             });
 
-
         var app = builder.Build();
 
-        // Configure Serilog
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
             .Filter.ByExcluding(ExcludeHttpLog)
@@ -188,15 +176,10 @@ public class Program
 
         app.Services.GetRequiredService<ILoggerFactory>().AddSerilog();
 
-        // Configure the HTTP request pipeline
         if (app.Environment.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-
-            // Map OpenAPI endpoint
             app.MapOpenApi();
-
-            // Add Scalar UI for interactive API documentation
             app.MapScalarApiReference(options =>
             {
                 options
@@ -207,11 +190,9 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-
-        // Serve generated PDFs and other static files from wwwroot
         app.UseStaticFiles();
-
         app.UseRouting();
+
         app.UseCors("AllowAllOrigins");
 
         app.UseAuthentication();

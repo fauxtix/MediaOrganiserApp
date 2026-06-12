@@ -50,10 +50,10 @@ namespace MediaOrganizerApp.WebApi.Services
                 Content = JsonContent.Create(payload)
             };
 
-            using var response = await _httpClient.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+using var response = await _httpClient.SendAsync(
+    request,
+    HttpCompletionOption.ResponseHeadersRead,
+    cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {

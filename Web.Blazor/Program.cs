@@ -16,7 +16,6 @@ using System.Globalization;
 using Web.Blazor.Areas.Identity.Data;
 using Web.Blazor.Services.DocumentHelpers;
 using Web.Blazor.Shared;
-
 using OllamaSharp;
 using OpenAI;
 
@@ -59,14 +58,6 @@ public class Program
         builder.Services.AddSyncfusionBlazor();
         builder.Services.AddScoped<SfDialogService>();
 
-        //builder.Services.AddCors(options =>
-        //{
-        //    options.AddPolicy("AllowAllOrigins", policy =>
-        //        policy.AllowAnyOrigin()
-        //              .AllowAnyMethod()
-        //              .AllowAnyHeader());
-        //});
-
         #region Localization
         builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -99,24 +90,23 @@ public class Program
         builder.Services.AddRazorPages();
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents()
-               .AddInteractiveServerComponents(options =>
-               {
-                   options.DetailedErrors = true;
-               });
+            .AddInteractiveServerComponents(options =>
+            {
+                options.DetailedErrors = true;
+            });
 
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
         builder.Services.AddAutoMapper(typeof(AppMappings));
         builder.Services.AddHttpClient();
 
         // 02-2026
-
         builder.Services.AddHttpClient("SyncfusionLoopback")
-    .ConfigurePrimaryHttpMessageHandler(() =>
-        new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-                message.RequestUri != null && message.RequestUri.IsLoopback
-        });
+            .ConfigurePrimaryHttpMessageHandler(() =>
+                new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                        message.RequestUri != null && message.RequestUri.IsLoopback
+                });
 
         builder.Services.AddSingleton<Services.Common.MediaInfoProgressClient>();
         builder.Services.AddSingleton<Services.Common.BooksInfoProgressClient>();
@@ -126,7 +116,6 @@ public class Program
             var factory = sp.GetRequiredService<IHttpClientFactory>();
             return factory.CreateClient("SyncfusionLoopback");
         });
-
 
         builder.Services.AddSingleton<IGlobalLocalizedStrings, GlobalLocalizedStrings>();
 
@@ -142,9 +131,34 @@ public class Program
         builder.Services.AddScoped<PdfGeneratorService>();
         builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 
-        IChatClient chatClient = new OllamaApiClient(new Uri("http://localhost:11434"), "phi4-mini:latest");
+        builder.Services.AddHttpClient("OllamaHttpClient", client =>
+        {
+            client.BaseAddress = new Uri("http://localhost:11434");
+            client.Timeout = TimeSpan.FromMinutes(15); // Dá margem para qualquer modelo carregar na RAM/GPU
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+            EnableMultipleHttp2Connections = true,
 
-        builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
+            // Força o Windows a manter o canal TCP aberto mesmo com a GPU a 100%
+            KeepAlivePingDelay = TimeSpan.FromSeconds(5),
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(30),
+            KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
+        });
+
+        builder.Services.AddChatClient(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("OllamaHttpClient");
+
+            // Mantém-se agnóstico (sem modelo fixo) para respeitar os teus settings
+            return new OllamaApiClient(httpClient, defaultModel: "");
+        })
+        .UseFunctionInvocation()
+        .UseLogging();
+        // ----------------------------------------------------------------
+
         var app = builder.Build();
 
         // ----------------------
@@ -166,16 +180,13 @@ public class Program
             Static.Endpoints.Initialize(apiBaseUrl + "/api");
             app.UseDeveloperExceptionPage();
             app.UseMigrationsEndPoint();
-            app.UseHttpsRedirection(); // no dev, porta automática
+            app.UseHttpsRedirection();
         }
         else
         {
             Static.Endpoints.Initialize("http://localhost:4100/api");
             app.UseExceptionHandler("/Error");
             app.UseHsts();
-
-            // Produção: IIS já força HTTPS, mas se quiseres usar middleware:
-            // app.UseHttpsRedirection(new HttpsRedirectionOptions { HttpsPort = 4100 });
         }
 
         app.UseStaticFiles();
