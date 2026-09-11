@@ -328,8 +328,8 @@ else
 }
 <style type="text/css" scoped>
     .e-icon-transfer:before {
-        background-color: white;
-        color: black;
+        background-color: var(--app-surface);
+        color: var(--app-text-primary);
         content: '\e727'
     }
 
@@ -430,10 +430,9 @@ else
     .primary-button {
         font-family: Arial, sans-serif;
         font-size: 1.3em;
-        color: #fff;
-        border: 1px solid #004487;
-        background-image: -webkit-gradient(linear, top, bottom, from(#5288bd), to(#2f659a));
-        background-image: -webkit-linear-gradient(top, #5288bd, #2f659a);
+        color: var(--app-on-primary);
+        border: 1px solid var(--app-primary-hover);
+        background: var(--app-primary);
         box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.4), inset 0px 0px 0px 1px rgba(255, 255, 255, 0.2), 0px 1px 0px rgba(255, 255, 255, .7);
         text-shadow: 0px -1px 0px black;
         cursor: pointer;

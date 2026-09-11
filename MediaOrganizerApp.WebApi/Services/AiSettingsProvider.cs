@@ -21,6 +21,11 @@ public sealed class AiSettingsProvider : IAiSettingsProvider
         _cache = cache;
     }
 
+    public void Invalidate()
+    {
+        _cache.Remove(CacheKey);
+    }
+
     public async Task<(string ModelBaseUrl, string ModelName)> GetAiSettingsAsync()
     {
         if (_cache.TryGetValue(CacheKey, out (string ModelBaseUrl, string ModelName) cached))

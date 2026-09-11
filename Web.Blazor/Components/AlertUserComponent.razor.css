@@ -1,10 +1,11 @@
 ﻿.e-dialog.e-control.e-popup, .e-dialog.e-control.e-popup .e-dlg-header-content {
-    background-color: #d9edf7;
+    background-color: var(--app-surface-alt);
+    color: var(--app-text-primary);
 }
 
 .e-dialog .e-dlg-content {
-    color: white;
-    background-color: #f8f8f8;
+    color: var(--app-text-primary);
+    background-color: var(--app-surface);
     font-size: 0.8rem;
     font-weight: normal;
     line-height: normal;

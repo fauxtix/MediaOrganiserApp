@@ -116,7 +116,7 @@ else
 
 
         <div class="container-fluid">
-        <div id="target" class="table tab table-striped table-hover">
+        <div id="target" class="table table-striped table-hover">
             <SfGrid @ref="gridObj"
                     Width="100%"
                     Height="auto"
@@ -155,7 +155,7 @@ else
                                 HideAtMedia="(min-width: 1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
                     </GridColumn>
-                    <GridColumn Width="80" HideAtMedia="(min-width: 1280px)">
+                    <GridColumn Width="100" HideAtMedia="(min-width: 1280px)" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left">
                         <Template Context="PubRow">
                             @{
                                 var pubmage = "";

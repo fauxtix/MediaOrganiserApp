@@ -13,9 +13,7 @@
 
 <!-- Page Content -->
 <div class="container e-container-style">
-    <div class="title">@localizerApp["lblGaleria"] (@localizerApp["frmLivros"])</div>
-    <div class="underline"></div>
-    <br />
+    <PageTitleComponent PageTitle="@($"{localizerApp["lblGaleria"]} ({localizerApp["frmLivros"]})")" />
 
     <div id="spinnerContainer"></div>
     <SfSpinner @ref="SpinnerObj"
@@ -563,6 +561,14 @@
         border-radius: 10px;
     }
 
+    [data-theme="dark"] .e-container-style {
+        background-color: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .e-accordion .e-acrdn-item.e-select > .e-acrdn-header {
+        background-color: var(--app-surface-alt) !important;
+    }
+
     .options-container {
         display: flex;
         align-items: center;
@@ -601,6 +607,10 @@
         justify-content: center;
         background-color: #fff;
         overflow: hidden;
+    }
+
+    [data-theme="dark"] .img-box {
+        background-color: var(--app-surface-alt);
     }
 
         .img-box img {

@@ -112,6 +112,11 @@
 
             .half .contents {
                 background: #f6f7fc;
+                color: var(--app-text-primary);
+            }
+
+            .half .contents h3 {
+                color: var(--app-text-primary);
             }
 
             .half .bg {
@@ -363,6 +368,37 @@
 
         .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
             background-color: #c0392b !important;
+        }
+
+        [data-theme="dark"] .half .contents {
+            background: var(--app-bg);
+        }
+
+        [data-theme="dark"] .half .contents .form-control,
+        [data-theme="dark"] .half .bg .form-control {
+            background: var(--app-surface-alt);
+            color: var(--app-text-primary);
+        }
+
+        [data-theme="dark"] .half .contents .form-control::placeholder {
+            color: var(--app-text-secondary);
+        }
+
+        [data-theme="dark"] .form-block {
+            background: var(--app-surface);
+            box-shadow: 0 15px 30px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        [data-theme="dark"] .half a {
+            color: var(--app-primary);
+        }
+
+        [data-theme="dark"] .control .caption {
+            color: var(--app-text-secondary);
+        }
+
+        [data-theme="dark"] .control__indicator {
+            background: var(--app-surface-alt);
         }
 
     </style>

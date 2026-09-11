@@ -7,24 +7,17 @@
 @using Web.Blazor.Components
 @using Web.Blazor.Components.Playlists
 
+@rendermode InteractiveServer
 @attribute [Authorize]
 
 @{
     var Filtering = new
     {
         @@Operator = "contains"
-}
-;
+};
 var Tool = (new List<object>()
 {
             "Search",
-            new ItemModel()
-            {
-                PrefixIcon = "fa fa-times",
-                TooltipText = localizerApp["btnLimpar"],
-                Align = ItemAlign.Right,
-                Id = "Clear"
-            },
              new ItemModel()
              {
                 Align = ItemAlign.Left,
@@ -136,7 +129,7 @@ else
                     EnableStickyHeader="true"
                     Toolbar="@Tool"
                     RowHeight="26">
-                <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"></GridPageSettings>
+                <GridPageSettings PageSize="10" PageCount="10" PageSizes="true"/>
                 <GridSelectionSettings CheckboxOnly="true"
                                        Type="Syncfusion.Blazor.Grids.SelectionType.Single"
                                        Mode="Syncfusion.Blazor.Grids.SelectionMode.Row"
@@ -165,7 +158,7 @@ else
                                 AllowGrouping="false" HideAtMedia="(min-width: 1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
                                 Width="80"></GridColumn>
-                    <GridColumn Width="80" HideAtMedia="(min-width: 1280px)">
+                    <GridColumn Width="100" HideAtMedia="(min-width: 1280px)" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left">
                         <Template Context="ImageRow">
                             @{
                                 var currentRow = (ImageRow as MediaVM);
@@ -224,13 +217,13 @@ else
                                     }
                                 }
 
-                                <img class="p-1 e-round-corner" src="@mediaImage" width="96" height="64" />
+                                <img class="p-1 grid-thumb" src="@mediaImage" alt="" width="96" height="64" />
                             }
                         </Template>
                     </GridColumn>
                     <GridColumn Field=@nameof(MediaVM.FileName) HeaderText="@(localizerApp["lblTitulo"])"
                                 CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr-bold" }})"
-                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="250"></GridColumn>
+                                TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left" Width="240"></GridColumn>
                     <GridColumn Field=@nameof(MediaVM.Autor) HeaderText="@(localizerApp["lblAutor"])"
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
                                 HideAtMedia="(min-width:  1280px)"
@@ -717,12 +710,17 @@ else
         border-radius: 22px;
     }
 
+    .grid-thumb {
+        border-radius: 11px;
+        vertical-align: middle;
+    }
+
     .circle {
         width: 100px;
         height: 100px;
-        background-color: red;
+        background-color: var(--app-surface-alt);
         border-radius: 50%;
-        border: 2px solid black;
+        border: 2px solid var(--app-border);
     }
 
     .icon-advanced {
@@ -777,9 +775,9 @@ else
         width: 240px;
         height: 50px;
         flex-basis: 240px; /* Ensures all cards are the same width in the flex layout */
-        color: #fff;
+        color: var(--app-on-primary);
         font-size: 0.72rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+        box-shadow: var(--app-shadow);
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         transition: box-shadow 0.2s, transform 0.2s;
         display: flex;
@@ -798,7 +796,7 @@ else
         }
 
         .dashboard-card:hover {
-            box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+            box-shadow: var(--app-shadow);
             transform: translateY(-2px) scale(1.03);
         }
 

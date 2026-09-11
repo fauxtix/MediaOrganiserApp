@@ -1,7 +1,5 @@
-﻿using AutoMapper;
-using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Application.Interfaces.Repositories;
-using MediaOrganizerApp.Domain.Entities;
+﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.WebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaOrganizerApp.WebApi.Controllers
@@ -13,38 +11,28 @@ namespace MediaOrganizerApp.WebApi.Controllers
     public class AIModelsController : ControllerBase
     {
         private readonly ILogger<AIModelsController> _logger;
-        private readonly IAIModelsRepository _repoAIModels;
-        private IMapper _mapper;
+        private readonly IOllamaModelsService _ollama;
 
-        public AIModelsController(ILogger<AIModelsController> logger,
-            IAIModelsRepository repoAIModels, 
-            IMapper mapper)
+        public AIModelsController(ILogger<AIModelsController> logger, IOllamaModelsService ollama)
         {
             _logger = logger;
-            _repoAIModels = repoAIModels;
-            _mapper = mapper;
+            _ollama = ollama;
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAllAsync()
+        public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                var aiNames = await _repoAIModels.Query_Async();
-                if (aiNames.Any())
-                {
-                    _mapper.Map<IEnumerable<AIModelVM>>(aiNames);
-                    return Ok(aiNames);
-                }
-                else
-                    return Ok(Enumerable.Empty<AIModelVM>());
+                var models = await _ollama.GetModelsAsync(cancellationToken);
+                return Ok(models ?? Enumerable.Empty<AIModelVM>());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro no Api (LocaisArquivo / GetAllAsync)");
+                _logger.LogError(ex, "Erro no Api (AIModels / GetAllAsync)");
                 return InternalError($"{location}: {ex.Message} - {ex.InnerException}");
             }
         }
@@ -53,23 +41,19 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAIModelById(int id)
+        public async Task<IActionResult> GetAIModelById(int id, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                var model = await _repoAIModels.Query_ById_Async(id);
+                var model = await ResolveByNameByIndexAsync(id, cancellationToken);
                 if (model != null)
-                {
-                    _mapper.Map<AIModelVM>(model);
                     return Ok(model);
-                }
-                else
-                    return NotFound();
+                return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro no Api (GetStoragePlaceById)");
+                _logger.LogError(ex, "Erro no Api (GetAIModelById)");
                 return InternalError($"{location}: {ex.Message} - {ex.InnerException}");
             }
         }
@@ -78,19 +62,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetModelName(int id)
+        public async Task<IActionResult> GetModelName(int id, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                var model = await _repoAIModels.Query_ById_Async(id);
+                var model = await ResolveByNameByIndexAsync(id, cancellationToken);
                 if (model != null)
-                {
-                    var modelName = await _repoAIModels.GetModelName(id);
-                    return Ok(modelName);
-                }
-                else
-                    return NotFound();
+                    return Ok(model.Descricao);
+                return NotFound();
             }
             catch (Exception ex)
             {
@@ -103,13 +83,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AIModelExiste(int id)
+        public async Task<IActionResult> AIModelExiste(int id, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                var modelExist = await _repoAIModels.RecInUse_Async(id);
-                    return Ok(modelExist);
+                var model = await ResolveByNameByIndexAsync(id, cancellationToken);
+                return Ok(model != null);
             }
             catch (Exception ex)
             {
@@ -118,18 +98,18 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-
         [HttpGet("GetIdAIModel/{description}")]
-        public async Task<IActionResult> GetIdAIModel(string description)
+        public async Task<IActionResult> GetIdAIModel(string description, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                int output = await _repoAIModels.GetIdByDescription_Async(description);
-                if (output > 0)
-                    return Ok(output);
-                else
-                    return NotFound();
+                var models = (await _ollama.GetModelsAsync(cancellationToken))?.ToList() ?? new List<AIModelVM>();
+                var model = models.FirstOrDefault(m =>
+                    string.Equals(m.Descricao, description, StringComparison.OrdinalIgnoreCase));
+                if (model != null)
+                    return Ok(model.Id);
+                return NotFound();
             }
             catch (Exception ex)
             {
@@ -138,34 +118,31 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateAIModel([FromBody] AIModelVM aiModelVM)
+        public async Task<IActionResult> CreateAIModel([FromBody] AIModelVM aiModelVM, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
             {
-                if (aiModelVM is null)
+                if (aiModelVM is null || string.IsNullOrWhiteSpace(aiModelVM.Descricao))
                 {
-                    return BadRequest();
+                    return BadRequest("A descrição (nome) do modelo é obrigatória.");
                 }
 
-                var model   = _mapper.Map < AiModel>(aiModelVM);
+                var pulled = await _ollama.PullModelAsync(aiModelVM.Descricao.Trim(), cancellationToken);
+                if (!pulled)
+                    return BadRequest($"Não foi possível descarregar o modelo '{aiModelVM.Descricao}' do Ollama.");
 
-                bool DescriptionExist = await _repoAIModels.AIModelExist(model.Id);
-                if (DescriptionExist)
-                {
-                    ModelState.AddModelError("AIModel", "Nome do AIModel já existe na base de dados");
-                    return BadRequest(ModelState);
-                }
+                var model = (await _ollama.GetModelsAsync(cancellationToken))?.FirstOrDefault(m =>
+                    string.Equals(m.Descricao, aiModelVM.Descricao.Trim(), StringComparison.OrdinalIgnoreCase));
 
-                await _repoAIModels.Insert_Async(model);
-                int createdId = _repoAIModels.GetLastId();
-                var createdObj =  await _repoAIModels.Query_ById_Async(createdId);
-                return CreatedAtAction(nameof(GetAIModelById), new { id = createdId }, createdObj);
+                if (model == null)
+                    return CreatedAtAction(nameof(GetAllAsync), new { });
+
+                return CreatedAtAction(nameof(GetAIModelById), new { id = model.Id }, model);
             }
             catch (Exception ex)
             {
@@ -174,49 +151,19 @@ namespace MediaOrganizerApp.WebApi.Controllers
         }
 
         [HttpPut("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateStoragePlace(int id, [FromBody] AIModelVM aiModelVM)
+        public IActionResult UpdateStoragePlace(int id, [FromBody] AIModelVM? aiModelVM)
         {
-            var location = GetControllerActionNames();
-            try
-            {
-                if (aiModelVM == null)
-                {
-                    _logger.LogWarning($"O AIModel passado como paràmetro, é incorreto.");
-                    return BadRequest($"O AIModel é incorreto.");
-                }
-
-                if (id != aiModelVM.Id)
-                {
-                    return BadRequest($"O id ({id}) passado como paràmetro está incorreto");
-                }
-
-                var locRec = await _repoAIModels.Query_ById_Async(id);
-                if (locRec == null)
-                {
-                    return NotFound($"O AIModel com o Id {id} não foi encontrado");
-                }
-
-                _mapper.Map(aiModelVM, locRec);
-
-                await _repoAIModels.Update_Async(locRec);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return InternalError($"{location}: {ex.Message} - {ex.InnerException}");
-
-            }
+            // Os modelos do Ollama não se renomeiam/editem. A gestão é feita via pull (novo) e delete (apagar).
+            return BadRequest("A edição de modelos não é suportada. Use 'novo' para descarregar e 'apagar' para remover um modelo do Ollama.");
         }
 
         [HttpDelete("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-        public async Task<ActionResult> DeleteStoragePlace(int id)
+        public async Task<IActionResult> DeleteStoragePlace(int id, CancellationToken cancellationToken)
         {
             var location = GetControllerActionNames();
             try
@@ -227,14 +174,17 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     return BadRequest();
                 }
 
-                var recToDelete = await _repoAIModels.Query_ById_Async(id);
-                if (recToDelete == null)
+                var model = await ResolveByNameByIndexAsync(id, cancellationToken);
+                if (model == null)
                 {
-                    return NotFound($"AIModel com o Id {id} não encontrado");
+                    return NotFound($"Modelo com o Id {id} não foi encontrado.");
                 }
 
-                await _repoAIModels.DeleteById_Async(id);
-                return NoContent();
+                var deleted = await _ollama.DeleteModelAsync(model.Descricao, cancellationToken);
+                if (!deleted)
+                    return BadRequest($"Não foi possível remover o modelo '{model.Descricao}' do Ollama.");
+
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -242,6 +192,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Os modelos do Ollama não têm um identificador numérico persistido; o Id corresponde
+        /// à posição (1-based) na lista devolvida por /api/tags. Este método resolve o Id para o modelo.
+        /// </summary>
+        private async Task<AIModelVM?> ResolveByNameByIndexAsync(int id, CancellationToken cancellationToken)
+        {
+            var models = (await _ollama.GetModelsAsync(cancellationToken))?.ToList() ?? new List<AIModelVM>();
+            return models.FirstOrDefault(m => m.Id == id);
+        }
 
         private string GetControllerActionNames()
         {

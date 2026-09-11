@@ -5,3 +5,15 @@
 .e-grid .e-altrow {
     background-color: #fafafa;
 }
+
+[data-theme="dark"] .grey-bg {
+    background-color: var(--app-surface-alt);
+}
+
+[data-theme="dark"] .e-grid .e-altrow {
+    background-color: var(--app-surface-alt);
+}
+
+[data-theme="dark"] .e-accumulationchart {
+    background-color: transparent !important;
+}

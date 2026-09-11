@@ -125,6 +125,12 @@ public class Program
             return ActivatorUtilities.CreateInstance<OllamaChatService>(sp, httpClient);
         });
 
+        builder.Services.AddScoped<IOllamaModelsService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
+            return ActivatorUtilities.CreateInstance<OllamaModelsService>(sp, httpClient);
+        });
+
         // ----------------------------------------------------------------
 
         builder.Services.Configure<FeatureFlags>(builder.Configuration.GetSection("Features"));

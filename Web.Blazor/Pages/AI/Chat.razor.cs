@@ -20,6 +20,8 @@ namespace Web.Blazor.Pages.AI
 
         [Inject] private IConfiguration Configuration { get; set; } = null!;
         [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
+        [Inject] private IAiModelsService AiModelsService { get; set; } = null!;
+        [Inject] private Web.Blazor.Services.Common.IAiModelResolver AiModelResolver { get; set; } = null!;
         [Inject] private IStringLocalizer<App> Localizer { get; set; } = null!;
 
         private bool ShowSpinnerOverlay;
@@ -56,13 +58,9 @@ namespace Web.Blazor.Pages.AI
         protected string ToastContent = "";
         protected string ToastCssClass = "";
         public int ToastTimeOut { get; set; } = 1500;
-
         private string SpinnerLabel { get; set; } = "Loading...";
-
         private string ProgressStatus { get; set; } = "";
 
-        public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
-        public class ChatMessage { public string Role { get; set; } = ""; public string Content { get; set; } = ""; }
         private string? InputStyle { get; set; }
         protected bool AlertVisibility { get; set; } = false;
 
@@ -71,7 +69,30 @@ namespace Web.Blazor.Pages.AI
         protected override async Task OnInitializedAsync()
         {
             await LoadConversations();
-            modeloAtual = (await AppSettingsService.GetSettingsAsync()).AiModelName;
+            modeloAtual = await AiModelResolver.ResolveModelAsync();
+
+            // Carrega os modelos reais instalados no Ollama para obter limites de contexto dinâmicos.
+            // Modelos desconhecidos usam o limite padrão.
+            try
+            {
+                var models = await AiModelsService.GetAllAsync();
+                var dynamicLimits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var m in models)
+                {
+                    if (!string.IsNullOrWhiteSpace(m.Descricao) && !dynamicLimits.ContainsKey(m.Descricao))
+                        dynamicLimits[m.Descricao] = DefaultContextLimit;
+                }
+
+                foreach (var kv in KnownModelContextLimits)
+                    dynamicLimits[kv.Key] = kv.Value;
+
+                ModelContextLimits = dynamicLimits;
+            }
+            catch
+            {
+                // Fallback: mantém os limites conhecidos quando a API de modelos não está acessível.
+                ModelContextLimits = new Dictionary<string, int>(KnownModelContextLimits, StringComparer.OrdinalIgnoreCase);
+            }
         }
 
         //protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -98,11 +119,7 @@ namespace Web.Blazor.Pages.AI
             if (firstRender)
             {
                 dotNetRef = DotNetObjectReference.Create(this);
-
-                // 🔥 Isto garante que o textarea já existe no DOM
                 await Task.Delay(50);
-
-                // 🔥 Agora sim, o JS consegue anexar os handlers
                 await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
             }
         }
@@ -140,22 +157,15 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrEmpty(content))
                 return showCursor ? "<span class='cursor'>|</span>" : "";
 
-            // Pipeline que converte \n em <br> (ESSENCIAL para o lado direito)
             var pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
                 .UseSoftlineBreakAsHardlineBreak()
                 .Build();
 
-            // Converter Markdown → HTML
             var html = Markdown.ToHtml(content, pipeline);
-
-            // Remover whitespace no fim (sem cortar tags)
             html = html.TrimEnd('\n', '\r', ' ');
-
-            // Substituir <p> por <div> para remover margens entre parágrafos
             html = html.Replace("<p>", "<div>").Replace("</p>", "</div>");
 
-            // Inserir cursor de forma segura
             if (showCursor)
             {
                 var trimmed = html.TrimEnd();
@@ -186,7 +196,7 @@ namespace Web.Blazor.Pages.AI
             if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
                 return;
 
-            limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : 8192;
+            limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : DefaultContextLimit;
             var simulacaoMensagens = messages.ToList();
             simulacaoMensagens.Add(new ChatMessage { Role = "user", Content = userInput });
 
@@ -751,11 +761,15 @@ namespace Web.Blazor.Pages.AI
             public double ClientHeight { get; set; }
         }
 
-        private static readonly Dictionary<string, int> ModelContextLimits = new()
+        private const int DefaultContextLimit = 8192;
+
+        private static readonly Dictionary<string, int> KnownModelContextLimits = new(StringComparer.OrdinalIgnoreCase)
         {
             { "mistral:latest", 32768 },
             { "qwen3.5:latest", 128000 },
             { "phi4-mini:latest", 128000 }
         };
+
+        private Dictionary<string, int> ModelContextLimits = new(KnownModelContextLimits, StringComparer.OrdinalIgnoreCase);
     }
 }

@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.Configuration
 @using Microsoft.Extensions.Logging
 @using System.Globalization
+@using Web.Blazor.Components
 @using Web.Blazor.Components.Layout.SideBar
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
@@ -105,16 +106,17 @@
                     <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 64px;">
                         <span class="brand">Organise It!</span>
                         <div class="d-flex align-items-center justify-content-end" style="flex:1;">
-                            <div class="top-row px-2 auth d-flex align-items-center" style="background-color: #343a40; color: #fff; border-radius: 8px; z-index:1111; padding: 4px 12px;">
+                            <div class="top-row px-2 auth d-flex align-items-center" style="background-color: var(--app-header-bg); color: var(--app-header-text); border-radius: 8px; z-index:1111; padding: 4px 12px;">
                                 <div class="d-flex align-items-center">
-                                    <div class="pl-2 pr-2 font-weight-bold" style="color: #fff;">
+                                    <div class="pl-2 pr-2 font-weight-bold" style="color: var(--app-header-text);">
                                         <i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()
                                     </div>
-                                    <div class="pl-2 pr-2 font-weight-bold" style="color: #fff;">
+                                    <div class="pl-2 pr-2 font-weight-bold" style="color: var(--app-header-text);">
                                         <i class="fa fa-user pr-2"></i>@userName
                                     </div>
                                 </div>
                                 <nav class="d-flex align-items-center my-2 my-md-0 mr-sm-3 font-weight-bold">
+                                    <ThemeToggle />
                                     <a class="btn btn-primary ml-2" href="/identity/account/logout" style="white-space: nowrap; margin-right: 10px;">
                                         Logout
                                     </a>
@@ -211,7 +213,8 @@
     body {
         outline: none;
         border: none;
-        background-color:aliceblue;
+        background-color: var(--app-bg);
+        color: var(--app-text-primary);
     }
 
     .sidebar {
@@ -219,12 +222,11 @@
     }
 
     :root {
-        --primary-color: #3a4052;
-        --text-color: white;
-        --background-color: #ffffff;
-        --text-color: #000000;
-        --header-background: gray;
-        --header-text-color: white;
+        --primary-color: var(--app-primary);
+        --text-color: var(--app-text-primary);
+        --background-color: var(--app-bg);
+        --header-background: var(--app-header-bg);
+        --header-text-color: var(--app-header-text);
     }
 
     * {
@@ -362,7 +364,7 @@
     .brand {
         font-weight: bold;
         font-size: 24px;
-        color: white;
+        color: var(--app-header-text);
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         padding-left: 12px;
     }
@@ -376,31 +378,32 @@
         height: 64px;
         display: flex;
         align-items: center;
-        background-color: #343a40; /* matches bg-dark */
+        background-color: var(--app-header-bg);
+        border-bottom: 1px solid var(--app-border);
     }
 
     .nav-link {
-        color: white !important;
+        color: var(--app-header-text) !important;
         font-size: 1.1rem;
         font-weight: bold;
         display: flex;
         align-items: center;
         text-decoration: none;
         transition: background 0.2s, border-color 0.2s, color 0.2s;
-        border: 1px solid #e0e0e0; /* cinzento claro, mais fino */
+        border: 1px solid var(--app-border);
         border-radius: 6px;
         padding: 6px 16px;
         background: transparent;
     }
 
     .nav-link:hover {
-        background-color: #495057;
-        color: #ffc107 !important;
-        border-color: #ffc107; /* amarelo no hover */
+        background-color: var(--app-surface-hover);
+        color: var(--app-accent-yellow) !important;
+        border-color: var(--app-accent-yellow); /* amarelo no hover */
     }
 
     .navbar nav a {
-        color: white !important;
+        color: var(--app-header-text) !important;
         border-width: 0;
     }
 
@@ -423,23 +426,34 @@
     }
 
     [data-theme="dark"] {
-        --background-color: #121212;
-        --text-color: #ffffff;
-        --header-background: #333333;
-        --header-text-color: #cccccc;
+        --background-color: var(--app-bg);
+        --text-color: var(--app-text-primary);
+        --header-background: var(--app-header-bg);
+        --header-text-color: var(--app-header-text);
+    }
+
+    [data-theme="dark"] body {
+        background-color: var(--app-bg);
+        color: var(--app-text-primary);
+    }
+
+    [data-theme="dark"] .main-content,
+    [data-theme="dark"] .top-row.auth {
+        background-color: inherit;
+        color: var(--app-text-primary);
     }
 
     .top-navbar {
-        background-color: #343a40;
-        color: white;
+        background-color: var(--app-header-bg);
+        color: var(--app-header-text);
     }
 
     .nav-options .nav-link {
-        color: white;
+        color: var(--app-header-text);
     }
 
     .nav-options .nav-link:hover {
-        color: #ffc107;
+        color: var(--app-accent-yellow);
     }
 
     .main, .page-content {
@@ -469,24 +483,24 @@
 
     .contact-icon {
         font-size: 1.1rem;
-        color: #666;
+        color: var(--app-text-secondary);
     }
 
     .contact-label {
         font-size: 0.8rem;
-        color: #666;
+        color: var(--app-text-secondary);
         word-break: break-all;
         text-decoration: none;
         margin-bottom: 0.1rem;
     }
 
     .contact-label a {
-        color: #666;
+        color: var(--app-text-secondary);
         text-decoration: none;
     }
 
     .contact-label a:hover {
-        color: #3a4052;
+        color: var(--app-text-primary);
         text-decoration: underline;
     }
 

@@ -3,41 +3,77 @@
 @inject IWebHostEnvironment Environment
 @inject ICompositeViewEngine Engine
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Publications</title>
     <link rel="stylesheet" href="~/Identity/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/Identity/css/site.css" />
+    <link rel="stylesheet" href="~/css/theme-tokens.css" />
+    <style>
+        body {
+            background-color: var(--app-bg) !important;
+            color: var(--app-text-primary);
+        }
+
+        .card {
+            background-color: var(--app-surface);
+            border-color: var(--app-border);
+            color: var(--app-text-primary);
+            box-shadow: var(--app-shadow);
+        }
+
+        .card-header,
+        .card-footer {
+            background-color: var(--app-surface-alt);
+            border-color: var(--app-border);
+            color: var(--app-text-primary);
+        }
+
+        .form-control {
+            background-color: var(--app-surface);
+            border-color: var(--app-border);
+            color: var(--app-text-primary);
+        }
+
+        .form-control:focus {
+            border-color: var(--app-primary);
+            color: var(--app-text-primary);
+            background-color: var(--app-surface);
+        }
+
+        .footer {
+            background-color: var(--app-surface) !important;
+            border-top-color: var(--app-border) !important;
+            color: var(--app-text-secondary) !important;
+        }
+
+        .footer a {
+            color: var(--app-primary);
+        }
+    </style>
+    <script>
+        (function () {
+            function getTheme() { var t = null; try { t = localStorage.getItem('theme'); } catch (e) { } return t === 'dark' ? 'dark' : 'light'; }
+            var initial = getTheme();
+            document.documentElement.setAttribute('data-theme', initial);
+            window.toggleLoginTheme = function () {
+                var next = initial === 'dark' ? 'light' : 'dark';
+                initial = next;
+                try { localStorage.setItem('theme', next); } catch (e) { }
+                document.documentElement.setAttribute('data-theme', next);
+                document.body.classList.toggle('dark-theme', next === 'dark');
+            };
+        })();
+    </script>
 </head>
 <body>
-    @*<header>
-            <nav class="navbar navbar-expand-sm navbar-light navbar-toggleable-sm bg-white border-bottom box-shadow mb-3">
-                <div class="container">
-                    <a class="navbar-brand" href="~/">Publications</a>
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                            aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
-                        @{
-                            var result = Engine.FindView(ViewContext, "_LoginPartial", isMainPage: false);
-                        }
-                        @if (result.Success)
-                        {
-                            await Html.RenderPartialAsync("_LoginPartial");
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException("The default Identity UI layout requires a partial view '_LoginPartial' " +
-                                "usually located at '/Pages/_LoginPartial' or at '/Views/Shared/_LoginPartial' to work. Based on your configuration " +
-                                $"we have looked at it in the following locations: {System.Environment.NewLine}{string.Join(System.Environment.NewLine, result.SearchedLocations)}.");
-                        }
-                    </div>
-                </div>
-            </nav>
-        </header>*@
+    <script>
+        (function () {
+            try { document.body.classList.toggle('dark-theme', document.documentElement.getAttribute('data-theme') === 'dark'); } catch (e) { }
+        })();
+    </script>
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -46,6 +82,7 @@
     <footer class="footer border-top text-muted">
         <div class="container">
             Copyright © 2026 - Fausto Luís - <a asp-area="" asp-page="Privacy">Privacidade</a>
+            <span class="float-right"><button type="button" class="btn btn-link btn-sm p-0" onclick="toggleLoginTheme()">Alternar tema</button></span>
         </div>
     </footer>
     <script src="~/Identity/lib/jquery/dist/jquery.min.js"></script>

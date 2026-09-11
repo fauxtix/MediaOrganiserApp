@@ -5,9 +5,12 @@
 @using Microsoft.Extensions.AI
 @using System.Text
 @using MediaOrganizerApp.Application.DTOs.AI
+@using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Web.Blazor.Services.Common
 @rendermode InteractiveServer
 
 @inject IChatClient ChatClient
+@inject IAiModelResolver AiModelResolver
 
 <h3>AI Integration in blazor app</h3>
 
@@ -41,6 +44,12 @@
     private ElementReference messagesContainer;
     private List<ChatMessageModel> Messages = new();
     private bool isStreaming = false;
+    private string modeloAtual = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        modeloAtual = await AiModelResolver.ResolveModelAsync();
+    }
 
     private async Task SendMessage()
     {
@@ -66,11 +75,18 @@
         try
         {
             isStreaming = true;
+
+            if (string.IsNullOrWhiteSpace(modeloAtual))
+            {
+                Messages[^1].Content = "Error: No AI model configured. Select a model in App Settings and restart the page.";
+                return;
+            }
+
             await foreach (var chunk in ChatClient.GetStreamingResponseAsync
-                (new ChatMessage[]
+                (new Microsoft.Extensions.AI.ChatMessage[]
                 {
-                    new ChatMessage(ChatRole.User, userInput)
-                }))
+                    new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, userInput)
+                }, new ChatOptions { ModelId = modeloAtual }))
             {
                 if (chunk.Text != null)
                 {
@@ -165,23 +181,28 @@
     }
 
     .user-message {
-        background-color: #d1e7ff;
+        background-color: rgba(37, 99, 235, 0.15);
         text-align: right;
         align-self: flex-end;
-        color: #0056b3;
+        color: var(--app-primary);
+    }
+
+    [data-theme="dark"] .user-message {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: var(--app-primary);
     }
 
     .ai-message {
-        background-color: #f1f1f1;
+        background-color: var(--app-surface-alt);
         text-align: left;
         align-self: flex-start;
-        color: #333333;
+        color: var(--app-text-primary);
     }
 
     .chat-input-area {
         display: flex;
         margin-top: 10px;
-        border-top: 1px solid #ddd;
+        border-top: 1px solid var(--app-border);
         padding-top: 10px;
     }
 
@@ -189,16 +210,18 @@
         flex-grow: 1;
         padding: 10px;
         margin-right: 10px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--app-border);
         border-radius: 5px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         font-size: 14px;
+        background-color: var(--app-surface);
+        color: var(--app-text-primary);
     }
 
     .send-button {
         padding: 10px 20px;
-        background-color: #007bff;
-        color: #ffffff;
+        background-color: var(--app-primary);
+        color: var(--app-on-primary);
         border: none;
         border-radius: 5px;
         cursor: pointer;
@@ -206,11 +229,33 @@
     }
 
         .send-button:hover {
-            background-color: #0056b3;
+            background-color: var(--app-primary-hover);
         }
 
         .send-button:disabled {
-            background-color: #cccccc;
+            background-color: var(--app-border);
             cursor: not-allowed;
         }
+
+    [data-theme="dark"] .chat-container {
+        background-color: var(--app-surface);
+    }
+
+    [data-theme="dark"] .chat-messages {
+        border-color: var(--app-border);
+        background-color: var(--app-surface);
+    }
+
+    [data-theme="dark"] .chat-messages::-webkit-scrollbar-track {
+        background: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb {
+        background-color: var(--app-primary);
+        border-color: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb:hover {
+        background-color: var(--app-primary-hover);
+    }
 </style>

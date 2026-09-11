@@ -127,6 +127,9 @@ public sealed class AiClientService
         return await Task.FromResult(true);
     }
 
+    // Não usado: API de cancelamento é chamada diretamente pelo cliente SignalR
+    // para garantir que o token de cancelamento seja respeitado mesmo se a conexão
+    // HTTP original já tiver sido encerrada.
     public async Task CancelChatAsync(string? connectionId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(connectionId)) return;

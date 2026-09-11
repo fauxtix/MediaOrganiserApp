@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System;
 using System.IO;
+using MediaOrganizerApp.WebApi.Services;
 
 namespace PropertyManagerFL.Api.Controllers;
 
@@ -20,15 +21,18 @@ public class AppSettingsController : ControllerBase
     private readonly IMapper _mapper;
     private readonly ILogger<AppSettingsController>? _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly IAiSettingsProvider _aiSettingsProvider;
 
 
     public AppSettingsController(IAppSettingsRepository appSettingsRepository,
                                  IMapper mapper,
-                                 IWebHostEnvironment environment)
+                                 IWebHostEnvironment environment,
+                                 IAiSettingsProvider aiSettingsProvider)
     {
         _appSettingsRepository = appSettingsRepository;
         _mapper = mapper;
         _environment = environment;
+        _aiSettingsProvider = aiSettingsProvider;
     }
 
     /// <summary>
@@ -88,6 +92,7 @@ public class AppSettingsController : ControllerBase
             var entitySettings = _mapper.Map<ApplicationSettings>(settings);
 
             await _appSettingsRepository.UpdateSettingsAsync(entitySettings);
+            _aiSettingsProvider.Invalidate();
             return NoContent();
 
         }

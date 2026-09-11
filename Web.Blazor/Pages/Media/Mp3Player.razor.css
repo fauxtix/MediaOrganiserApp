@@ -1,6 +1,6 @@
 ﻿:root {
-    --primary: #F44336;
-    --secondary: #03A9F4;
+    --primary: var(--app-danger);
+    --secondary: var(--app-primary);
 }
 
 html {

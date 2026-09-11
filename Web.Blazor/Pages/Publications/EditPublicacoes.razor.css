@@ -29,7 +29,7 @@
     display: block;
     font-size: 15px;
     line-height: 40px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--app-border);
 }
 
 .text-multiline textarea {
@@ -48,7 +48,7 @@
 #DropArea {
     padding: 50px 25px;
     margin: 30px auto;
-    border: 1px solid #c3c3c3;
+    border: 1px solid var(--app-border);
     text-align: center;
     width: 20%;
     display: inline-flex;
@@ -88,8 +88,8 @@ body .e-upload-drag-hover {
     display: flex;
     align-items: self-end;
     justify-content: center;
-    background-color: #0094ff;
-    border-color: #e7e7e7;
+    background-color: var(--app-primary);
+    border-color: var(--app-border);
     color: white;
     cursor: pointer;
     position: relative;
@@ -99,8 +99,8 @@ body .e-upload-drag-hover {
 }
 
     .file-input-zone:hover {
-        background-color: lightblue;
-        color: black;
+        background-color: var(--app-primary-hover);
+        color: var(--app-on-primary);
     }
 
     .file-input-zone input[type=file] {
@@ -171,8 +171,8 @@ body .e-upload-drag-hover {
 }
 
 .carousel {
-    background-color: #A59E89;
-    border: 10px solid white;
+    background-color: var(--app-surface-alt);
+    border: 10px solid var(--app-surface);
     border-radius: 0px;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
     height: 300px;
@@ -187,8 +187,8 @@ body .e-upload-drag-hover {
         height: 300px;
         transform: rotate(-3deg);
         box-shadow: 0px 0 4px rgba(0, 0, 0, 0.4);
-        background-color: #A59E89;
-        border: 10px solid white;
+        background-color: var(--app-surface-alt);
+        border: 10px solid var(--app-surface);
         position: relative;
         top: -15px;
         left: -10px;
@@ -211,15 +211,15 @@ body .e-upload-drag-hover {
 
     .img-box img {
         max-width: 100%;
-        border: 3px solid #FFC107;
+        border: 3px solid var(--app-accent-yellow);
         position: relative;
         width: 100%;
     }
 
     .img-box::before {
         content: '';
-        border-left: 3px solid #ffffff;
-        border-top: 3px solid #ffffff;
+        border-left: 3px solid var(--app-surface);
+        border-top: 3px solid var(--app-surface);
         position: absolute;
         left: 20px;
         top: 20px;
@@ -231,8 +231,8 @@ body .e-upload-drag-hover {
 
     .img-box::after {
         content: '';
-        border-right: 3px solid #ffffff;
-        border-bottom: 3px solid #ffffff;
+        border-right: 3px solid var(--app-surface);
+        border-bottom: 3px solid var(--app-surface);
         position: absolute;
         right: 20px;
         bottom: 20px;
@@ -255,3 +255,16 @@ body .e-upload-drag-hover {
             right: 10px;
             bottom: 10px;
         }
+
+[data-theme="dark"] .carousel:before,
+[data-theme="dark"] .carousel:after {
+    box-shadow: 0 16px 3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .carousel {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .carousel a img {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}

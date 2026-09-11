@@ -29,7 +29,7 @@
     display: block;
     font-size: 15px;
     line-height: 40px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--app-border);
 }
 
 .text-multiline textarea {
@@ -82,7 +82,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border: 2px solid #FFC107; /* slightly thinner border for small thumb */
+        border: 2px solid var(--app-accent-yellow); /* slightly thinner border for small thumb */
     }
 
     /* adjust corner decorations for the smaller box */

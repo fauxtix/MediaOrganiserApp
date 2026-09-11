@@ -1,0 +1,59 @@
+@inject IJSRuntime JS
+
+<button type="button" class="theme-toggle-btn" @onclick="ToggleTheme" title="@(_isDark ? "Tema claro" : "Tema escuro")">
+    @if (_isDark)
+    {
+        <i class="fa fa-sun-o" aria-hidden="true"></i>
+    }
+    else
+    {
+        <i class="fa fa-moon-o" aria-hidden="true"></i>
+    }
+</button>
+
+@code {
+    private bool _isDark;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var theme = await JS.InvokeAsync<string>("getCurrentTheme");
+            _isDark = theme == "dark";
+        }
+        catch
+        {
+            _isDark = false;
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var theme = await JS.InvokeAsync<string>("toggleTheme");
+        _isDark = theme == "dark";
+    }
+}
+
+<style>
+    .theme-toggle-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 32px;
+        border: 1px solid var(--app-border);
+        border-radius: 6px;
+        background: transparent;
+        color: #fff;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        margin-right: 6px;
+    }
+
+        .theme-toggle-btn:hover {
+            background-color: var(--app-surface-hover);
+            color: var(--app-accent-yellow);
+            border-color: var(--app-accent-yellow);
+        }
+</style>

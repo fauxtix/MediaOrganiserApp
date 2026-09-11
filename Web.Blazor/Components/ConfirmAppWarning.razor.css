@@ -17,7 +17,7 @@
     border: none;
     padding: 0 !important;
     font-family: inherit;
-    color: #ff4081;
+    color: var(--app-primary);
     text-decoration: underline;
     cursor: pointer;
     box-shadow: none;
@@ -29,7 +29,7 @@
         border: none;
         padding: 0 !important;
         font-family: inherit;
-        color: #ff4081;
+        color: var(--app-primary-hover);
         text-decoration: underline;
         cursor: pointer;
         box-shadow: none;
@@ -40,7 +40,7 @@
 #dropArea .e-upload-files .e-file-remove-btn.e-icons,
 #dropArea .e-upload-files .e-file-abort-btn {
     top: 120px;
-    background-color: white;
+    background-color: var(--app-surface);
     border-radius: 50%;
     font-size: 12px;
     left: 80px;
@@ -78,9 +78,9 @@
     }
 
 #dropArea .e-upload .e-upload-files .e-icons:not(.e-uploaded):hover {
-    background-color: #e6e6e6;
-    border-color: #adadad;
-    color: #333;
+    background-color: var(--app-surface-hover);
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
 }
 
 #dropArea .e-upload .e-upload-files .e-upload-file-list {
@@ -113,7 +113,7 @@
     }
 
 div.file-name {
-    color: rgb(14 121 32);
+    color: var(--app-success-text);
     font-size: 14px;
     padding: 3px 10px;
     overflow: hidden;
@@ -129,7 +129,7 @@ div.file-size {
 }
 
 .progressbar {
-    background: #ff4081;
+    background: var(--app-accent-green);
     border: none;
     border-radius: 10px;
     height: 4px;
@@ -141,21 +141,21 @@ div.file-size {
 
 #dropArea progress {
     border: none;
-    background: #fff;
+    background: var(--app-surface);
 }
 
 progress::-webkit-progress-bar {
     border: none;
-    background-color: #ffffff;
+    background-color: var(--app-surface);
 }
 
 .material progress::-moz-progress-bar {
     border-radius: 2px;
-    background-color: #ff4081;
+    background-color: var(--app-accent-green);
 }
 
 .material #dropArea span a {
-    color: #ff4081;
+    color: var(--app-primary);
 }
 
 @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {

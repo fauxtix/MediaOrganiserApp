@@ -1,0 +1,494 @@
+/* =========================================================================
+   DESIGN TOKENS — Light / Dark palette
+   Fonte única de verdade para as cores da aplicação.
+   Carregado por ÚLTIMO no <head> (depois de todos os CSS locais) para
+   ganhar a cascata. A troca de tema é feita via [data-theme] no <html>
+   (ver themeToggle.js / script inline em App.razor).
+   ========================================================================= */
+
+/* -------------------------- Tema Claro (default) ------------------------ */
+:root {
+    color-scheme: light;
+
+    /* Paleta base */
+    --app-bg: #F8FAFC;
+    --app-surface: #FFFFFF;
+    --app-surface-alt: #F1F5F9;
+    --app-surface-hover: #EDF1F7;
+    --app-text-primary: #0F172A;
+    --app-text-secondary: #475569;
+    --app-primary: #2563EB;
+    --app-primary-hover: #1D4ED8;
+    --app-on-primary: #FFFFFF;
+    --app-border: #E2E8F0;
+    --app-header-bg: #FFFFFF;
+    --app-header-text: #0F172A;
+    --app-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+
+    /* Cores de destaque (accent) — Esmeralda / Ambar
+       (diretriz UI/UX: tons de Esmeralda #10B981 ou Ambar #F59E0B) */
+    --app-accent-green: #10B981;
+    --app-accent-green-hover: #065F46;
+    --app-accent-green-strong: #047857;
+    --app-on-accent-green: #FFFFFF;
+    --app-accent-yellow: #F59E0B;
+    --app-accent-yellow-hover: #D97706;
+    --app-on-accent-yellow: #1C1917;
+
+    /* Estado semântico (pares verificados >= 4.5:1 WCAG AA) */
+    --app-success-bg: #D1FAE5;
+    --app-success-text: #065F46;
+    --app-success-border: #6EE7B7;
+    --app-warning-bg: #FEF3C7;
+    --app-warning-text: #78350F;
+    --app-warning-border: #FCD34D;
+    --app-danger-bg: #FEE2E2;
+    --app-danger-text: #991B1B;
+    --app-danger-border: #FCA5A5;
+    --app-info-bg: #E0F2FE;
+    --app-info-text: #075985;
+    --app-info-border: #7DD3FC;
+    --app-danger: #B91C1C;
+    --app-danger-hover: #991B1B;
+    --app-on-danger: #FFFFFF;
+
+    /* Aliases para código existente */
+    --primary: var(--app-primary);
+    --primary-color: var(--app-primary);
+    --background-color: var(--app-bg);
+    --text-color: var(--app-text-primary);
+    --header-background: var(--app-header-bg);
+    --header-text-color: var(--app-header-text);
+    --body-bg: var(--app-bg);
+    --body-color: var(--app-text-primary);
+    --border-color: var(--app-border);
+}
+
+/* -------------------------- Tema Escuro --------------------------------- */
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    --app-bg: #0F172A;
+    --app-surface: #1E293B;
+    --app-surface-alt: #243244;
+    --app-surface-hover: #283852;
+    --app-text-primary: #F8FAFC;
+    --app-text-secondary: #94A3B8;
+    --app-primary: #3B82F6;
+    --app-primary-hover: #2563EB;
+    --app-on-primary: #FFFFFF;
+    --app-border: #334155;
+    --app-header-bg: #1E293B;
+    --app-header-text: #F8FAFC;
+    --app-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+
+    /* Cores de destaque (accent) — luminosidade adaptada ao tema escuro */
+    --app-accent-green: #34D399;
+    --app-accent-green-hover: #6EE7B7;
+    --app-accent-green-strong: #10B981;
+    --app-on-accent-green: #052E16;
+    --app-accent-yellow: #FBBF24;
+    --app-accent-yellow-hover: #FCD34D;
+    --app-on-accent-yellow: #1F2937;
+
+    /* Estado semântico (pares verificados >= 4.5:1 WCAG AA) */
+    --app-success-bg: #064E3B;
+    --app-success-text: #6EE7B7;
+    --app-success-border: #10B981;
+    --app-warning-bg: #451A03;
+    --app-warning-text: #FBBF24;
+    --app-warning-border: #F59E0B;
+    --app-danger-bg: #450A0A;
+    --app-danger-text: #FCA5A5;
+    --app-danger-border: #EF4444;
+    --app-info-bg: #082F49;
+    --app-info-text: #7DD3FC;
+    --app-info-border: #38BDF8;
+    --app-danger: #F87171;
+    --app-danger-hover: #FCA5A5;
+    --app-on-danger: #450A0A;
+}
+
+/* ============================ Bootstrap base ============================ */
+
+body {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text-primary);
+}
+
+a {
+    color: var(--app-primary);
+}
+
+    a:hover {
+        color: var(--app-primary-hover);
+    }
+
+.text-muted {
+    color: var(--app-text-secondary) !important;
+}
+
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:not(:disabled):not(.disabled):active {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+    color: var(--app-on-primary);
+}
+
+.btn-primary:not(:disabled):not(.disabled):hover,
+.btn-primary:not(:disabled):not(.disabled):active {
+    background-color: var(--app-primary-hover);
+    border-color: var(--app-primary-hover);
+}
+
+.btn-primary:focus,
+.btn-primary:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.35);
+}
+
+.card,
+.card-header,
+.card-footer {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
+    box-shadow: var(--app-shadow);
+}
+
+.table {
+    background-color: var(--app-surface);
+    color: var(--app-text-primary);
+}
+
+    .table th,
+    .table td {
+        border-top-color: var(--app-border);
+    }
+
+    .table thead th {
+        border-bottom-color: var(--app-border);
+    }
+
+hr,
+.divider {
+    border-color: var(--app-border);
+}
+
+/* Formulários do Bootstrap local (nível da app; os inputs Syncfusion são
+   tratados mais abaixo na secção de overrides Syncfusion). */
+.form-control {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
+}
+
+    .form-control:focus {
+        border-color: var(--app-primary);
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        background-color: var(--app-surface);
+        color: var(--app-text-primary);
+    }
+
+    .form-control::placeholder,
+    .form-control :-ms-input-placeholder {
+        color: var(--app-text-secondary);
+    }
+
+/* ============================ Overrides Syncfusion =======================
+   O tema bootstrap5 do Syncfusion usa cores hex hard-coded (#0d6efd).
+   Estes overrides mapeiam os componentes primários para os tokens,
+   deixando claro/escuro automático via var(--app-*).
+   ======================================================================== */
+
+/* Botões primários */
+.e-btn.e-primary,
+.e-css.e-btn.e-primary,
+button.e-btn.e-primary {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+.e-btn.e-primary:not(:disabled):hover,
+.e-btn.e-primary:focus,
+.e-btn.e-primary:active,
+.e-css.e-btn.e-primary:not(:disabled):hover,
+.e-css.e-btn.e-primary:focus,
+.e-css.e-btn.e-primary:active,
+button.e-btn.e-primary:not(:disabled):hover,
+button.e-btn.e-primary:focus,
+button.e-btn.e-primary:active {
+    background-color: var(--app-primary-hover) !important;
+    border-color: var(--app-primary-hover) !important;
+    color: var(--app-on-primary) !important;
+}
+
+.e-btn.e-primary:focus,
+.e-css.e-btn.e-primary:focus,
+button.e-btn.e-primary:focus {
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+}
+
+/* Form Outline/info buttons com texto primário */
+.e-btn.e-outline,
+.e-css.e-btn.e-outline,
+.e-btn.e-flat.e-primary:not(:disabled),
+.e-css.e-btn.e-flat.e-primary:not(:disabled) {
+    color: var(--app-primary);
+}
+
+/* Checkbox */
+.e-checkbox-wrapper .e-frame.e-check,
+.e-checkbox-wrapper:hover .e-frame.e-check,
+.e-checkbox-wrapper:focus .e-frame.e-check,
+.e-checkbox-wrapper .e-checkbox:checked + .e-frame {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+.e-checkbox-wrapper .e-frame.e-indeterminate {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+/* Radio */
+.e-radio-wrapper .e-frame.e-check,
+.e-radio-wrapper:hover .e-frame.e-check,
+.e-radio-wrapper:focus .e-frame.e-check {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+    .e-radio-wrapper .e-frame.e-check::after {
+        background-color: var(--app-on-primary);
+    }
+
+/* Switch */
+.e-switch-wrapper .e-switch-inner.e-switch-active,
+.e-switch-wrapper:hover .e-switch-inner.e-switch-active {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+}
+
+.e-switch-wrapper .e-switch-handle.e-switch-active,
+.e-switch-wrapper:hover .e-switch-handle.e-switch-active {
+    background-color: var(--app-on-primary) !important;
+}
+
+/* Dropdown / DropdownList / ComboBox — item ativo */
+.e-dropdownbase .e-list-item.e-active,
+.e-dropdownbase .e-list-item.e-active.e-hover {
+    color: var(--app-primary);
+}
+
+    .e-dropdownbase .e-list-item.e-active {
+        background-color: var(--app-surface-hover);
+    }
+
+/* Inputs (TextBox/DatePicker/DropDownList) — focus e ícones */
+.e-input-group.e-control-wrapper.e-focus .e-input-group-icon,
+.e-input-group.e-control-wrapper:focus .e-input-group-icon,
+.e-input-group.e-control-wrapper:focus-within .e-input-group-icon {
+    color: var(--app-primary);
+}
+
+.e-input-group.e-control-wrapper:not(.e-float-icon-left):not(.e-float-input).e-focus,
+.e-input-group.e-control-wrapper:focus-within:not(.e-float-icon-left):not(.e-float-input) {
+    border-bottom-color: var(--app-primary) !important;
+}
+
+.e-input-group.e-control-wrapper.e-input-focus .e-float-line::before,
+.e-input-group.e-control-wrapper.e-input-focus .e-float-line::after {
+    background-color: var(--app-primary);
+}
+
+.e-input-group.e-control-wrapper .e-clear-icon:hover {
+    color: var(--app-primary);
+}
+
+/* Seletor de data/calendário */
+.e-calendar .e-content td.e-selected span.e-day,
+.e-calendar .e-content td.e-today.e-selected span.e-day,
+.e-bigger.e-small .e-calendar .e-content td.e-selected span.e-day,
+.e-calendar .e-content td.e-focused-date.e-today span.e-day.e-selected {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+.e-calendar .e-content td.e-today span.e-day,
+.e-calendar .e-content td.e-focused-date.e-today span.e-day {
+    border-color: var(--app-primary);
+    color: var(--app-primary);
+}
+
+.e-btn.e-today,
+.e-css.e-btn.e-today {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+/* Grid — seleção, ativo e hover */
+.e-grid .e-rowcell.e-selectionbackground,
+.e-grid .e-rowcell.e-active,
+.e-grid td.e-selectionbackground,
+.e-grid .e-gridpager.e-pagerdefault .e-currentitem,
+.e-grid .e-pager .e-currentitem {
+    background-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+.e-grid .e-rowcell.e-selectionbackground .e-icons,
+.e-grid .e-rowcell.e-active .e-icons,
+.e-grid td.e-selectionbackground .e-icons {
+    color: var(--app-on-primary) !important;
+}
+
+.e-grid .e-row .e-dragstartrow::before,
+.e-grid .e-row .e-selectionbackground .e-dragstartrow::before {
+    color: var(--app-primary);
+}
+
+.e-grid .e-rowcell.e-active:not(.e-selectionbackground) {
+    background-color: var(--app-surface-hover);
+}
+
+[data-theme="dark"] .e-grid .e-rowcell:hover:not(.e-active):not(.e-selectionbackground) {
+    background-color: var(--app-surface-hover);
+}
+
+.e-grid .e-altrow {
+    background-color: var(--app-surface-alt);
+}
+
+/* Grid header/toolbar com sombras neutras */
+.e-grid .e-gridheader,
+.e-grid .e-headercontent {
+    background-color: var(--app-surface);
+}
+
+/* Toolbar — item ativo */
+.e-toolbar .e-toolbar-item.e-active .e-tbar-btn .e-icons,
+.e-toolbar .e-toolbar-item.e-active .e-tbar-btn:hover .e-icons,
+.e-toolbar .e-toolbar-item.e-template.e-active .e-tbar-btn .e-icons,
+.e-toolbar-popup .e-toolbar-item.e-active .e-tbar-btn .e-icons {
+    color: var(--app-primary);
+}
+
+.e-toolbar .e-toolbar-item.e-active .e-tbar-btn,
+.e-toolbar .e-toolbar-item.e-active .e-tbar-btn:hover {
+    background-color: var(--app-surface-hover);
+}
+
+/* Tabs — indicador e texto do separador ativo */
+.e-tab .e-tab-header .e-indicator,
+.e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+.e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon,
+.e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text .e-icons {
+    color: var(--app-primary);
+}
+
+.e-tab .e-tab-header .e-indicator {
+    background-color: var(--app-primary) !important;
+}
+
+/* Accordion — cabeçalho ativo */
+.e-accordion .e-acrdn-item.e-select.e-active > .e-acrdn-header,
+.e-accordion .e-acrdn-item.e-select.e-selected > .e-acrdn-header,
+.e-accordion .e-acrdn-item.e-select.e-active > .e-acrdn-header .e-acrdn-header-content {
+    color: var(--app-primary);
+}
+
+/* ProgressBar */
+.e-progressbar .e-progress-value,
+.e-progressbar .e-progress-bar,
+.e-progress .e-progressbar .e-progress-value,
+.e-linear-progress.e-progressbar .e-progress-value {
+    background-color: var(--app-primary);
+}
+
+.e-progressbar.e-progress.e-linear .e-progress-value {
+    background-color: var(--app-primary);
+}
+
+/* Slider */
+.e-slider-container .e-range,
+.e-slider-container .e-slider .e-handle,
+.e-slider-container:hover .e-slider .e-handle {
+    background-color: var(--app-primary);
+}
+
+.e-slider-container .e-range {
+    background-color: var(--app-primary);
+}
+
+.e-slider-container .e-slider-track {
+    background-color: var(--app-border);
+}
+
+/* Carousel / connectors e afins usam os tokens acima automaticamente */
+
+/* Chips */
+.e-chip-list .e-chip.e-active,
+.e-chip-list .e-chip.e-active:hover,
+.e-chip-list .e-chip.e-selected,
+.e-chip-list .e-chip.e-selected:hover {
+    background-color: var(--app-primary) !important;
+    border-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
+}
+
+/* Badges primários */
+.e-badge.e-badge-primary {
+    background-color: var(--app-primary);
+    color: var(--app-on-primary);
+}
+
+/* Dialog / popover — cabeçalhos neutros, borda primária em foco */
+.e-dialog .e-dlg-header-content {
+    border-bottom-color: var(--app-border);
+}
+
+.e-dialog .e-footer-content {
+    border-top-color: var(--app-border);
+}
+
+/* Pager */
+.e-pager .e-currentitem,
+.e-pager .e-icons:hover,
+.e-pager .e-currentitem {
+    color: var(--app-primary);
+    background-color: var(--app-surface-hover);
+}
+
+/* ==================== Branco-fiel a superfícies no dark ===================
+   Alvos restantes que dependem de superfícies (aplica aos dois modos).  */
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--app-surface-alt) !important;
+}
+
+[data-theme="dark"] .text-dark {
+    color: var(--app-text-primary) !important;
+}
+
+[data-theme="dark"] .e-control:not(.e-input-group):not(.e-form-switch),
+[data-theme="dark"] .e-dialog,
+[data-theme="dark"] .e-popup {
+    /* Componentes que abrem popups seguem a superfície do tema */
+    background-color: var(--app-surface);
+    color: var(--app-text-primary);
+}
+
+/* Código inline / prism em dark continua legível */
+[data-theme="dark"] code:not([class*="language-"]) {
+    color: var(--app-primary);
+    background-color: var(--app-surface-alt);
+}

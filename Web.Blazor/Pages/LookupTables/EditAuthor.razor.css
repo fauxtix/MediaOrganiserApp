@@ -85,9 +85,9 @@
     }
 
 #dropArea .e-upload .e-upload-files .e-icons:not(.e-uploaded):hover {
-    background-color: #e6e6e6;
-    border-color: #adadad;
-    color: #333;
+    background-color: var(--app-surface-hover);
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
 }
 
 #dropArea .e-upload .e-upload-files .e-upload-file-list {
@@ -98,21 +98,21 @@
 
 #dropArea progress {
     border: none;
-    background: #fff;
+    background: var(--app-surface);
 }
 
 progress::-webkit-progress-bar {
     border: none;
-    background-color: #ffffff;
+    background-color: var(--app-surface);
 }
 
 .material progress::-moz-progress-bar {
     border-radius: 2px;
-    background-color: #ff4081;
+    background-color: var(--app-accent-green);
 }
 
 .material #dropArea span a {
-    color: #ff4081;
+    color: var(--app-primary);
 }
 
 @@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
@@ -132,15 +132,15 @@ progress::-webkit-progress-bar {
 
     .img-box img {
         max-width: 100%;
-        border: 3px solid #FFC107;
+        border: 3px solid var(--app-accent-yellow);
         position: relative;
         width: 100%;
     }
 
     .img-box::before {
         content: '';
-        border-left: 3px solid #ffffff;
-        border-top: 3px solid #ffffff;
+        border-left: 3px solid var(--app-surface);
+        border-top: 3px solid var(--app-surface);
         position: absolute;
         left: 20px;
         top: 20px;
@@ -152,8 +152,8 @@ progress::-webkit-progress-bar {
 
     .img-box::after {
         content: '';
-        border-right: 3px solid #ffffff;
-        border-bottom: 3px solid #ffffff;
+        border-right: 3px solid var(--app-surface);
+        border-bottom: 3px solid var(--app-surface);
         position: absolute;
         right: 20px;
         bottom: 20px;

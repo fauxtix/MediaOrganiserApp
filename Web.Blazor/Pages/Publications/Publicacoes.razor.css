@@ -50,7 +50,7 @@
 }
 
 .modal-confirm {
-    color: #434e65;
+    color: var(--app-text-primary);
     width: 525px;
 }
 
@@ -62,7 +62,7 @@
     }
 
     .modal-confirm .modal-header {
-        background: #e85e6c;
+        background: var(--app-danger);
         border-bottom: none;
         position: relative;
         text-align: center;
@@ -75,7 +75,7 @@
         text-align: center;
         font-size: 24px;
         margin: 10px 0;
-        color: white;
+        color: var(--app-on-danger);
     }
 
     .modal-confirm .form-control, .modal-confirm .btn {
@@ -87,7 +87,7 @@
         position: absolute;
         top: 15px;
         right: 15px;
-        color: #fff;
+        color: var(--app-on-danger);
         text-shadow: none;
         opacity: 0.5;
     }
@@ -118,9 +118,9 @@
     }
 
     .modal-confirm .btn, .modal-confirm .btn:active {
-        color: #fff;
+        color: var(--app-on-accent-yellow);
         border-radius: 4px;
-        background: #eeb711 !important;
+        background: var(--app-accent-yellow) !important;
         text-decoration: none;
         transition: all 0.4s;
         line-height: normal;
@@ -139,17 +139,18 @@
 
 
 .e-grid e-alt-row {
-    background-color: lightgray;
-    color: white;
+    background-color: var(--app-surface-alt);
+    color: var(--app-text-primary);
 }
 
 .e-grid .e-rowcell.e-selectionbackground {
-    background-color: azure !important;
+    background-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
 }
 
 
 .modal-confirm .btn:hover, .modal-confirm .btn:focus {
-    background: #eda645 !important;
+    background: var(--app-accent-yellow-hover) !important;
     outline: none;
 }
 

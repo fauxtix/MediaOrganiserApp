@@ -12,7 +12,7 @@
 .imgcontainer img {
     height: 100px; /* set a default height*/
     margin-top: -15px; /* move image up fo 15px */
-    border: 1px solid black; /* define a border */
+    border: 1px solid var(--app-border); /* define a border */
     border-radius: 50%; /* make the image rounded, this works only with square images*/
 }
 
@@ -25,7 +25,7 @@
 .e-card {
     margin: auto;
     border-radius: 10px;
-    box-shadow: 0 0 1em rgba(0, 0, 0, 0.24), 0 0 1em rgba(0, 0, 0, 0.125);
+    box-shadow: var(--app-shadow);
 }
 
 .tile_layout.card-control-section .row .e-card {

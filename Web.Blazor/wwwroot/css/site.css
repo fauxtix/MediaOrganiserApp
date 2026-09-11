@@ -5,13 +5,47 @@ html, body {
 }
 
 body {
-    transition: background 0.2s, color 0.2s;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
     body.dark-theme {
-        --background-color: #181A1B;
-        --text-color: #eee;
+        --background-color: var(--app-bg);
+        --text-color: var(--app-text-primary);
+        background-color: var(--app-bg);
+        color: var(--app-text-primary);
     }
+
+        body.dark-theme .card,
+        body.dark-theme .card-header,
+        body.dark-theme .card-footer,
+        body.dark-theme .form-control,
+        body.dark-theme .table {
+            background-color: var(--app-surface);
+            border-color: var(--app-border);
+            color: var(--app-text-primary);
+        }
+
+        body.dark-theme .form-control {
+            color: var(--app-text-primary);
+        }
+
+            body.dark-theme .form-control::placeholder {
+                color: var(--app-text-secondary);
+            }
+
+        body.dark-theme a,
+        body.dark-theme .btn-link {
+            color: var(--app-primary);
+        }
+
+        body.dark-theme .text-muted {
+            color: var(--app-text-secondary) !important;
+        }
+
+        body.dark-theme .title,
+        body.dark-theme header .module-title .title {
+            color: var(--app-text-primary);
+        }
 
 header {
     background-color: var(--header-background);
@@ -69,14 +103,22 @@ header {
 }
 
 a, .btn-link {
-    color: #0366d6;
+    color: var(--app-primary);
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    color: var(--app-on-primary);
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
 }
+
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-primary:active {
+        color: var(--app-on-primary);
+        background-color: var(--app-primary-hover);
+        border-color: var(--app-primary-hover);
+    }
 
 app {
     display: flex;
@@ -169,11 +211,11 @@ app {
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--app-accent-green);
 }
 
 .invalid {
-    outline: 1px solid red;
+    outline: 1px solid var(--app-danger);
 }
 
 .validation-message {
@@ -183,7 +225,7 @@ app {
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--app-shadow);
     display: none;
     left: 0;
     padding: 0.6rem 1.25rem 0.7rem 1.25rem;

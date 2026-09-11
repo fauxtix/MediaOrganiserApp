@@ -117,6 +117,7 @@ namespace Web.Blazor
 
             services.AddScoped<ITastyApiRecipesService, TastyApiRecipesService>();
             services.AddScoped<IAppSettingsService, WrapperAppSettings>();
+            services.AddScoped<IAiModelResolver, AiModelResolver>();
 
             services.AddHttpClient<InternetConnectivityService>();
 

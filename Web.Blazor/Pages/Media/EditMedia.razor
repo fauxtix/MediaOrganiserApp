@@ -254,7 +254,7 @@ else
 
             @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))
             {
-                <div style="background:#e3f2fd;padding:8px;border-radius:4px;font-weight:bold;">
+                <div style="background:rgba(59,130,246,0.15);padding:8px;border-radius:4px;font-weight:bold;">
                     @busyStatusMessage
                 </div>
             }
@@ -319,7 +319,7 @@ else
         -moz-border-radius: 5px;
         background-clip: padding-box;
         margin-bottom: 0px;
-        background-color: floralwhite;
+        background-color: var(--app-surface-alt);
         box-shadow: 0 0px 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0px 0 rgba(0, 0, 0, 0.02);
     }
 

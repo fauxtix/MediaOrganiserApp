@@ -148,8 +148,8 @@ else
                                                       Placeholder="@L["TituloNotificationTime"]" " FloatLabelType="FloatLabelType.Always"></SfNumericTextBox>
                                     <div class="row mt-2">
                                         <div class="col-md-9 my-1">
-                                            <div class="form-label mt-2" style="color:black;font-size:small">@L["TituloFicheirosOrganizados"]</div>
-                                            <div class="form-label mt-2" style="color:black; font-size:small">@L["TituloRemoverImagemAposEdicao"]</div>
+                                <div class="form-label mt-2" style="color:var(--app-text-primary);font-size:small">@L["TituloFicheirosOrganizados"]</div>
+                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["TituloRemoverImagemAposEdicao"]</div>
                                         </div>
                                         <div class="col-md-3 my-1">
                                             <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.FicheirosOrganizados" OnLabel="On" OffLabel="Off"></SfSwitch></div>
@@ -169,13 +169,13 @@ else
                                         <DropDownListTemplates TItem="CountryModel">
                                             <ItemTemplate Context="langCtx">
                                                 <div>
-                                                    <img class="empImage" src="/images/@((langCtx as CountryModel).Pic).png" alt="pa�s" />
+                                                    <img class="empImage" src="/images/@((langCtx as CountryModel).Pic).png" alt="pa�s" />
                                                     <div class="ename">@L[((langCtx as CountryModel).Text!)] </div>
                                                 </div>
                                             </ItemTemplate>
                                             <ValueTemplate Context="ctx">
                                                 <div class="dropdown-width" style="width:100%;height:100%;">
-                                                    <img class="value" src="/images/@((ctx as CountryModel).Pic).png" height="26" width="26" alt="pa�s">
+                                                    <img class="value" src="/images/@((ctx as CountryModel).Pic).png" height="26" width="26" alt="pa�s">
                                                     <div class="name">@L[((ctx as CountryModel).Text!)] </div>
                                                 </div>
                                             </ValueTemplate>
@@ -450,26 +450,26 @@ else
         }
 
         .e-tab .e-tab-header {
-            background: #badfba !important;
+            background: var(--app-success-bg) !important;
             align-items: center;
         }
 
             .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
-                color: #badfba !important;
+                color: var(--app-success-text) !important;
                 align-items: center;
             }
 
             .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
-                background: #d1f6d1 !important;
+                background: var(--app-success-border) !important;
             }
 
             .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
             .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
-                background: #d1f6d1 !important;
+                background: var(--app-success-border) !important;
             }
 
             .e-tab .e-tab-header .e-toolbar-item.e-active {
-                background: #d1f4d1;
+                background: var(--app-success-bg);
             }
 
                 .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
@@ -484,6 +484,60 @@ else
 
     .e-settings:before {
         content: '\<a href="#"></a>';
+    }
+
+    /* ── Dark mode overrides ─────────────────────────── */
+
+    [data-theme="dark"] .e-tab {
+        border-color: var(--app-border);
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-items {
+        background-color: var(--app-surface-alt);
+        border-color: var(--app-border);
+    }
+
+    [data-theme="dark"] .e-tab .e-content .e-item {
+        color: var(--app-text-primary);
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header {
+        background-color: var(--app-surface-alt) !important;
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
+        color: var(--app-text-secondary) !important;
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+        background-color: var(--app-surface-hover) !important;
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
+    [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
+        background-color: var(--app-surface-hover) !important;
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active {
+        background-color: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
+        color: var(--app-primary) !important;
+    }
+
+    [data-theme="dark"] .e-dialog .e-dlg-header {
+        color: var(--app-text-primary);
+    }
+
+    [data-theme="dark"] .e-dialog .e-dlg-content {
+        color: var(--app-text-primary);
+    }
+
+    [data-theme="dark"] .e-dlg-overlay {
+        background-color: var(--app-bg);
+        opacity: 0.6;
     }
 
 </style>

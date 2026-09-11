@@ -417,7 +417,7 @@
 <style>
 
     .e-container-style {
-        background-color: #f0f0f0;
+        background-color: var(--app-surface-alt);
     }
 
     .button-container {
@@ -435,8 +435,8 @@
     }
 
     .e-radio-wrapper.e-info .e-radio:checked + label::before {
-        border-color: #2196f3;
-        background-color: blue;
+        border-color: var(--app-primary);
+        background-color: var(--app-primary);
     }
 
     .e-attr-bold {
@@ -450,7 +450,7 @@
         overflow: hidden;
         margin-bottom: 30px;
         border-radius: 0px 100px;
-        background-color: #fff;
+        background-color: var(--app-surface);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -458,7 +458,7 @@
 
     .video-gallery-img {
         max-width: 100%;
-        border: 3px solid #FFC107;
+        border: 3px solid var(--app-accent-yellow);
         position: relative;
         width: 250px;
         height: 200px;
@@ -468,8 +468,8 @@
 
     .video-gallery-thumb::before {
         content: '';
-        border-left: 3px solid #ffffff;
-        border-top: 3px solid #ffffff;
+        border-left: 3px solid var(--app-surface);
+        border-top: 3px solid var(--app-surface);
         position: absolute;
         left: 20px;
         top: 20px;
@@ -481,8 +481,8 @@
 
     .video-gallery-thumb::after {
         content: '';
-        border-right: 3px solid #ffffff;
-        border-bottom: 3px solid #ffffff;
+        border-right: 3px solid var(--app-surface);
+        border-bottom: 3px solid var(--app-surface);
         position: absolute;
         right: 20px;
         bottom: 20px;
@@ -517,7 +517,7 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        background: #f8f8f8;
+        background: var(--app-surface-alt);
         border-radius: 16px;
     }
 
@@ -579,14 +579,23 @@
     }
 
     .e-tab .e-tab-header .e-toolbar-item.e-active {
-        background: #d1f4d1;
+        background: var(--app-success-bg);
     }
 
     .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
-        background: #badfba !important;
+        background: var(--app-success-border) !important;
     }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active {
+        background: rgba(74, 222, 128, 0.25);
+    }
+
+    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+        background: rgba(74, 222, 128, 0.15) !important;
+    }
+
     .e-tab .e-tab-header .e-toolbar-items {
-        background: white;
-        border: 2px solid  steelblue;
+        background: var(--app-surface);
+        border: 2px solid var(--app-primary);
     }
 </style>

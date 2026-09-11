@@ -81,19 +81,19 @@
         switch (AlertMessageType)
         {
             case AlertMessageType.Info:
-                TitleColor = "cornflowerblue";
+                TitleColor = "var(--app-info-text)";
                 severity = MessageSeverity.Info;
                 break;
             case AlertMessageType.Warning:
-                TitleColor = "#9F6000";
+                TitleColor = "var(--app-warning-text)";
                 severity = MessageSeverity.Warning;
                 break;
             case AlertMessageType.Error:
-                TitleColor = "red";
+                TitleColor = "var(--app-danger-text)";
                 severity = MessageSeverity.Error;
                 break;
             default:
-                TitleColor = "cornflowerblue";
+                TitleColor = "var(--app-info-text)";
                 severity = MessageSeverity.Info;
                 break;
         }

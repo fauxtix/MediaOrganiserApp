@@ -1,11 +1,6 @@
 @page "/edit-prompts"
 @using Microsoft.Extensions.Localization
-@using Web.Blazor.Components.Prompts
-@using Syncfusion.Blazor.Popups
 @using Syncfusion.Blazor.DropDowns
-@using Web.Blazor.Utilities
-@using Ganss.Xss
-@using Markdig
 
 @inject PromptFilesService PromptService
 @inject IStringLocalizer<App> localizerApp
@@ -77,12 +72,12 @@
 
 
 <style>
-/* ===== HARD RESET (override Syncfusion / dark inheritance) ===== */
+/* ===== HARD RESET (override Syncfusion inheritance using theme tokens) ===== */
 
 .readme-pane,
 .readme-pane * {
-    background-color: #ffffff !important;
-    color: #24292f !important;
+    background-color: var(--app-surface) !important;
+    color: var(--app-text-primary) !important;
     opacity: 1 !important;
     filter: none !important;
 }
@@ -120,7 +115,7 @@
     height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #e5e7eb;
+    border-right: 1px solid var(--app-border);
     padding-right: 0.5rem;
     padding-left: 0.5rem;
     box-sizing: border-box;
@@ -179,7 +174,7 @@
 
 .readme-pane h1,
 .readme-pane h2 {
-    border-bottom: 1px solid #d0d7de;
+    border-bottom: 1px solid var(--app-border);
     padding-bottom: 0.3em;
 }
 
@@ -188,7 +183,7 @@
 .readme-pane h3 { font-size: 1.25em; margin-top: 1em; }
 .readme-pane h4 { font-size: 1em; }
 .readme-pane h5 { font-size: 0.875em; }
-.readme-pane h6 { font-size: 0.85em; color: #57606a !important; }
+.readme-pane h6 { font-size: 0.85em; color: var(--app-text-secondary) !important; }
 
 .readme-pane h1,
 .readme-pane h2,
@@ -225,7 +220,7 @@
 /* ===== Links ===== */
 
 .readme-pane a {
-    color: #0969da !important;
+    color: var(--app-primary) !important;
     text-decoration: none;
 }
 
@@ -236,7 +231,7 @@
 /* ===== Inline Code ===== */
 
 .readme-pane code {
-    background-color: #f6f8fa !important;
+    background-color: var(--app-surface-alt) !important;
     padding: 0.2em 0.4em;
     border-radius: 6px;
     font-size: 85%;
@@ -270,21 +265,21 @@
 
 .readme-pane th,
 .readme-pane td {
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--app-border);
     padding: 8px 12px;
 }
 
 .readme-pane th {
-    background-color: #f6f8fa !important;
+    background-color: var(--app-surface-alt) !important;
     font-weight: 600;
 }
 
 /* ===== Blockquotes ===== */
 
 .readme-pane blockquote {
-    border-left: 4px solid #d0d7de;
+    border-left: 4px solid var(--app-border);
     padding: 0 1em;
-    color: #57606a !important;
+    color: var(--app-text-secondary) !important;
     margin: 1em 0;
 }
 
@@ -292,7 +287,7 @@
 
 .readme-pane hr {
     border: none;
-    border-top: 1px solid #d0d7de;
+    border-top: 1px solid var(--app-border);
     margin: 2em 0;
 }
 

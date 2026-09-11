@@ -85,10 +85,10 @@
             </div>
             <input type="submit" value="Register" class="btn btn-success w-100 p-2" />
             <p class="text-center mt-2">
-                Already have an account? <a asp-controller="Account" asp-action="Login" class="text-decoration-none">Login</a>
+                Already have an account? <a href="/Identity/Account/Login" class="text-decoration-none">Login</a>
             </p>
             <div class="text-center">
-                <a asp-controller="Home" asp-action="Index" class="text-decoration-none mt-3">Back</a>
+                <a href="/" class="text-decoration-none mt-3">Back</a>
             </div>
         </form>
     </div>
@@ -121,6 +121,12 @@
         max-width: 500px;
         width: 100%;
         opacity: .9;
+    }
+
+    [data-theme="dark"] .account-box {
+        background-color: var(--app-surface);
+        color: var(--app-text-primary);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
 
 </style>

@@ -23,7 +23,7 @@
     }
 
 .sidebar {
-    color: #7d84ab;
+    color: var(--app-text-secondary);
     /*overflow-x: hidden !important;*/
     position: relative;
 }
@@ -33,12 +33,12 @@
     }
 
     .sidebar:hover::-webkit-scrollbar-thumb {
-        background-color: #1a4173;
+        background-color: var(--app-border);
     }
 
     .sidebar::-webkit-scrollbar {
         width: 6px;
-        background-color: #0c1e35;
+        background-color: var(--app-bg);
     }
 
     .sidebar .image-wrapper {
@@ -69,7 +69,7 @@
         display: flex;
         flex-direction: column;
         position: relative;
-        background-color: #0c1e35;
+        background-color: var(--app-surface);
         z-index: 2;
     }
 
@@ -141,7 +141,7 @@
     letter-spacing: 2px;
     transition: opacity 0.3s;
     opacity: 1;
-    color: white;
+    color: var(--app-text-primary);
 }
 
 .layout .sidebar .menu .menu-item a {
@@ -149,7 +149,7 @@
     align-items: center;
     height: 38px;
     padding: 2px 14px;
-    color: #7d84ab;
+    color: var(--app-text-secondary);
 }
 
     .layout .sidebar .menu .menu-item a .menu-icon {
@@ -187,11 +187,11 @@
     }
 
     .layout .sidebar .menu .menu-item a:hover .menu-title {
-        color: #dee2ec;
+        color: var(--app-text-primary);
     }
 
     .layout .sidebar .menu .menu-item a:hover .menu-icon {
-        color: #dee2ec;
+        color: var(--app-primary);
     }
 
         .layout .sidebar .menu .menu-item a:hover .menu-icon i {
@@ -199,7 +199,7 @@
         }
 
     .layout .sidebar .menu .menu-item a:hover::after {
-        border-color: #dee2ec !important;
+        border-color: var(--app-primary) !important;
     }
 
 .layout .sidebar .menu .menu-item.sub-menu {
@@ -225,7 +225,7 @@
 
 
     .layout .sidebar .menu .menu-item.sub-menu.open > a {
-        color: #dee2ec;
+        color: var(--app-text-primary);
     }
 
         .layout .sidebar .menu .menu-item.sub-menu.open > a::after {
@@ -239,23 +239,23 @@
 }
 
 .layout .sidebar .menu .menu-item.active > a .menu-title {
-    color: #dee2ec;
+    color: var(--app-text-primary);
 }
 
 .layout .sidebar .menu .menu-item.active > a::after {
-    border-color: #dee2ec;
+    border-color: var(--app-text-primary);
 }
 
 .layout .sidebar .menu .menu-item.active > a .menu-icon {
-    color: #dee2ec;
+    color: var(--app-primary);
 }
 
 .layout .sidebar .menu > ul > .sub-menu > .sub-menu-list {
-    background-color: #0b1a2c;
+    background-color: var(--app-surface-alt);
 }
 
 .layout .sidebar .menu.icon-shape-circle .menu-item a .menu-icon, .layout .sidebar .menu.icon-shape-rounded .menu-item a .menu-icon, .layout .sidebar .menu.icon-shape-square .menu-item a .menu-icon {
-    background-color: #0b1a2c;
+    background-color: var(--app-surface-alt);
 }
 
 .layout .sidebar .menu.icon-shape-circle .menu-item a .menu-icon {
@@ -300,7 +300,7 @@
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.sub-menu > a:hover::after {
-    background-color: #dee2ec;
+    background-color: var(--app-primary);
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.sub-menu > .sub-menu-list {
@@ -312,7 +312,7 @@
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.active > a::after {
-    background-color: #dee2ec;
+    background-color: var(--app-primary);
 }
 
 .layout .sidebar.has-bg-image .menu.icon-shape-circle .menu-item a .menu-icon, .layout .sidebar.has-bg-image .menu.icon-shape-rounded .menu-item a .menu-icon, .layout .sidebar.has-bg-image .menu.icon-shape-square .menu-item a .menu-icon {
@@ -420,7 +420,7 @@ a {
     width: 180px;
     min-width: 190px;
     margin: 0 auto;
-    background-color: #162d4a;
+    background-color: var(--app-primary);
 }
 
     .layout .sidebar .footer-box img.react-logo {
@@ -443,7 +443,7 @@ a {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: #00829f;
+    background-color: var(--app-primary);
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -455,7 +455,7 @@ a {
     z-index: 111;
     cursor: pointer;
     color: white;
-    box-shadow: 1px 1px 4px #0c1e35;
+    box-shadow: 1px 1px 4px var(--app-bg);
 }
 
 .layout .sidebar.collapsed .pro-sidebar-logo > h5 {

@@ -120,23 +120,24 @@
 }
 
 .e-toolbar-item .e-tbar-btn e-icons {
-    background-color: #e6e6ff;
+    background-color: var(--app-surface-alt);
     border-radius: 10px;
-    color: #262626;
+    color: var(--app-text-primary);
 }
 
-.e-toolbar-item .e-tbar-btn:hover {
-    background-color: #ccccff;
-    color: #1a1a1a;
-    border-radius: 9px;
-}
+    .e-toolbar-item .e-tbar-btn:hover {
+        background-color: var(--app-surface-hover);
+        color: var(--app-text-primary);
+        border-radius: 9px;
+    }
 
 .e-round-corner {
     border-radius: 11px;
 }
 
 .e-grid .e-rowcell.e-selectionbackground {
-    background-color: azure !important;
+    background-color: var(--app-primary) !important;
+    color: var(--app-on-primary) !important;
 }
 /* To change color, font family and font size */
 /*.e-toast-container .e-toast .e-toast-message .e-toast-title {
@@ -164,7 +165,7 @@
 
 .e-richtexteditor .e-rte-content .e-content pre {
     padding: 10px;
-    background: #F4F5F7 !important;
+    background: var(--app-surface-alt) !important;
 }
 
 .e-rte-content p {
@@ -223,7 +224,7 @@
     background-color: inherit;
     border: 0;
     border-radius: 0;
-    color: #333;
+    color: var(--app-text-primary);
     font-size: inherit;
     line-height: inherit;
     margin: 0 0 10px;
@@ -340,7 +341,7 @@
 
     .e-rte-content .e-rte-table td,
     .e-rte-content .e-rte-table th {
-        border: 1px solid #bdbdbd;
+        border: 1px solid var(--app-border);
         height: 20px;
         min-width: 20px;
         padding: 2px 5px;
@@ -372,15 +373,15 @@
 }
 
 .e-rte-content blockquote {
-    border-left: solid 2px #333;
+    border-left: solid 2px var(--app-border);
 }
 
 .e-rte-content a {
-    color: #2e2ef1;
+    color: var(--app-primary);
 }
 
 .e-rte-content .e-rte-table th {
-    background-color: #e0e0e0;
+    background-color: var(--app-surface-alt);
 }
 
 .div .col-md-12 .e-rte-content {
@@ -470,8 +471,8 @@
 }
 
 .carousel {
-    background-color: #A59E89;
-    border: 10px solid white;
+    background-color: var(--app-surface-alt);
+    border: 10px solid var(--app-surface);
     border-radius: 0px;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
     height: 300px;
@@ -486,8 +487,8 @@
         height: 300px;
         transform: rotate(-3deg);
         box-shadow: 0px 0 4px rgba(0, 0, 0, 0.4);
-        background-color: #A59E89;
-        border: 10px solid white;
+        background-color: var(--app-surface-alt);
+        border: 10px solid var(--app-surface);
         position: relative;
         top: -15px;
         left: -10px;
@@ -510,15 +511,15 @@
 
     .img-box img {
         max-width: 100%;
-        border: 3px solid #FFC107;
+        border: 3px solid var(--app-accent-yellow);
         position: relative;
         width: 100%;
     }
 
     .img-box::before {
         content: '';
-        border-left: 3px solid #ffffff;
-        border-top: 3px solid #ffffff;
+        border-left: 3px solid var(--app-surface);
+        border-top: 3px solid var(--app-surface);
         position: absolute;
         left: 20px;
         top: 20px;
@@ -530,8 +531,8 @@
 
     .img-box::after {
         content: '';
-        border-right: 3px solid #ffffff;
-        border-bottom: 3px solid #ffffff;
+        border-right: 3px solid var(--app-surface);
+        border-bottom: 3px solid var(--app-surface);
         position: absolute;
         right: 20px;
         bottom: 20px;
@@ -554,4 +555,17 @@
             right: 10px;
             bottom: 10px;
         }
+
+[data-theme="dark"] .carousel:before,
+[data-theme="dark"] .carousel:after {
+    box-shadow: 0 16px 3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .carousel {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .carousel a img {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
 

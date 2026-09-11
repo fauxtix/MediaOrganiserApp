@@ -134,13 +134,6 @@ namespace Web.Blazor.Pages.BaseComponents
 
             SelectedModel = await aiModelsService.GetModelById(modelId);
 
-            if (args.CommandColumn.Type == CommandButtonType.Edit)
-            {
-                EditDialogVisibility = true;
-                blnEdit = true;
-                StateHasChanged();
-            }
-
             if (args.CommandColumn.Type == CommandButtonType.Delete)
             {
                 DeleteRecordConfirmVisibility = true;

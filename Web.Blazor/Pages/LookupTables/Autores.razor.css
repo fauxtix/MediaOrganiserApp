@@ -92,14 +92,14 @@
 }
 
 .e-toolbar-item .e-tbar-btn e-icons {
-    background-color: #e6e6ff;
+    background-color: var(--app-surface-alt);
     border-radius: 10px;
-    color: #262626;
+    color: var(--app-text-primary);
 }
 
 .e-toolbar-item .e-tbar-btn:hover {
-    background-color: #ccccff;
-    color: #1a1a1a;
+    background-color: var(--app-surface-hover);
+    color: var(--app-text-primary);
     border-radius: 9px;
 }
 

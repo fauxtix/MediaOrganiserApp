@@ -11,8 +11,21 @@
     <!-- Bootstrap primeiro -->
     <link rel="stylesheet" href="@Assets["css/bootstrap/bootstrap.min.css"]" />
 
-    <!-- Tema Syncfusion logo após Bootstrap -->
-    <link rel="stylesheet" href="@Assets["_content/Syncfusion.Blazor.Themes/bootstrap5.css"]" />
+    <!-- Tema Syncfusion logo após Bootstrap (claro/escuro alternados via themeToggle.js) -->
+    <link id="sfThemeLight" rel="stylesheet" href="@Assets["_content/Syncfusion.Blazor.Themes/bootstrap5.css"]" />
+    <link id="sfThemeDark" rel="stylesheet" href="@Assets["_content/Syncfusion.Blazor.Themes/bootstrap5-dark.css"]" />
+    <script>
+        (function () {
+            var theme = null;
+            try { theme = localStorage.getItem('theme'); } catch (e) { }
+            var dark = theme === 'dark';
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+            var light = document.getElementById('sfThemeLight');
+            var darkLink = document.getElementById('sfThemeDark');
+            if (light) light.disabled = dark;
+            if (darkLink) darkLink.disabled = !dark;
+        })();
+    </script>
 
     <!-- Ícones, fontes e layouts externos -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@2.2.0/fonts/remixicon.css" />
@@ -29,6 +42,8 @@
     <link rel="stylesheet" href="@Assets["css/cards.css"]" />
     <link rel="stylesheet" href="@Assets["css/sidebarpro/SideBarStyle.css"]" />
     <link rel="stylesheet" href="@Assets["css/github-markdown.css"]" />
+    <!-- Design tokens (último para ganhar a cascata) -->
+    <link rel="stylesheet" href="@Assets["css/theme-tokens.css"]" />
     <!-- PrismJS for code syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-1uQYl3q9j3F8zq3w1KfQ3v0bF3q2R4V6w9c1Y2Z5s6h7J1k2L3m4N5o6P7q8R9s0t1u2v3w4x5y6z7a8b9c0==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 

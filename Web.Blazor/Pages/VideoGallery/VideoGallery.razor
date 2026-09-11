@@ -7,14 +7,13 @@
 
 @using Syncfusion.Blazor.DropDowns
 @using Web.Blazor.Components.Cards
+@using Web.Blazor.Components
 @using Web.Blazor.Pages.Media
 
 <!-- Page Content -->
 <div class="container e-container-style">
 
-    <div class="title">@localizerApp["lblGaleria"] (Media)</div>
-    <div class="underline"></div>
-    <br />
+    <PageTitleComponent PageTitle="@($"{localizerApp["lblGaleria"]} (Media)")" />
 
     <div id="spinnerContainer"></div>
     <SfSpinner @ref="SpinnerObj"
@@ -291,6 +290,10 @@
         background-color: #f0f0f0;
     }
 
+    [data-theme="dark"] .e-container-style {
+        background-color: var(--app-surface-alt);
+    }
+
     /* ------------------ IMAGE ------------------ */
     .fixed-img-box {
         width: 100%;
@@ -301,6 +304,10 @@
         overflow: hidden;
         background: #f8f8f8;
         border-radius: 16px;
+    }
+
+    [data-theme="dark"] .fixed-img-box {
+        background: var(--app-surface-alt);
     }
 
     .fixed-img {
@@ -318,6 +325,17 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+    }
+
+    [data-theme="dark"] .fixed-card,
+    [data-theme="dark"] .fixed-card .card-body {
+        background-color: var(--app-surface-alt) !important;
+        color: var(--app-text-primary);
+    }
+
+    [data-theme="dark"] .img-thumbnail {
+        background-color: var(--app-surface-alt);
+        border-color: var(--app-border);
     }
 
     /* ------------------ TITLE / AUTHOR ------------------ */
