@@ -20,11 +20,11 @@ namespace MediaOrganizerApp.Persistence.Services.Chat
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Conversation>> GetAllAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<Conversation>> GetAllAsync(string? userId = null, bool isAdmin = false, CancellationToken ct = default)
         {
             try
             {
-                return await _repo.GetAllAsync(ct);
+                return await _repo.GetAllAsync(userId, isAdmin, ct);
             }
             catch (Exception ex)
             {
@@ -33,11 +33,11 @@ namespace MediaOrganizerApp.Persistence.Services.Chat
             }
         }
 
-        public async Task<Conversation?> GetByIdAsync(string id, CancellationToken ct = default)
+        public async Task<Conversation?> GetByIdAsync(string id, string? userId = null, bool isAdmin = false, CancellationToken ct = default)
         {
             try
             {
-                return await _repo.GetByIdAsync(id, ct);
+                return await _repo.GetByIdAsync(id, userId, isAdmin, ct);
             }
             catch (Exception ex)
             {
@@ -46,23 +46,27 @@ namespace MediaOrganizerApp.Persistence.Services.Chat
             }
         }
 
-        public async Task<Conversation> UpsertAsync(Conversation conv, CancellationToken ct = default)
+        public async Task<Conversation> UpsertAsync(Conversation conv, string? userId = null, bool isAdmin = false, CancellationToken ct = default)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(conv.Id))
                     conv.Id = Guid.NewGuid().ToString();
 
-                var existing = await _repo.GetByIdAsync(conv.Id, ct);
+                if (!string.IsNullOrWhiteSpace(userId))
+                    conv.UserId = userId;
+
+                var existing = await _repo.GetByIdAsync(conv.Id, userId, isAdmin, ct);
                 conv.UpdatedAt = DateTime.UtcNow;
                 if (existing == null)
                 {
                     conv.CreatedAt = DateTime.UtcNow;
+                    conv.UserId = string.IsNullOrWhiteSpace(userId) ? conv.UserId : userId;
                     await _repo.InsertAsync(conv, ct);
                 }
                 else
                 {
-                    await _repo.UpdateAsync(conv, ct);
+                    await _repo.UpdateAsync(conv, userId, isAdmin, ct);
                 }
                 return conv;
             }
@@ -73,11 +77,11 @@ namespace MediaOrganizerApp.Persistence.Services.Chat
             }
         }
 
-        public async Task DeleteAsync(string id, CancellationToken ct = default)
+        public async Task DeleteAsync(string id, string? userId = null, bool isAdmin = false, CancellationToken ct = default)
         {
             try
             {
-                await _repo.DeleteAsync(id, ct);
+                await _repo.DeleteAsync(id, userId, isAdmin, ct);
             }
             catch (Exception ex)
             {

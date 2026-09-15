@@ -234,14 +234,13 @@ namespace Web.Blazor.Pages.AI
         private List<ConversationItem> conversations = new();
         private string? selectedConversationId;
         private bool showConfirmDeleteConversation = false;
-        public class ConversationItem { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Json { get; set; } = ""; }
         // filename input removed from this component; topbar handles create/open
         private async Task NewConversation()
         {
             // Create an untitled conversation directly
             var id = Guid.NewGuid().ToString();
             var title = "Conversation " + DateTime.Now.ToString("g");
-            var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = "[]" };
+            var conv = new ConversationCreateDto { Id = id, Title = title, Json = "[]" };
             await ConversationsClient.CreateAsync(conv);
             await LoadConversations();
             selectedConversationId = id;
@@ -325,13 +324,13 @@ namespace Web.Blazor.Pages.AI
                 var id = Guid.NewGuid().ToString();
                 var firstUser = messages.FirstOrDefault(m => m.Role == "user" && !string.IsNullOrWhiteSpace(m.Content))?.Content?.Trim();
                 var title = !string.IsNullOrEmpty(firstUser) ? (firstUser.Length > 60 ? firstUser.Substring(0, 60).TrimEnd() + "..." : firstUser) : ("Conversation " + DateTime.Now.ToString("g"));
-                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = json };
+                var conv = new ConversationCreateDto { Id = id, Title = title, Json = json };
                 await ConversationsClient.CreateAsync(conv);
                 selectedConversationId = id;
             }
             else
             {
-                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json, UpdatedAt = DateTime.UtcNow };
+                var conv = new ConversationUpdateDto { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json };
                 await ConversationsClient.SaveAsync(conv);
             }
         }

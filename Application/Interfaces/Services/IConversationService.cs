@@ -7,9 +7,9 @@ namespace MediaOrganizerApp.Application.Interfaces.Services
 {
     public interface IConversationService
     {
-        Task<IEnumerable<Conversation>> GetAllAsync(CancellationToken ct = default);
-        Task<Conversation?> GetByIdAsync(string id, CancellationToken ct = default);
-        Task<Conversation> UpsertAsync(Conversation conv, CancellationToken ct = default);
-        Task DeleteAsync(string id, CancellationToken ct = default);
+        Task<IEnumerable<Conversation>> GetAllAsync(string? userId = null, bool isAdmin = false, CancellationToken ct = default);
+        Task<Conversation?> GetByIdAsync(string id, string? userId = null, bool isAdmin = false, CancellationToken ct = default);
+        Task<Conversation> UpsertAsync(Conversation conv, string? userId = null, bool isAdmin = false, CancellationToken ct = default);
+        Task DeleteAsync(string id, string? userId = null, bool isAdmin = false, CancellationToken ct = default);
     }
 }

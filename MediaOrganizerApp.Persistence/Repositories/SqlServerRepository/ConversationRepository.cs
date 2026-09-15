@@ -19,21 +19,34 @@ namespace MediaOrganizerApp.Persistence.Repositories.SqlServerRepository
             _context = context;
         }
 
-        public async Task<IEnumerable<Conversation>> GetAllAsync(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Conversation>> GetAllAsync(
+            string? userId = null,
+            bool isAdmin = false,
+            CancellationToken cancellationToken = default)
         {
             using (var connection = _context.CreateConnection())
             {
                 var sproc = "usp_Conversation_GetAll";
-                return await connection.QueryAsync<Conversation>(sproc, commandType: CommandType.StoredProcedure);
+                return await connection.QueryAsync<Conversation>(
+                    sproc,
+                    new { UserID = userId, IsAdmin = isAdmin },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 
-        public async Task<Conversation?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+        public async Task<Conversation?> GetByIdAsync(
+            string id,
+            string? userId = null,
+            bool isAdmin = false,
+            CancellationToken cancellationToken = default)
         {
             using (var connection = _context.CreateConnection())
             {
                 var sproc = "usp_Conversation_GetById";
-                return await connection.QueryFirstOrDefaultAsync<Conversation>(sproc, new { Id = id }, commandType: CommandType.StoredProcedure);
+                return await connection.QueryFirstOrDefaultAsync<Conversation>(
+                    sproc,
+                    new { Id = id, UserID = userId, IsAdmin = isAdmin },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 
@@ -42,25 +55,42 @@ namespace MediaOrganizerApp.Persistence.Repositories.SqlServerRepository
             using (var connection = _context.CreateConnection())
             {
                 var sproc = "usp_Conversation_Insert";
-                await connection.ExecuteAsync(sproc, new { conv.Id, conv.Title, conv.Json, conv.CreatedAt, conv.UpdatedAt }, commandType: CommandType.StoredProcedure);
+                await connection.ExecuteAsync(
+                    sproc,
+                    new { conv.Id, conv.Title, conv.Json, conv.CreatedAt, conv.UpdatedAt, UserID = conv.UserId },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 
-        public async Task UpdateAsync(Conversation conv, CancellationToken cancellationToken = default)
+        public async Task UpdateAsync(
+            Conversation conv,
+            string? userId = null,
+            bool isAdmin = false,
+            CancellationToken cancellationToken = default)
         {
             using (var connection = _context.CreateConnection())
             {
                 var sproc = "usp_Conversation_Update";
-                await connection.ExecuteAsync(sproc, new { conv.Id, conv.Title, conv.Json, conv.UpdatedAt }, commandType: CommandType.StoredProcedure);
+                await connection.ExecuteAsync(
+                    sproc,
+                    new { conv.Id, conv.Title, conv.Json, conv.UpdatedAt, UserID = userId, IsAdmin = isAdmin },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 
-        public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+        public async Task DeleteAsync(
+            string id,
+            string? userId = null,
+            bool isAdmin = false,
+            CancellationToken cancellationToken = default)
         {
             using (var connection = _context.CreateConnection())
             {
                 var sproc = "usp_Conversation_Delete";
-                await connection.ExecuteAsync(sproc, new { Id = id }, commandType: CommandType.StoredProcedure);
+                await connection.ExecuteAsync(
+                    sproc,
+                    new { Id = id, UserID = userId, IsAdmin = isAdmin },
+                    commandType: CommandType.StoredProcedure);
             }
         }
     }

@@ -1,4 +1,6 @@
+using MediaOrganizerApp.Application.Utilities;
 using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
 using MediaOrganizerApp.Application.Enums;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
@@ -10,6 +12,7 @@ using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.SplitButtons;
 using System.Globalization;
+using Web.Blazor.Services.CloudChat;
 
 namespace Web.Blazor.Pages.Admin
 {
@@ -26,8 +29,49 @@ namespace Web.Blazor.Pages.Admin
 
         [Inject] IJSRuntime JSRuntime { get; set; }
 
+        [Inject] public CloudChatClientService? CloudChatClient { get; set; }
+        [Inject] public CurrentUserIdentity? CurrentUser { get; set; }
+
         private IEnumerable<AIModelVM>? AiModels { get; set; } = [];
         private ApplicationSettingsDto? settings;
+        private List<OpenRouterCatalogModel>? OpenRouterModels;
+        private string CloudChatDefaultModel { get; set; } = "openrouter/free";
+        private string? CloudChatApiKey;
+        private bool CloudChatEnableReasoning;
+        private bool CloudChatAllowPaidModels;
+        private string CloudChatApiKeyStatus = "NotConfigured";
+        private string CloudChatModelFilter = string.Empty;
+        private bool CloudChatIsAdmin;
+        private CloudChatUsageDto? CloudChatUsage;
+        private int? CloudChatFreeDailyCap;
+        private bool CloudChatAuthorBooksUseCloud = true;
+
+        private static bool EhModeloPago(string? modelId)
+            => !string.IsNullOrWhiteSpace(modelId)
+               && !string.Equals(modelId, "openrouter/free", StringComparison.OrdinalIgnoreCase)
+               && !modelId.EndsWith(":free", StringComparison.OrdinalIgnoreCase);
+
+        private static bool EhModeloRecomendado(string? modelId)
+            => RecommendedExtractionModels.IsRecommended(modelId);
+
+        private bool ModeloSelecionadoEhPago => EhModeloPago(CloudChatDefaultModel);
+
+        private bool ChaveExistente
+            => !string.IsNullOrWhiteSpace(CloudChatApiKey) || CloudChatApiKeyStatus == "Configured";
+
+        private bool ChaveSemSuportePago
+            => CloudChatUsage is not null
+               && CloudChatUsage.ChaveConfigurada
+               && !CloudChatUsage.PodeUsarModelosPagos;
+
+        private bool AvisoModeloPagoSemChave
+            => ModeloSelecionadoEhPago && (!ChaveExistente || ChaveSemSuportePago);
+
+        private string AvisoModeloPagoMensagem
+            => !ChaveExistente
+                ? L["CloudChatPaidNoKeyWarning"]
+                : L["CloudChatPaidUnsupportedWarning"];
+
         private SfButton? ToggleBtnObj;
         private string IconCss = "fa fa-play";
         private string Content = "Ssl";
@@ -87,6 +131,36 @@ namespace Web.Blazor.Pages.Admin
                 settings = new();
             }
 
+            try
+            {
+                var (_, isAdmin) = CurrentUser is null ? ((string?)null, false) : await CurrentUser.GetAsync();
+                CloudChatIsAdmin = isAdmin;
+
+                if (isAdmin && CloudChatClient is not null)
+                {
+                    OpenRouterModels = await CloudChatClient.GetModelsAsync();
+                    var ccSettings = await CloudChatClient.GetSettingsAsync();
+                    if (ccSettings is not null)
+                    {
+                        CloudChatDefaultModel = string.IsNullOrWhiteSpace(ccSettings.DefaultModel)
+                            ? "openrouter/free"
+                            : ccSettings.DefaultModel;
+                        CloudChatEnableReasoning = ccSettings.EnableReasoning;
+                        CloudChatAllowPaidModels = ccSettings.AllowPaidModels;
+                        CloudChatApiKeyStatus = ccSettings.ApiKeyConfigured ? "Configured" : "NotConfigured";
+                        CloudChatFreeDailyCap = ccSettings.FreeDailyCap;
+                        CloudChatAuthorBooksUseCloud = ccSettings.AuthorBooksUseCloud;
+                        CloudChatUsage = await CloudChatClient.GetUsageAsync();
+                    }
+
+                    MontarListaModelosCloud();
+                }
+            }
+            catch
+            {
+                // ignora: definicoes cloud chat indisponiveis (ex.: WebApi sem cloud-chat)
+            }
+
             selectedCulture = settings.Language;
             if (!string.IsNullOrEmpty(selectedCulture))
             {
@@ -129,15 +203,15 @@ namespace Web.Blazor.Pages.Admin
         {
             dialogTitle = option switch
             {
-                FileManagerOptions.PdfDownloads => "Escolha pasta para os downloads de pdf's",
-                FileManagerOptions.MediaDownloads => "Escolha pasta para os downloads de ficheiros Média",
-                FileManagerOptions.BackupUploads => "Escolha pasta para o backup de ficheiros Média",
-                FileManagerOptions.BackupBD => "Escolha pasta para o backup da base de dados",
-                FileManagerOptions.PublicationsFolder => "Escolha pasta origem de Publicações",
-                FileManagerOptions.ImagesFolder => "Escolha pasta origem das Imagens da aplicação",
-                FileManagerOptions.ReportsFolder => "Escolha pasta origem dos Reports",
-                FileManagerOptions.AuthorImagesFolder => "Escolha pasta origem das imagens dos Autores",
-                FileManagerOptions.BookImagesFolder => "Escolha pasta origem das imagens das capas dos livros",
+                FileManagerOptions.PdfDownloads => L["DlgPdfDownloads"],
+                FileManagerOptions.MediaDownloads => L["DlgMediaDownloads"],
+                FileManagerOptions.BackupUploads => L["DlgBackupUploads"],
+                FileManagerOptions.BackupBD => L["DlgBackupBD"],
+                FileManagerOptions.PublicationsFolder => L["DlgPublicationsFolder"],
+                FileManagerOptions.ImagesFolder => L["DlgImagesFolder"],
+                FileManagerOptions.ReportsFolder => L["DlgReportsFolder"],
+                FileManagerOptions.AuthorImagesFolder => L["DlgAuthorImagesFolder"],
+                FileManagerOptions.BookImagesFolder => L["DlgBookImagesFolder"],
                 _ => string.Empty
             };
         }
@@ -195,17 +269,101 @@ namespace Web.Blazor.Pages.Admin
             }
         }
 
+        private void MontarListaModelosCloud()
+        {
+            var saved = CloudChatDefaultModel;
+            var lista = new List<OpenRouterCatalogModel>
+            {
+                new OpenRouterCatalogModel { Id = "openrouter/free", Nome = L["CloudChatAutomaticModel"], EhRouter = true }
+            };
+
+            if (OpenRouterModels is not null)
+            {
+                lista.AddRange(OpenRouterModels.Select(m =>
+                    new OpenRouterCatalogModel
+                    {
+                        Id = m.Id,
+                        Nome = string.IsNullOrWhiteSpace(m.Nome) ? m.Id : m.Nome,
+                        ContextLength = m.ContextLength,
+                        EhRouter = m.EhRouter,
+                        EhGratuito = m.EhGratuito,
+                        Descricao = m.Descricao,
+                        ReleaseDate = m.ReleaseDate,
+                        IntelligenceIndex = m.IntelligenceIndex,
+                        CodingIndex = m.CodingIndex,
+                        AgenticIndex = m.AgenticIndex
+                    }));
+            }
+
+            if (!string.IsNullOrWhiteSpace(saved) &&
+                !string.Equals(saved, "openrouter/free", StringComparison.OrdinalIgnoreCase) &&
+                !lista.Any(m => string.Equals(m.Id, saved, StringComparison.OrdinalIgnoreCase)))
+            {
+                lista.Add(new OpenRouterCatalogModel { Id = saved, Nome = saved });
+            }
+
+            OpenRouterModels = lista;
+        }
+
+        private IEnumerable<OpenRouterCatalogModel> OpenRouterModelsExibidos
+        {
+            get
+            {
+                if (OpenRouterModels is null) return Enumerable.Empty<OpenRouterCatalogModel>();
+
+                var filtro = CloudChatModelFilter?.Trim();
+                if (string.IsNullOrEmpty(filtro)) return OpenRouterModels;
+
+                return OpenRouterModels.Where(m =>
+                    m.Id.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    m.Nome.Contains(filtro, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        private void SelectCloudChatModel(string id)
+        {
+            CloudChatDefaultModel = id;
+        }
+
+        private static string FormatarContextoCloud(int ctx) =>
+            ctx >= 100_000 ? $"~{ctx / 1_000}K"
+            : ctx >= 1_000 ? $"~{Math.Round(ctx / 1_000d, 1):0.#}K"
+            : ctx.ToString(CultureInfo.InvariantCulture);
+
         private async Task UpdateSettings()
         {
-            ToastTitle = "Update settings";
+            ToastTitle = L["UpdateSettings"];
 
             try
             {
                 await AppSettingsService.UpdateSettingsAsync(settings!);
                 await AppSettingsService.UpdateLanguageAsync(selectedCulture);
-                ToastCss = "e-toast-success";
-                ToastMessage = $"{L["SuccessUpdate"]}";
-                ToastIcon = "fas fa-check";
+
+                if (CloudChatIsAdmin && CloudChatClient is not null)
+                {
+                    await CloudChatClient.UpdateSettingsAsync(new CloudChatSettingsUpdateDto
+                    {
+                        ApiKey = string.IsNullOrWhiteSpace(CloudChatApiKey) ? null : CloudChatApiKey.Trim(),
+                        DefaultModel = CloudChatDefaultModel,
+                        EnableReasoning = CloudChatEnableReasoning,
+                        AllowPaidModels = CloudChatAllowPaidModels,
+                        FreeDailyCap = CloudChatFreeDailyCap,
+                        AuthorBooksUseCloud = CloudChatAuthorBooksUseCloud
+                    });
+                }
+
+                if (AvisoModeloPagoSemChave)
+                {
+                    ToastCss = "e-toast-warning";
+                    ToastMessage = $"{AvisoModeloPagoMensagem}";
+                    ToastIcon = "fas fa-exclamation-triangle";
+                }
+                else
+                {
+                    ToastCss = "e-toast-success";
+                    ToastMessage = $"{L["SuccessUpdate"]}";
+                    ToastIcon = "fas fa-check";
+                }
                 await ShowToastMessage();
             }
             catch (Exception ex)

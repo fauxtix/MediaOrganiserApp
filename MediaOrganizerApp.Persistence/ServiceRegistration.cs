@@ -63,6 +63,10 @@ namespace MediaOrganizerApp.Persistence
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IConversationService, ConversationService>();
 
+            // Cloud Chat (OpenRouter) settings + auto-recorded benchmark
+            services.AddScoped<IAIChatSettingsRepository, AIChatSettingsRepository>();
+            services.AddScoped<IAIBenchmarkRepository, AIBenchmarkRepository>();
+
             //services.AddSingleton<ILastFmService, LastFmService>();
             services.AddMemoryCache();
 

@@ -1,0 +1,287 @@
+using MediaOrganizerApp.Application.Configurations;
+using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.Domain.Entities;
+using MediaOrganizerApp.WebApi.Services;
+using MediaOrganizerApp.WebApi.Services.CloudChat;
+using Microsoft.Extensions.Logging;
+using Moq;
+using System.Net;
+using System.Text;
+
+namespace MediaOrganizerApp.Tests;
+
+public sealed class CloudChatHelperTests
+{
+    [Fact]
+    public void ParseOpenRouterChunk_ExtractsContentAndModel()
+    {
+        var chunk = ChatChunkParser.ParseOpenRouterChunk(
+            """{"choices":[{"delta":{"content":"Olá"}}],"model":"nvidia/foo"}""");
+
+        Assert.NotNull(chunk);
+        Assert.Equal("Olá", chunk!.Text);
+        Assert.Equal("nvidia/foo", chunk.Model);
+        Assert.Null(chunk.Reasoning);
+    }
+
+    [Fact]
+    public void ParseOpenRouterChunk_ExtractsReasoning()
+    {
+        var chunk = ChatChunkParser.ParseOpenRouterChunk(
+            """{"choices":[{"delta":{"reasoning_content":"pensar"}}]}""");
+
+        Assert.NotNull(chunk);
+        Assert.Equal("pensar", chunk!.Reasoning);
+        Assert.Equal(string.Empty, chunk.Text);
+    }
+
+    [Fact]
+    public void ParseOpenRouterChunk_ExtractsUsage()
+    {
+        var chunk = ChatChunkParser.ParseOpenRouterChunk(
+            """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}""");
+
+        Assert.NotNull(chunk);
+        Assert.Equal(10, chunk!.PromptTokens);
+        Assert.Equal(3, chunk.CompletionTokens);
+        Assert.Equal(13, chunk.TotalTokens);
+    }
+
+    [Fact]
+    public void ParseOpenRouterChunk_ReturnsNull_ForJunkLine()
+    {
+        Assert.Null(ChatChunkParser.ParseOpenRouterChunk("not json"));
+        Assert.Null(ChatChunkParser.ParseOpenRouterChunk("{}"));
+    }
+
+    [Fact]
+    public void EstimateTokens_RoughlyThreeCharsPerToken()
+    {
+        Assert.Equal(4, CloudResponseMetrics.EstimateTokens("abcdefghijkl"));
+        Assert.Equal(1, CloudResponseMetrics.EstimateTokens("a"));
+        Assert.Equal(0, CloudResponseMetrics.EstimateTokens(null));
+    }
+
+    [Fact]
+    public void SmartFallbackDescription_TruncatesLongFirstLine()
+    {
+        var description = CloudResponseMetrics.SmartFallbackDescription(new string('x', 200));
+
+        Assert.StartsWith("xxx", description);
+        Assert.EndsWith("...", description);
+        Assert.True(description.Length <= 84);
+    }
+}
+
+public sealed class OpenRouterChatServiceTests
+{
+    private const string ApiKey = "sk-test-123";
+
+    [Fact]
+    public async Task StreamChatAsync_StreamsTextChunks()
+    {
+        var responses = SseQueue(
+            """{"choices":[{"delta":{"content":"Olá"}}],"model":"nvidia/foo"}""",
+            """{"choices":[{"delta":{"content":" mundo"}}]}""",
+            """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}""");
+
+        var service = CreateService(responses, out _);
+
+        var chunks = new List<CloudChatChunk>();
+        await foreach (var chunk in service.StreamChatAsync(CreatePayload("nvidia/foo"), "user-1", "pt"))
+            chunks.Add(chunk);
+
+        Assert.Equal("Olá mundo", string.Concat(chunks.Select(c => c.Text)));
+        Assert.True(chunks.Any(c => c.PromptTokens == 10 && c.CompletionTokens == 3));
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_Throws_WhenApiKeyMissing()
+    {
+        var service = CreateService(SseQueue("ignored"), out _, apiKey: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await foreach (var _ in service.StreamChatAsync(CreatePayload("nvidia/foo"), null, "pt")) { }
+        });
+
+        Assert.Contains("OpenRouter", exception.Message);
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_FallsBackToOpenRouterFree_On404()
+    {
+        var responses = new Queue<HttpResponseMessage>(
+            new[]
+            {
+                new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent("{\"error\":\"not found\"}", Encoding.UTF8, "application/json")
+                },
+                SseResponse(
+                    """{"choices":[{"delta":{"content":"ok"}}],"model":"openrouter/free"}""")
+            });
+
+        var service = CreateService(responses, out var requestBodies);
+        var payload = CreatePayload("google/gemma-4-31b-it:free");
+
+        await foreach (var _ in service.StreamChatAsync(payload, null, "pt")) { }
+
+        Assert.Equal(2, requestBodies.Count);
+        Assert.Contains("\"google/gemma-4-31b-it:free\"", requestBodies[0]);
+        Assert.Contains("\"openrouter/free\"", requestBodies[1]);
+
+        foreach (var response in responses) response.Dispose();
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_RetriesWithoutReasoning_WhenModelRejectsIt()
+    {
+        var responses = new Queue<HttpResponseMessage>(
+            new[]
+            {
+                new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("{\"error\":\"reasoning not supported\"}", Encoding.UTF8, "application/json")
+                },
+                SseResponse("""{"choices":[{"delta":{"content":"ok"}}],"model":"nvidia/foo"}""")
+            });
+
+        var service = CreateService(responses, out var requestBodies);
+        var payload = CreatePayload("nvidia/foo");
+        payload.EnableReasoning = true;
+
+        await foreach (var _ in service.StreamChatAsync(payload, null, "pt")) { }
+
+        Assert.Equal(2, requestBodies.Count);
+        Assert.Contains("\"reasoning\"", requestBodies[0]);
+        Assert.DoesNotContain("\"reasoning\"", requestBodies[1]);
+
+        foreach (var response in responses) response.Dispose();
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_RecordsResponse_WithServedModelDifference()
+    {
+        var responses = SseQueue(
+            """{"choices":[{"delta":{"content":"final"}}],"model":"openrouter/free"}""",
+            """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":5,"completion_tokens":5,"total_tokens":10}}""");
+
+        var benchmark = new Mock<IAIBenchmarkRepository>();
+        benchmark
+            .Setup(x => x.GetOrCreatePromptIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(7);
+        benchmark
+            .Setup(x => x.CreateResponseAsync(It.IsAny<AIResponse>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService(responses, out _, benchmarkMock: benchmark);
+
+        await foreach (var _ in service.StreamChatAsync(CreatePayload("nvidia/foo"), "user-7", "en")) { }
+
+        benchmark.Verify(
+            x => x.GetOrCreatePromptIdAsync(
+                "Olá", "user-7", It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        benchmark.Verify(
+            x => x.CreateResponseAsync(
+                It.Is<AIResponse>(r => r.NomeModelo == "nvidia/foo"
+                    && r.ModeloResolvido == "openrouter/free"
+                    && r.UserId == "user-7"
+                    && r.TamanhoTokens == 5
+                    && r.TextoResposta == "final"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        foreach (var response in responses) response.Dispose();
+    }
+
+    private static CloudChatPayload CreatePayload(string model) => new()
+    {
+        Model = model,
+        Temperature = 0.7,
+        MaxTokens = 2048,
+        Messages = new List<CloudChatMessage>
+        {
+            new() { Role = "user", Content = "Olá" }
+        }
+    };
+
+    private static Queue<HttpResponseMessage> SseQueue(params string[] rawLines)
+    {
+        var sse = string.Join("\n", rawLines.Select(l => "data: " + l)) + "\ndata: [DONE]\n";
+        return new Queue<HttpResponseMessage>(new[] { SseResponse(sse) });
+    }
+
+    private static HttpResponseMessage SseResponse(string sse)
+    {
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(sse));
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(stream)
+            {
+                Headers = { { "Content-Type", "text/event-stream" } }
+            }
+        };
+    }
+
+    private static OpenRouterChatService CreateService(
+        Queue<HttpResponseMessage> responses,
+        out List<string> requestBodies,
+        string? apiKey = ApiKey,
+        Mock<IAIBenchmarkRepository>? benchmarkMock = null)
+    {
+        requestBodies = new List<string>();
+        var bodies = requestBodies;
+
+        var settings = new Mock<IAIChatSettingsRepository>();
+        settings
+            .Setup(x => x.GetValueAsync(CloudChatSettingsKeys.OpenRouterApiKey, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(apiKey);
+
+        var benchmark = benchmarkMock ?? new Mock<IAIBenchmarkRepository>();
+        if (benchmarkMock is null)
+        {
+            benchmark
+                .Setup(x => x.GetOrCreatePromptIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+            benchmark
+                .Setup(x => x.CreateResponseAsync(It.IsAny<AIResponse>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+        }
+
+        var httpClient = new HttpClient(new StubHttpMessageHandler(request =>
+        {
+            if (responses.Count == 0)
+                throw new InvalidOperationException("No canned responses left.");
+
+            if (request.Content is not null)
+                bodies.Add(request.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+
+            return responses.Dequeue();
+        }));
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        var internet = new Mock<IInternetAvailabilityService>();
+        internet.Setup(x => x.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        return new OpenRouterChatService(
+            factory.Object,
+            settings.Object,
+            benchmark.Object,
+            Mock.Of<ICloudChatUsageService>(),
+            internet.Object,
+            Mock.Of<ILogger<OpenRouterChatService>>());
+    }
+
+    private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(handler(request));
+    }
+}

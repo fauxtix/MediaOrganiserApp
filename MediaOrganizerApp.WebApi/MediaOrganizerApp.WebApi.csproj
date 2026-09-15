@@ -9,6 +9,7 @@
   <ItemGroup>
     <None Remove="Prompts\author-books.prompt.txt" />
     <None Remove="Prompts\author-profile.prompt.txt" />
+    <None Remove="Prompts\author-works.prompt.txt" />
     <None Remove="Prompts\book-summary-full - Copy.prompt.txt" />
     <None Remove="Prompts\book-summary-full.prompt.txt" />
     <None Remove="Prompts\book-summary-only.prompt.txt" />
@@ -112,6 +113,9 @@
 
   <ItemGroup>
     <Content Include="Prompts\author-profile.prompt.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Prompts\author-works.prompt.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Prompts\book-summary-full.prompt.txt">

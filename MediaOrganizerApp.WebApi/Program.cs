@@ -14,6 +14,8 @@ using MediaOrganizerApp.Persistence.Services.Youtube;
 using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
+using MediaOrganizerApp.WebApi.Services.CloudChat;
+using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -130,6 +132,34 @@ public class Program
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OllamaSharedClient");
             return ActivatorUtilities.CreateInstance<OllamaModelsService>(sp, httpClient);
         });
+
+        // ----------------------------------------------------------------
+        // CLOUD CHAT (OPENROUTER)
+        // ----------------------------------------------------------------
+        builder.Services.AddHttpClient("OpenRouterChat", client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(10);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            EnableMultipleHttp2Connections = true,
+            KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(15)
+        });
+
+        builder.Services.AddHttpClient("OpenRouterCatalog", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        builder.Services.AddScoped<OpenRouterChatService>();
+        builder.Services.AddScoped<OpenRouterCatalogService>();
+        builder.Services.AddScoped<CloudAuthorBooksService>();
+        builder.Services.AddScoped<CloudMediaService>();
+        builder.Services.AddScoped<CloudTranslateService>();
+        builder.Services.AddScoped<ICloudChatUsageService, CloudChatUsageService>();
+        builder.Services.AddSingleton<IInternetAvailabilityService, InternetAvailability>();
 
         // ----------------------------------------------------------------
 

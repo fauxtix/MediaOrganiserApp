@@ -1,0 +1,625 @@
+@page "/ai/test-chat"
+
+@using Markdig
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Spinner
+@using Syncfusion.Blazor.Notifications
+@using Web.Blazor.Components.Chat
+@using Web.Blazor.Services.CloudChat
+
+<div class="chat-container">
+    <div class="chat-card">
+
+        <div class="chat-header-bar">
+            <div class="chat-persona">
+                <div class="chat-avatar @(isProcessing ? "busy" : "available")">
+                    <span class="chat-avatar-initials">AI</span>
+                    <span class="chat-presence"></span>
+                </div>
+                <div class="chat-persona-name">@Localizer["TestChatAssistantName"]</div>
+            </div>
+
+            <div class="chat-model-pill" title="@_selectedModel">
+                @(string.Equals(_selectedModel, "openrouter/free", StringComparison.OrdinalIgnoreCase)
+                    ? Localizer["CloudChatAutomaticModel"]
+                    : _selectedModel)
+            </div>
+
+            <div class="chat-elapsed">
+                @(_elapsed > 0 ? $"{_elapsed:F1}s" : "")
+            </div>
+        </div>
+
+        <div class="chat-actions">
+            <SfButton CssClass="chat-action-btn" OnClick="NewChat" Disabled="@isProcessing">
+                <span class="btn-icon">+</span>
+                <span class="btn-text">@Localizer["TestChatNewChat"]</span>
+            </SfButton>
+            <SfButton CssClass="chat-action-btn" OnClick="OpenHistory" Disabled="@isProcessing">
+                <span class="btn-icon">&#9776;</span>
+                <span class="btn-text">@Localizer["TestChatHistory"]</span>
+            </SfButton>
+        </div>
+
+        @if (_showContextBar && _contextLength > 0)
+        {
+            <div class="context-progress">
+                <div class="context-progress-track">
+                    <div class="context-progress-fill" style="width:@GetContextPercent(); background-color:@GetContextColor();"></div>
+                </div>
+                <div class="context-progress-labels">
+                    <span>@string.Format(Localizer["TestChatTokensUsed"], _contextUsedTokens.ToString("N0"), _contextLength.ToString("N0"))</span>
+                    <span>@string.Format(Localizer["TestChatTokensRemaining"], ContextRemaining.ToString("N0"))</span>
+                </div>
+            </div>
+        }
+
+        <div class="messages" @ref="messagesDiv" @onscroll="OnScroll">
+            @foreach (var msg in messages)
+            {
+                var isUser = msg.Role == "user";
+                <div class="msg-row @(isUser ? "user" : "assistant")">
+                    <div class="msg-meta">
+                        @if (isUser)
+                        {
+                            <span class="msg-author">@Localizer["TestChatUserName"]</span>
+                            @if (msg.Temperature > 0)
+                            {
+                                <span class="msg-temp-chip">@string.Format(Localizer["TestChatTemperature"], msg.Temperature)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="msg-author">@Localizer["TestChatAssistantName"]</span>
+                            <span class="msg-timestamp">- @msg.Timestamp.ToString("HH:mm")</span>
+                            @if (!string.IsNullOrEmpty(msg.ElapsedTime))
+                            {
+                                <span class="msg-elapsed-chip">- @msg.ElapsedTime</span>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(msg.RealModelName))
+                            {
+                                <span class="msg-model-chip">OpenRouter - @msg.RealModelName</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(msg.LanguageWarning))
+                            {
+                                <span class="msg-language-warning" title="@msg.LanguageWarning">! @msg.LanguageWarning</span>
+                            }
+                        }
+                    </div>
+
+                    <div class="chat-content">
+                        @if (msg.IsError)
+                        {
+                            <div class="msg-error-label">⚠️</div>
+                        }
+                        else if (msg.Role == "assistant" && msg.Content == "...")
+                        {
+                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                        }
+                        else
+                        {
+                            @((MarkupString)FormatMessage(msg.Content, msg == currentAssistantMessage))
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="input-area">
+            <textarea class="chat-input"
+                      @bind="userInput"
+                      @ref="chatInputRef"
+                      @onkeydown="HandleKeyDown"
+                      placeholder="@Localizer["TypeMessage"]"
+                      disabled="@isConnecting"></textarea>
+
+            <div class="send-controls">
+                <button class="chat-send-button @(isProcessing ? "cancel" : "")"
+                        @onclick="@(isProcessing ? CancelSend : Send)"
+                        disabled="@isConnecting">
+                    @if (isProcessing)
+                    {
+                        <span class="stop-icon"></span>
+                    }
+                    else
+                    {
+                        <span class="fa fa-paper-plane"></span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <HistoryPanel @ref="historyPanel" OnLoadConversation="LoadConversationAsync" />
+</div>
+
+<SfToast @ref="toastObj"
+         Title="@ToastTitle"
+         Content="@ToastContent"
+         CssClass="@ToastCssClass"
+         Timeout="@ToastTimeOut"
+         ShowCloseButton="true">
+    <ToastPosition X="right" Y="bottom" />
+</SfToast>
+
+<style>
+    .chat-container {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        min-width: 0;
+    }
+
+    .chat-card {
+        width: 100%;
+        max-width: 1100px;
+        height: calc(100dvh - 210px);
+        min-height: 420px;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow);
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .chat-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--app-border);
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+
+    .chat-persona {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .chat-avatar {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--app-primary);
+        color: var(--app-on-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .chat-avatar-initials {
+        line-height: 1;
+    }
+
+    .chat-presence {
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid var(--app-surface);
+        box-sizing: border-box;
+    }
+
+    .chat-presence {
+        background: var(--app-success-text);
+    }
+
+    .chat-avatar.busy .chat-presence {
+        background: var(--app-warning-text);
+        animation: presencePulse 1.6s infinite ease-out;
+    }
+
+    @@keyframes presencePulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
+
+    .chat-persona-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--app-text-primary);
+        white-space: nowrap;
+    }
+
+    .chat-model-pill {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
+        color: var(--app-text-secondary);
+        font-size: 0.8rem;
+        font-family: Consolas, "Courier New", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-elapsed {
+        flex-shrink: 0;
+        min-width: 56px;
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--app-text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .chat-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .chat-action-btn.e-btn {
+        border: 1px solid var(--app-border);
+        background: var(--app-surface-alt);
+        color: var(--app-text-primary);
+        border-radius: 8px;
+        padding: 6px 14px;
+        box-shadow: none;
+        font-size: 0.9rem;
+    }
+
+    .chat-action-btn.e-btn:hover {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-action-btn .btn-icon {
+        margin-right: 6px;
+        font-weight: 700;
+    }
+
+    .context-progress {
+        margin-bottom: 12px;
+    }
+
+    .context-progress-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--app-surface-alt);
+        overflow: hidden;
+    }
+
+    .context-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .2s ease;
+    }
+
+    .context-progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .messages {
+        flex-grow: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 8px;
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .msg-row {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .msg-row.user {
+        align-items: flex-end;
+    }
+
+    .msg-meta {
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .msg-author {
+        font-weight: 600;
+    }
+
+    .msg-timestamp {
+        color: var(--app-text-secondary);
+    }
+
+    .msg-temp-chip {
+        padding: 1px 6px;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+    }
+
+    .msg-elapsed-chip {
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .msg-model-chip {
+        padding: 1px 6px;
+        background: var(--app-surface-alt);
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+    }
+
+    .msg-language-warning {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--app-warning-bg);
+        border: 1px solid var(--app-warning-border);
+        color: var(--app-warning-text);
+    }
+
+    .msg-error-label {
+        font-size: 1.2rem;
+    }
+
+    .chat-content {
+        max-width: 95%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        background: var(--app-surface-alt);
+        color: var(--app-text-primary);
+        word-break: break-word;
+    }
+
+    .msg-row.user .chat-content {
+        background: var(--app-primary);
+        color: var(--app-on-primary);
+    }
+
+    .chat-content h1,
+    .chat-content h2,
+    .chat-content h3,
+    .chat-content h4 {
+        font-size: 0.95rem !important;
+        font-weight: bold !important;
+        margin-top: 0px !important;
+        margin-bottom: 2px !important;
+        display: block !important;
+        color: inherit !important;
+    }
+
+    .chat-content p,
+    .chat-content div {
+        font-size: 0.9rem;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .chat-content ul, .chat-content ol {
+        padding-left: 20px;
+        margin: 4px 0;
+    }
+
+    .chat-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 0.85rem;
+    }
+
+    .chat-content th, .chat-content td {
+        border: 1px solid var(--app-border);
+        padding: 6px 10px;
+        text-align: left;
+    }
+
+    .chat-content th {
+        background-color: var(--app-surface-hover);
+        font-weight: bold;
+    }
+
+    .chat-content pre {
+        background: var(--app-surface-hover);
+        padding: 8px;
+        border-radius: 6px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .chat-content code {
+        background: var(--app-surface-hover);
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .msg-row.user .chat-content code {
+        background: rgba(255, 255, 255, 0.2);
+        color: inherit;
+    }
+
+    .cursor {
+        animation: blink 1s step-end infinite;
+    }
+
+    @@keyframes blink {
+        50% {
+            opacity: 0;
+        }
+    }
+
+    .typing-dots {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        color: var(--app-text-secondary);
+    }
+
+    .typing-dots span {
+        width: 6px;
+        height: 6px;
+        background-color: currentColor;
+        border-radius: 50%;
+        display: inline-block;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @@keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0);
+        }
+
+        40% {
+            transform: scale(1);
+        }
+    }
+
+    .input-area {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
+        color: var(--app-text-primary);
+        min-height: 40px;
+        max-height: 220px;
+        resize: vertical;
+        overflow: auto;
+        box-sizing: border-box;
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: var(--app-primary);
+    }
+
+    .send-controls {
+        flex-shrink: 0;
+    }
+
+    .chat-send-button {
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: none;
+        background: var(--app-primary);
+        color: var(--app-on-primary);
+        cursor: pointer;
+        font-size: 1rem;
+        transition: transform .15s ease, background-color .2s ease;
+    }
+
+    .chat-send-button:hover:not(:disabled) {
+        background: var(--app-primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .chat-send-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .chat-send-button.cancel {
+        background: var(--app-danger);
+        animation: cancelPulse 1.6s infinite ease-out;
+    }
+
+    .stop-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        background: var(--app-on-danger);
+    }
+
+    @@keyframes cancelPulse {
+        0% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 0 rgba(220, 38, 38, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 10px rgba(220, 38, 38, 0);
+        }
+
+        100% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 0 rgba(220, 38, 38, 0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .chat-container {
+            padding: 8px;
+        }
+
+        .chat-card {
+            height: calc(100dvh - 150px);
+        }
+
+        .chat-header-bar {
+            flex-wrap: wrap;
+            row-gap: 8px;
+        }
+
+        .chat-model-pill {
+            order: 3;
+            flex-basis: 100%;
+            text-align: center;
+        }
+    }
+</style>

@@ -1,12 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using AutoMapper;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Domain.Entities;
 
 namespace MediaOrganizerApp.Application.Mappings
 {
-    class ApplicationProfiles
+    public class ApplicationProfiles : Profile
     {
+        public ApplicationProfiles()
+        {
+            CreateMap<Conversation, ConversationDto>();
+            CreateMap<ConversationCreateDto, Conversation>();
+            CreateMap<ConversationUpdateDto, Conversation>();
+        }
     }
 }

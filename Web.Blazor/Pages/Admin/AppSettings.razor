@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Web.Blazor.Components
 @using Syncfusion.Blazor.FileManager
+@using Web.Blazor.Services.CloudChat
 
 
 <PageTitle>@L["menu-admin-main"]</PageTitle>
@@ -17,7 +18,7 @@ else
 {
     <SfBreadcrumb>
         <BreadcrumbItems>
-            <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
+            <BreadcrumbItem Text="@L["Home"]" IconCss="e-icons e-home" Url="/" />
             <BreadcrumbItem Text="@L["TituloDefinicoes"]" Url="/admin/appsettings" />
         </BreadcrumbItems>
     </SfBreadcrumb>
@@ -37,7 +38,7 @@ else
                             <div class="row">
                                 <div class="col-md-6 col-sm-12">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
-                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>Downloads</h5></SfMessage>
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["Downloads"]</h5></SfMessage>
                                 </div>
                                 <div class="col-md-6 col-sm-12 ">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
@@ -46,7 +47,7 @@ else
                             </div>
                             <div class="row my-1">
                                 <div class="col-md-4 col-sm-12">
-                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="Pdf's'" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="@L["PdfDownloads"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                                 </div>
                                 <div class="col-md-2 col-sm-12 mt-4">
                                     <SfButton OnClick="(() => OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open p-1"></i></SfButton>
@@ -148,8 +149,8 @@ else
                                                       Placeholder="@L["TituloNotificationTime"]" " FloatLabelType="FloatLabelType.Always"></SfNumericTextBox>
                                     <div class="row mt-2">
                                         <div class="col-md-9 my-1">
-                                <div class="form-label mt-2" style="color:var(--app-text-primary);font-size:small">@L["TituloFicheirosOrganizados"]</div>
-                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["TituloRemoverImagemAposEdicao"]</div>
+                                            <div class="form-label mt-2" style="color:var(--app-text-primary);font-size:small">@L["TituloFicheirosOrganizados"]</div>
+                                            <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["TituloRemoverImagemAposEdicao"]</div>
                                         </div>
                                         <div class="col-md-3 my-1">
                                             <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.FicheirosOrganizados" OnLabel="On" OffLabel="Off"></SfSwitch></div>
@@ -273,6 +274,204 @@ else
                         </ContentTemplate>
                     </TabItem>
 
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="@L["CloudChatTab"]" IconCss="e-cloud"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["CloudChatApiKey"]</h5></SfMessage>
+                                    @if (CloudChatIsAdmin)
+                                    {
+                                        <SfTextBox class="form-control mt-1"
+                                                   @bind-Value="CloudChatApiKey"
+                                                   Placeholder="@L["CloudChatApiKey"]"
+                                                   HtmlAttributes="@(new Dictionary<string, object> { ["type"] = "password" })"
+                                                   ShowClearButton="true"></SfTextBox>
+                                        <div class="cloudchat-status @(CloudChatApiKeyStatus == "Configured" ? "cloudchat-ok" : "cloudchat-warn")">
+                                            @(CloudChatApiKeyStatus == "Configured" ? L["CloudChatApiKeyConfigured"] : L["CloudChatApiKeyMissing"])
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="cloudchat-status cloudchat-warn">@L["CloudChatAdminOnly"]</div>
+                                    }
+                                    <hr/>
+                                    <div class="cloudchat-model-list mt-4 mx-3">
+                                        <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
+                                        <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                        <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAllowPaidModels"]</div>
+                                        <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAllowPaidModels" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                        <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAuthorBooksUseCloud"]</div>
+                                        <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAuthorBooksUseCloud" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                        <div class="cloudchat-hint" style="color:var(--app-text-secondary); font-size:x-small">@L["CloudChatAuthorBooksUseCloudHint"]</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["CloudChatDefaultModel"]</h5></SfMessage>
+                                    @if (CloudChatIsAdmin)
+                                    {
+                                        <div class="cloudchat-active">
+                                            <span class="cloudchat-active-label">@L["CloudChatActiveModelLabel"]</span>
+                                            <span class="cloudchat-active-id @(ModeloSelecionadoEhPago ? "paid" : "")">@CloudChatDefaultModel</span>
+                                            @if (ModeloSelecionadoEhPago)
+                                            {
+                                                <span class="cloudchat-model-badge paid">@L["CloudChatModelPaidBadge"]</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="cloudchat-model-badge free">@L["CloudChatModelFreeBadge"]</span>
+                                            }
+                                            @if (EhModeloRecomendado(CloudChatDefaultModel))
+                                            {
+                                                <span class="cloudchat-model-badge recommended">@L["CloudChatModelRecommendedBadge"]</span>
+                                            }
+                                        </div>
+                                        @if (AvisoModeloPagoSemChave)
+                                        {
+                                            <div class="cloudchat-status cloudchat-warn">@AvisoModeloPagoMensagem</div>
+                                        }
+                                        <div class="cloudchat-search">
+                                            <input class="cloudchat-search-input"
+                                                   @bind="CloudChatModelFilter"
+                                                   @bind:event="oninput"
+                                                   onkeydown="if(event.key==='Enter')event.preventDefault();"
+                                                   placeholder="@L["CloudChatModelSearchPlaceholder"]" />
+                                        </div>
+                                        <div class="cloudchat-model-list">
+                                            @foreach (var modelo in OpenRouterModelsExibidos)
+                                            {
+                                                var selecionado = string.Equals(modelo.Id, CloudChatDefaultModel, StringComparison.OrdinalIgnoreCase);
+                                                <label class="cloudchat-model-row">
+                                                    <input type="radio"
+                                                           name="cloudchat-default-model"
+                                                           value="@modelo.Id"
+                                                           checked="@selecionado"
+                                                           @onchange="() => SelectCloudChatModel(modelo.Id)" />
+                                                    <span class="cloudchat-model-info">
+                                                        <span class="cloudchat-model-name">@modelo.Nome</span>
+                                                        <span class="cloudchat-model-id">@modelo.Id</span>
+                                                    </span>
+                                                    <span class="cloudchat-model-badges">
+                                                        @if (modelo.EhRouter)
+                                                        {
+                                                            <span class="cloudchat-model-badge router">@L["CloudChatModelRouterBadge"]</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            @if (modelo.ContextLength.HasValue)
+                                                            {
+                                                                <span class="cloudchat-model-badge">@($"~{FormatarContextoCloud(modelo.ContextLength.Value)}")</span>
+                                                            }
+                                                            @if (modelo.EhGratuito)
+                                                            {
+                                                                <span class="cloudchat-model-badge free">@L["CloudChatModelFreeBadge"]</span>
+                                                            }
+                                                            @if (EhModeloRecomendado(modelo.Id))
+                                                            {
+                                                                <span class="cloudchat-model-badge recommended">@L["CloudChatModelRecommendedBadge"]</span>
+                                                            }
+                                                        }
+                                                    </span>
+                                                </label>
+                                            }
+                                            @if (!OpenRouterModelsExibidos.Any())
+                                            {
+                                                <div class="cloudchat-model-empty">@L["CloudChatModelNoResults"]</div>
+                                            }
+                                        </div>
+                                        <div class="cloudchat-usage-grid mt-3">
+                                            <div class="cloudchat-card">
+                                                <h6 class="cloudchat-card-title">@L["CloudChatCreditsTitle"]</h6>
+                                                @if (CloudChatUsage is null)
+                                                {
+                                                    <div class="cloudchat-status cloudchat-warn">@L["CloudChatUsageUnavailable"]</div>
+                                                }
+                                                else if (!CloudChatUsage.ChaveConfigurada)
+                                                {
+                                                    <div class="cloudchat-status cloudchat-warn">@L["CloudChatApiKeyMissing"]</div>
+                                                }
+                                                else
+                                                {
+                                                    @if (!string.IsNullOrWhiteSpace(CloudChatUsage.Erro))
+                                                    {
+                                                        <div class="cloudchat-status cloudchat-warn">@CloudChatUsage.Erro</div>
+                                                    }
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatBalanceLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.SaldoRestante?.ToString("0.##")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatUsageTodayLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.UsoHoje?.ToString("0.##")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatUsageWeekLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.UsoSemana?.ToString("0.##")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatUsageMonthLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.UsoMes?.ToString("0.##")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatKeyLimitLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.LimiteKey?.ToString("0.##")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatKeyLimitRemainingLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.LimiteKeyRestante?.ToString("0.##")</span>
+                                                    </div>
+                                                    @if (!CloudChatUsage.PodeUsarModelosPagos)
+                                                    {
+                                                        <div class="cloudchat-status cloudchat-warn">@L["CloudChatPaidUnsupportedWarning"]</div>
+                                                    }
+                                                }
+                                            </div>
+                                            <div class="cloudchat-card">
+                                                <h6 class="cloudchat-card-title">@L["CloudChatFreeUsageTitle"]</h6>
+                                                @if (CloudChatUsage is null)
+                                                {
+                                                    <div class="cloudchat-status cloudchat-warn">@L["CloudChatUsageUnavailable"]</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatFreeUsedLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.UsadosGratisHoje / @CloudChatUsage.TetoDiario</span>
+                                                    </div>
+                                                    <div class="cloudchat-progress">
+                                                        <div class="cloudchat-progress-fill @(CloudChatUsage.PercentagemUsada >= 80 ? "warn" : "")"
+                                                             style="width:@(Math.Min(100, CloudChatUsage.PercentagemUsada))%"></div>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatFreeResetLabel"]</span>
+                                                        <span class="cloudchat-row-value">@CloudChatUsage.ResetUTC?.ToString("dd/MM HH:mm 'UTC'")</span>
+                                                    </div>
+                                                    <div class="cloudchat-row">
+                                                        <span class="cloudchat-row-label">@L["CloudChatFreeCapModeLabel"]</span>
+                                                        <span class="cloudchat-row-value">@(CloudChatUsage.TetoAutomatico ? L["CloudChatFreeCapAutomatic"] : L["CloudChatFreeCapCustom"])</span>
+                                                    </div>
+                                                    @if (CloudChatUsage.PercentagemUsada >= 80)
+                                                    {
+                                                        <div class="cloudchat-status cloudchat-warn">@L["CloudChatFreeNearLimitWarning"]</div>
+                                                    }
+                                                    <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatFreeCapOverrideLabel"]</div>
+                                                    <input class="form-control cloudchat-cap-input"
+                                                           type="number" min="0" step="1"
+                                                           @bind="CloudChatFreeDailyCap" />
+                                                    <div class="cloudchat-hint">@L["CloudChatFreeCapOverrideHint"]</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+
                 </TabItems>
             </SfTab>
             <hr />
@@ -318,7 +517,7 @@ else
         <FooterTemplate>
             <SfButton CssClass="e-btn e-success e-round-corner"
                       IconCss="fa fa-times p-1"
-                      @onclick="(() => IsFileManagerVisible = false)" Content="Confirmar">
+                      @onclick="(() => IsFileManagerVisible = false)" Content="@L["TituloConfirmar"]">
             </SfButton>
         </FooterTemplate>
     </DialogTemplates>
@@ -486,46 +685,331 @@ else
         content: '\<a href="#"></a>';
     }
 
+    .cloudchat-status {
+        margin-top: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .cloudchat-ok {
+        background: var(--app-success-bg);
+        border: 1px solid var(--app-success-border);
+        color: var(--app-success-text);
+    }
+
+    .cloudchat-warn {
+        background: var(--app-warning-bg);
+        border: 1px solid var(--app-warning-border);
+        color: var(--app-warning-text);
+    }
+
+    .cloudchat-active {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        margin-bottom: 8px;
+    }
+
+    .cloudchat-active-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-active-id {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--app-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .cloudchat-active-id.paid {
+            color: var(--app-accent-yellow);
+        }
+
+    .cloudchat-model-badge.paid {
+        background: var(--app-warning-bg);
+        color: var(--app-warning-text);
+        border: 1px solid var(--app-warning-border);
+    }
+
+    .e-cloud:before {
+        content: '\e757';
+    }
+
+    .cloudchat-search {
+        margin-bottom: 8px;
+    }
+
+    .cloudchat-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        color: var(--app-text-primary);
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+        .cloudchat-search-input:focus {
+            border-color: var(--app-primary);
+        }
+
+    .cloudchat-model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 340px;
+        overflow-y: auto;
+        padding: 8px;
+        border: 1px solid var(--app-border);
+        border-radius: 10px;
+        background: var(--app-surface-alt);
+    }
+
+    .cloudchat-model-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: var(--app-surface);
+        cursor: pointer;
+        transition: border-color .15s ease, background-color .15s ease;
+    }
+
+        .cloudchat-model-row:hover {
+            background: var(--app-surface-hover);
+        }
+
+        .cloudchat-model-row:has(input:checked) {
+            border-color: var(--app-primary);
+            background: var(--app-surface-hover);
+        }
+
+        .cloudchat-model-row input[type="radio"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            border: 2px solid var(--app-border);
+            border-radius: 50%;
+            flex-shrink: 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+            .cloudchat-model-row input[type="radio"]:checked {
+                border-color: var(--app-primary);
+            }
+
+                .cloudchat-model-row input[type="radio"]:checked::after {
+                    content: "";
+                    position: absolute;
+                    inset: 3px;
+                    border-radius: 50%;
+                    background: var(--app-primary);
+                }
+
+    .cloudchat-model-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .cloudchat-model-name {
+        font-weight: 600;
+        color: var(--app-text-primary);
+    }
+
+    .cloudchat-model-id {
+        font-size: 12px;
+        color: var(--app-text-secondary);
+        font-family: Consolas, "Courier New", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cloudchat-model-badges {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .cloudchat-model-badge {
+        font-size: 11px;
+        line-height: 1;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--app-surface);
+        color: var(--app-text-secondary);
+        white-space: nowrap;
+    }
+
+        .cloudchat-model-badge.free {
+            background: var(--app-success-bg);
+            color: var(--app-success-text);
+        }
+
+        .cloudchat-model-badge.router {
+            background: var(--app-info-bg);
+            color: var(--app-info-text);
+        }
+
+        .cloudchat-model-badge.recommended {
+            background: var(--app-accent-green);
+            color: var(--app-on-accent-green);
+        }
+
+    .cloudchat-hint {
+        border-left: 2px solid var(--app-border);
+        padding-left: 8px;
+        margin-top: 2px;
+    }
+
+    .cloudchat-model-empty {
+        padding: 8px;
+        font-size: 12px;
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-usage-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .cloudchat-card {
+        padding: 14px;
+        border: 1px solid var(--app-border);
+        border-radius: 10px;
+        background: var(--app-surface-alt);
+    }
+
+    .cloudchat-card-title {
+        margin: 0 0 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--app-text-primary);
+    }
+
+    .cloudchat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 4px 0;
+        font-size: 0.82rem;
+    }
+
+    .cloudchat-row-label {
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-row-value {
+        font-weight: 600;
+        color: var(--app-text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cloudchat-progress {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
+        overflow: hidden;
+        margin: 6px 0 10px;
+    }
+
+    .cloudchat-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--app-primary);
+        transition: width .3s ease;
+    }
+
+        .cloudchat-progress-fill.warn {
+            background: var(--app-accent-yellow);
+        }
+
+    .cloudchat-cap-input {
+        max-width: 180px;
+        background: var(--app-surface);
+        color: var(--app-text-primary);
+        border-color: var(--app-border);
+    }
+
+    .cloudchat-hint {
+        font-size: 11px;
+        color: var(--app-text-secondary);
+        margin-top: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .cloudchat-model-list {
+            max-height: 260px;
+        }
+
+        .cloudchat-usage-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     /* ── Dark mode overrides ─────────────────────────── */
 
     [data-theme="dark"] .e-tab {
         border-color: var(--app-border);
     }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-items {
-        background-color: var(--app-surface-alt);
-        border-color: var(--app-border);
-    }
+        [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-items {
+            background-color: var(--app-surface-alt);
+            border-color: var(--app-border);
+        }
 
-    [data-theme="dark"] .e-tab .e-content .e-item {
-        color: var(--app-text-primary);
-    }
+        [data-theme="dark"] .e-tab .e-content .e-item {
+            color: var(--app-text-primary);
+        }
 
-    [data-theme="dark"] .e-tab .e-tab-header {
-        background-color: var(--app-surface-alt) !important;
-    }
+        [data-theme="dark"] .e-tab .e-tab-header {
+            background-color: var(--app-surface-alt) !important;
+        }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
-        color: var(--app-text-secondary) !important;
-    }
+            [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-icon {
+                color: var(--app-text-secondary) !important;
+            }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
-        background-color: var(--app-surface-hover) !important;
-    }
+            [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+                background-color: var(--app-surface-hover) !important;
+            }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
-    [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
-        background-color: var(--app-surface-hover) !important;
-    }
+            [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
+            [data-theme="dark"] .e-tab .e-tab-header .e-hor-nav .e-popup-down-icon:hover {
+                background-color: var(--app-surface-hover) !important;
+            }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active {
-        background-color: var(--app-surface-alt);
-    }
+            [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active {
+                background-color: var(--app-surface-alt);
+            }
 
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
-        color: var(--app-primary) !important;
-    }
+                [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+                [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
+                    color: var(--app-primary) !important;
+                }
 
     [data-theme="dark"] .e-dialog .e-dlg-header {
         color: var(--app-text-primary);

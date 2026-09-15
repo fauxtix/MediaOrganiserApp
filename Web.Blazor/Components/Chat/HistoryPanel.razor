@@ -1,0 +1,360 @@
+@using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using MediaOrganizerApp.Application.DTOs.AI
+@using Web.Blazor.Services.ApiWrappers
+@inject ConversationsClientService ConversationsClient
+@inject IStringLocalizer<App> L
+@inject IJSRuntime JS
+
+@if (IsOpen)
+{
+    <div class="chat-history-overlay" @onclick="Close"></div>
+}
+
+<div class="chat-history-aside @(IsOpen ? "open" : "")" @onclick:stopPropagation>
+    <div class="chat-history-header">
+        <h3>@L["TestChatHistory"]</h3>
+        <button class="chat-history-close" @onclick="Close" title="@L["btnFechar"]">&times;</button>
+    </div>
+
+    <div class="chat-history-actions">
+        <button class="chat-history-action" @onclick="ExportConversationsAsync">@L["TestChatExport"]</button>
+        <button class="chat-history-action" @onclick="ImportConversationsAsync">@L["TestChatImport"]</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_status))
+    {
+        <div class="chat-history-status">@_status</div>
+    }
+
+    <div class="chat-history-list">
+        @if (_loading)
+        {
+            <div class="chat-history-empty">@L["LoadingMsg"]</div>
+        }
+        else if (Conversations.Count == 0)
+        {
+            <div class="chat-history-empty">@L["TestChatNoConversations"]</div>
+        }
+        else
+        {
+            @foreach (var conv in Conversations)
+            {
+                <div class="chat-history-row" @onclick="() => LoadConversation(conv.Id)">
+                    <div class="chat-history-info">
+                        <span class="chat-history-title">@conv.Title</span>
+                        <span class="chat-history-meta">@FormatDate(conv)</span>
+                    </div>
+                    <span class="chat-history-arrow">&#8594;</span>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnLoadConversation { get; set; }
+
+    private List<ConversationDto> Conversations { get; set; } = new();
+    private bool _loading;
+    private string _status = string.Empty;
+
+    public async Task Open()
+    {
+        _loading = true;
+        _status = string.Empty;
+        IsOpen = true;
+        StateHasChanged();
+
+        try
+        {
+            Conversations = await ConversationsClient.GetAllAsync();
+        }
+        catch
+        {
+            Conversations = new List<ConversationDto>();
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Close()
+    {
+        IsOpen = false;
+    }
+
+    private async Task LoadConversation(string id)
+    {
+        if (OnLoadConversation.HasDelegate)
+        {
+            await OnLoadConversation.InvokeAsync(id);
+        }
+
+        Close();
+    }
+
+    private static string FormatDate(ConversationDto conv)
+    {
+        var when = conv.UpdatedAt ?? conv.CreatedAt;
+        return when.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+    }
+
+    private async Task ExportConversationsAsync()
+    {
+        try
+        {
+            var items = Conversations
+                .Where(c => !string.IsNullOrWhiteSpace(c.Title))
+                .Select(c => new ConversationExportDto
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Json = c.Json,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .ToList();
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string json = JsonSerializer.Serialize(items, options);
+            string fileName = $"conversas_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+
+            await JS.InvokeVoidAsync("downloadJson", fileName, json);
+            _status = string.Format(L["TestChatExportOk"], items.Count);
+        }
+        catch (Exception ex)
+        {
+            _status = string.Format(L["TestChatExportError"], ex.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ImportConversationsAsync()
+    {
+        try
+        {
+            string? conteudo = await JS.InvokeAsync<string>("pickJsonFile");
+            if (string.IsNullOrWhiteSpace(conteudo))
+            {
+                return;
+            }
+
+            List<ConversationExportDto>? items;
+            try
+            {
+                items = JsonSerializer.Deserialize<List<ConversationExportDto>>(conteudo);
+            }
+            catch
+            {
+                items = null;
+            }
+
+            if (items is null || items.Count == 0)
+            {
+                _status = L["TestChatImportInvalid"];
+                StateHasChanged();
+                return;
+            }
+
+            int imported = 0;
+            foreach (var item in items)
+            {
+                if (string.IsNullOrWhiteSpace(item.Title) || !IsValidMessagesJson(item.Json))
+                    continue;
+
+                await ConversationsClient.CreateAsync(new ConversationCreateDto
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Title = item.Title,
+                    Json = string.IsNullOrWhiteSpace(item.Json) ? "[]" : item.Json
+                });
+                imported++;
+            }
+
+            Conversations = await ConversationsClient.GetAllAsync() ?? new List<ConversationDto>();
+            _status = string.Format(L["TestChatImportOk"], imported);
+        }
+        catch (Exception ex)
+        {
+            _status = string.Format(L["TestChatImportError"], ex.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private static bool IsValidMessagesJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return true;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Array;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed class ConversationExportDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Json { get; set; } = "[]";
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+}
+
+<style>
+    .chat-history-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 9998;
+    }
+
+    .chat-history-aside {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: min(92vw, 560px);
+        height: 100dvh;
+        background: var(--app-surface);
+        color: var(--app-text-primary);
+        box-shadow: -4px 0 12px var(--app-shadow);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.35s ease;
+    }
+
+    .chat-history-aside.open {
+        transform: translateX(0);
+    }
+
+    .chat-history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .chat-history-header h3 {
+        margin: 0;
+        font-size: 1.05rem;
+    }
+
+    .chat-history-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .chat-history-action {
+        border: 1px solid var(--app-border);
+        background: var(--app-surface-alt);
+        color: var(--app-text-primary);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+
+    .chat-history-action:hover {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-history-status {
+        padding: 6px 8px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        background: var(--app-info-bg);
+        border: 1px solid var(--app-info-border);
+        color: var(--app-info-text);
+    }
+
+    .chat-history-close {
+        border: none;
+        background: transparent;
+        color: var(--app-text-secondary);
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+
+    .chat-history-close:hover {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .chat-history-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--app-border);
+        cursor: pointer;
+        border-radius: 6px;
+    }
+
+    .chat-history-row:hover {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-history-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .chat-history-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--app-text-primary);
+    }
+
+    .chat-history-meta {
+        font-size: 12px;
+        color: var(--app-text-secondary);
+    }
+
+    .chat-history-arrow {
+        color: var(--app-text-secondary);
+        flex-shrink: 0;
+    }
+
+    .chat-history-empty {
+        padding: 12px 8px;
+        font-size: 0.9rem;
+        color: var(--app-text-secondary);
+    }
+</style>

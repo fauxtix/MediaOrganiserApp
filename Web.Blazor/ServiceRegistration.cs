@@ -98,6 +98,10 @@ namespace Web.Blazor
             // Conversations client for server-side persisted chat
             services.AddHttpClient<Web.Blazor.Services.ApiWrappers.ConversationsClientService>();
 
+            // Cloud chat (OpenRouter proxy) client + user identity for per-request headers
+            services.AddScoped<Web.Blazor.Services.CloudChat.CurrentUserIdentity>();
+            services.AddHttpClient<Web.Blazor.Services.CloudChat.CloudChatClientService>();
+
             // Chat-specific SignalR client removed: chat now uses HTTP streaming via AiClientService
 
             services.AddHttpClient<ILogService, WrapperAppLogs>();

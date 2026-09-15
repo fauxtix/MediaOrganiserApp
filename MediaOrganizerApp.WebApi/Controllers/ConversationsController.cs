@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using AutoMapper;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Domain.Entities;
 
@@ -9,35 +11,56 @@ namespace MediaOrganizerApp.WebApi.Controllers
     public class ConversationsController : ControllerBase
     {
         private readonly IConversationService _svc;
+        private readonly IMapper _mapper;
         private readonly ILogger<ConversationsController> _logger;
 
-        public ConversationsController(IConversationService svc, ILogger<ConversationsController> logger)
+        public ConversationsController(
+            IConversationService svc,
+            IMapper mapper,
+            ILogger<ConversationsController> logger)
         {
             _svc = svc;
+            _mapper = mapper;
             _logger = logger;
         }
 
+        private string? TryUserId()
+        {
+            var value = Request.Headers["X-UserId"].ToString();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private bool TryIsAdmin()
+        {
+            var value = Request.Headers["X-IsAdmin"].ToString();
+            return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Conversation>>> GetAll(CancellationToken ct) =>
-            Ok(await _svc.GetAllAsync(ct));
+        public async Task<ActionResult<IEnumerable<ConversationDto>>> GetAll(CancellationToken ct)
+        {
+            var conversations = await _svc.GetAllAsync(TryUserId(), TryIsAdmin(), ct);
+            return Ok(_mapper.Map<IEnumerable<ConversationDto>>(conversations));
+        }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Conversation>> Get(string id, CancellationToken ct)
+        public async Task<ActionResult<ConversationDto>> Get(string id, CancellationToken ct)
         {
-            var conv = await _svc.GetByIdAsync(id, ct);
-            return conv == null ? NotFound() : Ok(conv);
+            var conv = await _svc.GetByIdAsync(id, TryUserId(), TryIsAdmin(), ct);
+            return conv == null ? NotFound() : Ok(_mapper.Map<ConversationDto>(conv));
         }
 
         [HttpPost]
-        public async Task<ActionResult<Conversation>> Create([FromBody] Conversation conv, CancellationToken ct)
+        public async Task<ActionResult<ConversationDto>> Create([FromBody] ConversationCreateDto request, CancellationToken ct)
         {
-            if (conv == null)
+            if (request == null)
                 return BadRequest("Conversation payload is required.");
 
             try
             {
-                var created = await _svc.UpsertAsync(conv, ct);
-                return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+                var conv = _mapper.Map<Conversation>(request);
+                var created = await _svc.UpsertAsync(conv, TryUserId(), TryIsAdmin(), ct);
+                return CreatedAtAction(nameof(Get), new { id = created.Id }, _mapper.Map<ConversationDto>(created));
             }
             catch (Exception ex)
             {
@@ -47,14 +70,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, [FromBody] Conversation conv, CancellationToken ct)
+        public async Task<ActionResult> Update(string id, [FromBody] ConversationUpdateDto request, CancellationToken ct)
         {
-            if (conv == null) return BadRequest("Conversation payload is required.");
-            if (id != conv.Id) return BadRequest();
+            if (request == null) return BadRequest("Conversation payload is required.");
+            if (string.IsNullOrWhiteSpace(request.Id) || id != request.Id) return BadRequest();
 
             try
             {
-                await _svc.UpsertAsync(conv, ct);
+                var conv = _mapper.Map<Conversation>(request);
+                await _svc.UpsertAsync(conv, TryUserId(), TryIsAdmin(), ct);
                 return Ok();
             }
             catch (Exception ex)
@@ -69,7 +93,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         {
             try
             {
-                await _svc.DeleteAsync(id, ct);
+                await _svc.DeleteAsync(id, TryUserId(), TryIsAdmin(), ct);
                 return Ok();
             }
             catch (Exception ex)

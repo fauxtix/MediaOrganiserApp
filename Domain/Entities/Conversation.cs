@@ -9,5 +9,6 @@ namespace MediaOrganizerApp.Domain.Entities
         public string Json { get; set; } = "[]"; // serialized List<ChatMessage>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+        public string? UserId { get; set; }
     }
 }

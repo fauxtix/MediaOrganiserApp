@@ -22,7 +22,7 @@ namespace Web.Blazor.Pages.AI
         [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
         [Inject] private IAiModelsService AiModelsService { get; set; } = null!;
         [Inject] private Web.Blazor.Services.Common.IAiModelResolver AiModelResolver { get; set; } = null!;
-        [Inject] private IStringLocalizer<App> Localizer { get; set; } = null!;
+        [Inject] private IStringLocalizer<App> L { get; set; } = null!;
 
         private bool ShowSpinnerOverlay;
         private CancellationTokenSource spinnerCts;
@@ -432,7 +432,7 @@ namespace Web.Blazor.Pages.AI
                 await JS.InvokeVoidAsync("focusElement", chatInputRef);
                 var id = Guid.NewGuid().ToString();
                 var title = "Conversation " + DateTime.Now.ToString("g");
-                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = "[]" };
+                var conv = new ConversationCreateDto { Id = id, Title = title, Json = "[]" };
                 await ConversationsClient.CreateAsync(conv);
                 await LoadConversations();
                 selectedConversationId = id;
@@ -528,14 +528,14 @@ namespace Web.Blazor.Pages.AI
                 var title = !string.IsNullOrEmpty(firstUser)
                     ? (firstUser.Length > 60 ? firstUser.Substring(0, 60).TrimEnd() + "..." : firstUser)
                     : ("Conversation " + DateTime.Now.ToString("g"));
-                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = id, Title = title, Json = json };
+                var conv = new ConversationCreateDto { Id = id, Title = title, Json = json };
                 await ConversationsClient.CreateAsync(conv);
                 selectedConversationId = id;
                 await LoadConversations();
             }
             else
             {
-                var conv = new MediaOrganizerApp.Domain.Entities.Conversation { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json, UpdatedAt = DateTime.UtcNow };
+                var conv = new ConversationUpdateDto { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json };
                 await ConversationsClient.SaveAsync(conv);
                 await LoadConversations();
             }
@@ -563,8 +563,8 @@ namespace Web.Blazor.Pages.AI
                 {
                     if (toastObj != null)
                     {
-                        ToastTitle = Localizer["TituloApagarRegisto"];
-                        ToastContent = Localizer["SuccessDelete"];
+                        ToastTitle = L["TituloApagarRegisto"];
+                        ToastContent = L["SuccessDelete"];
                         ToastCssClass = "e-toast-success";
                         await InvokeAsync(StateHasChanged);
                         await toastObj.ShowAsync();

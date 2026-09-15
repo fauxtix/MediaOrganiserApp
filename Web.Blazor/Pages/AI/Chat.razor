@@ -1,6 +1,7 @@
 ﻿@page "/ai/chat"
 
 @using Markdig
+@using Microsoft.Extensions.Localization
 @inject NavigationManager Nav
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Buttons
@@ -13,7 +14,7 @@
 <div class="chat-container">
     <div class="chat-header">
         <div class="header-inner">
-            <div class="header-title">Chat room</div>
+            <div class="header-title">@L["ChatRoomTitle"]</div>
             <div class="header-actions">
                 @* <div class="token-bar-container">
                     <div class="token-bar-fill @GetTokenClass()" style="width:@GetTokenPercent()%"></div>
@@ -30,17 +31,17 @@
                 <div class="token-bar-label">
                     @if (isProcessing)
                     {
-                        <span>Estimados: @tokensEstimados / @limiteTokens</span>
+                        <span>@string.Format(L["ChatEstimatedTokens"], tokensEstimados, limiteTokens)</span>
                     }
                     else
                     {
-                        <span>Usados: @tokensUsados / @limiteTokens</span>
+                        <span>@string.Format(L["ChatUsedTokens"], tokensUsados, limiteTokens)</span>
                     }
                 </div>
                 @if (ShowTokenWarning)
                 {
                     <div class="token-warning @GetWarningClass()">
-                        ⚠️ Atenção: estás a aproximar-te do limite de contexto.
+                        @L["ChatTokenWarning"]
                     </div>
                 }
                 <div>@modeloAtual</div>
@@ -48,7 +49,7 @@
                     <SfDropDownList TValue="string" TItem="ConversationItem"
                                     DataSource="@conversations"
                                     @bind-Value="selectedConversationId"
-                                    Placeholder="@Localizer["Conversations"]"
+                                    Placeholder="@L["Conversations"]"
                                     CssClass="conversation-dropdown">
                         <DropDownListFieldSettings Text="Title" Value="Id" />
                         <DropDownListEvents TItem="ConversationItem"
@@ -64,13 +65,13 @@
                                   stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </span>
-                    <span class="btn-text">@Localizer["NewMsg"]</span>
+                    <span class="btn-text">@L["NewMsg"]</span>
                 </SfButton>
 
                 <SfButton CssClass="delete-conversation"
                           OnClick="ShowConfirmDeleteConversation"
                           Disabled="@string.IsNullOrEmpty(selectedConversationId)"
-                          Content="@Localizer["DeleteMsg"]" />
+                          Content="@L["DeleteMsg"]" />
             </div>
         </div>
     </div>
@@ -99,7 +100,7 @@
                       @bind="userInput"
                       @ref="chatInputRef"
                       @onkeydown="HandleKeyDown"
-                      placeholder="@Localizer["TypeMessage"]"
+                      placeholder="@L["TypeMessage"]"
                       disabled="@isConnecting"></textarea>
 
             <div class="send-controls">
@@ -129,15 +130,15 @@
     </div>
 }
 
-<ConfirmAppWarning DialogTitle="@Localizer["StartNewConversation"]"
-                   AlertMessage="@Localizer["StartNewConversationMessage"]"
+<ConfirmAppWarning DialogTitle="@L["StartNewConversation"]"
+                   AlertMessage="@L["StartNewConversationMessage"]"
                    AlertMessageType="AlertMessageType.Warning"
                    Visible="@showConfirmNewConversation"
                    OnConfirmationYes="@OnConfirmYes"
                    OnConfirmationNo="@OnConfirmNo" />
 
-<ConfirmAppWarning DialogTitle="@Localizer["ChatDeleteMessasagesTitle"]"
-                   AlertMessage="@Localizer["ChatDeleteMessage"]"
+<ConfirmAppWarning DialogTitle="@L["ChatDeleteMessasagesTitle"]"
+                   AlertMessage="@L["ChatDeleteMessage"]"
                    AlertMessageType="AlertMessageType.Warning"
                    Visible="@showConfirmDeleteConversation"
                    OnConfirmationYes="@OnConfirmDeleteYes"
