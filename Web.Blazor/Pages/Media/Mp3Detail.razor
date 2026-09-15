@@ -2,17 +2,19 @@
 @using Ganss.Xss
 @using Microsoft.Extensions.Logging
 @using Web.Blazor.Components
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<App> L
 <HeaderDialogComponent HeaderCaption="@mp3Title"
                        ImageName="mp3Image.png"/>
 <div class="row mt-2">
     <div class="col-sm-12 col-md-6 col-lg-6 player">
         <SfCard>
             <CardContent EnableSeparator="true">
-                <p>Banda: <span style="font-weight:bold">@mp3FirstArtist</span></p>
-                <p>Album: <span style="font-weight:bold">@mp3Album</span></p>
-                <p>Ano: <span style="font-weight:bold">@mp3EditionYear</span></p>
-                <p>Editora: <span style="font-weight:bold">@mp3Pusblisher</span></p>
-                <p>Género(s): </p>
+                <p>@L["Band"]: <span style="font-weight:bold">@mp3FirstArtist</span></p>
+                <p>@L["Album"]: <span style="font-weight:bold">@mp3Album</span></p>
+                <p>@L["Year"]: <span style="font-weight:bold">@mp3EditionYear</span></p>
+                <p>@L["lblEditora"]: <span style="font-weight:bold">@mp3Pusblisher</span></p>
+                <p>@L["Genres"]: </p>
                 @if (mp3Genres is not null)
                 {
                     @foreach (var genero in mp3Genres)
@@ -31,7 +33,7 @@
 
         <div class="col-sm-12 col-md-6 col-lg-6 player">
             <SfCard>
-                <CardHeader Title="Wikipedia" SubTitle="@SelectedRecord.Autor"/>
+                <CardHeader Title="@L["Wikipedia"]" SubTitle="@SelectedRecord.Autor"/>
                 <CardContent EnableSeparator="true">
                     @foreach (string item in sbWikiResponses)
                     {

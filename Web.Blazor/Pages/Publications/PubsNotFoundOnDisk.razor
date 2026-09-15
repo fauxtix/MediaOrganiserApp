@@ -9,14 +9,14 @@
 else
 {
     <div>
-        <h3>Publicações não encontradas no disco (@FilesNotFound.Count)</h3>
+        <h3>@L["PubsNotFoundOnDiskTitle"] (@FilesNotFound.Count)</h3>
         <hr />
 
         <SfBreadcrumb>
             <BreadcrumbItems>
-                <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
-                <BreadcrumbItem Text="Publications" Url="/publicacoes" />
-                <BreadcrumbItem Text= "Pubs not found on disk" Url="/pubsnotfoundondisk" />
+                <BreadcrumbItem Text="@L["BreadcrumbHome"]" IconCss="e-icons e-home" Url="/" />
+                <BreadcrumbItem Text="@L["mnuLivros"]" Url="/publicacoes" />
+                <BreadcrumbItem Text="@L["BreadcrumbPubsNotFoundDisk"]" Url="/pubsnotfoundondisk" />
             </BreadcrumbItems>
         </SfBreadcrumb>
         <hr />
@@ -37,15 +37,15 @@ else
                                     <div class="col-md-12">
                                         <div class="row mt-2">
                                             <div class="col-md-3">
-                                                <div class="text-center"><b>Edição</b></div>
+                                                <div class="text-center"><b>@L["lblAnoEdicao"]</b></div>
                                                 <div class="mt-2 text-center">@file.Edition</div>
                                             </div>
                                             <div class="col-md-3">
-                                                <div class="text-center"><b>Páginas</b></div>
+                                                <div class="text-center"><b>@L["lblPaginas"]</b></div>
                                                 <div class="mt-2 text-center">@file.Pages</div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div><b>Pasta</b></div>
+                                                <div><b>@L["LabelFolder"]</b></div>
                                                 <div class="text-ellipsis mt-2">@lastSubFolder</div>
                                             </div>
                                         </div>
@@ -58,8 +58,8 @@ else
                                     <div class="options-buttons-container">
                                         <SfButton IconCss="fa fa-edit" CssClass="e-btn e-primary e-round-corner"
                                                   @onclick="@( async ()=>await ShowPublication(file.Id))"
-                                                  Content="Edit"></SfButton>
-                                        <SfButton IconCss="fa fa-trash" CssClass="e-btn e-danger e-round-corner" Content="Delete"></SfButton>
+                                                   Content="@L["EditMsg"]"></SfButton>
+                                        <SfButton IconCss="fa fa-trash" CssClass="e-btn e-danger e-round-corner" Content="@L["DeleteMsg"]"></SfButton>
                                     </div>
                                 </CardFooterContent>
                             </CardFooter>

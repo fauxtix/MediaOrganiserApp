@@ -45,23 +45,23 @@
                 <SfButton ID="playerPlayBtn" style="font-size:15px; font-weight:400"
                           CssClass="e-btn e-info button p-2"
                           IconCss="fa fa-play fa-5x"
-                          @onclick="PlayAudio" Content="Play">
+                          @onclick="PlayAudio" Content="@L["Play"]">
                 </SfButton>
                 <SfButton ID="playerPauseBtn" style="font-size:15px; font-weight:400"
                           CssClass="e-btn e-info button p-2"
                           IconCss="fa fa-pause fa-5x" Disabled="true"
-                          @onclick="PauseAudio" Content="Pause">
+                          @onclick="PauseAudio" Content="@L["Pause"]">
                 </SfButton>
                 <SfButton ID="playerStopBtn" style="font-size:15px; font-weight:400"
                           CssClass="e-btn e-info button p-2"
                           IconCss="fa fa-stop fa-3x" Disabled="true"
-                          @onclick="StopAudio" Content="Stop">
+                          @onclick="StopAudio" Content="@L["Stop"]">
                 </SfButton>
             </div>
             <div class="mt-5">
                 <audio @ref="AudioReference" id="audioPlayer" preload="auto" controls>
                     <source id="audioSource" src="@mp3FullPath" type="audio/mpeg" />
-                    Your browser does not support the audio element.
+                    @L["BrowserDoesNotSupportAudio"]
                 </audio>
             </div>
             <br />
@@ -75,7 +75,7 @@
                     <CardContent EnableSeparator="true">
                         <div class="row">
                             <div class="col-3">
-                                <p>Album</p>
+                                <p>@L["Album"]</p>
                                 <p>@L["Year"]</p>
                                 <p>@L["lblEditora"]</p>
                             </div>
@@ -100,7 +100,7 @@
                             string response = "";
                             <br />
                             <div>
-                                <div class="title">Wikipedia</div>
+                                <div class="title">@L["Wikipedia"]</div>
                                 <div class="underline"></div>
                                 <div class="py-2">
                                     @L["References"] @SelectedRecord.Autor
@@ -132,7 +132,7 @@ else
             <CardHeader ImageUrl="/images/media-player.png" Title="@L["AdditionalInformation"]"></CardHeader>
             <CardContent EnableSeparator="true">
                 <p>
-                    Path:
+                    @L["Path"]:
                     @if (!File.Exists(SelectedRecord.FilePath))
                     {
                         <span>@L["NotApplicable"]</span>
@@ -143,7 +143,7 @@ else
                     }
                 </p>
                 <p>
-                    Url:
+                    @L["Url"]:
                     @if (string.IsNullOrEmpty(SelectedRecord.FileUrl))
                     {
                         <span>@L["NotApplicable"]</span>

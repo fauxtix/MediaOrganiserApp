@@ -8,7 +8,7 @@
 
 @inject IConfiguration configuration
 
-<Web.Blazor.Components.PageTitleComponent PageTitle="File Manager" />
+<Web.Blazor.Components.PageTitleComponent PageTitle="@localizerApp["FileManager"]" />
 <div id="file-container" class="control-section">
     @* Initialization of File Manager component with Directory upload functionality *@
     <SfFileManager TValue="FileManagerDirectoryContent">
@@ -25,11 +25,11 @@
                         <div class="directory-upload">
                             <SfDropDownButton IconCss="e-icons e-fe-upload" CssClass=" e-tbar-btn e-tbtn-txt  e-fe-popup"
                                               @attributes="@(new Dictionary<string, object> { { "tabindex", -1 } })">
-                                <span class="e-tbar-btn-text e-tbar-ddb-text">Upload</span>
+                                <span class="e-tbar-btn-text e-tbar-ddb-text">@localizerApp["UploadLabel"]</span>
                                 <DropDownButtonEvents ItemSelected="@ItemSelected"></DropDownButtonEvents>
                                 <DropDownMenuItems>
-                                    <DropDownMenuItem Id="Folder" Text="Folder"></DropDownMenuItem>
-                                    <DropDownMenuItem Id="Files" Text="Files"></DropDownMenuItem>
+                                    <DropDownMenuItem Id="Folder" Text="@localizerApp["Folder"]"></DropDownMenuItem>
+                                    <DropDownMenuItem Id="Files" Text="@localizerApp["Files"]"></DropDownMenuItem>
                                 </DropDownMenuItems>
                             </SfDropDownButton>
                         </div>

@@ -3,26 +3,28 @@
 @using MediaOrganizerApp.Application.DTOs.PlayLists
 @using MediaOrganizerApp.Domain.Enums
 @using Web.Blazor.Services.ApiWrappers
+@using Microsoft.Extensions.Localization
 
 @inject PlaylistsClientService PlaylistsService
 @inject IMediaServiceWrapper MediaService
 @inject IWebHostEnvironment HostingEnvironment
 @inject IJSRuntime JS
+@inject IStringLocalizer<App> L
 
 @attribute [Authorize]
 @implements IDisposable
 
-<PageTitle>Playlist Player</PageTitle>
+<PageTitle>@L["PlaylistPlayerTitle"]</PageTitle>
 
 @if (_isLoading)
 {
     <div class="p-3">
-        <SfSpinner @ref="_spinner" CssClass="e-spin-overlay" Label="Loading playlist..." Type="SpinnerType.Tailwind"></SfSpinner>
+        <SfSpinner @ref="_spinner" CssClass="e-spin-overlay" Label="@L["LoadingPlaylist"]" Type="SpinnerType.Tailwind"></SfSpinner>
     </div>
 }
 else if (_items.Count == 0)
 {
-    <div class="alert alert-info m-2">No items to play.</div>
+    <div class="alert alert-info m-2">@L["NoItemsToPlay"]</div>
 }
 else
 {
@@ -30,21 +32,21 @@ else
         <div class="pp-header">
             <div class="pp-title">
                 <div class="pp-title-main">@_playlistName</div>
-                <div class="pp-title-sub">@($"{_items.Count} item(s) • Ordered by SortOrder")</div>
+                <div class="pp-title-sub">@L["ItemsCountOrdered", _items.Count]</div>
             </div>
 
             <div class="pp-actions">
                 <SfButton CssClass="e-btn e-outline e-round-corner"
                           IconCss="fa fa-arrow-left"
                           @onclick="BackToPlaylists">
-                    Back
+                    @L["Back"]
                 </SfButton>
             </div>
         </div>
 
         <div class="pp-body">
             <SfCard CssClass="pp-nowplaying">
-                <CardHeader Title="Now Playing" SubTitle="@NowPlayingSubTitle()"></CardHeader>
+                <CardHeader Title="@L["NowPlaying"]" SubTitle="@NowPlayingSubTitle()"></CardHeader>
                 <CardContent>
                     <div class="pp-nowplaying-content">
                         <div class="pp-cover">
@@ -60,7 +62,7 @@ else
 
                                 @if (_currentItem?.MediaType == MediaType.Audio)
                                 {
-                                    <div class="pp-loader-container pp-loader-container--mini @(_isPlaying ? "" : "pp-hidden")" aria-label="Playing">
+                                    <div class="pp-loader-container pp-loader-container--mini @(_isPlaying ? "" : "pp-hidden")" aria-label="@L["Playing"]">
                                         <div class="pp-rectangle-1"></div>
                                         <div class="pp-rectangle-2"></div>
                                         <div class="pp-rectangle-3"></div>
@@ -78,8 +80,8 @@ else
 
                             <div class="pp-flags">
                                 <span class="pp-pill">@(_currentItem?.MediaType.ToString() ?? "")</span>
-                                <span class="pp-pill">Repeat: @_repeatMode</span>
-                                <span class="pp-pill">Shuffle: @(_shuffle ? "On" : "Off")</span>
+                                <span class="pp-pill">@L["Repeat"]: @_repeatMode</span>
+                                <span class="pp-pill">@L["Shuffle"]: @(_shuffle ? L["On"] : L["Off"])</span>
                             </div>
 
                             <div class="pp-controls">
@@ -87,39 +89,39 @@ else
                                           IconCss="fa fa-step-backward"
                                           Disabled="@(_queueIndex <= 0)"
                                           @onclick="PrevAsync">
-                                    Prev
+                                    @L["Prev"]
                                 </SfButton>
 
                                 <SfButton CssClass="e-btn e-success e-round-corner"
                                           IconCss="@(_isPlaying ? "fa fa-pause" : "fa fa-play")"
                                           @onclick="TogglePlayPauseAsync">
-                                    @(_isPlaying ? "Pause" : "Play")
+                                    @(_isPlaying ? L["Pause"] : L["Play"])
                                 </SfButton>
 
                                 <SfButton CssClass="e-btn e-warning e-round-corner"
                                           IconCss="fa fa-stop"
                                           @onclick="StopAsync">
-                                    Stop
+                                    @L["Stop"]
                                 </SfButton>
 
                                 <SfButton CssClass="e-btn e-info e-round-corner"
                                           IconCss="fa fa-step-forward"
                                           Disabled="@(_queueIndex >= _queue.Count - 1)"
                                           @onclick="NextAsync">
-                                    Next
+                                    @L["Next"]
                                 </SfButton>
 
                                 <SfButton CssClass="e-btn e-outline e-round-corner"
                                           IconCss="fa fa-random"
                                           IsToggle="true"
                                           @bind-IsToggled="Shuffle">
-                                    Shuffle
+                                    @L["Shuffle"]
                                 </SfButton>
 
                                 <SfButton CssClass="e-btn e-outline e-round-corner"
                                           IconCss="fa fa-repeat"
                                           @onclick="CycleRepeatModeAsync">
-                                    Repeat
+                                    @L["Repeat"]
                                 </SfButton>
                             </div>
 
@@ -139,7 +141,7 @@ else
                                 </div>
 
                                 <div class="pp-slider-row">
-                                    <div class="pp-slider-label">Vol</div>
+                                    <div class="pp-slider-label">@L["Volume"]</div>
 
                                     <SfSlider TValue="double"
                                               Min="0"
@@ -163,7 +165,7 @@ else
                                 {
                                     <audio @ref="_audioRef" class="pp-audio" preload="auto" controls>
                                         <source src="" type="audio/mpeg" />
-                                        Your browser does not support the audio element.
+                                        @L["BrowserDoesNotSupportAudio"]
                                     </audio>
                                 }
                             </div>
@@ -173,7 +175,7 @@ else
             </SfCard>
 
             <SfCard CssClass="pp-queue">
-                <CardHeader Title="Queue"></CardHeader>
+                <CardHeader Title="@L["Queue"]"></CardHeader>
                 <CardContent>
                     <SfGrid TValue="PlaylistItemDto"
                             DataSource="@_queue"
@@ -188,8 +190,8 @@ else
 
                         <GridColumns>
                             <GridColumn Field="@nameof(PlaylistItemDto.SortOrder)" HeaderText="#" Width="80" TextAlign="TextAlign.Center" />
-                            <GridColumn Field="@nameof(PlaylistItemDto.Title)" HeaderText="Title" Width="420" />
-                            <GridColumn Field="@nameof(PlaylistItemDto.Author)" HeaderText="Author" Width="260" />
+                            <GridColumn Field="@nameof(PlaylistItemDto.Title)" HeaderText="@L["lblTitulo"]" Width="420" />
+                            <GridColumn Field="@nameof(PlaylistItemDto.Author)" HeaderText="@L["lblAutor"]" Width="260" />
                         </GridColumns>
                     </SfGrid>
                 </CardContent>
@@ -259,7 +261,7 @@ else
         try
         {
             var details = await PlaylistsService.GetByIdAsync(PlaylistId);
-            _playlistName = details?.Name ?? $"Playlist {PlaylistId}";
+            _playlistName = details?.Name ?? $"{L["Playlist"]} {PlaylistId}";
 
             var items = await PlaylistsService.GetItemsAsync(PlaylistId);
             _items = (items ?? Enumerable.Empty<PlaylistItemDto>())
@@ -385,7 +387,7 @@ else
 
         if (_currentItem.MediaType != MediaType.Audio)
         {
-            _status = "Only audio items are supported in this player.";
+            _status = L["OnlyAudioItemsSupported"];
             await InvokeAsync(StateHasChanged);
             return;
         }
@@ -480,7 +482,7 @@ else
             else
             {
                 _isPlaying = false;
-                _status = "Reached end of playlist.";
+                _status = L["ReachedEndOfPlaylist"];
                 await InvokeAsync(StateHasChanged);
             }
 
@@ -569,7 +571,7 @@ else
     [JSInvokable]
     public async Task OnAudioError()
     {
-        _status = "Audio error. Skipping to next item...";
+        _status = L["AudioErrorSkipping"];
         await NextAsync();
     }
 
@@ -578,8 +580,8 @@ else
     {
         _isPlaying = false;
         _status = errorName == "NotAllowedError"
-            ? "Playback was blocked by the browser. Click Play to continue."
-            : $"Playback failed: {errorName} {errorMessage}".Trim();
+            ? L["PlaybackBlocked"]
+            : L["PlaybackFailed", $"{errorName} {errorMessage}".Trim()];
 
         return InvokeAsync(StateHasChanged);
     }
@@ -594,7 +596,7 @@ else
     private string NowPlayingSubTitle()
     {
         if (_currentItem is null) return "";
-        return $"#{_currentItem.SortOrder} • Queue {_queueIndex + 1}/{_queue.Count}";
+        return $"#{_currentItem.SortOrder} • {L["Queue"]} {_queueIndex + 1}/{_queue.Count}";
     }
 
     private static string FormatTime(double seconds)
@@ -652,7 +654,7 @@ else
 .pp-track-author { margin-top: 2px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .pp-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.pp-pill { padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.06); font-size: .85rem; font-weight: 700; }
+.pp-pill { padding: 4px 10px; border-radius: 999px; background: var(--app-surface-hover); font-size: .85rem; font-weight: 700; }
 
 .pp-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
@@ -663,7 +665,7 @@ else
 .pp-media { margin-top: 10px; }
 .pp-audio { width: 100%; }
 
-.pp-status { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 193, 7, .18); font-weight: 700; }
+.pp-status { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--app-warning-bg); color: var(--app-warning-text); font-weight: 700; }
 
 .pp-hidden { display: none !important; }
 

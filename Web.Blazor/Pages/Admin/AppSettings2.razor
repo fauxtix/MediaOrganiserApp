@@ -1,5 +1,6 @@
 ﻿@page "/admin/appsettings2"
 @using Syncfusion.Blazor.Navigations
+@using Microsoft.Extensions.Localization
 
 @inject Microsoft.AspNetCore.Components.NavigationManager UriHelper
 <div class="control-section">
@@ -17,11 +18,11 @@
             {
                 <div class="card-box">
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="Pdf's'" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="@L["PdfDownloads"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsMedia" Placeholder="Media files" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsMedia" Placeholder="@L["MediaFiles"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.MediaDownloads))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                 </div>
@@ -30,11 +31,11 @@
             {
                 <div class="card-box">
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="Database" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="@L["Database"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="Uploads" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["UploadsFolder"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                 </div>
@@ -43,11 +44,11 @@
             {
                 <div class="card-box">
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="Database" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="@L["Database"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                     <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="Uploads" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["UploadsFolder"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                         <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
                     </div>
                 </div>
@@ -73,27 +74,27 @@
         TreeDataSource.Add(new TreeItem
             {
                 NodeId = "01",
-                NodeText = "Folders",
+                NodeText = L["TituloPastas"],
                 Icon = "folder",
                 Child = new List<TreeItem>()
             {
-                new TreeItem { NodeId = "01-01", NodeText = "Downloads", Icon = "audio" },
-                new TreeItem { NodeId = "01-02", NodeText = "Backups", Icon = "audio" },
-                new TreeItem { NodeId = "01-03", NodeText = "Storage", Icon = "audio" },
-                new TreeItem { NodeId = "01-04", NodeText = "Imges", Icon = "audio" },
+                new TreeItem { NodeId = "01-01", NodeText = L["Downloads"], Icon = "audio" },
+                new TreeItem { NodeId = "01-02", NodeText = L["TituloBackups"], Icon = "audio" },
+                new TreeItem { NodeId = "01-03", NodeText = L["TituloArmazenamento"], Icon = "audio" },
+                new TreeItem { NodeId = "01-04", NodeText = L["lblImagens"], Icon = "audio" },
             }
             });
         TreeDataSource.Add(new TreeItem
             {
                 NodeId = "02",
-                NodeText = "OtherSettings",
+                NodeText = L["TituloOtherSettings"],
                 Icon = "folder",
                 Child = new List<TreeItem>()
             {
-                new TreeItem { NodeId = "02-01", NodeText = "Contacts", Icon = "video" },
-                new TreeItem { NodeId = "02-02", NodeText = "Other definitions", Icon = "video" },
-                new TreeItem { NodeId = "02-03", NodeText = "Idiom", Icon = "video" },
-                new TreeItem { NodeId = "02-04", NodeText = "Api Key", Icon = "video" },
+                new TreeItem { NodeId = "02-01", NodeText = L["TituloContactos"], Icon = "video" },
+                new TreeItem { NodeId = "02-02", NodeText = L["TituloOutrasDefinicoes"], Icon = "video" },
+                new TreeItem { NodeId = "02-03", NodeText = L["TituloDefaultLanguage"], Icon = "video" },
+                new TreeItem { NodeId = "02-04", NodeText = L["TituloChaveApi"], Icon = "video" },
             },
             });
     }
@@ -101,7 +102,13 @@
     public void NodeClickedHandler(NodeClickEventArgs args)
     {
         eventName = args.Name.ToLower();
-        nodeOption = args.NodeData.Text.ToLower();
+        nodeOption = args.NodeData.Id switch
+        {
+            "01-01" => "downloads",
+            "01-02" => "backups",
+            "01-03" => "storage",
+            _ => "none"
+        };
     }
 
     class TreeItem

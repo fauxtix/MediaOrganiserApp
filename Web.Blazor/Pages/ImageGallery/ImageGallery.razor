@@ -53,10 +53,10 @@
             @if (allCategories)
             {
                 <div class="search-col d-flex flex-column align-items-start ms-auto">
-                    <label class="col-form-label font-weight-bold">Pesquisar categoria</label>
+                    <label class="col-form-label font-weight-bold">@localizerApp["SearchCategory"]</label>
                     <div class="d-flex align-items-center w-100 mt-1">
                         <input class="form-control e-input e-round-corner search-input"
-                               placeholder="Categoria..."
+                               placeholder="@localizerApp["CategoryPlaceholder"]"
                                @bind="CategoryGroupSearch"
                                @bind:event="oninput" />
                         <SfButton CssClass="e-btn e-outline e-round-corner ml-1" IconCss="fa fa-times"
@@ -70,7 +70,7 @@
     }
     else
     {
-        <NoDataAvailable CardTitle="Publications categories" Visible="@NoDataVisibility" />
+        <NoDataAvailable CardTitle="@localizerApp["PublicationsCategoriesTitle"]" Visible="@NoDataVisibility" />
     }
 
     <div class="row text-center text-lg-start">
@@ -230,7 +230,7 @@
           @bind-Visible="ViewDialogVisibility">
     <DialogTemplates>
         <Content>
-            <PublicationDetail PublicationInfo="@SelectedRecord" TituloPublicacao="Consulta" />
+            <PublicationDetail PublicationInfo="@SelectedRecord" TituloPublicacao="@localizerApp["ConsultRecord"]" />
         </Content>
         <FooterTemplate>
             <div class="modal-footer">
@@ -395,7 +395,7 @@
             if (ImagePaths is null)
             {
                 ErrorDialogVisibility = true;
-                ErrorMessage = "Sem imagens para mostrar. Verifique, p.f.";
+                ErrorMessage = localizerApp["NoImagesToShow"];
             }
             //CategoryWithImages = true;
             PubsFilesCount = $"{ImagePaths.Count()} {localizerApp["Files"]}";
@@ -406,7 +406,7 @@
             // No results
             ImagePaths = null;
             ErrorDialogVisibility = true;
-            ErrorMessage = "Sem imagens para mostrar. Verifique, p.f.";
+            ErrorMessage = localizerApp["NoImagesToShow"];
 
             //CategoryWithImages = false;
         }
@@ -501,7 +501,7 @@
             {
                 NoDataVisibility = true;
                 ErrorDialogVisibility = true;
-                ErrorMessage = "Sem videos para mostrar. Verifique, p.f.";
+                ErrorMessage = localizerApp["NoVideosToShow"];
             }
             else
             {

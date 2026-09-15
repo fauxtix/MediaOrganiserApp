@@ -13,7 +13,7 @@
 
     @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))
     {
-        <div style="background:rgba(59,130,246,0.15);padding:8px;border-radius:4px;font-weight:bold;">
+        <div style="background:var(--app-info-bg);padding:8px;border-radius:4px;font-weight:bold;">
             @busyStatusMessage
         </div>
     }
@@ -40,9 +40,9 @@
     <hr />
 
     <div class="row justify-content-end mt-2">
-        <SfButton CssClass="e-success text-color-white e-round-corner mr-3"
+        <SfButton CssClass="e-success e-round-corner mr-3"
                   IconCss="fa fa-search"
-                  Content="Search"
+                  Content="@localizerApp["btnPesquisar"]"
                   Disabled="@(isBusy || (string.IsNullOrWhiteSpace(titleToSearch) && string.IsNullOrWhiteSpace(authorToSearch)))"
                   @onclick="(async () => await GetBookInfo(titleToSearch, authorToSearch))" />
     </div>
@@ -51,7 +51,7 @@
 
 
 <AlertUserComponent Visibility="@alertUser"
-                    Title="Search Google Books Api"
+                    Title="@localizerApp["SerarchGoogleApi"]"
                     Message="@alertMessage"
                     AlertMessageType="AlertMessageType.Info"
                     XPosition="right"

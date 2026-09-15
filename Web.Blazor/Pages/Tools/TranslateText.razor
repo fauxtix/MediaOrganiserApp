@@ -61,7 +61,7 @@
                                               @onclick="Translate">@L["TituloTraduzir"]</SfButton>
                                 }
                             </div>
-                            <div class="text-muted">@((Confidence.HasValue) ? $"Confidence: {Confidence:0.00}" : string.Empty)</div>
+                            <div class="text-muted">@((Confidence.HasValue) ? L["Confidence", Confidence.Value] : string.Empty)</div>
                         </div>
                     </div>
                 </div>
@@ -109,7 +109,7 @@
 
     .translate-panel .translate-output {
         min-height: 160px;
-        background: #f8f9fa;
+        background: var(--app-surface-alt);
     }
 
     .translate-panel .form-label {
@@ -129,7 +129,7 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: #0d6efd;
+            background-color: var(--app-primary);
             animation: bounce-dot 1.2s ease-in-out infinite;
         }
 
@@ -161,20 +161,8 @@
 
     .translate-progress-message {
         font-size: 0.85rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
-
-    [data-theme="dark"] .translate-panel .translate-output {
-        background: var(--app-surface-alt);
-    }
-
-    [data-theme="dark"] .bouncing-dots span {
-        background-color: var(--app-primary);
-    }
-
-    [data-theme="dark"] .translate-progress-message {
         color: var(--app-text-secondary);
+        margin-top: 0.25rem;
     }
 
 </style>

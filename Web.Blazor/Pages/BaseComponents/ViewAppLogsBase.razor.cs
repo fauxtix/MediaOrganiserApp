@@ -53,7 +53,7 @@ namespace Web.Blazor.Pages.BaseComponents
             SelectedAppLog = await logService.GetLog_ById(LogId);
 
             ViewLogVisibility = true;
-            ViewLogCaption = "Visualizar Log";
+            ViewLogCaption = L["ViewLog"];
             StateHasChanged();
         }
 
@@ -75,9 +75,9 @@ namespace Web.Blazor.Pages.BaseComponents
 
             if (args.CommandColumn.Type == CommandButtonType.Edit)
             {
-                ViewLogVisibility = true;
-                ViewLogCaption = "Ver dados da entrada no Log";
-                StateHasChanged();
+ViewLogVisibility = true;
+            ViewLogCaption = L["ViewLogEntryDetails"];
+            StateHasChanged();
             }
             else if (args.CommandColumn.Type == CommandButtonType.Delete)
             {
@@ -96,15 +96,15 @@ namespace Web.Blazor.Pages.BaseComponents
             var result = FilteredRecords?.ToList();
             if (result is not null && result.Any())
             {
-                alertTitle = "Log Viewer";
-                DeleteLogEntryCaption = $"Marcou {FilteredRecords.Count()} registos para apagar. Não tem reversão! Backup recomendado antes de continuar";
+                alertTitle = L["LogViewer"];
+                DeleteLogEntryCaption = L["MsgMarkLogsForDeletion", FilteredRecords.Count()];
                 DeleteLogsDialogVisibility = true;
                 StateHasChanged();
             }
             else
             {
                 AlertVisibility = true;
-                WarningMessage = "Não há registos para apagar... Verifique, p.f.";
+                WarningMessage = L["MsgNoLogsToDelete"];
                 return;
             }
 
@@ -236,7 +236,7 @@ namespace Web.Blazor.Pages.BaseComponents
             SendEmailDialogVisible = false;
             // optionally show feedback to user
             AlertVisibility = true;
-            alertTitle = "E-Mail";
+            alertTitle = L["lblEmail"];
             WarningMessage = L["msgSuccess"];
             StateHasChanged();
         }

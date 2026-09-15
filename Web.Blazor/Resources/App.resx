@@ -1303,4 +1303,1058 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="AiModelsTitle" xml:space="preserve">
     <value>Modeos de IA</value>
   </data>
+  <data name="TestChat" xml:space="preserve">
+    <value>Test Chat</value>
+  </data>
+  <data name="TestChatWelcome" xml:space="preserve">
+    <value>Olá! Sou o teu assistente de IA. Pergunta o que quiseres.</value>
+  </data>
+  <data name="TestChatContextExceeded" xml:space="preserve">
+    <value>Limite de contexto atingido</value>
+  </data>
+  <data name="TestChatContextExceededDetail" xml:space="preserve">
+    <value>A conversa ultrapassou o limite de contexto do modelo ({0} tokens). Inicie uma nova conversa.</value>
+  </data>
+  <data name="TestChatSelectModel" xml:space="preserve">
+    <value>Selecione o modelo</value>
+  </data>
+  <data name="TestChatReasoning" xml:space="preserve">
+    <value>Raciocínio</value>
+  </data>
+  <data name="TestChatReasoningTitle" xml:space="preserve">
+    <value>Raciocínio do modelo</value>
+  </data>
+  <data name="TestChatResponseReceived" xml:space="preserve">
+    <value>Resposta recebida</value>
+  </data>
+  <data name="TestChatCancelled" xml:space="preserve">
+    <value>O pedido foi cancelado ou interrompido. Tente novamente.</value>
+  </data>
+  <data name="TestChatError" xml:space="preserve">
+    <value>Não foi possível obter resposta da IA neste momento. {0}</value>
+  </data>
+  <data name="TestChatLanguageWarning" xml:space="preserve">
+    <value>A resposta parece estar numa língua diferente do esperado ({0}).</value>
+  </data>
+  <data name="TestChatNewChat" xml:space="preserve">
+    <value>Novo</value>
+  </data>
+  <data name="TestChatHistory" xml:space="preserve">
+    <value>Histórico</value>
+  </data>
+  <data name="TestChatNoConversations" xml:space="preserve">
+    <value>Sem conversas guardadas.</value>
+  </data>
+  <data name="TestChatAssistantName" xml:space="preserve">
+    <value>Cloud AI</value>
+  </data>
+  <data name="TestChatUserName" xml:space="preserve">
+    <value>Tu</value>
+  </data>
+  <data name="TestChatTokensUsed" xml:space="preserve">
+    <value>{0} / {1} tokens</value>
+  </data>
+  <data name="TestChatTokensRemaining" xml:space="preserve">
+    <value>Restam {0}</value>
+  </data>
+  <data name="CloudChatTab" xml:space="preserve">
+    <value>OpenRouter ( Chat)</value>
+  </data>
+  <data name="CloudChatApiKey" xml:space="preserve">
+    <value>Chave da API OpenRouter</value>
+  </data>
+  <data name="CloudChatApiKeyConfigured" xml:space="preserve">
+    <value>Chave configurada</value>
+  </data>
+  <data name="CloudChatApiKeyMissing" xml:space="preserve">
+    <value>Chave não configurada</value>
+  </data>
+  <data name="CloudChatAdminOnly" xml:space="preserve">
+    <value>Definições disponíveis apenas para administradores</value>
+  </data>
+  <data name="CloudChatDefaultModel" xml:space="preserve">
+    <value>Modelo predefinido</value>
+  </data>
+  <data name="CloudChatSelectModel" xml:space="preserve">
+    <value>Selecione um modelo</value>
+  </data>
+  <data name="CloudChatEnableReasoning" xml:space="preserve">
+    <value>Ativar raciocínio</value>
+  </data>
+  <data name="CloudChatAllowPaidModels" xml:space="preserve">
+    <value>Permitir modelos pagos</value>
+  </data>
+  <data name="CloudChatAutomaticModel" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="CloudChatModelSearchPlaceholder" xml:space="preserve">
+    <value>Pesquisar modelos...</value>
+  </data>
+  <data name="CloudChatModelRouterBadge" xml:space="preserve">
+    <value>ROUTER</value>
+  </data>
+  <data name="CloudChatModelFreeBadge" xml:space="preserve">
+    <value>FREE</value>
+  </data>
+  <data name="CloudChatModelNoResults" xml:space="preserve">
+    <value>Nenhum modelo encontrado</value>
+  </data>
+  <data name="CloudChatCreditsTitle" xml:space="preserve">
+    <value>Créditos (modelos pagos)</value>
+  </data>
+  <data name="CloudChatFreeUsageTitle" xml:space="preserve">
+    <value>Modelos gratuitos (requisições)</value>
+  </data>
+  <data name="CloudChatUsageUnavailable" xml:space="preserve">
+    <value>Uso indisponível no momento</value>
+  </data>
+  <data name="CloudChatBalanceLabel" xml:space="preserve">
+    <value>Saldo restante (US$)</value>
+  </data>
+  <data name="CloudChatUsageTodayLabel" xml:space="preserve">
+    <value>Uso hoje (US$)</value>
+  </data>
+  <data name="CloudChatUsageWeekLabel" xml:space="preserve">
+    <value>Uso esta semana (US$)</value>
+  </data>
+  <data name="CloudChatUsageMonthLabel" xml:space="preserve">
+    <value>Uso este mês (US$)</value>
+  </data>
+  <data name="CloudChatKeyLimitLabel" xml:space="preserve">
+    <value>Limite da chave (US$)</value>
+  </data>
+  <data name="CloudChatKeyLimitRemainingLabel" xml:space="preserve">
+    <value>Limite restante da chave (US$)</value>
+  </data>
+  <data name="CloudChatPaidUnsupportedWarning" xml:space="preserve">
+    <value>A chave configurada não suporta modelos pagos (conta free tier ou sem créditos).</value>
+  </data>
+  <data name="CloudChatActiveModelLabel" xml:space="preserve">
+    <value>Modelo utilizado na app</value>
+  </data>
+  <data name="CloudChatModelPaidBadge" xml:space="preserve">
+    <value>PAGO</value>
+  </data>
+  <data name="CloudChatPaidNoKeyWarning" xml:space="preserve">
+    <value>Modelo pago selecionado sem chave de API configurada. Sem chave, a app não vai funcionar.</value>
+  </data>
+  <data name="CloudChatModelRecommendedBadge" xml:space="preserve">
+    <value>RECOMENDADO</value>
+  </data>
+  <data name="CloudChatAuthorBooksUseCloud" xml:space="preserve">
+    <value>Livros de autor via OpenRouter</value>
+  </data>
+  <data name="CloudChatAuthorBooksUseCloudHint" xml:space="preserve">
+    <value>Usa o OpenRouter para a pesquisa de títulos de um autor; se falhar ou estiver desligado, cai para o modelo local (Ollama).</value>
+  </data>
+  <data name="CloudChatFreeUsedLabel" xml:space="preserve">
+    <value>Usadas hoje</value>
+  </data>
+  <data name="CloudChatFreeResetLabel" xml:space="preserve">
+    <value>Reinicia a</value>
+  </data>
+  <data name="CloudChatFreeCapModeLabel" xml:space="preserve">
+    <value>Teto diário</value>
+  </data>
+  <data name="CloudChatFreeCapAutomatic" xml:space="preserve">
+    <value>Automático (50 ou 1000 por dia)</value>
+  </data>
+  <data name="CloudChatFreeCapCustom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="CloudChatFreeNearLimitWarning" xml:space="preserve">
+    <value>Atenção: perto do limite diário de requisições gratuitas.</value>
+  </data>
+  <data name="CloudChatFreeCapOverrideLabel" xml:space="preserve">
+    <value>Teto diário (override)</value>
+  </data>
+  <data name="CloudChatFreeCapOverrideHint" xml:space="preserve">
+    <value>Deixe vazio ou use 0 para automático.</value>
+  </data>
+  <data name="TestChatExport" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="TestChatImport" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="TestChatTemperature" xml:space="preserve">
+    <value>Temp: {0}</value>
+  </data>
+  <data name="TestChatExportOk" xml:space="preserve">
+    <value>Exportadas {0} conversa(s).</value>
+  </data>
+  <data name="TestChatImportOk" xml:space="preserve">
+    <value>Importadas {0} conversa(s).</value>
+  </data>
+  <data name="TestChatImportError" xml:space="preserve">
+    <value>Erro ao importar: {0}</value>
+  </data>
+  <data name="TestChatExportError" xml:space="preserve">
+    <value>Erro ao exportar: {0}</value>
+  </data>
+  <data name="TestChatImportInvalid" xml:space="preserve">
+    <value>Ficheiro JSON inválido ou sem conversas.</value>
+  </data>
+  <data name="BooksCachedMessage" xml:space="preserve">
+    <value>Resultado em cache</value>
+  </data>
+  <data name="AuthorSearchErrorGoogle" xml:space="preserve">
+    <value>Erro ao obter Google Books de {0}; a tentar Wikidata.</value>
+  </data>
+  <data name="AuthorSearchNoGoogleResults" xml:space="preserve">
+    <value>Sem resultados do Google para {0}; a tentar Wikidata.</value>
+  </data>
+  <data name="AuthorSearchGoogleRateLimited" xml:space="preserve">
+    <value>Google Books limitou o número de pedidos para {0}; a tentar Wikidata.</value>
+  </data>
+  <data name="AuthorSearchSearchingWikidata" xml:space="preserve">
+    <value>A pesquisar Wikidata para {0}...</value>
+  </data>
+  <data name="AuthorSearchWikidataNoResults" xml:space="preserve">
+    <value>Wikidata não devolveu resultados para {0}.</value>
+  </data>
+  <data name="AuthorSearchErrorWikidata" xml:space="preserve">
+    <value>Erro ao obter resultados do Wikidata para {0}.</value>
+  </data>
+  <data name="AuthorSearchGoogleRateLimitedCombined" xml:space="preserve">
+    <value>O Google está com limite de pedidos e o Wikidata não tem resultados para {0}</value>
+  </data>
+  <data name="AuthorSearchNoResultsGoogleWikidata" xml:space="preserve">
+    <value>Sem resultados para {0} via Google/Wikidata.</value>
+  </data>
+  <data name="AuthorSearchNoBooksChain" xml:space="preserve">
+    <value>Sem livros encontrados para {0} via Google Books, OpenRouter ou Ollama após {1:F1}s.</value>
+  </data>
+  <data name="AuthorSearchCancelled" xml:space="preserve">
+    <value>Pesquisa de IA cancelada para {0}.</value>
+  </data>
+  <data name="AuthorSearchSearchingCloud" xml:space="preserve">
+    <value>A pesquisar usando IA via OpenRouter → Ollama para {0}...</value>
+  </data>
+  <data name="AuthorSearchProviderOpenRouter" xml:space="preserve">
+    <value>Resultados obtidos via OpenRouter.</value>
+  </data>
+  <data name="AuthorSearchProviderOllama" xml:space="preserve">
+    <value>Resultados obtidos via Ollama (local).</value>
+  </data>
+  <data name="MediaInfoProviderOpenRouter" xml:space="preserve">
+    <value>Informação obtida via OpenRouter.</value>
+  </data>
+  <data name="MediaInfoProviderOllama" xml:space="preserve">
+    <value>Informação obtida via Ollama (local).</value>
+  </data>
+  <data name="AuthorSearchNoBooksFromAi" xml:space="preserve">
+    <value>A pesquisa de IA não devolveu livros para {0}.</value>
+  </data>
+  <data name="AuthorSearchFailedAfter" xml:space="preserve">
+    <value>A pesquisa de IA falhou para {0} após {1:F1}s.</value>
+  </data>
+  <data name="AuthorSearchFailed" xml:space="preserve">
+    <value>A pesquisa de IA falhou para {0}.</value>
+  </data>
+  <data name="AuthorSearchDialogTitle" xml:space="preserve">
+    <value>Pesquisar Livros usando IA</value>
+  </data>
+  <data name="AuthorSearchDialogAlertMessage" xml:space="preserve">
+    <value>Nota: esta pesquisa pode demorar algum tempo...</value>
+  </data>
+  <data name="AuthorSearchSweepTrying" xml:space="preserve">
+    <value>OpenRouter: a tentar «{0}»...</value>
+  </data>
+  <data name="AuthorSearchSweepFailed" xml:space="preserve">
+    <value>«{0}» falhou; a tentar o próximo...</value>
+  </data>
+  <data name="AuthorSearchSweepEmpty" xml:space="preserve">
+    <value>«{0}» devolveu 0 livros; a tentar o próximo...</value>
+  </data>
+  <data name="AuthorSearchSweepSuccess" xml:space="preserve">
+    <value>«{0}» devolveu {1} livros.</value>
+  </data>
+  <data name="AuthorSearchSweepFallback" xml:space="preserve">
+    <value>OpenRouter sem resultados; a usar o fallback local (Ollama).</value>
+  </data>
+
+  <data name="LogViewer" xml:space="preserve">
+    <value>Visualizador de registos</value>
+  </data>
+
+  <data name="TimeStamp" xml:space="preserve">
+    <value>Data/Hora</value>
+  </data>
+
+  <data name="ExceptionLabel" xml:space="preserve">
+    <value>Exceção</value>
+  </data>
+
+  <data name="Role" xml:space="preserve">
+    <value>Função</value>
+  </data>
+
+  <data name="FormatosPublicacoes" xml:space="preserve">
+    <value>Formatos de publicações</value>
+  </data>
+
+  <data name="MsgNewEntryInsertError" xml:space="preserve">
+    <value>Nova entrada – erro de inserção! Verifique por favor.</value>
+  </data>
+
+  <data name="MsgNewEntryExists" xml:space="preserve">
+    <value>Nova entrada ({0}) já existe na base de dados!</value>
+  </data>
+
+  <data name="MsgUpdateEntryExists" xml:space="preserve">
+    <value>Atualização – a entrada já existe na base de dados!</value>
+  </data>
+
+  <data name="MsgDeleteEntryError" xml:space="preserve">
+    <value>Apagar entrada – erro ao apagar o registo!</value>
+  </data>
+
+  <data name="Opcoes" xml:space="preserve">
+    <value>Opções</value>
+  </data>
+
+  <data name="ExcecaoEncontrada" xml:space="preserve">
+    <value>Exceção encontrada.</value>
+  </data>
+
+  <data name="UploadLabel" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+
+  <data name="Folder" xml:space="preserve">
+    <value>Pasta</value>
+  </data>
+
+  <data name="Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+
+  <data name="PdfDownloads" xml:space="preserve">
+    <value>Pdf's'</value>
+  </data>
+
+  <data name="MediaFiles" xml:space="preserve">
+    <value>Ficheiros de mídia</value>
+  </data>
+
+  <data name="Database" xml:space="preserve">
+    <value>Base de dados</value>
+  </data>
+
+  <data name="UploadsFolder" xml:space="preserve">
+    <value>Uploads</value>
+  </data>
+
+  <data name="ViewLog" xml:space="preserve">
+    <value>Ver Log</value>
+  </data>
+
+  <data name="ViewLogEntryDetails" xml:space="preserve">
+    <value>Ver detalhes da entrada do log</value>
+  </data>
+
+  <data name="MsgMarkLogsForDeletion" xml:space="preserve">
+    <value>Marcou {0} registos para eliminação. Sem reversão! Recomenda-se backup antes de continuar.</value>
+  </data>
+
+  <data name="MsgNoLogsToDelete" xml:space="preserve">
+    <value>Sem registos para eliminar... Verifique por favor.</value>
+  </data>
+
+  <data name="DlgPdfDownloads" xml:space="preserve">
+    <value>Escolha a pasta para downloads de PDFs</value>
+  </data>
+
+  <data name="DlgMediaDownloads" xml:space="preserve">
+    <value>Escolha a pasta para downloads de ficheiros de mídia</value>
+  </data>
+
+  <data name="DlgBackupUploads" xml:space="preserve">
+    <value>Escolha a pasta para backups de ficheiros de mídia</value>
+  </data>
+
+  <data name="DlgBackupBD" xml:space="preserve">
+    <value>Escolha a pasta para backups da base de dados</value>
+  </data>
+
+  <data name="DlgPublicationsFolder" xml:space="preserve">
+    <value>Escolha a pasta de origem das Publicações</value>
+  </data>
+
+  <data name="DlgImagesFolder" xml:space="preserve">
+    <value>Escolha a pasta de origem das Imagens</value>
+  </data>
+
+  <data name="DlgReportsFolder" xml:space="preserve">
+    <value>Escolha a pasta de origem dos Relatórios</value>
+  </data>
+
+  <data name="DlgAuthorImagesFolder" xml:space="preserve">
+    <value>Escolha a pasta de origem das imagens dos Autores</value>
+  </data>
+
+  <data name="DlgBookImagesFolder" xml:space="preserve">
+    <value>Escolha a pasta de origem das imagens das capas dos livros</value>
+  </data>
+
+  <data name="UpdateSettings" xml:space="preserve">
+    <value>Atualizar definições</value>
+  </data>
+
+  <data name="Home" xml:space="preserve">
+    <value>Início</value>
+  </data>
+
+  <data name="SpinnerAccessingYoutubeApi" xml:space="preserve">
+    <value>Tentando aceder ao Api do Youtube</value>
+  </data>
+
+  <data name="AddToPlaylist" xml:space="preserve">
+    <value>Adicionar à Playlist</value>
+  </data>
+
+  <data name="Mp3PlayerTitle" xml:space="preserve">
+    <value>Player MP3</value>
+  </data>
+
+  <data name="Stats" xml:space="preserve">
+    <value>Estatísticas</value>
+  </data>
+
+  <data name="MediaFormatMp3" xml:space="preserve">
+    <value>MP3</value>
+  </data>
+
+  <data name="MediaFormatVideo" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+
+  <data name="MediaFormatLocal" xml:space="preserve">
+    <value>Local</value>
+  </data>
+
+  <data name="MediaFormatDvdFilm" xml:space="preserve">
+    <value>DVD Película</value>
+  </data>
+
+  <data name="MediaFormatDvdAudio" xml:space="preserve">
+    <value>DVD Áudio</value>
+  </data>
+
+  <data name="MediaFormatLocals" xml:space="preserve">
+    <value>Locais</value>
+  </data>
+
+  <data name="MediaFormatOther" xml:space="preserve">
+    <value>Outro</value>
+  </data>
+
+  <data name="MediaFormatAudio" xml:space="preserve">
+    <value>Áudio</value>
+  </data>
+
+  <data name="MediaCoverImageAlt" xml:space="preserve">
+    <value>Imagem de capa</value>
+  </data>
+
+  <data name="MediaNewRecordAlt" xml:space="preserve">
+    <value>Novo registo</value>
+  </data>
+
+  <data name="TopAlbums" xml:space="preserve">
+    <value>Top Albums</value>
+  </data>
+
+  <data name="MoreInfo" xml:space="preserve">
+    <value>Mais Informação</value>
+  </data>
+
+  <data name="DiscographyOf" xml:space="preserve">
+    <value>Discografia de {0}</value>
+  </data>
+
+  <data name="FillAuthorAndTitleFields" xml:space="preserve">
+    <value>Por favor preencha os campos Autor e Título</value>
+  </data>
+
+  <data name="AlbumNameLabel" xml:space="preserve">
+    <value>Nome do Album: {0}</value>
+  </data>
+
+  <data name="TracksLabel" xml:space="preserve">
+    <value>Faixas:</value>
+  </data>
+
+  <data name="NoEditionYearReturned" xml:space="preserve">
+    <value>Sem ano de Edição devolvido pela API/AI externa; tente procurá-lo noutras fontes.</value>
+  </data>
+
+  <data name="InvalidEditionYearReturned" xml:space="preserve">
+    <value>O ano de Edição devolvido pela API não é válido {0}</value>
+  </data>
+
+  <data name="AINotesServiceFailedFallback" xml:space="preserve">
+    <value>O serviço de notas AI não devolveu qualquer resultado.</value>
+  </data>
+
+  <data name="NoNotesFoundFallback" xml:space="preserve">
+    <value>Nenhuma nota foi encontrada para este media.</value>
+  </data>
+
+  <data name="ApiNoResults" xml:space="preserve">
+    <value>Api não devolveu qualquer resultado</value>
+  </data>
+
+  <data name="DownloadYoutube" xml:space="preserve">
+    <value>Download Youtube</value>
+  </data>
+
+  <data name="OperationSaveCancelled" xml:space="preserve">
+    <value>Operação de gravação cancelada</value>
+  </data>
+
+  <data name="FetchingMetadataViaAlbumFirst" xml:space="preserve">
+    <value>A obter metadados via AlbumFirst Api...</value>
+  </data>
+
+  <data name="FetchingMetadataViaAudioDb" xml:space="preserve">
+    <value>A obter metadados via AudioDb Api...</value>
+  </data>
+
+  <data name="DataObtainedViaAudioDb" xml:space="preserve">
+    <value>Dados obtidos via AudioDb Api</value>
+  </data>
+
+  <data name="DataObtainedViaAlbumFirst" xml:space="preserve">
+    <value>Dados obtidos via AlbumFirst Api</value>
+  </data>
+
+  <data name="FetchingMetadataViaAI" xml:space="preserve">
+    <value>A obter metadados via AI...</value>
+  </data>
+
+  <data name="AINoResults" xml:space="preserve">
+    <value>AI não devolveu qualquer resultado</value>
+  </data>
+
+  <data name="ErrorFetchingMetadataViaAI" xml:space="preserve">
+    <value>Erro ao obter metadados via AI. ({0})</value>
+  </data>
+
+  <data name="UploadMediaFilesTitle" xml:space="preserve">
+    <value>Upload de ficheiros multimédia</value>
+  </data>
+
+  <data name="UploadFileSizeLabel" xml:space="preserve">
+    <value>Tamanho em bytes: {0}</value>
+  </data>
+
+  <data name="UploadFileLastModifiedLabel" xml:space="preserve">
+    <value>Data última modificação: {0}</value>
+  </data>
+
+  <data name="UploadFileContentLabel" xml:space="preserve">
+    <value>Conteúdo: {0}</value>
+  </data>
+
+  <data name="BtnTerminar" xml:space="preserve">
+    <value>Terminar</value>
+  </data>
+
+  <data name="UploadInvalidExtension" xml:space="preserve">
+    <value>Ficheiro não tem extensão válida. Verifique, por favor</value>
+  </data>
+
+  <data name="MediaGenreUnknown" xml:space="preserve">
+    <value>Sem Género</value>
+  </data>
+
+  <data name="UploadNewCategoryCreated" xml:space="preserve">
+    <value>Criada nova Categoria ({0})</value>
+  </data>
+
+  <data name="VerifyAuthor" xml:space="preserve">
+    <value>Verificar Autor</value>
+  </data>
+
+  <data name="MediaGenreOther" xml:space="preserve">
+    <value>Outro</value>
+  </data>
+
+  <data name="UploadProcessedSuccessfully" xml:space="preserve">
+    <value>Ficheiro '{0}' processado com sucesso...</value>
+  </data>
+
+  <data name="UploadCreateFileError" xml:space="preserve">
+    <value>Erro ao criar ficheiro. Verifique, por favor</value>
+  </data>
+
+  <data name="UploadFileAlreadyExists" xml:space="preserve">
+    <value>Ficheiro '{0}' já existe. Verifique, por favor</value>
+  </data>
+
+  <data name="UploadSendErrorDevelopment" xml:space="preserve">
+    <value>Erro ao enviar uploadedFile(s) ...</value>
+  </data>
+
+  <data name="UploadSendError" xml:space="preserve">
+    <value>Não foi possível enviar o(s) uploadedFile(s) ...</value>
+  </data>
+
+  <data name="Name" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+
+  <data name="MediaTypeLabel" xml:space="preserve">
+    <value>Tipo de Média</value>
+  </data>
+
+  <data name="PlaylistPlayerTitle" xml:space="preserve">
+    <value>Playlist Player</value>
+  </data>
+
+  <data name="LoadingPlaylist" xml:space="preserve">
+    <value>A carregar playlist...</value>
+  </data>
+
+  <data name="NoItemsToPlay" xml:space="preserve">
+    <value>Sem itens para reproduzir.</value>
+  </data>
+
+  <data name="ItemsCountOrdered" xml:space="preserve">
+    <value>{0} item(ns) • Ordenado por SortOrder</value>
+  </data>
+
+  <data name="Back" xml:space="preserve">
+    <value>Voltar</value>
+  </data>
+
+  <data name="NowPlaying" xml:space="preserve">
+    <value>A reproduzir agora</value>
+  </data>
+
+  <data name="Playing" xml:space="preserve">
+    <value>A reproduzir</value>
+  </data>
+
+  <data name="Repeat" xml:space="preserve">
+    <value>Repetir</value>
+  </data>
+
+  <data name="Shuffle" xml:space="preserve">
+    <value>Aleatório</value>
+  </data>
+
+  <data name="On" xml:space="preserve">
+    <value>Ligado</value>
+  </data>
+
+  <data name="Off" xml:space="preserve">
+    <value>Desligado</value>
+  </data>
+
+  <data name="Prev" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+
+  <data name="Pause" xml:space="preserve">
+    <value>Pausa</value>
+  </data>
+
+  <data name="Play" xml:space="preserve">
+    <value>Reproduzir</value>
+  </data>
+
+  <data name="Stop" xml:space="preserve">
+    <value>Parar</value>
+  </data>
+
+  <data name="Next" xml:space="preserve">
+    <value>Seguinte</value>
+  </data>
+
+  <data name="Queue" xml:space="preserve">
+    <value>Fila de reprodução</value>
+  </data>
+
+  <data name="Playlist" xml:space="preserve">
+    <value>Playlist</value>
+  </data>
+
+  <data name="OnlyAudioItemsSupported" xml:space="preserve">
+    <value>Neste player apenas são suportados itens de áudio.</value>
+  </data>
+
+  <data name="ReachedEndOfPlaylist" xml:space="preserve">
+    <value>Fim da playlist alcançado.</value>
+  </data>
+
+  <data name="AudioErrorSkipping" xml:space="preserve">
+    <value>Erro de áudio. A saltar para o item seguinte...</value>
+  </data>
+
+  <data name="PlaybackBlocked" xml:space="preserve">
+    <value>A reprodução foi bloqueada pelo navegador. Clique em Reproduzir para continuar.</value>
+  </data>
+
+  <data name="PlaybackFailed" xml:space="preserve">
+    <value>Falha na reprodução: {0}</value>
+  </data>
+
+  <data name="BrowserDoesNotSupportAudio" xml:space="preserve">
+    <value>O seu navegador não suporta o elemento de áudio.</value>
+  </data>
+
+  <data name="Album" xml:space="preserve">
+    <value>Álbum</value>
+  </data>
+
+  <data name="Wikipedia" xml:space="preserve">
+    <value>Wikipédia</value>
+  </data>
+
+  <data name="Band" xml:space="preserve">
+    <value>Banda</value>
+  </data>
+
+  <data name="VideoCategoriesTitle" xml:space="preserve">
+    <value>Categorias de vídeo</value>
+  </data>
+
+  <data name="SearchByArtistAuthor" xml:space="preserve">
+    <value>Pesquisar por Artista/Autor</value>
+  </data>
+
+  <data name="ArtistAuthorPlaceholder" xml:space="preserve">
+    <value>Artista/Autor...</value>
+  </data>
+
+  <data name="VideoFilesTitle" xml:space="preserve">
+    <value>Ficheiros de vídeo</value>
+  </data>
+
+  <data name="GetImage" xml:space="preserve">
+    <value>Obter Imagem</value>
+  </data>
+
+  <data name="NoVideosToShow" xml:space="preserve">
+    <value>Sem vídeos para mostrar. Verifique, por favor.</value>
+  </data>
+
+  <data name="VideoGalleryTitle" xml:space="preserve">
+    <value>Video Gallery</value>
+  </data>
+
+  <data name="CategoryPlaceholder" xml:space="preserve">
+    <value>Categoria...</value>
+  </data>
+
+  <data name="PublicationsCategoriesTitle" xml:space="preserve">
+    <value>Categorias de publicações</value>
+  </data>
+
+  <data name="ConsultRecord" xml:space="preserve">
+    <value>Consulta</value>
+  </data>
+
+  <data name="NoImagesToShow" xml:space="preserve">
+    <value>Sem imagens para mostrar. Verifique, por favor.</value>
+  </data>
+
+  <data name="MusicGalleryTitle" xml:space="preserve">
+    <value>Music Gallery</value>
+  </data>
+
+  <data name="VideoInfoTitle" xml:space="preserve">
+    <value>Video Info</value>
+  </data>
+
+  <data name="Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+
+  <data name="VideoCannotBeReproduced" xml:space="preserve">
+    <value>Vídeo não pode ser reproduzido</value>
+  </data>
+
+  <data name="FileDoesNotExistAtLocation" xml:space="preserve">
+    <value>(não existe no local indicado)</value>
+  </data>
+
+  <data name="NotInformed" xml:space="preserve">
+    <value>não informado</value>
+  </data>
+
+  <data name="NoDataFound" xml:space="preserve">
+    <value>Nenhum dado encontrado</value>
+  </data>
+
+  <data name="TooltipClear" xml:space="preserve">
+    <value>Limpar</value>
+  </data>
+
+  <data name="BtnImportPdfDocx" xml:space="preserve">
+    <value>Importar Pdf/Docx</value>
+  </data>
+
+  <data name="AltPubImage" xml:space="preserve">
+    <value>Imagem da publicação</value>
+  </data>
+
+  <data name="BtnGoogleBooksAi" xml:space="preserve">
+    <value>Google Books Api / AI</value>
+  </data>
+
+  <data name="AiNotesLabel" xml:space="preserve">
+    <value>Notas IA:</value>
+  </data>
+
+  <data name="ConfidenceLabel" xml:space="preserve">
+    <value>Confiança:</value>
+  </data>
+
+  <data name="AiNotesNone" xml:space="preserve">
+    <value>(nenhum)</value>
+  </data>
+
+  <data name="MsgFillSearchCriteria" xml:space="preserve">
+    <value>Preencha critérios de pesquisa, p.f.</value>
+  </data>
+
+  <data name="MsgInternetUnavailableAiUsed" xml:space="preserve">
+    <value>Internet indisponível. IA local (Ollama) utilizada para gerar o resumo.</value>
+  </data>
+
+  <data name="MsgInternetUnavailableGoogleBooks" xml:space="preserve">
+    <value>Internet indisponível. Não foi possível consultar a Google Books API.</value>
+  </data>
+
+  <data name="MsgTitleNotFoundConfirm" xml:space="preserve">
+    <value>Título ('{0}') não foi encontrado. Confirme, p.f.</value>
+  </data>
+
+  <data name="MsgGoogleApiError" xml:space="preserve">
+    <value>Erro ao consultar a API do Google. Confirme, p.f.</value>
+  </data>
+
+  <data name="AiSearchingBookDescription" xml:space="preserve">
+    <value>IA - A pesquisar descrição do livro...</value>
+  </data>
+
+  <data name="AiNoResponse" xml:space="preserve">
+    <value>IA - Sem resposta.</value>
+  </data>
+
+  <data name="AiNoSummaryReturned" xml:space="preserve">
+    <value>IA - Sem resumo. {0}</value>
+  </data>
+
+  <data name="AiSummaryGenerated" xml:space="preserve">
+    <value>IA - Resumo gerado. {0}</value>
+  </data>
+
+  <data name="AiErrorBookDescription" xml:space="preserve">
+    <value>IA - Erro ao gerar descrição do livro. Verifique os registos.</value>
+  </data>
+
+  <data name="AiSearchingBookMetadata" xml:space="preserve">
+    <value>IA - A pesquisar metadados/descrição do livro...</value>
+  </data>
+
+  <data name="AiDataGenerated" xml:space="preserve">
+    <value>IA - Dados gerados. {0}</value>
+  </data>
+
+  <data name="AiErrorBookMetadata" xml:space="preserve">
+    <value>IA - Erro ao gerar metadados do livro. Verifique os registos.</value>
+  </data>
+
+  <data name="BreadcrumbHome" xml:space="preserve">
+    <value>Início</value>
+  </data>
+
+  <data name="MsgFileTransferError" xml:space="preserve">
+    <value>Erro ao transferir ficheiro.</value>
+  </data>
+
+  <data name="TitleFileTransfer" xml:space="preserve">
+    <value>Transferência de ficheiros</value>
+  </data>
+
+  <data name="MsgNotFound" xml:space="preserve">
+    <value>Não encontrada</value>
+  </data>
+
+  <data name="MsgFileNotTransferredNotFound" xml:space="preserve">
+    <value>{0} não foi transferido, por não ter sido encontrado. Considere apagar entrada no ficheiro</value>
+  </data>
+
+  <data name="MsgFileLocked" xml:space="preserve">
+    <value>Ficheiro não foi transferido; poderá estar a ser usado por outro processo</value>
+  </data>
+
+  <data name="MsgFileNotFound" xml:space="preserve">
+    <value>O ficheiro não foi encontrado.</value>
+  </data>
+
+  <data name="MsgIoError" xml:space="preserve">
+    <value>Ocorreu um erro de E/S.</value>
+  </data>
+
+  <data name="MsgInsufficientMemory" xml:space="preserve">
+    <value>Memória insuficiente para ler o ficheiro.</value>
+  </data>
+
+  <data name="PubsNotFoundOnDiskTitle" xml:space="preserve">
+    <value>Publicações não encontradas no disco</value>
+  </data>
+
+  <data name="BreadcrumbPubsNotFoundDisk" xml:space="preserve">
+    <value>Pubs não encontrados no disco</value>
+  </data>
+
+  <data name="LabelFolder" xml:space="preserve">
+    <value>Pasta</value>
+  </data>
+
+  <data name="Info" xml:space="preserve">
+    <value>Informações</value>
+  </data>
+
+  <data name="Volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+
+  <data name="Url" xml:space="preserve">
+    <value>URL</value>
+  </data>
+
+  <data name="Confidence" xml:space="preserve">
+    <value>Confiança: {0:0.00}</value>
+  </data>
+
+  <data name="AIProcessingPreparing" xml:space="preserve">
+    <value>A preparar pedido à IA...</value>
+  </data>
+
+  <data name="AIProcessingWaiting" xml:space="preserve">
+    <value>A aguardar resposta da IA...</value>
+  </data>
+
+  <data name="AIProcessingParsing" xml:space="preserve">
+    <value>A processar resposta da IA...</value>
+  </data>
+
+  <data name="AIProcessingDone" xml:space="preserve">
+    <value>Concluído!</value>
+  </data>
+
+  <data name="AIProcessingFailed" xml:space="preserve">
+    <value>Falha no pedido à IA.</value>
+  </data>
+
+  <data name="AIProcessingCancelled" xml:space="preserve">
+    <value>Pedido à IA cancelado ou expirado.</value>
+  </data>
+
+  <data name="AIProcessingCloudTrying" xml:space="preserve">
+    <value>A tentar com OpenRouter ({0})...</value>
+  </data>
+
+  <data name="AIProcessingCloudFailed" xml:space="preserve">
+    <value>Falha via OpenRouter ({0}).</value>
+  </data>
+
+  <data name="AIProcessingCloudEmpty" xml:space="preserve">
+    <value>Resposta vazia de OpenRouter ({0}).</value>
+  </data>
+
+  <data name="Path" xml:space="preserve">
+    <value>Caminho</value>
+  </data>
+
+  <data name="IframeYouTubeTitle" xml:space="preserve">
+    <value>Jogador de vídeo YouTube</value>
+  </data>
+
+  <data name="ProgressComplete" xml:space="preserve">
+    <value>concluído</value>
+  </data>
+
+  <data name="FileSizeExceeded" xml:space="preserve">
+    <value>O tamanho do ficheiro excede o limite. Tamanho máximo permitido: {0} MB.</value>
+  </data>
+
+  <data name="InvalidFileType" xml:space="preserve">
+    <value>Tipo de ficheiro inválido. Tipos permitidos: {0}</value>
+  </data>
+
+  <data name="DefaultGenre" xml:space="preserve">
+    <value>Sem Género</value>
+  </data>
+
+  <data name="DefaultGenreOutro" xml:space="preserve">
+    <value>Outra</value>
+  </data>
+
+  <data name="UploadSuccessMessage" xml:space="preserve">
+    <value>Ficheiro '{0}' processado com sucesso.</value>
+  </data>
+
+  <data name="UploadErrorMessage" xml:space="preserve">
+    <value>Erro ao criar o ficheiro ('{0}'). Verifique, por favor.</value>
+  </data>
+
+  <data name="UploadExceptionMessage" xml:space="preserve">
+    <value>'{0}'. {1}. Verifique, por favor</value>
+  </data>
+
+  <data name="MediaLabel" xml:space="preserve">
+    <value>Multimédia</value>
+  </data>
+
+  <data name="PlaylistLabel" xml:space="preserve">
+    <value>Playlist</value>
+  </data>
+
+  <data name="SelectPlaylistPlaceholder" xml:space="preserve">
+    <value>Selecione uma playlist...</value>
+  </data>
+
+  <data name="NoPlaylistsReturned" xml:space="preserve">
+    <value>Nenhuma playlist devolvida pela API.</value>
+  </data>
+
+  <data name="NoPlaylistsReturnedDebug" xml:space="preserve">
+    <value>Nenhuma playlist foi devolvida. Se tiver playlists, verifique a aba Rede do navegador na chamada GET /Playlists (código de estado, BaseUrl, ApiKey).</value>
+  </data>
+
+  <data name="ErrorLoadingPlaylists" xml:space="preserve">
+    <value>Erro ao carregar playlists: {0}</value>
+  </data>
+
+  <data name="NoMediaSelected" xml:space="preserve">
+    <value>Nenhum multimédia selecionado.</value>
+  </data>
+
+  <data name="SelectPlaylist" xml:space="preserve">
+    <value>Selecione uma playlist.</value>
+  </data>
+
+  <data name="MediaNoValidPath" xml:space="preserve">
+    <value>O item de multimédia não tem caminho local ou URL válidos.</value>
+  </data>
+
+  <data name="MediaAlreadyInPlaylist" xml:space="preserve">
+    <value>Este item de multimédia já está na playlist selecionada.</value>
+  </data>
+
+  <data name="ErrorAddingItem" xml:space="preserve">
+    <value>Erro ao adicionar item: {0}</value>
+  </data>
+
+  <data name="LocalFileDefault" xml:space="preserve">
+    <value>Ficheiro local</value>
+  </data>
 </root>

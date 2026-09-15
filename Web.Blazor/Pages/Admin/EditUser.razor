@@ -66,10 +66,10 @@
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-6">
-                                        <label class="e-input-group"> Role</label>
+                                        <label class="e-input-group"> @(LocalizerApp["Role"])</label>
                                         <SfDropDownList @ref="@ddlRoles" @bind-Value="@userRoleId"
                                                         TItem="IdentityRole" TValue="string"
-                                                        Placeholder="Role" PopupHeight="auto" DataSource="@userRoles"
+                                                        Placeholder="@(LocalizerApp["Role"])" PopupHeight="auto" DataSource="@userRoles"
                                                         CssClass="planner-dropdown" ShowClearButton="true">
                                             <DropDownListEvents TItem="IdentityRole" TValue="string"
                                                                 ValueChange="@onRoleDdl_Change" OnClose="@onRoleDDL_Close"></DropDownListEvents>
@@ -84,7 +84,7 @@
                                                    Type="InputType.Password"
                                                    CssClass="e-input-group e-corner"
                                                    FloatLabelType="@FloatLabelType.Auto"
-                                                   Placeholder="Password">
+                                                   Placeholder="@(LocalizerApp["lblPassword"])">
                                         </SfTextBox>
                                     </div>
                                 </div>

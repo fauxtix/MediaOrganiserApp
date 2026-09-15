@@ -1,11 +1,11 @@
-﻿﻿@using Microsoft.Extensions.Localization
+﻿@using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components
 
 @inject IJSRuntime JSRuntime
 
 @if (!string.IsNullOrEmpty(TituloPublicacao))
 {
-    <div class="title">Galeria de Imagens</div>
+    <div class="title">@localizerApp["lblGaleria"]</div>
     <div class="underline"></div>
     <br />
 
@@ -19,14 +19,14 @@
                             <div class="col-8">
                                 <SfTextBox ID="titulo" Readonly="true"
                                            CssClass="e-field e-corner"
-                                           Placeholder="Título"
+                                           Placeholder="@localizerApp["lblTitulo"]"
                                            FloatLabelType="@FloatLabelType.Auto"
                                            Value="@PublicationInfo.Titulo">
                                 </SfTextBox>
                             </div>
                             <div class="col-2">
                                 <SfTextBox Readonly="true" Value="@PublicationInfo.AnoEdicao"
-                                           Placeholder="Edição"
+                                           Placeholder="@localizerApp["lblAnoEdicao"]"
                                            FloatLabelType="@FloatLabelType.Auto"
                                            CssClass="e-field custom-class e-corner">
                                 </SfTextBox>
@@ -34,7 +34,7 @@
                             <div class="col-2">
                                 <SfTextBox Readonly="true" Value="@PublicationInfo.Paginas.ToString()"
                                            FloatLabelType="@FloatLabelType.Auto"
-                                           Placeholder="Páginas"
+                                           Placeholder="@localizerApp["lblPaginas"]"
                                            CssClass="e-field custom-class e-corner">
                                 </SfTextBox>
                             </div>
@@ -43,7 +43,7 @@
                             <div class="col-6">
                                 <SfTextBox Readonly="true"
                                            FloatLabelType="@FloatLabelType.Auto"
-                                           Placeholder="Editora"
+                                           Placeholder="@localizerApp["lblEditora"]"
                                            CssClass="e-field"
                                            Value="@PublicationInfo.Editora">
                                 </SfTextBox>
@@ -51,7 +51,7 @@
                             <div class="col-6">
                                 <SfTextBox Readonly="true"
                                            FloatLabelType="@FloatLabelType.Auto"
-                                           Placeholder="Autor"
+                                           Placeholder="@localizerApp["lblAutor"]"
                                            CssClass="e-field e-corner"
                                            Value="@PublicationInfo.Autor">
                                 </SfTextBox>
@@ -61,14 +61,14 @@
                             <div class="col-6">
                                 <SfTextBox CssClass="e-field e-corner"
                                            FloatLabelType="@FloatLabelType.Auto"
-                                           Placeholder="Categoria"
+                                           Placeholder="@localizerApp["lblCategoria"]"
                                            Readonly="true" Value="@PublicationInfo.Categoria">
                                 </SfTextBox>
                             </div>
                             <div class="col-6">
                                 <SfTextBox Readonly="true" CssClass="e-field e-corner"
                                            Value="@PublicationInfo.Formato"
-                                           Placeholder="Formato"
+                                           Placeholder="@localizerApp["lblFormato"]"
                                            FloatLabelType="@FloatLabelType.Auto">
                                 </SfTextBox>
                             </div>
@@ -77,12 +77,12 @@
                             <div class="col-6">
                                 <SfTextBox Readonly="true" CssClass="e-field e-corner"
                                            Value="@PublicationInfo.Local"
-                                           Placeholder="Local de Arquivo"
+                                           Placeholder="@localizerApp["lblLocalArquivo"]"
                                            FloatLabelType="@FloatLabelType.Auto">
                                 </SfTextBox>
                             </div>
                             <div class="col-6">
-                                <label class="mt-2">Rating</label>
+                                <label class="mt-2">@localizerApp["lblRating"]</label>
                                 <div class="mt-2">
                                     <SfRating Value="@PublicationInfo.Rating" />
                                 </div>
@@ -91,7 +91,7 @@
                         <div class="form-row mt-2">
                             <div class="col-12">
                                 <SfRichTextEditor CssClass="form-control custom-class e-corner"
-                                                  Placeholder="Resumo" Readonly="true"
+                                                  Placeholder="@localizerApp["lblSinopse"]" Readonly="true"
                                                   @bind-Value="@PublicationInfo.Resumo" />
 
                                 @*                                 <SfTextBox @attributes="htmlAttribute"

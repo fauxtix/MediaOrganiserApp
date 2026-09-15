@@ -15,12 +15,12 @@ else
                 <div class="img-box">
                     @if (!string.IsNullOrEmpty(SelectedRecord.CoverFile))
                     {
-                        <img class="img-fluid img-thumbnail" alt="Imagem de capa"
+                        <img class="img-fluid img-thumbnail" alt="@L["MediaCoverImageAlt"]"
                              src="@SelectedRecord.CoverFile" />
                     }
                     else
                     {
-                        <img alt="Novo registo" src="/images/mediaFiles.jpg" />
+                        <img alt="@L["MediaNewRecordAlt"]" src="/images/mediaFiles.jpg" />
                     }
                 </div>
 
@@ -91,14 +91,14 @@ else
                             <div class="mt-4">
                                 <SfButton CssClass="e-primary e-outline e-round-corner"
                                           IconCss="fa fa-search"
-                                          Content="Top Albums"
+                                          Content="@L["TopAlbums"]"
                                           @onclick="@(() => SearchArtistRecordsVisibility = true)" />
                             </div>
                         }
                         <div class="mt-4">
                             <SfButton CssClass="e-success e-outline mr-1  e-round-corner"
                                       IconCss="fa fa-info"
-                                      Content="More Info"
+                                      Content="@L["MoreInfo"]"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
                                       Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) &&
                                                                                                                                                                                                     !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
@@ -111,7 +111,7 @@ else
                                 <div class="mt-4">
                                     <SfButton CssClass="e-danger e-outline e-round-corner"
                                               IconCss="fa fa-times"
-                                              Content="Cancel"
+                                              Content="@L["btnCancelar"]"
                                               @onclick="CancelMediaInfo">
                                     </SfButton>
                                 </div>
@@ -187,7 +187,7 @@ else
                             @* <div class="col-md-12 col-lg-6 mt-2"> *@
                             <SfRadioButton TChecked="byte" Value="1" Label="@(L["msgTutorials"])" @bind-Checked="@(SelectedRecord.TipoMedia)"
                                            CssClass="input-control" ValueChange="onMediaTypeChange" Name="Tipo"></SfRadioButton>
-                            <SfRadioButton TChecked="byte" Value="2" Label="Audio" Name="Tipo" @bind-Checked="@(SelectedRecord.TipoMedia)"
+                            <SfRadioButton TChecked="byte" Value="2" Label="@L["MediaFormatAudio"]" Name="Tipo" @bind-Checked="@(SelectedRecord.TipoMedia)"
                                            CssClass="input-control" ValueChange="onMediaTypeChange"></SfRadioButton>
                             <SfRadioButton TChecked="byte" Value="3" Label="@(L["msgOtherTypes"])" Name="Tipo" @bind-Checked="@(SelectedRecord.TipoMedia)"
                                            CssClass="input-control" ValueChange="onMediaTypeChange"></SfRadioButton>
@@ -254,7 +254,7 @@ else
 
             @if (isBusy && !string.IsNullOrWhiteSpace(busyStatusMessage))
             {
-                <div style="background:rgba(59,130,246,0.15);padding:8px;border-radius:4px;font-weight:bold;">
+                <div style="background:var(--app-info-bg);padding:8px;border-radius:4px;font-weight:bold;">
                     @busyStatusMessage
                 </div>
             }
@@ -272,7 +272,7 @@ else
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <div>
-                            <i class="fa fa-users p-2"></i>Discografia de @SelectedRecord.Autor
+                            <i class="fa fa-users p-2"></i>@L["DiscographyOf", SelectedRecord.Autor]
                         </div>
                     </h5>
                 </div>

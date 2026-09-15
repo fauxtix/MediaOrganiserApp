@@ -37,9 +37,8 @@ namespace Web.Blazor.Components
         private string extension = "";
         private string mediaNotes = "";
         private string sUrl = "";
-        private int mediaType = 2;  // default = vídeo
-        private int genero = 23; // sem género
-        private string notas = "Ficheiro local";
+        private int mediaType = 2;  // default = v\u00eddeo
+        private int genero = 23; // sem g\u00e9nero
         private string cover = "/images/music-icon2.png";
         private string clsName { get; set; }
         protected bool UploadOk { get; set; }
@@ -62,7 +61,7 @@ namespace Web.Blazor.Components
 
             if (selectedFile.Size > maxFileSize)
             {
-                uploadResult.Message = $"File size exceeds the limit. Maximum allowed size is <strong>{maxFileSize / (1024 * 1024)} MB</strong>.";
+                uploadResult.Message = string.Format(localizerApp["FileSizeExceeded"], maxFileSize / (1024 * 1024));
                 logger.LogWarning(uploadResult.Message);
                 uploadResult.Flag = false;
 
@@ -71,7 +70,7 @@ namespace Web.Blazor.Components
 
             else if (!allowedExtensions.Contains(Path.GetExtension(selectedFile.Name).ToLowerInvariant()))
             {
-                uploadResult.Message = $"Invalid file type. Allowed file types are {string.Join(", ", allowedExtensions)}";
+                uploadResult.Message = string.Format(localizerApp["InvalidFileType"], string.Join(", ", allowedExtensions));
                 logger.LogWarning(uploadResult.Message);
 
                 uploadResult.Flag = false;
@@ -162,10 +161,10 @@ namespace Web.Blazor.Components
                 if (extension.ToLower() == ".mp3")
                 {
 
-                    string mediaGenre = tagFile.Tag.Genres.Length > 0 ? tagFile.Tag.FirstGenre : "Sem Género";
+                    string mediaGenre = tagFile.Tag.Genres.Length > 0 ? tagFile.Tag.FirstGenre : localizerApp["DefaultGenre"];
 
                     int categoryId = await categoriasSVC.GetIdCategoria(mediaGenre);
-                    if (categoryId == 0)  // alterado API, ver explicação no código
+                    if (categoryId == 0)  // alterado API, ver explicaï¿½ï¿½o no cï¿½digo
                     {
 
                         CategoryVM mediaCategory = new()
@@ -189,7 +188,7 @@ namespace Web.Blazor.Components
                     StringBuilder sb = new StringBuilder();
 
                     bool hasPerformer = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer);
-                    var artist = hasPerformer ? tagFile.Tag.FirstPerformer : "Verificar Autor";
+                    var artist = hasPerformer ? tagFile.Tag.FirstPerformer : localizerApp["VerifyAuthor"];
                     if (string.IsNullOrEmpty(albumName))
                     {
                         albumName = await MediaService.GetMp3Album(artist, songName);
@@ -198,12 +197,12 @@ namespace Web.Blazor.Components
                     if (hasPerformer && !string.IsNullOrEmpty(albumName))
                     {
 
-                        sb.AppendLine("Nome do Album: " + albumName);
+                        sb.AppendLine(localizerApp["AlbumNameLabel", albumName]);
                         var albumInfo = await MediaService.GetAlbumInfo(artist, albumName);
                         if (!string.IsNullOrEmpty(albumInfo.Notas))
                         {
                             sb.AppendLine();
-                            sb.AppendLine("Faixas:");
+                            sb.AppendLine(localizerApp["TracksLabel"]);
                             sb.AppendLine();
                             sb.AppendLine(albumInfo.Notas);
                         }
@@ -225,7 +224,7 @@ namespace Web.Blazor.Components
                         Notas = !string.IsNullOrEmpty(sb.ToString()) ? sb.ToString() : "",
                         AnoEdicao = tagFile.Tag.Year > 0 ? tagFile.Tag.Year.ToString() : "",
                         Visualizado = true,
-                        Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Verificar Autor",
+                        Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : localizerApp["VerifyAuthor"],
                         Rating = 0,
                         GuardaEmdisco = 1,
                         Tempo = duration,
@@ -238,9 +237,9 @@ namespace Web.Blazor.Components
                 else // not mp3
                 {
 
-                    string mediaGenre = tagFile.Tag.FirstGenre is not null ? tagFile.Tag.FirstGenre : "Outra";
+                    string mediaGenre = tagFile.Tag.FirstGenre is not null ? tagFile.Tag.FirstGenre : localizerApp["DefaultGenreOutro"];
                     string sMp4Picture = "";
-                    int mediaFormatId = utilsSvc.GetPkValueFromTable("Formato_Media", "Id", "Descricao", "Armazenamento média");
+                    int mediaFormatId = utilsSvc.GetPkValueFromTable("Formato_Media", "Id", "Descricao", "Armazenamento m\u00e9dia");
                     int mediaCategoryId = utilsSvc.GetPkValueFromTable("Categoria", "Id", "Descricao", mediaGenre);
                     string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? " (" + tagFile.Tag.Album + ")" : "";
                     string duration = tagFile.Properties.Duration.ToString(@"hh\:mm\:ss");
@@ -258,7 +257,7 @@ namespace Web.Blazor.Components
                     FileInfo fi = new FileInfo(path);
 
 
-                    mediaType = 2;  // TODO implementar em form à parte -- default, para já = áudio (2)
+                    mediaType = 2;  // TODO implementar em form ï¿½ parte -- default, para jï¿½ = ï¿½udio (2)
                     MediaModel = new()
                     {
                         FileName = Path.GetFileNameWithoutExtension(selectedFile.Name),
@@ -269,9 +268,9 @@ namespace Web.Blazor.Components
                         FileUrl = sUrl,
                         TipoMedia = (byte)mediaType,
                         AnoEdicao = selectedFile.LastModified.UtcDateTime.Year.ToString(),
-                        Notas = notas,
+                        Notas = localizerApp["LocalFileDefault"],
                         Visualizado = false,
-                        Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Fausto Luís",
+                        Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Fausto Lu\u00eds",
                         Rating = 0,
                         GuardaEmdisco = 1,
                         Tempo = duration,
@@ -287,8 +286,8 @@ namespace Web.Blazor.Components
                     var mediaCreated = await mediaSvc.CreateMediaFile(MediaModel);
                     if (mediaCreated)
                     {
-                        resultMessage = $"Ficheiro '{selectedFile.Name}' processado com sucesso...";
-                        logger.LogInformation($"Criado ficheiro média ('{selectedFile.Name}') a partir de armazenamento local.");
+                        resultMessage = string.Format(localizerApp["UploadSuccessMessage"], selectedFile.Name);
+                        logger.LogInformation($"Criado ficheiro mï¿½dia ('{selectedFile.Name}') a partir de armazenamento local.");
 
                         clsName = "alert alert-success";
                         UploadOk = true;
@@ -300,7 +299,7 @@ namespace Web.Blazor.Components
                         if (System.IO.File.Exists(path))
                             System.IO.File.Delete(path);
 
-                        resultMessage = $"Erro ao criar ficheiro ('{selectedFile.Name}'). Verifique, por favor.";
+                        resultMessage = string.Format(localizerApp["UploadErrorMessage"], selectedFile.Name);
                         logger.LogWarning(resultMessage);
 
 
@@ -312,7 +311,7 @@ namespace Web.Blazor.Components
                 }
                 catch (Exception ex)
                 {
-                    resultMessage = $"('{selectedFile.Name}'). {ex.Message}.Verifique, por favor";
+                    resultMessage = string.Format(localizerApp["UploadExceptionMessage"], selectedFile.Name, ex.Message);
                     logger.LogError(resultMessage);
                     clsName = "alert alert-danger";
 
@@ -342,7 +341,7 @@ namespace Web.Blazor.Components
             int lastDashIndex = fileName.LastIndexOf('-');
 
             if (lastDashIndex == -1)
-                return fileName; // fallback, caso não exista '-'
+                return fileName; // fallback, caso nï¿½o exista '-'
 
             return fileName.Substring(lastDashIndex + 1).Trim();
         }

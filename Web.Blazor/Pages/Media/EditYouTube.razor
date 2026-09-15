@@ -3,7 +3,7 @@
 @if (categoryList == null || formatList == null)
 {
     <div class="spinner-border" role="status">
-        <span class="sr-only">Carregando dados...</span>
+        <span class="sr-only">@L["LoadingMsg"]</span>
     </div>
 }
 else
@@ -13,7 +13,7 @@ else
             <div>
                 <div class="e-input-url" hidden="@(!hideLowerDiv)">
                     <div>
-                        <SfTextBox Multiline="true"  Enabled="true" Placeholder="Url" Width="570px" 
+                        <SfTextBox Multiline="true"  Enabled="true" Placeholder="@L["Url"]" Width="570px" 
                                    CssClass="form-control e-primary e-round-corner" ShowClearButton="true"
                                    FloatLabelType="@FloatLabelType.Auto"
                                    @bind-Value="@SelectedRecord.FileUrl">
@@ -50,10 +50,10 @@ else
                                       @bind-Value="@transDate">
                         </SfDatePicker>
                         <div class="form-group mr-3">
-                            <SfRadioButton CssClass="mt-3" @ref="@chkVideo" Label="Video" TChecked="bool" Name="TipoMedia"
+                            <SfRadioButton CssClass="mt-3" @ref="@chkVideo" Label="@L["MediaFormatVideo"]" TChecked="bool" Name="TipoMedia"
                                            Checked="@(SelectedRecord.TipoMedia == 1)" ValueChange="OnMediaTypeChange"></SfRadioButton>
                             <span style="padding:0px 10px 0px 5px">
-                                <SfRadioButton @ref="@chkAudio" TChecked="bool" Label="Audio" Name="TipoMedia"
+                                <SfRadioButton @ref="@chkAudio" TChecked="bool" Label="@L["MediaFormatAudio"]" Name="TipoMedia"
                                                Checked="@(SelectedRecord.TipoMedia == 2)" ValueChange="OnAudioTypeChange"></SfRadioButton>
                             </span>
                         </div>
@@ -93,8 +93,8 @@ else
                                        @bind-Value="@SelectedRecord.Autor">
                             </SfTextBox>
                         </div>
-                        @* <div class="mt-2">
-                    <SfTextBox Enabled="true" Placeholder="Edição"
+@* <div class="mt-2">
+                    <SfTextBox Enabled="true" Placeholder="@L["editionMsg"]"
                     CssClass="form-control"
                     Width="120px"
                     FloatLabelType="@FloatLabelType.Auto"

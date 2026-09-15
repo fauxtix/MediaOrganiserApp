@@ -23,8 +23,8 @@ else
                 <div id="myCarousel">
                     <a class="d-block mb-4">
                         <div class="img-box img-fluid">
-                            <img 
-                                 alt="Imagem da publicação" src="@CoverImage" />
+                                 <img 
+                                  alt="@localizerApp["AltPubImage"]" src="@CoverImage" />
                         </div>
                     </a>
                 </div>
@@ -83,7 +83,7 @@ else
                             <div>
                                 <SfButton CssClass="e-success e-round-corner ml-2 mr-2 mt-4"                                          
                                           IconCss="fa fa-search"
-                                          Content="Google Books Api / AI"
+                                          Content="@localizerApp["BtnGoogleBooksAi"]"
                                           @onclick="@(() => SearchApiVisibility = true)" />
                             </div>
                         }
@@ -207,7 +207,7 @@ else
                             <div class="d-flex justify-content-end mb-2">
                                 <SfButton CssClass="e-outline e-round-corner"
                                           IconCss="fa fa-language"
-                                          Title="Translate"
+                                           Title="@localizerApp["TituloTraduzir"]"
                                           Disabled="!blnEdit || SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.Resumo)"
                                           @onclick="OpenTranslateDialog">
                                     @localizerApp["TituloTraduzir"]
@@ -227,10 +227,10 @@ else
                                        ShowCloseIcon="true" ShowIcon="true"
                                        Variant="MessageVariant.Text"
                                        Visible="true">
-                                AI Notes:@(string.IsNullOrWhiteSpace(aiNotes) ? " (none)" : $" {aiNotes}")
+                                @localizerApp["AiNotesLabel"]@(string.IsNullOrWhiteSpace(aiNotes) ? " " + localizerApp["AiNotesNone"] : $" {aiNotes}")
                                 @if (aiConfidence is not null)
                                 {
-                                    <span> | Confidence: @aiConfidence</span>
+                                    <span> | @localizerApp["ConfidenceLabel"] @aiConfidence</span>
                                 }
                             </SfMessage>
                         </div>

@@ -15,7 +15,7 @@
 
 @if (publicacoes is null)
 {
-    <p><em>Loading</em></p>
+    <p><em>@L["LoadingMsg"]</em></p>
 }
 else
 {
@@ -25,7 +25,7 @@ else
 
     <SfBreadcrumb>
         <BreadcrumbItems>
-            <BreadcrumbItem Text="Home" IconCss="e-icons e-home" Url="/" />
+            <BreadcrumbItem Text="@L["BreadcrumbHome"]" IconCss="e-icons e-home" Url="/" />
             <BreadcrumbItem Text="@L["mnuLivros"]" Url="/publicacoes" />
             <BreadcrumbItem Text="@L["TituloCaminhoFicheirosIncorretos"]" Url="/pubswithwrongpath" />
         </BreadcrumbItems>
@@ -84,7 +84,7 @@ else
         <DialogTemplates>
             <Header>
                 <div class="modal-header">
-                    <p class="text-danger">Erro ao transferir ficheiro.</p>
+                    <p class="text-danger">@L["MsgFileTransferError"]</p>
                 </div>
             </Header>
             <Content>
@@ -92,11 +92,11 @@ else
                     <SfTextBox Multiline="true" @bind-Value="ErrorMessage" Readonly="true" />
                 </div>
                 <br />
-                <p class="text-info">Operação cancelada.</p>
+                <p class="text-info">@L["OperacaoCancelada"]</p>
             </Content>
             <FooterTemplate>
                 <div class="modal-footer">
-                    <SfButton CssClass="btn btn-info e-primary" Content="Fechar"
+                    <SfButton CssClass="btn btn-info e-primary" Content="@L["btnFechar"]"
                               @onclick="CloseErrorBox">
                     </SfButton>
                 </div>
@@ -107,7 +107,7 @@ else
 
     <AlertUserComponent Visibility="alertUserVisibility"
                         Message="@L["msgSuccess"]"
-                        Title="Transferência de ficheiros"
+                        Title="@L["TitleFileTransfer"]"
                         OnCloseDialog="@(()=>alertUserVisibility = false)" />
 }
 
@@ -209,7 +209,7 @@ else
             }
         }
 
-        return ("", "Não encontrada");
+        return ("", L["MsgNotFound"]);
 
     }
 
@@ -265,7 +265,7 @@ else
                     return;
                 }
 
-                ErrorMessage = $"'{pubToMove.PubTitle}' não foi transferido, por não ter sido encontrado. Considere apagar entrada no ficheiro";
+                ErrorMessage = L["MsgFileNotTransferredNotFound", pubToMove.PubTitle];
                 await ErrorDialog.ShowAsync();
                 return;
             }
@@ -280,7 +280,7 @@ else
                 }
                 else
                 {
-                    ErrorMessage = $"{Path.GetFileNameWithoutExtension(pubToMove.ActualPubPath)} não foi transferido, por não ter sido encontrado. Considere apagar entrada no ficheiro";
+                    ErrorMessage = L["MsgFileNotTransferredNotFound", Path.GetFileNameWithoutExtension(pubToMove.ActualPubPath)];
                     await ErrorDialog.ShowAsync();
                     return;
                 }
@@ -293,23 +293,23 @@ else
             }
             else
             {
-                ErrorMessage = "Ficheiro não foi transferido; poderá estar a ser usado por outro processo";
+                ErrorMessage = L["MsgFileLocked"];
                 await ErrorDialog.ShowAsync();
             }
         }
         catch (FileNotFoundException fnfe)
         {
-            ErrorMessage = $"{fnfe.Message}: The file cannot be found.";
+            ErrorMessage = $"{fnfe.Message}: {L["MsgFileNotFound"]}";
             await ErrorDialog.ShowAsync();
         }
         catch (IOException ioe)
         {
-            ErrorMessage = $"{ioe.Message}: An I/O error has occurred.";
+            ErrorMessage = $"{ioe.Message}: {L["MsgIoError"]}";
             await ErrorDialog.ShowAsync();
         }
         catch (OutOfMemoryException oome)
         {
-            ErrorMessage = $"{oome.Message}: There is insufficient memory to read the file.";
+            ErrorMessage = $"{oome.Message}: {L["MsgInsufficientMemory"]}";
             await ErrorDialog.ShowAsync();
         }
 

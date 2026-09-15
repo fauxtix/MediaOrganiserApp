@@ -23,7 +23,7 @@
     <DialogTemplates>
         <Header>
             <div class="font-weight-bold">
-                Add to playlist
+                @localizerApp["AddToPlaylist"]
             </div>
         </Header>
 
@@ -37,7 +37,7 @@
             }
 
             <div class="mb-2">
-                <div style="font-weight:600;">Media</div>
+                <div style="font-weight:600;">@localizerApp["MediaLabel"]</div>
                 <div>@(Media?.FileName ?? "-")</div>
                 <div style="opacity:.8; font-size:.9rem;">
                     @(GetMediaSourcePreview())
@@ -45,12 +45,12 @@
             </div>
 
             <div class="mt-3">
-                <label style="font-weight:600;">Playlist</label>
+                <label style="font-weight:600;">@localizerApp["PlaylistLabel"]</label>
 
                 @* @key forces Syncfusion dropdown to re-render when datasource changes *@
                 <div @key="_dropDownKey">
                     <SfDropDownList TItem="PlaylistDto" TValue="int"
-                                    Placeholder="Select a playlist..."
+                                    Placeholder="@localizerApp["SelectPlaylistPlaceholder"]"
                                     DataSource="@_playlists"
                                     @bind-Value="@_selectedPlaylistId"
                                     AllowFiltering="true"
@@ -64,7 +64,7 @@
                 @if (!_isBusy && _playlists.Count == 0)
                 {
                     <div class="mt-2 text-muted" style="font-size:.9rem;">
-                        No playlists returned by API.
+                        @localizerApp["NoPlaylistsReturned"]
                     </div>
                 }
             </div>
@@ -131,7 +131,7 @@
             // IMPORTANT: if GetAllAsync failed, it returns empty without throwing.
             if (_allPlaylists.Count == 0)
             {
-                _error = "No playlists were returned. If you do have playlists, check the browser Network tab for the GET /Playlists call (status code, BaseUrl, ApiKey).";
+                _error = localizerApp["NoPlaylistsReturnedDebug"];
             }
 
             // Keep it simple: show all playlists (avoid MediaType mismatches hiding items)
@@ -143,7 +143,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Error loading playlists: {ex.Message}";
+            _error = string.Format(localizerApp["ErrorLoadingPlaylists"], ex.Message);
             _playlists = new();
             _dropDownKey = Guid.NewGuid();
             await InvokeAsync(StateHasChanged);
@@ -163,20 +163,20 @@
     {
         if (Media is null)
         {
-            _error = "No media selected.";
+            _error = localizerApp["NoMediaSelected"];
             return;
         }
 
         if (_selectedPlaylistId <= 0)
         {
-            _error = "Select a playlist.";
+            _error = localizerApp["SelectPlaylist"];
             return;
         }
 
         var resource = GetResourcePathOrUrl(Media);
         if (string.IsNullOrWhiteSpace(resource))
         {
-            _error = "Media has no valid local path or URL.";
+            _error = localizerApp["MediaNoValidPath"];
             return;
         }
 
@@ -188,7 +188,7 @@
             var items = await PlaylistsService.GetItemsAsync(_selectedPlaylistId);
             if (items.Any(i => i.MediaId == Media.Id))
             {
-                _error = "This media item is already in the selected playlist.";
+                _error = localizerApp["MediaAlreadyInPlaylist"];
                 return;
             }
 
@@ -210,7 +210,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Error adding item: {ex.Message}";
+            _error = string.Format(localizerApp["ErrorAddingItem"], ex.Message);
         }
         finally
         {

@@ -24,7 +24,7 @@
 
     @if (categoryList is null)
     {
-        <NoDataAvailable CardTitle="Video categories" Visible="@NoDataVisibility" />
+        <NoDataAvailable CardTitle="@localizerApp["VideoCategoriesTitle"]" Visible="@NoDataVisibility" />
     }
     else
     {
@@ -49,10 +49,10 @@
             </div>
 
             <div class="col-lg-5 col-md-5 col-sm-12 py-3">
-                <label class="col-form-label font-weight-bold">Pesquisar por Artista/Autor</label>
+                <label class="col-form-label font-weight-bold">@localizerApp["SearchByArtistAuthor"]</label>
                 <div class="d-flex gap-2 align-items-center">
                     <input class="form-control e-input e-round-corner"
-                           placeholder="Artista/Autor..."
+                           placeholder="@localizerApp["ArtistAuthorPlaceholder"]"
                            @bind="TitleSearch"
                            @bind:event="oninput" />
 
@@ -67,7 +67,7 @@
 
     @if (FilteredVideoFiles is null || !FilteredVideoFiles.Any())
     {
-        <NoDataAvailable CardTitle="Video files" />
+        <NoDataAvailable CardTitle="@localizerApp["VideoFilesTitle"]" />
     }
     else
     {
@@ -139,7 +139,7 @@
                                 @if (videoPath.CoverFile.ToLower().Contains("available"))
                                 {
                                     <p>
-                                        <SfButton Content="Get Image" CssClass="e-btn e-info e-round-corner"
+                                        <SfButton Content="@localizerApp["GetImage"]" CssClass="e-btn e-info e-round-corner"
                                                   @onclick="() => UpdateCover(videoPath.Id)"></SfButton>
                                     </p>
                                 }

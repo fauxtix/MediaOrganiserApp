@@ -1,8 +1,10 @@
 ﻿@using MediaOrganizerApp.Domain.Entities
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<App> L
 
 @if (!string.IsNullOrEmpty(TituloVideo))
 {
-    <div class="title">Video Info</div>
+    <div class="title">@L["VideoInfoTitle"]</div>
     <div class="underline"></div>
     <br />
 
@@ -10,7 +12,7 @@
         <CardHeader Title="@TituloVideo" />           
         <CardContent EnableSeparator="true">
             <div class="py-2 my-2">
-                <SfTextBox Readonly="true" Value="@VideoInfo.ChannelTitle" FloatLabelType="FloatLabelType.Always" Placeholder="Canal"></SfTextBox>
+                <SfTextBox Readonly="true" Value="@VideoInfo.ChannelTitle" FloatLabelType="FloatLabelType.Always" Placeholder="@L["Channel"]"></SfTextBox>
             </div>
             @*<div>
         <label class="label-primary py-2">Título</label>
@@ -21,11 +23,11 @@
                            Multiline="true" Readonly="true"
                            Value="@VideoInfo.Description"
                            FloatLabelType="FloatLabelType.Always"
-                           Placeholder="Descrição"></SfTextBox>
+                           Placeholder="@L["lblDescricao"]"></SfTextBox>
             </div>
             <div class="py-2 my-2">
                 <SfTextBox Readonly="true" Value="@VideoInfo.PublicationDate.ToString()"
-                           FloatLabelType="FloatLabelType.Always" Placeholder="Publicado em"></SfTextBox>
+                           FloatLabelType="FloatLabelType.Always" Placeholder="@L["PublishedDate"]"></SfTextBox>
             </div>
         </CardContent>
     </SfCard>

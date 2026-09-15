@@ -115,7 +115,7 @@ namespace Web.Blazor.Pages.Publications
             if (string.IsNullOrEmpty(bookTitle) && string.IsNullOrEmpty(author))
             {
                 alertUser = true;
-                alertMessage = "Preencha critérios de pesquisa, p.f.";
+                alertMessage = localizerApp["MsgFillSearchCriteria"];
                 return;
             }
 
@@ -146,7 +146,7 @@ namespace Web.Blazor.Pages.Publications
                     {
                         ApplyAiBookToRecord(ai, bookTitle, author);
 
-                        noteMessage = "Internet unavailable. Used local AI (Ollama) to generate the summary.";
+                        noteMessage = localizerApp["MsgInternetUnavailableAiUsed"];
                         await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
                         {
                             Record = ApiRecord,
@@ -159,7 +159,7 @@ namespace Web.Blazor.Pages.Publications
                     }
 
                     alertUser = true;
-                    alertMessage = "Internet indisponível. Não foi possível consultar a Google Books API.";
+                    alertMessage = localizerApp["MsgInternetUnavailableGoogleBooks"];
                     return;
                 }
 
@@ -461,14 +461,14 @@ namespace Web.Blazor.Pages.Publications
                 if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     alertUser = true;
-                    alertMessage = $"Título ('{bookTitle}') não foi encontrado. Confirme, pf.";
+                    alertMessage = localizerApp["MsgTitleNotFoundConfirm", bookTitle];
                 }
 
             }
             catch (Exception ex)
             {
                 alertUser = true;
-                alertMessage = $"Erro ao consultar api da Google. Confirme, pf";
+                alertMessage = localizerApp["MsgGoogleApiError"];
                 _logger.LogError($"Erro ao consultar api da Google. Confirme, pf. ({ex.Message})");
             }
             finally
@@ -495,7 +495,7 @@ namespace Web.Blazor.Pages.Publications
 
 
                 showAiProgress = true;
-                aiProgressMessage = "AI - Searching for a book description...";
+                aiProgressMessage = localizerApp["AiSearchingBookDescription"];
                 await InvokeAsync(StateHasChanged);
 
                 var connectionId = ProgressClient.ConnectionId;
@@ -503,14 +503,14 @@ namespace Web.Blazor.Pages.Publications
                 var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, connectionId);
                 if (resp is null)
                 {
-                    aiProgressMessage = "AI - No response returned.";
+                    aiProgressMessage = localizerApp["AiNoResponse"];
                     await InvokeAsync(StateHasChanged);
                     return null;
                 }
 
                 if (string.IsNullOrWhiteSpace(resp.Summary))
                 {
-                    aiProgressMessage = $"AI - No summary returned. {resp.Notes}";
+                    aiProgressMessage = localizerApp["AiNoSummaryReturned", resp.Notes ?? ""];
                     await InvokeAsync(StateHasChanged);
                     return null;
                 }
@@ -520,8 +520,8 @@ namespace Web.Blazor.Pages.Publications
                 lastAiUsed = true;
 
                 aiProgressMessage = string.IsNullOrWhiteSpace(resp.Notes)
-                    ? "AI - Summary generated."
-                    : $"AI - Summary generated. {resp.Notes}";
+                    ? localizerApp["AiSummaryGenerated", ""]
+                    : localizerApp["AiSummaryGenerated", resp.Notes];
                 await InvokeAsync(StateHasChanged);
 
                 return resp.Summary;
@@ -530,7 +530,7 @@ namespace Web.Blazor.Pages.Publications
             {
                 _logger.LogError(ex, "AI - Error generating book description.");
 
-                aiProgressMessage = "AI - Error generating book description. Check logs.";
+                aiProgressMessage = localizerApp["AiErrorBookDescription"];
                 showAiProgress = true;
                 await InvokeAsync(StateHasChanged);
                 return null;
@@ -547,7 +547,7 @@ namespace Web.Blazor.Pages.Publications
                 var uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
                 showAiProgress = true;
-                aiProgressMessage = "AI - Searching for book metadata/description...";
+                aiProgressMessage = localizerApp["AiSearchingBookMetadata"];
                 await InvokeAsync(StateHasChanged);
 
                 var connectionId = ProgressClient.ConnectionId;
@@ -560,8 +560,8 @@ namespace Web.Blazor.Pages.Publications
                 lastAiUsed = true;
 
                 aiProgressMessage = string.IsNullOrWhiteSpace(resp.Notes)
-                    ? "AI - Data generated."
-                    : $"AI - Data generated. {resp.Notes}";
+                    ? localizerApp["AiDataGenerated", ""]
+                    : localizerApp["AiDataGenerated", resp.Notes];
                 showAiProgress = true;
                 await InvokeAsync(StateHasChanged);
 
@@ -571,7 +571,7 @@ namespace Web.Blazor.Pages.Publications
             {
                 _logger.LogError(ex, "AI - Error generating book metadata.");
 
-                aiProgressMessage = "AI - Error generating book metadata. Check logs.";
+                aiProgressMessage = localizerApp["AiErrorBookMetadata"];
                 showAiProgress = true;
                 await InvokeAsync(StateHasChanged);
                 return null;

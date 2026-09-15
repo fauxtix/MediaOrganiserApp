@@ -28,7 +28,7 @@
         "Search",
         new ItemModel() {
             PrefixIcon = "fa fa-times",
-            TooltipText = "Clear",
+            TooltipText = localizerApp["TooltipClear"],
             Align = ItemAlign.Right,
             Id = "Clear"
         },
@@ -45,7 +45,7 @@
         new ItemModel() {
             Align = ItemAlign.Left, CssClass="e-primary",
             PrefixIcon = "fa fa-bar-chart",
-            Text = "Stats",
+            Text = localizerApp["Stats"],
             Id = "STATS"
         },
         new ItemModel()
@@ -107,7 +107,7 @@ else
                                         OnChunkFailure="OnChunkFailureHandler" OnUploadStart="OnUploadStartHandler"
                                         OnActionComplete="@OnActionCompleteHandler"
                                         Success="OnUpLoadSuccess"></UploaderEvents>
-                        <UploaderButtons Browse="Importar Pdf/Docx"/>
+                        <UploaderButtons Browse="@localizerApp["BtnImportPdfDocx"]"/>
                     </SfUploader>
                 </div>
                 <div class="col-md-4"/>

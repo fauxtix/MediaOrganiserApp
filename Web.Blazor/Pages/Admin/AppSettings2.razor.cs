@@ -123,14 +123,14 @@ namespace Web.Blazor.Pages.Admin
         {
             dialogTitle = option switch
             {
-                FileManagerOptions.PdfDownloads => "Escolha pasta para os downloads de pdf's",
-                FileManagerOptions.MediaDownloads => "Escolha pasta para os downloads de ficheiros Média",
-                FileManagerOptions.BackupUploads => "Escolha pasta para o backup de ficheiros Média",
-                FileManagerOptions.BackupBD => "Escolha pasta para o backup da base de dados",
-                FileManagerOptions.PublicationsFolder => "Escolha pasta origem de Publicações",
-                FileManagerOptions.ImagesFolder => "Escolha pasta origem das Imagens da aplicação",
-                FileManagerOptions.ReportsFolder => "Escolha pasta origem dos Reports",
-                FileManagerOptions.AuthorImagesFolder => "Escolha pasta origem das imagens dos Autores",
+                FileManagerOptions.PdfDownloads => L["DlgPdfDownloads"],
+                FileManagerOptions.MediaDownloads => L["DlgMediaDownloads"],
+                FileManagerOptions.BackupUploads => L["DlgBackupUploads"],
+                FileManagerOptions.BackupBD => L["DlgBackupBD"],
+                FileManagerOptions.PublicationsFolder => L["DlgPublicationsFolder"],
+                FileManagerOptions.ImagesFolder => L["DlgImagesFolder"],
+                FileManagerOptions.ReportsFolder => L["DlgReportsFolder"],
+                FileManagerOptions.AuthorImagesFolder => L["DlgAuthorImagesFolder"],
                 _ => string.Empty
             };
         }
@@ -185,7 +185,7 @@ namespace Web.Blazor.Pages.Admin
 
         private async Task UpdateSettings()
         {
-            ToastTitle = "Update settings";
+            ToastTitle = L["UpdateSettings"];
 
             try
             {

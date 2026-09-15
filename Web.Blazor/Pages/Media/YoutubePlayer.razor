@@ -2,11 +2,13 @@
 
 @using Microsoft.AspNetCore.Hosting
 @using Web.Blazor.Services.ApiWrappers
+@using Microsoft.Extensions.Localization
 
 @inherits MediaPlayer
 
 @inject IMediaServiceWrapper mediaSvc
 @inject IWebHostEnvironment hostingEnvironment
+@inject IStringLocalizer<App> L
 
 @attribute [Authorize]
 
@@ -20,7 +22,7 @@
             <iframe width="560" height="315"
                     src="@Mp4_FileToPlay"
                     class="embed-responsive-item"
-                    title="YouTube video player"
+                    title="@L["IframeYouTubeTitle"]"
                     frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen>
@@ -32,25 +34,25 @@
 else
 {
     <div class="d-flex flex-column p-2 align-content-center border border-danger">
-        <div class="error-message">Vídeo não pode ser reproduzido</div>
+        <div class="error-message">@L["VideoCannotBeReproduced"]</div>
     </div>
     <hr />
     <div class="d-flex flex-column p-2 align-content-center border border-info">
         <SfCard>
-            <CardHeader ImageUrl="/images/media-player.png" Title="Informação adicional"></CardHeader>
+            <CardHeader ImageUrl="/images/media-player.png" Title="@L["AdditionalInformation"]"></CardHeader>
             <CardContent EnableSeparator="true">
                 <p>
-                    Path: @SelectedRecord.FilePath
+                    @L["Path"]: @SelectedRecord.FilePath
                     @if (!File.Exists(SelectedRecord.FilePath))
                     {
-                        <span> (não existe no local indicado)</span>
+                        <span>@L["FileDoesNotExistAtLocation"]</span>
                     }
                 </p>
                 <p>
-                    Url:
+                    @L["Url"]:
                     @if (string.IsNullOrEmpty(SelectedRecord.FileUrl))
                     {
-                        <span>não informado</span>
+                        <span>@L["NotInformed"]</span>
                     }
                     else
                     {

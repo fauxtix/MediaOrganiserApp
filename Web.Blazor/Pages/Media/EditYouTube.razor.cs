@@ -115,7 +115,7 @@ namespace Web.Blazor.Pages.Media
                 else
                 {
                     showAlertMessage = true;
-                    alertMessage = "Api não devolveu qualquer resultado";
+                    alertMessage = L["ApiNoResults"];
                 }
             }
             else

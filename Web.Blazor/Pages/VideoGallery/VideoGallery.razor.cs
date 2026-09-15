@@ -107,7 +107,7 @@ namespace Web.Blazor.Pages.VideoGallery
                 {
                     NoDataVisibility = true;
                     ErrorDialogVisibility = true;
-                    ErrorMessage = "Sem videos para mostrar. Verifique, p.f.";
+                    ErrorMessage = localizerApp["NoVideosToShow"];
                 }
                 else
                 {
@@ -123,7 +123,7 @@ namespace Web.Blazor.Pages.VideoGallery
             {
                 ErrorDialogVisibility = true;
                 NoDataVisibility = true;
-                ErrorMessage = "Sem Videos para mostrar. Verifique, p.f.";
+                ErrorMessage = localizerApp["NoVideosToShow"];
             }
             finally
             {
@@ -156,7 +156,7 @@ namespace Web.Blazor.Pages.VideoGallery
         {
             var result = await thumbnailService.UpdateMediaCoverRecord(Id);
 
-            ToastTitle = "Video Gallery";
+            ToastTitle = localizerApp["VideoGalleryTitle"];
             ToastCssClass = result.Item2;
             ToastContent = result.Item1;
 

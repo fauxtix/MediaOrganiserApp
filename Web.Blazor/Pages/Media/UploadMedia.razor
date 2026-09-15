@@ -5,6 +5,7 @@
 @using Web.Blazor.Components
 @using MediaOrganizerApp.Domain.Entities
 @using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Localization
 @using TagLib
 @using Web.Blazor.Services.ApiWrappers
 
@@ -13,6 +14,7 @@
 @inject IMediaServiceWrapper mediaSvc
 @inject IUtilitiesService utilsSvc
 @inject ILogger<App> logger
+@inject IStringLocalizer<App> L
 
 <InputFile OnChange="HandleFileSelected" accept=".mp3,.avi, .mp4, .wmv, .flv" />
 
@@ -27,7 +29,7 @@
         <DialogTemplates>
             <Header>
                 <div class="modal-header">
-                    <h2>Upload de ficheiros Média</h2>
+                    <h2>@L["UploadMediaFilesTitle"]</h2>
                 </div>
             </Header>
             <Content>
@@ -36,15 +38,15 @@
                 </Aviso>
                 @if (UploadOk)
                 {
-                    <p>Tamanho em bytes: @uploadedFile.Size</p>
-                    <p>Data última modificação: @uploadedFile.LastModified</p>
-                    <p>Conteúdo : @uploadedFile.ContentType</p>
+                    <p>@L["UploadFileSizeLabel", uploadedFile.Size]</p>
+                    <p>@L["UploadFileLastModifiedLabel", uploadedFile.LastModified]</p>
+                    <p>@L["UploadFileContentLabel", uploadedFile.ContentType]</p>
                 }
             </Content>
             <FooterTemplate>
                 <div class="modal-footer">
                     <SfButton CssClass="e-btn e-primary e-round-corner" IconCss="fa fa-times"
-                              @onclick="Voltar" Content="Terminar">
+                              @onclick="Voltar" Content="@L["BtnTerminar"]">
                     </SfButton>
                 </div>
             </FooterTemplate>
@@ -66,7 +68,7 @@
     protected bool UploadOk { get; set; }
     protected IReadOnlyList<IBrowserFile> selectedFiles;
 
-    private int mediaType = 2;  // default = vídeo
+    private int mediaType = 2;  // default = vï¿½deo
     private string sUrl = "";
     private string mediaNotes = "";
     private bool FoundValidExt = false;
@@ -94,7 +96,7 @@
             }
             if (!FoundValidExt)
             {
-                resultMessage = $"Ficheiro não tem extensão válida. Verifique, por favor";
+                resultMessage = L["UploadInvalidExtension"];
                 clsName = "alert alert-warning";
                 UploadOk = false;
 
@@ -118,10 +120,10 @@
                     {
                         TagLib.File tagFile = TagLib.File.Create(filepath);
 
-                        string mediaGenre = tagFile.Tag.Genres.Length > 0 ? tagFile.Tag.FirstGenre : "Sem Género";
+                        string mediaGenre = tagFile.Tag.Genres.Length > 0 ? tagFile.Tag.FirstGenre : L["MediaGenreUnknown"];
 
                         int categoryId = await categoriasSVC.GetIdCategoria(mediaGenre);
-                        if (categoryId == 0)  // alterado API, ver explicação no código
+                        if (categoryId == 0)  // alterado API, ver explicaï¿½ï¿½o no cï¿½digo
                         {
 
                             CategoryVM mediaCategory = new()
@@ -133,10 +135,10 @@
                             await categoriasSVC.CreateCategory(mediaCategory);
 
                             categoryId = await categoriasSVC.GetIdCategoria(mediaGenre);
-                            mediaNotes = $"Criada nova Categoria ({mediaGenre})";
+                            mediaNotes = L["UploadNewCategoryCreated", mediaGenre];
                         }
                         string sMp3Picture = "";
-                        string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? "Título do album : " + tagFile.Tag.Album : "";
+                        string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? L["AlbumNameLabel", tagFile.Tag.Album] : "";
                         string duration = tagFile.Properties.Duration.ToString(@"hh\:mm\:ss");
                         var mp3Pictures = tagFile.Tag.Pictures;
                         if (mp3Pictures.Length > 0)
@@ -161,7 +163,7 @@
                                 Notas = !string.IsNullOrEmpty(mediaNotes) ? mediaNotes + "\n" + albumName : albumName,
                                 AnoEdicao = tagFile.Tag.Year > 0 ? tagFile.Tag.Year.ToString() : "",
                                 Visualizado = true,
-                                Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Verificar Autor",
+                                Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : L["VerifyAuthor"],
                                 Rating = 0,
                                 GuardaEmdisco = 1,
                                 Tempo = duration,
@@ -174,9 +176,9 @@
 
                         TagLib.File tagFile = TagLib.File.Create(filepath);
 
-                        string mediaGenre = tagFile.Tag.FirstGenre is not null ? tagFile.Tag.FirstGenre : "Outro";
+                        string mediaGenre = tagFile.Tag.FirstGenre is not null ? tagFile.Tag.FirstGenre : L["MediaGenreOther"];
                         string sMp4Picture = "";
-                        int mediaFormatId = utilsSvc.GetPkValueFromTable("Formato_Media", "Id", "Descricao", "Armazenamento média");
+                        int mediaFormatId = utilsSvc.GetPkValueFromTable("Formato_Media", "Id", "Descricao", "Armazenamento m\u00e9dia");
                         int mediaCategoryId = utilsSvc.GetPkValueFromTable("Categoria", "Id", "Descricao", mediaGenre);
                         string albumName = !string.IsNullOrEmpty(tagFile.Tag.Album) ? " (" + tagFile.Tag.Album + ")" : "";
                         string duration = tagFile.Properties.Duration.ToString(@"hh\:mm\:ss");
@@ -191,7 +193,7 @@
                         long fileSize = uploadedFile.Size;
 
 
-                        mediaType = 2;  // TODO implementar em form à parte -- default, para já = áudio (2)
+                        mediaType = 2;  // TODO implementar em form ï¿½ parte -- default, para jï¿½ = ï¿½udio (2)
                         MediaModel = new()
                             {
                                 FileName = Path.GetFileNameWithoutExtension(uploadedFile.Name),
@@ -204,7 +206,7 @@
                                 AnoEdicao = uploadedFile.LastModified.UtcDateTime.Year.ToString(),
                                 Notas = mediaNotes,
                                 Visualizado = false,
-                                Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Fausto Luís",
+                                Autor = !string.IsNullOrEmpty(tagFile.Tag.FirstPerformer) ? tagFile.Tag.FirstPerformer : "Fausto Lu\u00eds",
                                 Rating = 0,
                                 GuardaEmdisco = 1,
                                 Tempo = duration,
@@ -218,7 +220,7 @@
                         var mediaCreated = await mediaSvc.CreateMediaFile(MediaModel);
                         if (mediaCreated)
                         {
-                            resultMessage = $"Ficheiro '{uploadedFile.Name}' processado com sucesso...";
+                            resultMessage = L["UploadProcessedSuccessfully", uploadedFile.Name];
                             clsName = "alert alert-success";
                             UploadOk = true;
                         }
@@ -227,14 +229,14 @@
                             if (System.IO.File.Exists(filepath))
                                 System.IO.File.Delete(filepath);
 
-                            resultMessage = $"Erro ao criar ficheiro. Verifique, por favor";
+                            resultMessage = L["UploadCreateFileError"];
                             clsName = "alert alert-danger";
                             UploadOk = false;
                         }
                     }
                     catch (Exception)
                     {
-                        resultMessage = $"Erro ao criar ficheiro. Verifique, por favor";
+                        resultMessage = L["UploadCreateFileError"];
                         clsName = "alert alert-danger";
                         UploadOk = false;
                     }
@@ -242,7 +244,7 @@
                 }
                 else
                 {
-                    resultMessage = $"Ficheiro '{uploadedFile.Name}' já existe. Verifique, por favor";
+                    resultMessage = L["UploadFileAlreadyExists", uploadedFile.Name];
                     clsName = "alert alert-warning";
                     UploadOk = false;
                 }
@@ -255,11 +257,11 @@
             clsName = "alert alert-danger";
             if (Env.IsDevelopment())
             {
-                resultMessage = "Erro ao enviar uploadedFile(s) ...\n" + ex.Message;
+                resultMessage = L["UploadSendErrorDevelopment"] + "\n" + ex.Message;
             }
             else
             {
-                resultMessage = "Não foi possível enviar o(s) uploadedFile(s) ..." + ex.Message.ToString();
+                resultMessage = L["UploadSendError"] + " " + ex.Message.ToString();
             }
         }
     }

@@ -13,8 +13,8 @@
 
 @attribute [Authorize]
 
-<PageTitle>Playlists</PageTitle>
-<PageTitleComponent PageTitle="Playlists" WithBadge="false" PageSubTitle="" Css="title" />
+<PageTitle>@localizerApp["Playlists"]</PageTitle>
+<PageTitleComponent PageTitle="@localizerApp["Playlists"]" WithBadge="false" PageSubTitle="" Css="title" />
 
 <SfTab>
     <TabItems>
@@ -273,19 +273,19 @@
         </Header>
         <Content>
             <div class="form-group">
-                <label>Nome</label>
+                <label>@localizerApp["Name"]</label>
                 <InputText class="form-control" @bind-Value="EditModel.Name" />
             </div>
             <div class="form-group">
-                <label>Tipo de Média</label>
+                <label>@localizerApp["MediaTypeLabel"]</label>
                 <div class="radio-button-container">
                     <SfRadioButton TValue="int" CssClass="e-info"
-                                   Label="Video"
+                                   Label="@localizerApp["MediaFormatVideo"]"
                                    Value="1"
                                    Name="mediaType"
                                    @bind-Checked="EditModel.MediaType" />
                     <SfRadioButton TValue="int" CssClass="e-info"
-                                   Label="Audio"
+                                   Label="@localizerApp["MediaFormatAudio"]"
                                    Value="2"
                                    Name="mediaType"
                                    @bind-Checked="EditModel.MediaType" />
@@ -584,14 +584,6 @@
 
     .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
         background: var(--app-success-border) !important;
-    }
-
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active {
-        background: rgba(74, 222, 128, 0.25);
-    }
-
-    [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
-        background: rgba(74, 222, 128, 0.15) !important;
     }
 
     .e-tab .e-tab-header .e-toolbar-items {

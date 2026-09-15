@@ -35,7 +35,7 @@
                             if (coverTmp.ToLower().StartsWith("http"))
                             {
                                 Task.Delay(100);
-                                SpinnerLabel = "Tentando aceder ao Api do Youtube";
+                                SpinnerLabel = localizerApp["SpinnerAccessingYoutubeApi"];
                                 SpinnerObj?.ShowAsync();
                             }
                             mediaImage = currentRow.CoverFile;

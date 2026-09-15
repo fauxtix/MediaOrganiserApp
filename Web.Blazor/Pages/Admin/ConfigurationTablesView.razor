@@ -64,7 +64,7 @@
                     <GridFilterSettings></GridFilterSettings>
                     <GridEvents CommandClicked="OnCommandClicked" OnToolbarClick="OnToolbarClick" TValue="TItem"></GridEvents>
                     <GridColumns>
-                        <GridColumn HeaderText="Opções" Width="120" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center">
+                        <GridColumn HeaderText="@L["Opcoes"]" Width="120" AllowFiltering="false" AllowSorting="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center">
                             <GridCommandColumns>
                                 @if (AllowManagement)
                                 {
@@ -174,7 +174,7 @@
         <DialogTemplates>
             <Header>
                 <div class="alert-warning">
-                    Exceção encontrada.
+                    @L["ExcecaoEncontrada"]
                 </div>
             </Header>
             <Content>
