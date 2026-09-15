@@ -16,14 +16,14 @@
 
 .error-message {
     text-align: center;
-    color: red;
+    color: var(--app-danger);
     font-weight: 300;
     font-size: large;
 }
 
 .e-card .e-card-image {
     background-image: url(/wwwroot/images/media-player.png);
-    background-color: yellow;
+    background-color: var(--app-accent-yellow);
     height: 160px;
 }
 

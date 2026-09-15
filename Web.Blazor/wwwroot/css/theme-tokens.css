@@ -451,6 +451,13 @@ button.e-btn.e-primary:focus {
     color: var(--app-on-primary);
 }
 
+/* Message — info (progresso AI / notificações) */
+.e-message.e-info {
+    background-color: var(--app-info-bg);
+    border-color: var(--app-info-border);
+    color: var(--app-info-text);
+}
+
 /* Dialog / popover — cabeçalhos neutros, borda primária em foco */
 .e-dialog .e-dlg-header-content {
     border-bottom-color: var(--app-border);
