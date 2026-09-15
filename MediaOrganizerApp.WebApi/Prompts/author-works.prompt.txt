@@ -1,0 +1,12 @@
+List the main published books written by the author "{author}".
+
+Return ONLY a JSON array of objects, with these fields:
+- "title": book title (string, required)
+- "subtitle": subtitle or null (string|null)
+- "year": year of publication as a string or null (e.g. "1998")
+- "publisher": publisher name or null (string|null)
+- "thumbnail": leave as empty string ""
+
+Include the author's most representative works (up to 20).
+If the author is unknown or has no books, return an empty array [].
+Do not add any text outside the JSON array. No markdown, no code fences, no explanation.

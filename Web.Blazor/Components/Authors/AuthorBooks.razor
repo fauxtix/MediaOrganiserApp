@@ -54,6 +54,11 @@
             <div class="alert alert-warning">@L["TituloErroTooManyRequests"]</div>
         }
 
+        @if (aiFallbackUsed && !string.IsNullOrWhiteSpace(aiProviderMessage))
+        {
+            <div class="alert alert-info mt-2 small">@aiProviderMessage</div>
+        }
+
         var fn = CachedFilteredBooks.ToList();
         if (fn.Any())
         {
@@ -115,10 +120,10 @@
              Title="@SelectedBook.Title" />
 
 
-<ConfirmAppWarning DialogTitle="Search Books using AI"
+<ConfirmAppWarning DialogTitle="@L["AuthorSearchDialogTitle"]"
                    Message=@(googleRateLimited ? @L["TituloErroTooManyRequests"] : @L["TituloNenhumResultadoGoogle"])
                    AlertMessageType="AlertMessageType.Warning" AlertMessageNote="@L["TituloPesquisaPorAI"]"
-                   AlertMessage="Nota: esta pesquisa pode demorar algum tempo..."
+                   AlertMessage="@L["AuthorSearchDialogAlertMessage"]"
                    PositionX="center" PositionY="center"
                    Visible="@showAISearchDialog"
                    OnConfirmationYes="@OnConfirmYes"

@@ -103,6 +103,49 @@ public sealed class AiBookClientService
         }
     }
 
+    /// <summary>
+    /// Fetches an author's books via the OpenRouter-backed endpoint. Returns null
+    /// when the cloud path is unavailable (toggle off, no key, failure) so callers
+    /// fall back to the local AI provider.
+    /// </summary>
+    public async Task<List<GoogleBookInfo>?> GetAuthorBooksCloudAsync(
+        string author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = $"{_uri}/author-books-cloud?author={Uri.EscapeDataString(author)}&language={language}";
+            if (!string.IsNullOrWhiteSpace(connectionId))
+                endpoint += $"&connectionId={Uri.EscapeDataString(connectionId)}";
+            if (!string.IsNullOrWhiteSpace(correlationId))
+                endpoint += $"&correlationId={Uri.EscapeDataString(correlationId)}";
+            using var resp = await _httpClient.GetAsync(endpoint, cancellationToken);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("AI author-books-cloud request failed. Status={StatusCode} Body={Body} for author={Author}", (int)resp.StatusCode, body, author);
+                return null;
+            }
+
+            var list = await resp.Content.ReadFromJsonAsync<List<GoogleBookInfo>>(cancellationToken);
+            return list ?? new List<GoogleBookInfo>();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("AI author-books-cloud request cancelled for author={Author}", author);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error fetching author books via OpenRouter for {Author}", author);
+            return null;
+        }
+    }
+
     public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyAsync(
         string title,
         string? author,

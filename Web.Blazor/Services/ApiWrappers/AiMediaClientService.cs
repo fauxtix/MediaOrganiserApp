@@ -104,4 +104,101 @@ public partial class AiMediaClientService
             return null;
         }
     }
+
+    /// <summary>
+    /// Fetches media notes via the OpenRouter-backed endpoint. Returns null
+    /// when the cloud path is unavailable (offline, no key, failure) so callers
+    /// fall back to the local Ollama provider.
+    /// </summary>
+    public async Task<AiMediaNotesResponseDto?> GetMediaNotesCloudAsync(
+        string artist,
+        string title,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                _httpClient,
+                $"{_uri}/media-notes-cloud",
+                new AiMediaNotesRequestDto
+                {
+                    Artist = artist,
+                    Title = title,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId
+                },
+                cancellationToken);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("AI - Media notes cloud request failed. Status={StatusCode} Body={Body}", (int)resp.StatusCode, body);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<AiMediaNotesResponseDto>(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("AI - Media notes cloud request was canceled by the caller. Artist={Artist} Title={Title}", artist, title);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating media notes via OpenRouter.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Fetches media metadata via the OpenRouter-backed endpoint. Returns null
+    /// when the cloud path is unavailable so callers fall back to Ollama.
+    /// </summary>
+    public async Task<AiMediaMetadataResponseDto?> GetMediaMetadataCloudAsync(
+        string artist,
+        string title,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                _httpClient,
+                $"{_uri}/media-metadata-cloud",
+                new AiMediaMetadataRequestDto
+                {
+                    Artist = artist,
+                    Title = title,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId
+                },
+                cancellationToken);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("AI - Media metadata cloud request failed. Status={StatusCode} Body={Body}", (int)resp.StatusCode, body);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<AiMediaMetadataResponseDto>(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("AI - Media metadata cloud request was canceled by the caller. Artist={Artist} Title={Title}", artist, title);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating media metadata via OpenRouter.");
+            return null;
+        }
+    }
 }

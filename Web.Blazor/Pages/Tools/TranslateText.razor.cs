@@ -273,7 +273,23 @@ namespace Web.Blazor.Pages.Tools
 
         private void OnProgressEventReceived(ProgressUpdateDto update)
         {
-            _ = UpdateProgressMessageAsync(update?.Message);
+            if (update is null)
+                return;
+
+            var text = update.Stage switch
+            {
+                "preparing_prompt" or "request_sent" => L["AIProcessingPreparing"].Value,
+                "waiting_response" => L["AIProcessingWaiting"].Value,
+                "response_received" or "parsing" => L["AIProcessingParsing"].Value,
+                "completed" => L["AIProcessingDone"].Value,
+                "failed" => L["AIProcessingFailed"].Value,
+                "cancelled" => L["AIProcessingCancelled"].Value,
+                "cloud_try" => string.Format(L["AIProcessingCloudTrying"].Value, update.Message),
+                "cloud_failed" => string.Format(L["AIProcessingCloudFailed"].Value, update.Message),
+                "cloud_empty" => string.Format(L["AIProcessingCloudEmpty"].Value, update.Message),
+                _ => update.Message
+            };
+            _ = UpdateProgressMessageAsync(text);
         }
 
         private async Task UpdateProgressMessageAsync(string? message)

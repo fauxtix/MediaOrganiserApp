@@ -236,7 +236,7 @@ namespace Web.Blazor.Pages.Media
         {
             if (string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
-                ShowMessage("Por favor preencha os campos Autor e Título", MessageSeverity.Warning);
+                ShowMessage(L["FillAuthorAndTitleFields"], MessageSeverity.Warning);
                 return;
             }
 
@@ -247,12 +247,12 @@ namespace Web.Blazor.Pages.Media
                 if (!string.IsNullOrWhiteSpace(albumName))
                 {
                     StringBuilder sb = new StringBuilder();
-                    sb.AppendLine("Nome do Album: " + albumName);
+                    sb.AppendLine(L["AlbumNameLabel", albumName]);
                     var albumInfo = await MediaService.GetAlbumInfo(SelectedRecord.Autor, albumName);
                     if (!string.IsNullOrEmpty(albumInfo.Notas))
                     {
                         sb.AppendLine();
-                        sb.AppendLine("Faixas:");
+                        sb.AppendLine(L["TracksLabel"]);
                         sb.AppendLine();
                         sb.AppendLine(albumInfo.Notas);
                         SelectedRecord.Notas = sb.ToString();
@@ -288,6 +288,7 @@ namespace Web.Blazor.Pages.Media
 
             showAlertMessage = false;
             alertMessage = "";
+            string? aiProviderMessage = null;
 
             try
             {
@@ -339,16 +340,27 @@ namespace Web.Blazor.Pages.Media
                     }
                 }
 
-                ProgressClient.ProgressReceived -= OnProgressReceived;
-                ProgressClient.ProgressReceived += OnProgressReceived;
+                ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+                ProgressClient.ProgressEventReceived += OnProgressEventReceived;
 
-                // AI fallback for Notas
+                // AI fallback for Notas (OpenRouter primeiro, depois Ollama)
                 if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
                 {
-                    var ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
+                    var ai = await AiMediaClient.GetMediaNotesCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                    if (ai is null)
+                    {
+                        ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
+                        if (ai is not null)
+                            aiProviderMessage = L["MediaInfoProviderOllama"];
+                    }
+                    else
+                    {
+                        aiProviderMessage = L["MediaInfoProviderOpenRouter"];
+                    }
+
                     if (ai == null)
                     {
-                        ShowMessage(L["AINotesServiceFailed"] ?? "O serviço de notas AI não devolveu qualquer resultado.", MessageSeverity.Warning);
+                        ShowMessage(L["AINotesServiceFailed"] ?? L["AINotesServiceFailedFallback"], MessageSeverity.Warning);
                     }
                     else
                     {
@@ -360,40 +372,61 @@ namespace Web.Blazor.Pages.Media
                             {
                                 ShowMessage(ai.Warnings, MessageSeverity.Warning);
                                 alertMessage = ai.Warnings;
+                                aiProviderMessage = null;
                             }
+                        }
+                        else
+                        {
+                            aiProviderMessage = null;
                         }
                     }
                 }
 
-                // AI fallback for AnoEdicao
+                // AI fallback for AnoEdicao (OpenRouter primeiro, depois Ollama)
                 if (!anoEdicaoFilled || SelectedRecord.AnoEdicao == DateTime.Now.Year.ToString())
                 {
-                    var year = await AiMediaClient.GetMediaEditionYearAsync(
+                    var year = await AiMediaClient.GetMediaEditionYearCloudAsync(
                         artist,
                         mediaTitle,
                         uiLanguage,
                         ProgressClient.ConnectionId,
                         null,
                         mediaInfoCts.Token);
+                    var yearProviderMessage = L["MediaInfoProviderOpenRouter"];
+                    if (year is null)
+                    {
+                        year = await AiMediaClient.GetMediaEditionYearAsync(
+                            artist,
+                            mediaTitle,
+                            uiLanguage,
+                            ProgressClient.ConnectionId,
+                            null,
+                            mediaInfoCts.Token);
+                        if (year is not null)
+                            yearProviderMessage = L["MediaInfoProviderOllama"];
+                    }
 
                     if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
                     {
-                        ShowMessage("No available Edition year returned from external API/AI; try to find it in other sources.", MessageSeverity.Warning);
+                        ShowMessage(L["NoEditionYearReturned"], MessageSeverity.Warning);
                         return;
                     }
                     if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
                     {
-                        ShowMessage($"The Edition year returned from the API is not valid {year}", MessageSeverity.Warning);
+                        ShowMessage(L["InvalidEditionYearReturned", year], MessageSeverity.Warning);
                         return;
 
                     }
                     if (!string.IsNullOrWhiteSpace(year))
+                    {
                         SelectedRecord.AnoEdicao = year;
+                        aiProviderMessage ??= yearProviderMessage;
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
-                ShowMessage("Operação cancelada.", MessageSeverity.Warning);
+                ShowMessage(L["OperacaoCancelada"], MessageSeverity.Warning);
             }
             catch (Exception ex)
             {
@@ -406,22 +439,41 @@ namespace Web.Blazor.Pages.Media
                 isBusy = false;
                 mediaInfoCts?.Dispose();
                 mediaInfoCts = null;
-                ProgressClient.ProgressReceived -= OnProgressReceived;
+                ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
                 await ProgressClient.StopAsync();
 
                 // Show UI explanation if no notes were retrieved
                 if (string.IsNullOrWhiteSpace(SelectedRecord.Notas))
                 {
-                    ShowMessage(L["NoNotesFound"] ?? "Nenhuma nota foi encontrada para este media.", MessageSeverity.Warning);
+                    ShowMessage(L["NoNotesFound"] ?? L["NoNotesFoundFallback"], MessageSeverity.Warning);
+                }
+                else if (aiProviderMessage is not null)
+                {
+                    ShowMessage(aiProviderMessage, MessageSeverity.Info);
                 }
 
                 StateHasChanged();
             }
         }
 
-        private void OnProgressReceived(string message)
+        private void OnProgressEventReceived(ProgressUpdateDto update)
         {
-            busyStatusMessage = message;
+            if (update is null)
+                return;
+
+            busyStatusMessage = update.Stage switch
+            {
+                "preparing_prompt" or "request_sent" => L["AIProcessingPreparing"],
+                "waiting_response" => L["AIProcessingWaiting"],
+                "parsing" => L["AIProcessingParsing"],
+                "completed" => L["AIProcessingDone"],
+                "failed" => L["AIProcessingFailed"],
+                "cancelled" => L["AIProcessingCancelled"],
+                "cloud_try" => string.Format(L["AIProcessingCloudTrying"].Value, update.Message),
+                "cloud_failed" => string.Format(L["AIProcessingCloudFailed"].Value, update.Message),
+                "cloud_empty" => string.Format(L["AIProcessingCloudEmpty"].Value, update.Message),
+                _ => update.Message
+            };
             InvokeAsync(StateHasChanged);
         }
 
@@ -472,7 +524,7 @@ namespace Web.Blazor.Pages.Media
                 }
                 else
                 {
-                    ShowMessage("Api não devolveu qualquer resultado", MessageSeverity.Warning);
+                    ShowMessage(L["ApiNoResults"], MessageSeverity.Warning);
                 }
             }
             else
@@ -590,9 +642,9 @@ namespace Web.Blazor.Pages.Media
         }
         public async Task Voltar()
         {
-            ToastTitle = "Download Youtube";
+            ToastTitle = L["DownloadYoutube"];
             ToastCssClass = "e-toast-info";
-            ToastContent = "Opera��o de grava��o cancelada";
+            ToastContent = L["OperationSaveCancelled"];
             ToastIcon = "e-icon-ThumbsDown";
 
             YouTubeDialogVisibility = false;
@@ -615,13 +667,13 @@ namespace Web.Blazor.Pages.Media
             ShowMessage("", MessageSeverity.Info);
             if (SelectedRecord == null || string.IsNullOrWhiteSpace(SelectedRecord.FileName) || string.IsNullOrWhiteSpace(SelectedRecord.Autor))
             {
-                ShowMessage("Por favor preencha os campos Autor e Título", MessageSeverity.Warning);
+                ShowMessage(L["FillAuthorAndTitleFields"], MessageSeverity.Warning);
                 StateHasChanged();
                 return;
             }
 
             isBusy = true;
-            busyStatusMessage = "A obter metadados via AlbumFirst Api...";
+            busyStatusMessage = L["FetchingMetadataViaAlbumFirst"];
             mediaInfoCts?.Cancel();
             mediaInfoCts?.Dispose();
             mediaInfoCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(90));
@@ -637,7 +689,7 @@ namespace Web.Blazor.Pages.Media
 
 
                 // AudioDb first
-                busyStatusMessage = "A obter metadados via AudioDb Api...";
+                busyStatusMessage = L["FetchingMetadataViaAudioDb"];
                 StateHasChanged();
                 var audioDbData = await AudioDbService.GetAlbumDetailsAsync(artist, mediaTitle);
                 if (audioDbData is not null)
@@ -666,7 +718,7 @@ namespace Web.Blazor.Pages.Media
                     {
                         SelectedRecord.CoverFile = audioDbData.CoverUrl;
                     }
-                    ShowMessage("Dados obtidos via AudioDb Api", MessageSeverity.Info);
+                    ShowMessage(L["DataObtainedViaAudioDb"], MessageSeverity.Info);
 
                     return;
                 }
@@ -683,7 +735,7 @@ namespace Web.Blazor.Pages.Media
                         SelectedRecord.CoverFile = artirstAndAlbumData.CoverFile;
 
                     SelectedRecord.Notas = artirstAndAlbumData.Notas;
-                    ShowMessage("Dados obtidos via AlbumFirst Api", MessageSeverity.Info);
+                    ShowMessage(L["DataObtainedViaAlbumFirst"], MessageSeverity.Info);
                     return;
                 }
 
@@ -717,15 +769,26 @@ namespace Web.Blazor.Pages.Media
                 //}
 
 
-                // If both fail, use AI
+                // If all above fail, use AI (OpenRouter primeiro, depois Ollama)
 
-                busyStatusMessage = "A obter metadados via AI...";
+                busyStatusMessage = L["FetchingMetadataViaAI"];
                 StateHasChanged();
 
-                ProgressClient.ProgressReceived -= OnProgressReceived;
-                ProgressClient.ProgressReceived += OnProgressReceived;
+                var apiUrlAddress = (await AppSettingsService.GetSettingsAsync()).ApiBaseUrl_Development.TrimEnd('/');
+                await ProgressClient.StartAsync(apiUrlAddress);
 
-                var ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+                ProgressClient.ProgressEventReceived += OnProgressEventReceived;
+
+                var ai = await AiMediaClient.GetMediaMetadataCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                var aiProviderMessage = L["MediaInfoProviderOpenRouter"];
+                if (ai is null)
+                {
+                    ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                    if (ai is not null)
+                        aiProviderMessage = L["MediaInfoProviderOllama"];
+                }
+
                 if (ai is not null)
                 {
                     if (!string.IsNullOrEmpty(ai.Tempo))
@@ -762,20 +825,24 @@ namespace Web.Blazor.Pages.Media
                     {
                         ShowMessage(warningMsg, MessageSeverity.Info);
                     }
+                    else
+                    {
+                        ShowMessage(aiProviderMessage, MessageSeverity.Info);
+                    }
                 }
                 else
                 {
-                    ShowMessage("AI não devolveu qualquer resultado", MessageSeverity.Warning);
+                    ShowMessage(L["AINoResults"], MessageSeverity.Warning);
                 }
             }
             catch (OperationCanceledException)
             {
-                ShowMessage("Operação cancelada.", MessageSeverity.Warning);
+                ShowMessage(L["OperacaoCancelada"], MessageSeverity.Warning);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error fetching AI media info for {MediaTitle} by {Artist}", SelectedRecord.FileName, SelectedRecord.Autor);
-                ShowMessage($"Erro ao obter metadados via AI. ({ex.Message})", MessageSeverity.Error);
+                ShowMessage(L["ErrorFetchingMetadataViaAI", ex.Message], MessageSeverity.Error);
             }
             finally
             {
@@ -783,7 +850,7 @@ namespace Web.Blazor.Pages.Media
                     await spinner.HideAsync();
                 isBusy = false;
                 mediaInfoCts?.Dispose();
-                ProgressClient.ProgressReceived -= OnProgressReceived;
+                ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
                 mediaInfoCts = null;
                 StateHasChanged();
             }

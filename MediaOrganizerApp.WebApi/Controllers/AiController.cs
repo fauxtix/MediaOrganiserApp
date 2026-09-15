@@ -2,6 +2,7 @@ using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.WebApi.Services;
+using MediaOrganizerApp.WebApi.Services.CloudChat;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
@@ -19,8 +20,10 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly IAiChatService _chat;
         private readonly ITranslateService _translateService;
         private readonly IPromptTemplateProvider _promptProvider;
+        private readonly CloudAuthorBooksService _cloudBooks;
+        private readonly CloudMediaService _cloudMedia;
+        private readonly CloudTranslateService _cloudTranslate;
         private readonly ILogger<AiController> _logger;
-        // Translate is implemented as a separate service resolved per-request to avoid changing constructor signature
 
         public AiController(
             IAiAuthorProfileService ai,
@@ -31,7 +34,10 @@ namespace MediaOrganizerApp.WebApi.Controllers
             ILogger<AiController> logger,
             IAiChatService chat,
             IPromptTemplateProvider promptProvider,
-            ITranslateService translateService)
+            ITranslateService translateService,
+            CloudAuthorBooksService cloudBooks,
+            CloudMediaService cloudMedia,
+            CloudTranslateService cloudTranslate)
         {
             _ai = ai;
             _books = books;
@@ -42,6 +48,9 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _chat = chat;
             _promptProvider = promptProvider;
             _translateService = translateService;
+            _cloudBooks = cloudBooks;
+            _cloudMedia = cloudMedia;
+            _cloudTranslate = cloudTranslate;
         }
 
         private static string MapLanguageCodeToName(string? language)
@@ -410,6 +419,42 @@ namespace MediaOrganizerApp.WebApi.Controllers
         }
 
         /// <summary>
+        /// List of the most relevant books by a given author, generated via OpenRouter.
+        /// Returns 503 when the cloud path is unavailable (no key, toggle off, network
+        /// or parse failure) so the UI can fall back to the local AI provider.
+        /// </summary>
+        [HttpGet("author-books-cloud")]
+        public async Task<ActionResult<List<GoogleBookInfo>>> AuthorBooksCloud(
+            string author,
+            string language = "pt",
+            string? connectionId = null,
+            string? correlationId = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(author))
+                return BadRequest("author parameter is required");
+
+            try
+            {
+                var books = await _cloudBooks.GetAuthorBooksAsync(
+                    author, language, connectionId, correlationId, cancellationToken);
+                if (books is null)
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                return Ok(books);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("AuthorBooksCloud request cancelled for {Author}", author);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating author books via OpenRouter for {Author}", author);
+                return StatusCode(503, "Error generating author books via OpenRouter");
+            }
+        }
+
+        /// <summary>
         /// Get flag values for AI features. This allows the UI to enable/disable features based on these flags without needing a full app configuration refresh.
         /// </summary>
         /// <returns>Current feature flags for AI features.</returns>
@@ -525,6 +570,154 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 request.CorrelationId,
                 cancellationToken);
             return Ok(string.IsNullOrWhiteSpace(year) ? "N/A" : year);
+        }
+
+        /// <summary>
+        /// Get AI-generated notes for a media item via OpenRouter. Returns 503
+        /// when the cloud path is unavailable (offline, no key, HTTP/parse
+        /// failure) so the UI can fall back to the local Ollama provider.
+        /// </summary>
+        [HttpPost("media-notes-cloud")]
+        public async Task<ActionResult<AiMediaNotesResponseDto>> MediaNotesCloud(
+            [FromBody] AiMediaNotesRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
+            if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            try
+            {
+                var resp = await _cloudMedia.GetMediaNotesAsync(
+                    request.Artist,
+                    request.Title,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
+                if (resp is null)
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("MediaNotesCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating media notes via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(503, "Error generating media notes via OpenRouter");
+            }
+        }
+
+        /// <summary>
+        /// Get AI-generated metadata for a media item via OpenRouter. Returns 503
+        /// when the cloud path is unavailable so the UI can fall back to Ollama.
+        /// </summary>
+        [HttpPost("media-metadata-cloud")]
+        public async Task<ActionResult<AiMediaMetadataResponseDto>> MediaMetadataCloud(
+            [FromBody] AiMediaMetadataRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
+            if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            try
+            {
+                var resp = await _cloudMedia.GetMediaMetadataAsync(
+                    request.Artist,
+                    request.Title,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
+                if (resp is null)
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("MediaMetadataCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating media metadata via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(503, "Error generating media metadata via OpenRouter");
+            }
+        }
+
+        /// <summary>
+        /// Get the edition year for a media item via OpenRouter. Returns 503
+        /// when the cloud path is unavailable so the UI can fall back to Ollama.
+        /// </summary>
+        [HttpPost("media-edition-year-cloud")]
+        public async Task<ActionResult<string>> MediaEditionYearCloud(
+            [FromBody] MediaEditionYearRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
+            if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            try
+            {
+                var year = await _cloudMedia.GetMediaEditionYearAsync(
+                    request.Artist,
+                    request.Title,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
+                if (year is null)
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                return Ok(year);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("MediaEditionYearCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating media edition year via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                return StatusCode(503, "Error generating media edition year via OpenRouter");
+            }
+        }
+
+        /// <summary>
+        /// Translates text via OpenRouter. Returns 503 when the cloud path is
+        /// unavailable so the UI can fall back to the local Ollama provider.
+        /// </summary>
+        [HttpPost("translate-cloud")]
+        public async Task<ActionResult<TranslateResponseDto>> TranslateCloud(
+            [FromBody] TranslateRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+
+            try
+            {
+                var resp = await _cloudTranslate.TranslateAsync(request, cancellationToken);
+                if (resp is null)
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("TranslateCloud request cancelled.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error translating text via OpenRouter");
+                return StatusCode(503, "Error translating text via OpenRouter");
+            }
         }
 
         /// <summary>
