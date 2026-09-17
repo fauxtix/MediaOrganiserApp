@@ -47,5 +47,9 @@
         // LastFm settings
         public string LastFmApiKey { get; set; }
         public string LastFmApiSecret { get; set; }
+
+        // Google Books settings
+        public string GoogleBooksApiKey { get; set; }
+        public string GoogleBooksCountry { get; set; }
     }
 }

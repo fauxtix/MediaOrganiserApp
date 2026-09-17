@@ -12,6 +12,7 @@
 
     /* Paleta base */
     --app-bg: #F8FAFC;
+    --app-work-area: #F8FAFC;
     --app-surface: #FFFFFF;
     --app-surface-alt: #F1F5F9;
     --app-surface-hover: #EDF1F7;
@@ -69,6 +70,7 @@
     color-scheme: dark;
 
     --app-bg: #0F172A;
+    --app-work-area: #162033;
     --app-surface: #1E293B;
     --app-surface-alt: #243244;
     --app-surface-hover: #283852;
@@ -374,6 +376,50 @@ button.e-btn.e-primary:focus {
     background-color: var(--app-surface);
 }
 
+/* Grid — escuro suave alinhado com os tokens da app */
+[data-theme="dark"] .e-grid .e-content,
+[data-theme="dark"] .e-grid .e-table,
+[data-theme="dark"] .e-grid .e-gridcontent,
+[data-theme="dark"] .e-grid .e-rowcell {
+    background-color: var(--app-surface) !important;
+}
+
+[data-theme="dark"] .e-grid .e-gridheader .e-headercell,
+[data-theme="dark"] .e-grid .e-headercontent {
+    background-color: var(--app-surface-alt) !important;
+}
+
+[data-theme="dark"] .e-grid .e-rowcell:hover:not(.e-active):not(.e-selectionbackground) {
+    background-color: var(--app-surface-hover) !important;
+}
+
+[data-theme="dark"] .e-grid .e-gridfooter,
+[data-theme="dark"] .e-grid .e-summarycell,
+[data-theme="dark"] .e-grid .e-summaryrow .e-summarycell {
+    background-color: var(--app-surface-alt);
+}
+
+[data-theme="dark"] .e-grid,
+[data-theme="dark"] .e-grid .e-rowcell,
+[data-theme="dark"] .e-grid .e-gridheader,
+[data-theme="dark"] .e-grid .e-headercontent {
+    border-color: var(--app-border);
+}
+
+[data-theme="dark"] .e-grid .e-gridheader .e-icons,
+[data-theme="dark"] .e-grid .e-headertext,
+[data-theme="dark"] .e-grid .e-rowcell {
+    color: var(--app-text-primary);
+}
+
+[data-theme="dark"] .e-grid .e-toolbar,
+[data-theme="dark"] .e-grid .e-gridpager,
+[data-theme="dark"] .e-grid .e-pager {
+    background-color: var(--app-surface) !important;
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
+}
+
 /* Toolbar — item ativo */
 .e-toolbar .e-toolbar-item.e-active .e-tbar-btn .e-icons,
 .e-toolbar .e-toolbar-item.e-active .e-tbar-btn:hover .e-icons,
@@ -467,6 +513,15 @@ button.e-btn.e-primary:focus {
     border-top-color: var(--app-border);
 }
 
+/* Painéis Bootstrap (.modal-*) embutidos no conteúdo dos SfDialog */
+[data-theme="dark"] .e-dialog .modal-header,
+[data-theme="dark"] .e-dialog .modal-content,
+[data-theme="dark"] .e-dialog .modal-footer {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text-primary);
+}
+
 /* Pager */
 .e-pager .e-currentitem,
 .e-pager .e-icons:hover,
@@ -491,6 +546,12 @@ button.e-btn.e-primary:focus {
 [data-theme="dark"] .e-popup {
     /* Componentes que abrem popups seguem a superfície do tema */
     background-color: var(--app-surface);
+    color: var(--app-text-primary);
+}
+
+/* SfTextBox — fundo escuro alinhado ao token */
+[data-theme="dark"] .e-float-input.e-input-group {
+    background-color: var(--app-surface) !important;
     color: var(--app-text-primary);
 }
 

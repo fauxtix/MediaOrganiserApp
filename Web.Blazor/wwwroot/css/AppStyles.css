@@ -446,7 +446,7 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
 }
 
 .modal-confirm {
-    color: #434e65;
+    color: var(--app-text-primary);
     width: 525px;
 }
 
@@ -458,7 +458,7 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
     }
 
     .modal-confirm .modal-header {
-        background: #e85e6c;
+        background: var(--app-danger);
         border-bottom: none;
         position: relative;
         text-align: center;
@@ -471,7 +471,7 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
         text-align: center;
         font-size: 24px;
         margin: 10px 0;
-        color: white;
+        color: var(--app-on-danger);
     }
 
     .modal-confirm .form-control, .modal-confirm .btn {
@@ -483,7 +483,7 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
         position: absolute;
         top: 15px;
         right: 15px;
-        color: #fff;
+        color: var(--app-on-danger);
         text-shadow: none;
         opacity: 0.5;
     }
@@ -493,13 +493,13 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
         }
 
     .modal-confirm .icon-box {
-        color: black;
+        color: var(--app-on-danger);
         width: 75px;
         height: 75px;
         display: inline-block;
         border-radius: 50%;
         z-index: 6;
-        border: 5px solid #000;
+        border: 5px solid var(--app-on-danger);
         padding: 5px;
         text-align: center;
     }
@@ -514,9 +514,9 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
     }
 
     .modal-confirm .btn, .modal-confirm .btn:active {
-        color: #fff;
+        color: var(--app-on-accent-yellow);
         border-radius: 4px;
-        background: #eeb711 !important;
+        background: var(--app-accent-yellow) !important;
         text-decoration: none;
         transition: all 0.4s;
         line-height: normal;
@@ -528,7 +528,7 @@ e-tab .e-tab-header .e-hor-nav .e-popup-up-icon:hover,
     }
 
         .modal-confirm .btn:hover, .modal-confirm .btn:focus {
-            background: #eda645 !important;
+            background: var(--app-accent-yellow-hover) !important;
             outline: none;
         }
 

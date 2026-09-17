@@ -414,17 +414,19 @@ namespace MediaOrganizerApp.WebApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating author books for {Author}", author);
-                return StatusCode(500, "Error generating author books");
+                return StatusCode(500, TruncateMessage(ex));
             }
         }
 
         /// <summary>
         /// List of the most relevant books by a given author, generated via OpenRouter.
-        /// Returns 503 when the cloud path is unavailable (no key, toggle off, network
-        /// or parse failure) so the UI can fall back to the local AI provider.
+        /// Always returns a <see cref="CloudAuthorBooksResult"/>: on success the Books
+        /// list is populated; on cloud failure the FailureReason and Outcomes are set so
+        /// the UI can explain and let the user decide whether to continue to the local
+        /// AI provider. Returns 503 only on hard failures (exception or client abort).
         /// </summary>
         [HttpGet("author-books-cloud")]
-        public async Task<ActionResult<List<GoogleBookInfo>>> AuthorBooksCloud(
+        public async Task<ActionResult<CloudAuthorBooksResult>> AuthorBooksCloud(
             string author,
             string language = "pt",
             string? connectionId = null,
@@ -432,25 +434,36 @@ namespace MediaOrganizerApp.WebApi.Controllers
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(author))
-                return BadRequest("author parameter is required");
+                return BadRequest(new CloudAuthorBooksResult { FailureReason = "Parâmetro 'author' obrigatório." });
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                var books = await _cloudBooks.GetAuthorBooksAsync(
+                _logger.LogInformation(
+                    "AuthorBooksCloud iniciado para {Author} (language={Language}).",
+                    author, language);
+
+                var result = await _cloudBooks.GetAuthorBooksResultAsync(
                     author, language, connectionId, correlationId, cancellationToken);
-                if (books is null)
-                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
-                return Ok(books);
+                return Ok(result);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogWarning("AuthorBooksCloud request cancelled for {Author}", author);
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+                _logger.LogWarning(
+                    "AuthorBooksCloud request cancelled for {Author} após {DurationMs}ms (função terminada por timeout do cliente).",
+                    author, sw.ElapsedMilliseconds);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new CloudAuthorBooksResult
+                    {
+                        FailureReason = $"Pedido OpenRouter cancelado após {sw.ElapsedMilliseconds}ms (timeout do cliente).",
+                        WasCancelled = true
+                    });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating author books via OpenRouter for {Author}", author);
-                return StatusCode(503, "Error generating author books via OpenRouter");
+                _logger.LogError(ex, "Error generating author books via OpenRouter for {Author} após {DurationMs}ms", author, sw.ElapsedMilliseconds);
+                return StatusCode(503,
+                    new CloudAuthorBooksResult { FailureReason = TruncateMessage(ex) });
             }
         }
 
@@ -768,6 +781,12 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     // swallow
                 }
             }
+        }
+
+        private static string TruncateMessage(Exception ex)
+        {
+            var message = string.IsNullOrWhiteSpace(ex?.Message) ? ex?.GetType().Name ?? "Unknown error" : ex.Message;
+            return message.Length > 200 ? message[..200] + "..." : message;
         }
     }
 }

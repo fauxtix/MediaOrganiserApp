@@ -77,7 +77,7 @@
     [Parameter] public string PositionX { get; set; } = "center";
     [Parameter] public string PositionY { get; set; } = "center";
 
-    private string TitleColor { get; set; } = "cornflowerblue";
+    private string TitleColor { get; set; } = "var(--app-warning-text)";
     private string OkButtonColor { get; set; } = "e-danger e-round-corner";
 
     private DialogEffect Effects = DialogEffect.FadeZoom;
@@ -90,7 +90,7 @@
     protected override void OnInitialized()
     {
         MessageSeverityType = MessageSeverity.Info;
-        TitleColor = "cornflowerblue";
+        TitleColor = "var(--app-warning-text)";
     }
 
     protected override void OnParametersSet()

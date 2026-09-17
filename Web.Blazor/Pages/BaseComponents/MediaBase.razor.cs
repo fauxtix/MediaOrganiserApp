@@ -172,10 +172,18 @@ namespace Web.Blazor.Pages.BaseComponents
             StateHasChanged();
         }
 
+        private static string GetCommandToken(CommandClickEventArgs<MediaVM> args)
+        {
+            var css = args?.CommandColumn?.ButtonOption?.CssClass ?? "";
+            if (css.Contains("cmd-play", StringComparison.OrdinalIgnoreCase)) return "play";
+            if (css.Contains("cmd-info", StringComparison.OrdinalIgnoreCase)) return "info";
+            return "";
+        }
+
         public async Task OnCommandClicked(CommandClickEventArgs<MediaVM> args)
         {
             var data = args.RowData;
-            var optiontype = args.CommandColumn.Title.ToLower();
+            var optiontype = GetCommandToken(args);
             MediaID = data.Id;
             primaryIndex = await gridObj.GetRowIndexByPrimaryKeyAsync(data.Id);
 
@@ -244,27 +252,28 @@ namespace Web.Blazor.Pages.BaseComponents
 
         private async void HandleCommand(CommandClickEventArgs<MediaVM> args)
         {
+            var command = GetCommandToken(args);
             switch (args.CommandColumn.Type)
             {
                 case CommandButtonType.None:
-                    if (args.CommandColumn.Title.ToLower() == "info" && isMp4)
+                    if (command == "info" && isMp4)
                     {
                         MediaCardInfoVisibility = false;
                         YouTubePlayerDialogVisibility = false;
                         Mp3CardInfoVisibility = false;
                         await ProcessMp4InfoRequest(DialogsVisibility.MediaCardInfo);
                     }
-                    if (args.CommandColumn.Title.ToLower() == "info" && isMp3)
+                    if (command == "info" && isMp3)
                     {
                         Mp3CardInfoVisibility = true;
                         MediaCardInfoVisibility = false;
                     }
-                    //if (args.CommandColumn.Title.ToLower() == "playlist" && isMp3)
+                    //if (command == "playlist" && isMp3)
                     //{
                     //    Mp3CardInfoVisibility = true;
                     //    MediaCardInfoVisibility = false;
                     //}
-                    else if (args.CommandColumn.Title.ToLower() == "play")
+                    else if (command == "play")
                     {
                         if (isMp4)
                         {

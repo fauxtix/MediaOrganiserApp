@@ -59,6 +59,11 @@ public sealed class OpenRouterChatService
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Chave de API OpenRouter não configurada. Configure em Configurações.");
 
+        var allowPaid = bool.TryParse(
+            await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.AllowPaidModels, null, ct),
+            out var paid) ? paid : false;
+        payload.Model = CloudChatSettingsKeys.ApplyPaidModelGate(payload.Model, allowPaid);
+
         if (CloudChatSettingsKeys.IsFreeModel(payload.Model))
         {
             try

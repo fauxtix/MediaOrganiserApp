@@ -14,6 +14,8 @@ namespace MediaOrganizerApp.Tests;
 public sealed class CloudAuthorBooksServiceTests
 {
     private const string ApiKey = "sk-test-123";
+    private const string CatalogResponse =
+        """{"data":[{"id":"z-ai/glm-5.2:free","name":"Z.ai GLM 5.2 (free)"},{"id":"google/gemma-4-31b-it:free","name":"Google Gemma 4 31B IT (free)"},{"id":"nvidia/nemotron-3.5-lightning:free","name":"NVIDIA Nemotron 3.5 Lightning (free)"},{"id":"meta-llama/llama-3.3-70b-instruct:free","name":"Meta Llama 3.3 70B Instruct (free)"}]}""";
 
     private sealed class HttpCapture
     {
@@ -62,7 +64,7 @@ public sealed class CloudAuthorBooksServiceTests
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(
-                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"O Livro\",\"year\":\"1998\",\"publisher\":\"Porto Editora\"},{\"title\":\"Segundo\",\"subtitle\":\"continuação\"}]"}}]}""",
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"id\":\"google-1\",\"title\":\"O Livro\",\"subtitle\":\"Primeira parte\",\"year\":\"1998\",\"publisher\":\"Porto Editora\",\"confidence\":0.9,\"synthesized\":false},{\"title\":\"Segundo\",\"confidence\":0.5}]"}}]}""",
                 Encoding.UTF8, "application/json")
         };
 
@@ -80,11 +82,45 @@ public sealed class CloudAuthorBooksServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(2, result!.Count);
+        Assert.Equal("google-1", result[0].Id);
         Assert.Equal("O Livro", result[0].Title);
+        Assert.Equal("Primeira parte", result[0].Subtitle);
         Assert.Equal("1998", result[0].PublishedDate);
+        Assert.Equal("Porto Editora", result[0].Publisher);
+        Assert.Equal(0.9, result[0].Confidence);
+        Assert.False(result[0].Synthesized);
         Assert.Equal("Segundo", result[1].Title);
+        Assert.Equal(0.5, result[1].Confidence);
         Assert.NotNull(capture.Body);
-        Assert.Contains("\"openai/gpt-4o-mini\"", capture.Body);
+        Assert.Contains("\"openai/gpt-4o-mini:free\"", capture.Body);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_StripsFakeThumbnailUrls()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"Com Capa Real\",\"thumbnail\":\"https://books.google.com/books/content?id=abc\"},{\"title\":\"Capa Falsa\",\"thumbnail\":\"https://example.com/cover.jpg\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o-mini"
+            },
+            capture);
+
+        var result = await service.GetAuthorBooksAsync("Camilla Läckberg", "pt");
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("https://books.google.com/books/content?id=abc", result[0].Thumbnail);
+        Assert.Null(result[1].Thumbnail);
     }
 
     [Fact]
@@ -259,14 +295,8 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
         }
 
         [Fact]
-        public async Task GetAuthorBooksAsync_UsesFreeVariants_WhenPaidModelsDisabled()
+        public async Task GetAuthorBooksAsync_UsesLiveCatalogFreeModels_WhenPaidModelsDisabled()
         {
-            var empty = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    """{"choices":[{"message":{"role":"assistant","content":"[]"}}]}""",
-                    Encoding.UTF8, "application/json")
-            };
             var withBooks = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(
@@ -276,7 +306,22 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
 
             var capture = new HttpCapture();
             var service = CreateService(
-                responses: new Queue<HttpResponseMessage>(new[] { empty, withBooks }),
+                responses: new Queue<HttpResponseMessage>(new[]
+                {
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(
+                            """{"choices":[{"message":{"role":"assistant","content":"[]"}}]}""",
+                            Encoding.UTF8, "application/json")
+                    },
+                    withBooks,
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(
+                            """{"choices":[{"message":{"role":"assistant","content":"[]"}}]}""",
+                            Encoding.UTF8, "application/json")
+                    }
+                }),
                 settings: new Dictionary<string, string?>
                 {
                     [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
@@ -289,12 +334,53 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
             Assert.NotNull(result);
             Assert.Single(result!);
             Assert.Equal("The Quiet American", result[0].Title);
-            Assert.Contains("\"openrouter/free\"", capture.RequestBodies[0]);
-            Assert.Contains("\"openai/gpt-4o:free\"", capture.RequestBodies[1]);
+            Assert.Contains("\"z-ai/glm-5.2:free\"", capture.RequestBodies[0]);
+            Assert.Contains("\"google/gemma-4-31b-it:free\"", capture.RequestBodies[1]);
+        }
+
+        [Fact]
+        public async Task GetAuthorBooksAsync_PreferredModelReturnsIncomplete_StillSweepsKnownGood_RatherThanRouter()
+        {
+            var empty = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"choices":[{"message":{"role":"assistant","content":"[]"}}]}""",
+                    Encoding.UTF8, "application/json")
+            };
+            var glmWeak = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"Só Um\"}]"}}]}""",
+                    Encoding.UTF8, "application/json")
+            };
+            var gemmaRich = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"Um\"},{\"title\":\"Dois\"},{\"title\":\"Três\"},{\"title\":\"Quatro\"},{\"title\":\"Cinco\"}]"}}]}""",
+                    Encoding.UTF8, "application/json")
+            };
+
+            var capture = new HttpCapture();
+            var service = CreateService(
+                responses: new Queue<HttpResponseMessage>(new[] { glmWeak, gemmaRich, empty }),
+                settings: new Dictionary<string, string?>
+                {
+                    [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+                },
+                capture);
+
+            var result = await service.GetAuthorBooksAsync("Rui Tavares", "pt");
+
+            Assert.NotNull(result);
+            Assert.Equal(5, result!.Count);
+            Assert.Equal("Quatro", result[3].Title);
+            Assert.Contains("\"z-ai/glm-5.2:free\"", capture.RequestBodies[0]);
+            Assert.Contains("\"google/gemma-4-31b-it:free\"", capture.RequestBodies[1]);
+            Assert.DoesNotContain("\"openrouter/free\"", capture.RequestBodies);
         }
 
     [Fact]
-    public async Task GetAuthorBooksAsync_DoesNotRetryRecommended_WhenResolvedModelIsRecommendedPaid()
+    public async Task GetAuthorBooksAsync_RunsPaidRecommendedModelAlone_WhenToggleOn()
     {
         var empty = new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -309,7 +395,8 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
             settings: new Dictionary<string, string?>
             {
                 [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
-                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o-mini"
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o-mini",
+                [CloudChatSettingsKeys.AllowPaidModels] = "true"
             },
             capture);
 
@@ -318,6 +405,62 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
         Assert.NotNull(result);
         Assert.Empty(result!);
         Assert.Single(capture.RequestBodies);
+        Assert.Contains("\"openai/gpt-4o-mini\"", capture.RequestBodies[0]);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_UsesFreeVariant_WhenPaidRecommendedModelConfiguredAndToggleOff()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"O Livro\"},{\"title\":\"Segundo\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o"
+            },
+            capture);
+
+        var result = await service.GetAuthorBooksAsync("José Saramago", "pt");
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Contains("\"openai/gpt-4o:free\"", capture.RequestBodies[0]);
+        Assert.DoesNotContain("\"openai/gpt-4o\"", capture.RequestBodies[0]);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_ReadsAnswerFromReasoningField_WhenContentIsEmpty()
+    {
+        var reasoning = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":null,"reasoning":"[{\"title\":\"O Raciocinado\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { reasoning }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.AllowPaidModels] = "true"
+            },
+            capture);
+
+        var result = await service.GetAuthorBooksAsync("Autor Raciocinante", "pt");
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("O Raciocinado", result[0].Title);
     }
 
     private static CloudAuthorBooksService CreateService(
@@ -340,6 +483,14 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
             ? new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("Unexpected HTTP call.")))
             : new HttpClient(new StubHttpMessageHandler(request =>
             {
+                if (request.RequestUri?.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(CatalogResponse, Encoding.UTF8, "application/json")
+                    };
+                }
+
                 capture.Headers = request.Headers;
                 if (request.Content is not null)
                 {
@@ -364,6 +515,7 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
             usageMock?.Object ?? Mock.Of<ICloudChatUsageService>(),
             internet.Object,
             Mock.Of<IProgressPublisher>(),
+            new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
             Mock.Of<ILogger<CloudAuthorBooksService>>());
     }
 

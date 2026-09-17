@@ -25,7 +25,7 @@
                                            ShowCloseIcon="false">
                                     @MessageNote
                                 </SfMessage>
-                                <hr class="my-2" style="color:black" />
+                                <hr class="my-2" style="color:var(--app-border)" />
                             </div>
                         }
                         <div>
@@ -70,7 +70,7 @@
 
     private DialogEffect Effects = DialogEffect.FadeZoom;
 
-    private string TitleColor { get; set; } = "cornflowerblue";
+    private string TitleColor { get; set; } = "var(--app-info-text)";
     private int cols;
 
     private MessageSeverity severity { get; set; }

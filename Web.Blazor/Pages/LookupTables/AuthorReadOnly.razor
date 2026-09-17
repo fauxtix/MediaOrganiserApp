@@ -114,10 +114,9 @@
 
     private async Task RetryAiAsync()
     {
-        // Clear cached AI results for this author so AuthorBooks will re-fetch
+        // Force AuthorBooks (child) to reload on re-render, clearing the Google cache entry
         if (!string.IsNullOrWhiteSpace(AuthorName))
         {
-            // Clear AuthorBooks cache entry and force re-render so child component reloads
             Web.Blazor.Components.Authors.AuthorBooks.ClearCacheForAuthor(AuthorName);
             author = await AutorService.GetAuthorsById(AuthorId);
             StateHasChanged();

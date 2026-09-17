@@ -179,7 +179,7 @@ public sealed class OpenRouterChatServiceTests
 
         var service = CreateService(responses, out _, benchmarkMock: benchmark);
 
-        await foreach (var _ in service.StreamChatAsync(CreatePayload("nvidia/foo"), "user-7", "en")) { }
+        await foreach (var _ in service.StreamChatAsync(CreatePayload("google/gemma-4-31b-it:free"), "user-7", "en")) { }
 
         benchmark.Verify(
             x => x.GetOrCreatePromptIdAsync(
@@ -188,13 +188,32 @@ public sealed class OpenRouterChatServiceTests
 
         benchmark.Verify(
             x => x.CreateResponseAsync(
-                It.Is<AIResponse>(r => r.NomeModelo == "nvidia/foo"
+                It.Is<AIResponse>(r => r.NomeModelo == "google/gemma-4-31b-it:free"
                     && r.ModeloResolvido == "openrouter/free"
                     && r.UserId == "user-7"
                     && r.TamanhoTokens == 5
                     && r.TextoResposta == "final"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        foreach (var response in responses) response.Dispose();
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_DowngradesPaidModel_WhenToggleOff()
+    {
+        var responses = SseQueue(
+            """{"choices":[{"delta":{"content":"ok"}}],"model":"openrouter/free"}""",
+            """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}""");
+
+        var service = CreateService(responses, out var requestBodies);
+        var payload = CreatePayload("nvidia/foo");
+
+        await foreach (var _ in service.StreamChatAsync(payload, null, "pt")) { }
+
+        Assert.Single(requestBodies);
+        Assert.Contains("\"openrouter/free\"", requestBodies[0]);
+        Assert.DoesNotContain("\"nvidia/foo\"", requestBodies[0]);
 
         foreach (var response in responses) response.Dispose();
     }

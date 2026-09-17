@@ -389,18 +389,18 @@ else
                                                    IconPosition = @IconPosition.Left
                                                })">
                             </GridCommandColumn>
-                            <GridCommandColumn Type=CommandButtonType.None Title="@localizerApp["Play"]"
+                            <GridCommandColumn Type=CommandButtonType.None Title="@(localizerApp["Play"])"
                                                ButtonOption="@(new CommandButtonOptions()
                                                {
-                                                   CssClass = "e-btn e-success e-round",
+                                                   CssClass = "e-btn e-success e-round cmd-play",
                                                    IconCss = "oi oi-media-play",
                                                    IconPosition = @IconPosition.Left
                                                })">
                             </GridCommandColumn>
-                            <GridCommandColumn Type=CommandButtonType.None Title="@localizerApp["Info"]"
+                            <GridCommandColumn Type=CommandButtonType.None Title="@(localizerApp["Info"])"
                                                ButtonOption="@(new CommandButtonOptions()
                                                {
-                                                   CssClass = "e-btn e-info e-round",
+                                                   CssClass = "e-btn e-info e-round cmd-info",
                                                    IconCss = "oi oi-info",
                                                    IconPosition = @IconPosition.Left
                                                })">

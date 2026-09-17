@@ -61,7 +61,7 @@ public abstract class OllamaBaseClient
     protected async Task<string?> ExecuteGenerateAsync(
         string prompt,
         CancellationToken cancellationToken,
-        int timeoutSeconds = 80,
+        int timeoutSeconds = 300,
         double temperature = 0,
         double topP = 1,
         int? numPredict = null)
@@ -94,12 +94,19 @@ public abstract class OllamaBaseClient
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
-        using var response = await HttpClient.SendAsync(request, timeoutCts.Token);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            using var response = await HttpClient.SendAsync(request, timeoutCts.Token);
+            response.EnsureSuccessStatusCode();
 
-        var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
-        var json = Encoding.UTF8.GetString(bytes);
+            var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
+            var json = Encoding.UTF8.GetString(bytes);
 
-        return OllamaResponseHelper.TryExtractResponseText(json);
+            return OllamaResponseHelper.TryExtractResponseText(json);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Ollama request timed out after {timeoutSeconds} seconds.");
+        }
     }
 }

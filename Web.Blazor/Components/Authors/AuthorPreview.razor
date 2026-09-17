@@ -1,6 +1,7 @@
 @using MediaOrganizerApp.Application.DTOs
 @using Ganss.Xss
 @using MediaOrganizerApp.Application.Interfaces.Services.Api
+@using Web.Blazor.Services.ApiWrappers
 @using Microsoft.AspNetCore.Components
 @inject IAutorService AutorService
 @inject IGoogleBooksService GoogleBooksService
@@ -203,6 +204,11 @@
             {
                 books = new List<BookInfo>();
             }
+        }
+        catch (GoogleBooksKeyNotConfiguredException)
+        {
+            Logger.LogWarning("Google Books API key not configured in database. Skipping Google Books lookup for author {Author}.", author?.Descricao);
+            books = new List<BookInfo>();
         }
         catch (Exception ex)
         {

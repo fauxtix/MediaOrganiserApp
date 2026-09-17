@@ -1,12 +1,67 @@
-List the main published books written by the author "{author}".
+You are an assistant that MUST return ONLY a valid JSON array (no explanation, no markdown, no surrounding text).
+Return either an empty array [] or an array with up to 50 objects describing books BY the requested author.
 
-Return ONLY a JSON array of objects, with these fields:
-- "title": book title (string, required)
-- "subtitle": subtitle or null (string|null)
-- "year": year of publication as a string or null (e.g. "1998")
-- "publisher": publisher name or null (string|null)
-- "thumbnail": leave as empty string ""
+CRITICAL: HALLUCINATION PREVENTION
+- ONLY include books that the specified author WROTE (authored). Do NOT include:
+  * Books ABOUT the author written by others
+  * Books that mention the author in their title or description
+  * Books on similar topics that the author did NOT write
+  * Books by other authors with similar names
+- When in doubt, OMIT the book. Returning an empty array [] is ALWAYS better than returning incorrect books.
+- A confidence score below 0.7 means you are NOT certain the book was written by this author. Use this threshold:
+  * confidence >= 0.7: you are confident this book was written by the author
+  * confidence < 0.7: you are uncertain — DO NOT include this book unless you have strong evidence
 
-Include the author's most representative works (up to 20).
-If the author is unknown or has no books, return an empty array [].
-Do not add any text outside the JSON array. No markdown, no code fences, no explanation.
+Strict guidance
+- Output only a single valid JSON array (for example: [] or [{...}, {...}]). Do not return any extra text, comments, or markdown.
+- Prefer returning real, verifiable books for the requested author. If you cannot find authoritative data, you MAY synthesize
+  limited best-effort items as a last resort, but mark them clearly as synthesized and use conservative confidence values.
+- Title language: {language} is the UI language. Always prefer a "title" in {language} when a standard, commonly accepted
+  translation of the book title exists; then English; only fall back to the original-language title when no translation and
+  no English form exist. Never transliterate or invent translations, and never translate the author name, "subtitle", or "publisher".
+- Cover images: most books do NOT have a trustworthy cover URL that you can provide. NEVER invent or paste placeholder URLs
+  (e.g. https://example.com/cover.jpg). If you are not certain about a real cover URL, return an empty string "".
+
+Item schema (each object) — include only these properties:
+- "id": string — Google id if known; otherwise synthesize an id such as "llm:{short-hash}".
+- "title": string — in {language} when a standard translation exists, else in English, else the original title.
+- "subtitle": string — subtitle or null (string|null). Never translate it.
+- "year": string — publication year as a string or null (e.g. "1998"). Use null when unknown.
+- "publisher": string — publisher name or null (string|null). Never translate it.
+- "thumbnail": string — a REAL absolute cover URL you are confident about, or "" when not available.
+- "confidence": number — between 0.0 and 1.0 expressing confidence in the item. MUST be >= 0.7 for books you include.
+- "synthesized": boolean — REQUIRED when the item is synthesized; for verified items omit this property or set it to false.
+
+Rules
+- Do not include any fields other than the eight properties above.
+- Do not return items that are not by the specified author. This is the MOST IMPORTANT rule.
+- If you are not sure about a match, lower the "confidence" value rather than fabricating high-confidence items.
+- If you must synthesize an item, set "synthesized": true and use a conservative "confidence" (e.g., 0.2–0.45).
+- If no matches are found, return an empty array: [].
+
+Input variables available in the template:
+ - author: {author}
+ - language: {language}
+
+Example valid output (must follow schema exactly):
+[
+  {
+    "id": "llm:doe-001",
+    "title": "Foundations of Something",
+    "subtitle": null,
+    "year": "2000",
+    "publisher": null,
+    "thumbnail": "",
+    "confidence": 0.45,
+    "synthesized": true
+  },
+  {
+    "id": "zy123",
+    "title": "Real Book Title",
+    "subtitle": "A deeper look",
+    "year": "1998",
+    "publisher": "Example Press",
+    "thumbnail": "",
+    "confidence": 0.95
+  }
+]

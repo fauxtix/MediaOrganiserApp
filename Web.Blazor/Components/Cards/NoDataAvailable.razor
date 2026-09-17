@@ -34,12 +34,12 @@
 
 <style>
     .custom-dialog {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adding a more prominent shadow for the dialog */
+        box-shadow: var(--app-shadow); /* Adding a more prominent shadow for the dialog */
         border-radius: 10px; /* Rounded corners */
     }
 
     .custom-card {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adding a subtle shadow */
+        box-shadow: var(--app-shadow); /* Adding a subtle shadow */
         border-radius: 10px; /* Rounded corners */
         padding: 20px;
         background-color: var(--app-surface); /* White background */
@@ -48,12 +48,12 @@
     }
 
     .custom-message {
-        background-color: #f8d7da; /* Soft red background */
-        border: 1px solid #f5c6cb; /* Soft red border */
-        color: #721c24; /* Dark red text */
+        background-color: var(--app-danger-bg); /* Soft red background */
+        border: 1px solid var(--app-danger-border); /* Soft red border */
+        color: var(--app-danger-text); /* Dark red text */
         padding: 20px;
         border-radius: 10px; /* Rounded corners for the message box */
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adding a subtle shadow to the message box */
+        box-shadow: var(--app-shadow); /* Adding a subtle shadow to the message box */
     }
 
     .custom-message-heading {
@@ -69,7 +69,7 @@
 
     .close-btn {
         background-color: var(--app-primary); /* Bootstrap primary color */
-        color: white;
+        color: var(--app-on-primary);
         border: none;
         padding: 10px 20px;
         font-size: 16px;

@@ -5,17 +5,24 @@ Strict guidance
 - Output only a single valid JSON array (for example: [] or [{...}, {...}]). Do not return any extra text, comments, or markdown.
 - Prefer returning real, verifiable books for the requested author. If you cannot find authoritative data, you MAY synthesize
   limited best-effort items as a last resort, but mark them clearly as synthesized and use conservative confidence values.
+- Title language: {language} is the UI language. Always prefer a "Title" in {language} when a standard, commonly accepted
+  translation of the book title exists; then English; only fall back to the original-language title when no translation and
+  no English form exist. Never transliterate or invent translations, and never translate the author name, "Subtitle", or "Publisher".
+- Cover images: most books do NOT have a trustworthy cover URL that you can provide. NEVER invent or paste placeholder URLs
+  (e.g. https://example.com/cover.jpg). If you are not certain about a real cover URL, return "images/NoPhoto.png".
 
 Item schema (each object) — include only these properties:
 - "Id": string — Google id if known; otherwise synthesize an id such as "llm:{short-hash}".
-- "Title": string
+- "Title": string — in {language} when a standard translation exists, else in English, else the original title.
+- "Subtitle": string — subtitle or null (string|null). Never translate it.
 - "PublishedDate": string — prefer "YYYY-MM-DD" or "YYYY"; use empty string "" when unknown.
-- "Thumbnail": string — absolute URL or "images/NoPhoto.png" when not available.
+- "Publisher": string — publisher name or null (string|null). Never translate it.
+- "Thumbnail": string — a REAL absolute cover URL you are confident about, or "images/NoPhoto.png" when not available.
 - "Confidence": number — between 0.0 and 1.0 expressing confidence in the item.
 - "Synthesized": boolean — REQUIRED when the item is synthesized; for verified items omit this property or set it to false.
 
 Rules
-- Do not include any fields other than the six properties above.
+- Do not include any fields other than the eight properties above.
 - Do not return items that are not by the specified author.
 - If you are not sure about a match, lower the "Confidence" value rather than fabricating high-confidence items.
 - If you must synthesize an item, set "Synthesized": true and use a conservative "Confidence" (e.g., 0.2–0.45).
@@ -31,7 +38,9 @@ Example valid output (must follow schema exactly):
   {
     "Id": "llm:doe-001",
     "Title": "Foundations of Something",
+    "Subtitle": null,
     "PublishedDate": "2000",
+    "Publisher": null,
     "Thumbnail": "images/NoPhoto.png",
     "Confidence": 0.45,
     "Synthesized": true
@@ -39,8 +48,10 @@ Example valid output (must follow schema exactly):
   {
     "Id": "zy123",
     "Title": "Real Book Title",
+    "Subtitle": "A deeper look",
     "PublishedDate": "1998-05-01",
-    "Thumbnail": "https://example.com/cover.jpg",
+    "Publisher": "Example Press",
+    "Thumbnail": "images/NoPhoto.png",
     "Confidence": 0.95
   }
 ]

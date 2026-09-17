@@ -1264,6 +1264,12 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="Database_ConnectionString" xml:space="preserve">
     <value>String de conexão à base de dados</value>
   </data>
+  <data name="GoogleBooksApiKey" xml:space="preserve">
+    <value>Chave de API do Google Books</value>
+  </data>
+  <data name="GoogleBooksCountry" xml:space="preserve">
+    <value>País do Google Books (ex.: PT)</value>
+  </data>
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>Tenta pesquisa por AI?</value>
   </data>
@@ -1495,9 +1501,6 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TestChatImportInvalid" xml:space="preserve">
     <value>Ficheiro JSON inválido ou sem conversas.</value>
   </data>
-  <data name="BooksCachedMessage" xml:space="preserve">
-    <value>Resultado em cache</value>
-  </data>
   <data name="AuthorSearchErrorGoogle" xml:space="preserve">
     <value>Erro ao obter Google Books de {0}; a tentar Wikidata.</value>
   </data>
@@ -1506,6 +1509,9 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="AuthorSearchGoogleRateLimited" xml:space="preserve">
     <value>Google Books limitou o número de pedidos para {0}; a tentar Wikidata.</value>
+  </data>
+  <data name="AuthorSearchGoogleNoKey" xml:space="preserve">
+    <value>Google Books: a chave da API não está configurada na base de dados. Define-a em 'Definições → Outras configurações 2'.</value>
   </data>
   <data name="AuthorSearchSearchingWikidata" xml:space="preserve">
     <value>A pesquisar Wikidata para {0}...</value>
@@ -1534,8 +1540,14 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="AuthorSearchProviderOpenRouter" xml:space="preserve">
     <value>Resultados obtidos via OpenRouter.</value>
   </data>
+  <data name="AuthorSearchProviderOpenRouterModel" xml:space="preserve">
+    <value>Resultados obtidos via OpenRouter (modelo «{0}»).</value>
+  </data>
   <data name="AuthorSearchProviderOllama" xml:space="preserve">
     <value>Resultados obtidos via Ollama (local).</value>
+  </data>
+  <data name="AuthorSearchProviderOllamaModel" xml:space="preserve">
+    <value>Resultados obtidos via Ollama (local) (modelo «{0}»).</value>
   </data>
   <data name="MediaInfoProviderOpenRouter" xml:space="preserve">
     <value>Informação obtida via OpenRouter.</value>
@@ -1545,6 +1557,21 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="AuthorSearchNoBooksFromAi" xml:space="preserve">
     <value>A pesquisa de IA não devolveu livros para {0}.</value>
+  </data>
+  <data name="AuthorSearchCloudFailedReason" xml:space="preserve">
+    <value>Falha na pesquisa OpenRouter: {0}</value>
+  </data>
+  <data name="AuthorSearchCloudUnavailable" xml:space="preserve">
+    <value>OpenRouter indisponível para {0}</value>
+  </data>
+  <data name="AuthorSearchOllamaAlertMessage" xml:space="preserve">
+    <value>Queres continuar com a IA local (Ollama) para obter os títulos?</value>
+  </data>
+  <data name="AuthorSearchOllamaNote" xml:space="preserve">
+    <value>A pesquisa local usa o modelo de IA instalado e pode demorar alguns minutos.</value>
+  </data>
+  <data name="AuthorSearchCloudCancelledNoBooks" xml:space="preserve">
+    <value>Pesquisa cancelada. Não foram encontrados títulos para {0}.</value>
   </data>
   <data name="AuthorSearchFailedAfter" xml:space="preserve">
     <value>A pesquisa de IA falhou para {0} após {1:F1}s.</value>
@@ -1572,6 +1599,54 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="AuthorSearchSweepFallback" xml:space="preserve">
     <value>OpenRouter sem resultados; a usar o fallback local (Ollama).</value>
+  </data>
+
+  <data name="AuthorSearchCacheInfo" xml:space="preserve">
+    <value>Resultados obtidos numa pesquisa Google anterior (cache). Esta cache é usada para reduzir o uso de quota da API.</value>
+  </data>
+
+  <data name="AuthorSearchFreshGoogleAndCached" xml:space="preserve">
+    <value>Resultados obtidos agora através da API Google Books e guardados em cache para uma próxima visita.</value>
+  </data>
+
+  <data name="AuthorSearchWikidataSource" xml:space="preserve">
+    <value>Resultados obtidos agora através da Wikidata.</value>
+  </data>
+
+  <data name="SearchSourceGoogleBooks" xml:space="preserve">
+    <value>Dados obtidos através da API Google Books.</value>
+  </data>
+
+  <data name="SearchSourceGoogleBooksTranslated" xml:space="preserve">
+    <value>Título traduzido (MyMemory); dados obtidos através da API Google Books.</value>
+  </data>
+
+  <data name="SearchSourceAiSummary" xml:space="preserve">
+    <value>Livro encontrado na Google Books; resumo gerado por IA.</value>
+  </data>
+
+  <data name="SearchSourceAiMetadata" xml:space="preserve">
+    <value>Google sem resultados; metadados gerados por IA.</value>
+  </data>
+
+  <data name="SearchSourceAiOffline" xml:space="preserve">
+    <value>Dados gerados por IA (sem acesso à Google / limite da API atingido).</value>
+  </data>
+
+  <data name="AuthorBooksTitulo" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="AuthorBooksAno" xml:space="preserve">
+    <value>Ano</value>
+  </data>
+  <data name="AuthorBooksEditora" xml:space="preserve">
+    <value>Editora</value>
+  </data>
+  <data name="AuthorBooksConfianca" xml:space="preserve">
+    <value>Confiança</value>
+  </data>
+  <data name="AuthorBooksSintetizado" xml:space="preserve">
+    <value>Sintetizado</value>
   </data>
 
   <data name="LogViewer" xml:space="preserve">
@@ -2136,6 +2211,10 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
 
   <data name="MsgGoogleApiError" xml:space="preserve">
     <value>Erro ao consultar a API do Google. Confirme, p.f.</value>
+  </data>
+
+  <data name="MsgGoogleBooksNoKey" xml:space="preserve">
+    <value>A chave da API do Google Books não está configurada na base de dados. Define-a em 'Definições → Outras configurações 2'.</value>
   </data>
 
   <data name="AiSearchingBookDescription" xml:space="preserve">

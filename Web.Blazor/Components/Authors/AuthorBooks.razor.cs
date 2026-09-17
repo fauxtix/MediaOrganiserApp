@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using Web.Blazor.Services.Common;
+using Web.Blazor.Services.ApiWrappers;
 using Microsoft.Extensions.Configuration;
 
 namespace Web.Blazor.Components.Authors
@@ -40,6 +41,7 @@ namespace Web.Blazor.Components.Authors
         private int currentPage = 1;
 
         private string? aiProviderMessage;
+        private string? _usedAiModel;
         private readonly System.Diagnostics.Stopwatch _loaderStopwatch = new();
 
         private string SpinnerLabel { get; set; } = "";
@@ -51,16 +53,48 @@ namespace Web.Blazor.Components.Authors
         private readonly SemaphoreSlim _spinnerLock = new(1, 1);
         private bool showAISearchDialog { get; set; } = false;
 
+        // Ollama confirmation dialog (shown when the OpenRouter/cloud step produced no books)
+        private bool showOllamaConfirmDialog { get; set; } = false;
+        private string? _aiFlowAuthor;
+        private string? _aiFlowLanguage;
+        private string? _aiFlowConnectionId;
+        private string? _cloudFailureReason;
+
+        // results served from the static Google cache (informational only - the cache is never
+        // invalidated from the UI; this flag exists so the UI can explain why results reappear).
+        private bool booksFromCache;
+
+        // results were fetched live from Google Books just now and written to the static cache
+        // for the next visit (informational only; AI/Wikidata results are never cached).
+        private bool booksJustCached;
+
+        // results were fetched live from Wikidata (never cached).
+        private bool booksFromWikidata;
+
+        // per-primary-provider outcomes, shown when neither produced results (before the AI prompt)
+        private string? _googleOutcome;
+        private string? _wikidataOutcome;
+
+        // load id: a superseded load (triggered by re-renders) must never write state nor the
+        // static Google cache - that orphan write was the source of "Google & AI failed, yet
+        // cached thumbnails appear on the next visit".
+        private int _loadGeneration;
+
         // holds last provider result until assigned to books
         private List<GoogleBookInfo>? resultList = null;
 
         private string uiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
-        // cache filtered books to avoid repeated deferred LINQ enumeration during render
+        // cache filtered books to avoid repeated deferred LINQ enumeration during render.
+        // AI-sourced items may have no cover image (OpenRouter/Ollama), so the thumbnail
+        // requirement only applies to Google/Wikidata results; AI results are shown in a table.
+        // Items with low confidence (likely hallucinated) are filtered out.
         private List<GoogleBookInfo>? _filteredBooks;
         private IEnumerable<GoogleBookInfo> CachedFilteredBooks =>
             (_filteredBooks ??= (books ?? Enumerable.Empty<GoogleBookInfo>())
-                .Where(b => !string.IsNullOrWhiteSpace(b.Title) && !string.IsNullOrWhiteSpace(b.Thumbnail))
+                .Where(b => !string.IsNullOrWhiteSpace(b.Title))
+                .Where(b => !aiFallbackUsed || (b.Confidence ?? 0) >= 0.5)
+                .Where(b => aiFallbackUsed || !string.IsNullOrWhiteSpace(b.Thumbnail))
                 .ToList());
 
         private int TotalPages
@@ -105,58 +139,47 @@ namespace Web.Blazor.Components.Authors
             if (currentPage > 1) currentPage--;
         }
 
-        private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items, string source)> _booksCache = new();
-        private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
-        private static readonly TimeSpan AiCacheTtl = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan WikidataCacheTtl = TimeSpan.FromMinutes(30);
+        private void SetBooks(List<GoogleBookInfo> list)
+        {
+            books = list ?? new List<GoogleBookInfo>();
+            _filteredBooks = null;
+        }
 
-        // Allow external components to clear the client-side cache for an author (e.g. Retry button)
+        // Google-only cache: results from the Google Books API are more reliable than AI
+        // output, and caching them reduces anonymous-IP quota usage (429 risk). Wikidata and
+        // AI results are deliberately NOT cached.
+        private static readonly ConcurrentDictionary<string, (DateTime fetchedAt, List<GoogleBookInfo> items)> _googleBooksCache = new();
+        private static readonly TimeSpan GoogleCacheTtl = TimeSpan.FromMinutes(15);
+
+        // Allow external components to force a fresh Google query for an author (e.g. Retry button)
         public static void ClearCacheForAuthor(string? author)
         {
             if (string.IsNullOrWhiteSpace(author)) return;
-            _booksCache.TryRemove(author, out _);
+            _googleBooksCache.TryRemove(author, out _);
         }
 
-        private static TimeSpan GetTtlForSource(string? source)
+        private bool TryUseGoogleCache(string author)
         {
-            if (string.Equals(source, "AI", StringComparison.OrdinalIgnoreCase)) return AiCacheTtl;
-            if (string.Equals(source, "Wikidata", StringComparison.OrdinalIgnoreCase)) return WikidataCacheTtl;
-            return GoogleCacheTtl;
-        }
-
-        private bool TryUseCacheOrClearBadCache(string author)
-        {
-            if (!_booksCache.TryGetValue(author, out var cached))
+            if (!_googleBooksCache.TryGetValue(author, out var cached))
                 return false;
 
-            var ttl = GetTtlForSource(cached.source);
-            if (DateTime.UtcNow - cached.fetchedAt >= ttl)
+            if (DateTime.UtcNow - cached.fetchedAt >= GoogleCacheTtl)
             {
-                _booksCache.TryRemove(author, out _);
+                _googleBooksCache.TryRemove(author, out _);
                 return false;
             }
 
             if (cached.items is null || cached.items.Count == 0)
             {
-                _booksCache.TryRemove(author, out _);
+                _googleBooksCache.TryRemove(author, out _);
                 return false;
             }
 
             books = cached.items;
             _filteredBooks = null;
-            aiFallbackUsed = string.Equals(cached.source, "AI", StringComparison.OrdinalIgnoreCase);
-
-            MessageLabel = L["BooksCachedMessage"];
-            _ = UpdateMessageLabelAsync(MessageLabel);
+            aiFallbackUsed = false;
+            booksFromCache = true;
             return true;
-        }
-
-        private void SetBooksAndCache(List<GoogleBookInfo> list, string source)
-        {
-            books = list ?? new List<GoogleBookInfo>();
-            _filteredBooks = null;
-
-            _booksCache[AuthorName!] = (DateTime.UtcNow, books, source);
         }
 
         private async Task<List<GoogleBookInfo>?> TryFetchFromGoogleAsync(CancellationToken ct)
@@ -169,30 +192,48 @@ namespace Web.Blazor.Components.Authors
 
                 if (result == null)
                 {
-                    MessageLabel = L["AuthorSearchErrorGoogle", AuthorName];
+                    _googleOutcome = L["AuthorSearchErrorGoogle", AuthorName];
+                    MessageLabel = _googleOutcome;
                     await UpdateMessageLabelAsync(MessageLabel);
                     return null;
                 }
 
                 if (result.Count == 0)
                 {
-                    MessageLabel = L["AuthorSearchNoGoogleResults", AuthorName];
+                    _googleOutcome = L["AuthorSearchNoGoogleResults", AuthorName];
+                    MessageLabel = _googleOutcome;
                     await UpdateMessageLabelAsync(MessageLabel);
                     return null;
                 }
+
+                // A superseded/anonymous load must not immortalise its late success in the cache.
+                if (ct.IsCancellationRequested)
+                    return null;
+
+                _googleBooksCache[AuthorName!] = (DateTime.UtcNow, result.ToList());
+                booksJustCached = true;
 
                 return result;
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 googleRateLimited = true;
-                MessageLabel = L["AuthorSearchGoogleRateLimited", AuthorName];
+                _googleOutcome = L["AuthorSearchGoogleRateLimited", AuthorName];
+                MessageLabel = _googleOutcome;
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
+            catch (GoogleBooksKeyNotConfiguredException)
+            {
+                _googleOutcome = L["AuthorSearchGoogleNoKey"];
+                MessageLabel = _googleOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
             catch (Exception)
             {
-                MessageLabel = L["AuthorSearchErrorGoogle", AuthorName];
+                _googleOutcome = L["AuthorSearchErrorGoogle", AuthorName];
+                MessageLabel = _googleOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
@@ -207,7 +248,8 @@ namespace Web.Blazor.Components.Authors
                 var wikidataResult = await WikidataClient.GetBooksByAuthorAsync(AuthorName!, uiLanguage);
                 if (wikidataResult == null || wikidataResult.Count == 0)
                 {
-                    MessageLabel = L["AuthorSearchWikidataNoResults", AuthorName];
+                    _wikidataOutcome = L["AuthorSearchWikidataNoResults", AuthorName];
+                    MessageLabel = _wikidataOutcome;
                     await UpdateMessageLabelAsync(MessageLabel);
                     return null;
                 }
@@ -228,13 +270,15 @@ namespace Web.Blazor.Components.Authors
             }
             catch (HttpRequestException)
             {
-                MessageLabel = L["AuthorSearchErrorWikidata", AuthorName];
+                _wikidataOutcome = L["AuthorSearchErrorWikidata", AuthorName];
+                MessageLabel = _wikidataOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
             catch (Exception)
             {
-                MessageLabel = L["AuthorSearchErrorWikidata", AuthorName];
+                _wikidataOutcome = L["AuthorSearchErrorWikidata", AuthorName];
+                MessageLabel = _wikidataOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
@@ -250,11 +294,19 @@ namespace Web.Blazor.Components.Authors
             if (string.IsNullOrWhiteSpace(AuthorName))
                 return;
 
+            // this load may write state/cache only while it is still the latest load
+            var gen = ++_loadGeneration;
+
             // reset per-load UI flags
             booksLoading = true;
             SpinnerVisible = false;
             googleRateLimited = false;
             aiFallbackUsed = false;
+            booksFromCache = false;
+            booksJustCached = false;
+            booksFromWikidata = false;
+            _googleOutcome = null;
+            _wikidataOutcome = null;
             showAISearchDialog = false;
             MessageVisible = false;
             MessageLabel = "";
@@ -263,30 +315,35 @@ namespace Web.Blazor.Components.Authors
             try
             {
 
-                // 1) Cache
-                if (TryUseCacheOrClearBadCache(AuthorName!))
+                if (TryUseGoogleCache(AuthorName!))
                     return;
 
-                // Time the whole Google/Wikidata/OpenRouter/Ollama attempt
                 _loaderStopwatch.Restart();
 
-                // 2) Google
+                // Google
                 var google = await TryFetchFromGoogleAsync(ct);
+                if (gen != _loadGeneration || ct.IsCancellationRequested)
+                    return; // superseded: this load must not touch state nor the cache
+
                 if (google is { Count: > 0 })
                 {
-                    SetBooksAndCache(google, source: "Google");
+                    SetBooks(google);
                     return;
                 }
 
-                // 3) Wikidata
+                // Wikidata
                 var wiki = await TryFetchFromWikidataAsync(ct);
+                if (gen != _loadGeneration || ct.IsCancellationRequested)
+                    return; // superseded: this load must not touch state nor the cache
+
                 if (wiki is { Count: > 0 })
                 {
-                    SetBooksAndCache(wiki, source: "Wikidata");
+                    booksFromWikidata = true;
+                    SetBooks(wiki);
                     return;
                 }
 
-                // 4) Ask confirmation for AI (always opt-in)
+                // Ask confirmation for AI (always opt-in)
                 MessageLabel = googleRateLimited
                     ? L["AuthorSearchGoogleRateLimitedCombined", AuthorName]
                     : L["AuthorSearchNoResultsGoogleWikidata", AuthorName];
@@ -296,10 +353,25 @@ namespace Web.Blazor.Components.Authors
             }
             finally
             {
-                booksLoading = false;
-                SpinnerVisible = false;
-                await InvokeAsync(StateHasChanged);
+                if (gen == _loadGeneration)
+                {
+                    booksLoading = false;
+                    SpinnerVisible = false;
+                    await InvokeAsync(StateHasChanged);
+                }
             }
+        }
+
+        // Explicitly report what each primary provider returned when both failed (shown in the
+        // AI confirmation dialog and in the no-results area).
+        private string GetAISearchDialogMessage()
+        {
+            if (googleRateLimited)
+                return L["TituloErroTooManyRequests"];
+
+            var google = _googleOutcome ?? L["AuthorSearchNoGoogleResults", AuthorName];
+            var wiki = _wikidataOutcome ?? L["AuthorSearchWikidataNoResults", AuthorName];
+            return $"{google} | {wiki}";
         }
 
         async Task OnConfirmYes()
@@ -308,23 +380,6 @@ namespace Web.Blazor.Components.Authors
 
             await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
             await SearchBooksUsingAI(AuthorName!, uiLanguage);
-
-            books = resultList ?? new List<GoogleBookInfo>();
-            _filteredBooks = null;
-            aiFallbackUsed = true;
-
-            _booksCache[AuthorName!] = (DateTime.UtcNow, books, "AI");
-
-            SpinnerVisible = false;
-
-            _loaderStopwatch.Stop();
-            if (books.Count == 0)
-            {
-                MessageLabel = L["AuthorSearchNoBooksChain", AuthorName, _loaderStopwatch.Elapsed.TotalSeconds];
-                await UpdateMessageLabelAsync(MessageLabel);
-            }
-
-            await InvokeAsync(StateHasChanged);
         }
 
         void OnConfirmNo()
@@ -338,7 +393,8 @@ namespace Web.Blazor.Components.Authors
         {
             try
             {
-                MessageLabel = L["AuthorSearchSearchingCloud", AuthorName];
+                _usedAiModel = null;
+                MessageLabel = L["AuthorSearchSearchingCloud", authorName];
                 await UpdateMessageLabelAsync(MessageLabel);
 
                 // Start ProgressClient before AI search
@@ -349,28 +405,28 @@ namespace Web.Blazor.Components.Authors
                 await ProgressClient.StartAsync(apiBase);
                 var connectionId = ProgressClient.ConnectionId;
 
-                var cloudResult = await AiBookClient.GetAuthorBooksCloudAsync(authorName, uiLanguage, connectionId);
-                if (cloudResult != null && cloudResult.Count > 0)
+                var cloudOutcome = await AiBookClient.GetAuthorBooksCloudAsync(authorName, uiLanguage, connectionId);
+                if (cloudOutcome?.Books is { Count: > 0 })
                 {
-                    resultList = cloudResult.ToList();
-                    aiProviderMessage = L["AuthorSearchProviderOpenRouter"];
+                    resultList = cloudOutcome.Books.ToList();
+                    aiProviderMessage = BuildProviderMessage(true, _usedAiModel);
+                    await FinishAiSearchAsync(authorName);
+                    return;
                 }
-                else
-                {
-                    var aiResult = await AiBookClient.GetAuthorBooksAsync(authorName, uiLanguage, connectionId);
-                    if (aiResult != null && aiResult.Count > 0)
-                    {
-                        resultList = aiResult.ToList();
-                        aiProviderMessage = L["AuthorSearchProviderOllama"];
-                    }
-                    else
-                    {
-                        resultList = new List<GoogleBookInfo>();
-                        aiProviderMessage = null;
-                        MessageLabel = L["AuthorSearchNoBooksFromAi", AuthorName];
-                        await UpdateMessageLabelAsync(MessageLabel);
-                    }
-                }
+
+                // OpenRouter falhou/não devolveu títulos: explicar o motivo e perguntar
+                // ao utilizador se quer continuar com a IA local (Ollama).
+                _aiFlowAuthor = authorName;
+                _aiFlowLanguage = uiLanguage;
+                _aiFlowConnectionId = connectionId;
+                _cloudFailureReason = !string.IsNullOrWhiteSpace(cloudOutcome?.FailureReason)
+                    ? cloudOutcome!.FailureReason!
+                    : L["AuthorSearchCloudUnavailable", authorName];
+
+                showOllamaConfirmDialog = true;
+                MessageLabel = L["AuthorSearchCloudFailedReason", _cloudFailureReason];
+                await UpdateMessageLabelAsync(MessageLabel);
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception)
             {
@@ -380,19 +436,116 @@ namespace Web.Blazor.Components.Authors
                     ? L["AuthorSearchFailedAfter", AuthorName, _loaderStopwatch.Elapsed.TotalSeconds]
                     : L["AuthorSearchFailed", AuthorName];
                 await UpdateMessageLabelAsync(MessageLabel);
+                await FinishAiSearchAsync(AuthorName!);
+            }
+        }
+
+        async Task OnOllamaConfirmYes()
+        {
+            showOllamaConfirmDialog = false;
+            await UpdateSpinnerLabelAsync(L["LoadingMsg"]);
+
+            var author = _aiFlowAuthor ?? AuthorName!;
+            try
+            {
+                var aiResult = await AiBookClient.GetAuthorBooksAsync(
+                    _aiFlowAuthor!, _aiFlowLanguage!, _aiFlowConnectionId);
+                if (aiResult != null && aiResult.Count > 0)
+                {
+                    resultList = aiResult.ToList();
+                    aiProviderMessage = BuildProviderMessage(false, _usedAiModel);
+                }
+                else
+                {
+                    resultList = new List<GoogleBookInfo>();
+                    aiProviderMessage = null;
+                    MessageLabel = L["AuthorSearchNoBooksFromAi", author];
+                    await UpdateMessageLabelAsync(MessageLabel);
+                }
+            }
+            catch (Exception)
+            {
+                resultList = new List<GoogleBookInfo>();
+                aiProviderMessage = null;
+                MessageLabel = _loaderStopwatch.IsRunning
+                    ? L["AuthorSearchFailedAfter", author, _loaderStopwatch.Elapsed.TotalSeconds]
+                    : L["AuthorSearchFailed", author];
+                await UpdateMessageLabelAsync(MessageLabel);
             }
             finally
             {
-                ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
-                showAiProgress = false;
-                await InvokeAsync(StateHasChanged);
+                await FinishAiSearchAsync(author);
             }
+        }
+
+        void OnOllamaConfirmNo()
+        {
+            showOllamaConfirmDialog = false;
+            _ = HandleOllamaDeclinedAsync();
+        }
+
+        private async Task HandleOllamaDeclinedAsync()
+        {
+            var author = _aiFlowAuthor ?? AuthorName!;
+            resultList = new List<GoogleBookInfo>();
+            aiProviderMessage = null;
+            MessageLabel = L["AuthorSearchCloudCancelledNoBooks", author];
+            await UpdateMessageLabelAsync(MessageLabel);
+            await FinishAiSearchAsync(author);
+        }
+
+        private async Task FinishAiSearchAsync(string authorName)
+        {
+            books = resultList ?? new List<GoogleBookInfo>();
+            _filteredBooks = null;
+            aiFallbackUsed = true;
+
+            SpinnerVisible = false;
+            showOllamaConfirmDialog = false;
+
+            if (books.Count == 0)
+            {
+                MessageLabel = L["AuthorSearchNoBooksChain", authorName, _loaderStopwatch.Elapsed.TotalSeconds];
+                await UpdateMessageLabelAsync(MessageLabel);
+            }
+
+            ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
+            showAiProgress = false;
+            _loaderStopwatch.Stop();
+
+            await InvokeAsync(StateHasChanged);
         }
 
         private void ShowImageViewer(GoogleBookInfo book)
         {
             SelectedBook = book;
             isImageViewerVisible = true;
+        }
+
+        private static bool HasUsableThumbnail(GoogleBookInfo book)
+        {
+            return GoogleBookInfo.IsUsableCover(book?.Thumbnail);
+        }
+
+        private static bool IsGoogleLinked(string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            return !id.StartsWith("llm:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ConfidenceCss(double? confidence)
+        {
+            if (confidence is null) return "low";
+            if (confidence >= 0.7) return "good";
+            if (confidence >= 0.45) return "mid";
+            return "low";
+        }
+
+        private static string ConfidenceText(double? confidence)
+        {
+            if (confidence is null) return "\u2013";
+            var percent = Math.Clamp((int)Math.Round(confidence.Value * 100), 0, 100);
+            return $"{percent}%";
         }
 
         private void CloseImageViewer()
@@ -420,9 +573,29 @@ namespace Web.Blazor.Components.Authors
 
         private void OnProgressEventReceived(ProgressUpdateDto update)
         {
+            if (update.Stage == "cloud_success")
+            {
+                var parts = (update.Message ?? string.Empty).Split('|');
+                if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+                    _usedAiModel = parts[0];
+            }
+            else if (update.Stage == "provider" && !string.IsNullOrWhiteSpace(update.Message))
+            {
+                _usedAiModel = update.Message;
+            }
+
             aiProgressMessage = FormatProgressMessage(update);
             showAiProgress = true;
             InvokeAsync(StateHasChanged);
+        }
+
+        private string BuildProviderMessage(bool isOpenRouter, string? model)
+        {
+            if (string.IsNullOrWhiteSpace(model))
+                return isOpenRouter ? L["AuthorSearchProviderOpenRouter"] : L["AuthorSearchProviderOllama"];
+            return isOpenRouter
+                ? L["AuthorSearchProviderOpenRouterModel", model].Value
+                : L["AuthorSearchProviderOllamaModel", model].Value;
         }
 
         private string? FormatProgressMessage(ProgressUpdateDto update)

@@ -14,6 +14,8 @@ namespace MediaOrganizerApp.Tests;
 public sealed class CloudMediaServiceTests
 {
     private const string ApiKey = "sk-test-123";
+    private const string CatalogResponse =
+        """{"data":[{"id":"meta-llama/llama-3.3-70b-instruct:free","name":"Meta Llama 3.3 70B Instruct (free)"}]}""";
 
     private static readonly string NotesJson =
         """[{"artist":"Fleetwood Mac","title":"Rumours","notes":"Notas grandiosas sobre o álbum.","confidence":0.9}]""";
@@ -90,7 +92,35 @@ public sealed class CloudMediaServiceTests
         Assert.Equal("Notas grandiosas sobre o álbum.", result!.Notes);
         Assert.Equal("Fleetwood Mac", result.Artist);
         Assert.NotNull(capture.Body);
-        Assert.Contains("\"openai/gpt-4o-mini\"", capture.Body);
+        Assert.Contains("\"openai/gpt-4o-mini:free\"", capture.Body);
+    }
+
+    [Fact]
+    public async Task GetMediaNotesAsync_UsesFreeVariant_WhenPaidRecommendedModelConfiguredAndToggleOff()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                WrapMessageContent(NotesJson),
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o"
+            },
+            capture);
+
+        var result = await service.GetMediaNotesAsync("Fleetwood Mac", "Rumours", "pt", null, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Notas grandiosas sobre o álbum.", result!.Notes);
+        Assert.Contains("\"openai/gpt-4o:free\"", capture.RequestBodies[0]);
+        Assert.DoesNotContain("\"openai/gpt-4o\"", capture.RequestBodies[0]);
     }
 
     [Fact]
@@ -304,7 +334,7 @@ public sealed class CloudMediaServiceTests
         Assert.NotNull(result);
         Assert.Equal("Notas grandiosas sobre o álbum.", result!.Notes);
         Assert.Contains("\"anthropic/claude-3.5-sonnet:free\"", capture.RequestBodies[0]);
-        Assert.Contains("\"openai/gpt-4o:free\"", capture.RequestBodies[1]);
+        Assert.Contains("\"meta-llama/llama-3.3-70b-instruct:free\"", capture.RequestBodies[1]);
     }
 
     private static CloudMediaService CreateService(
@@ -328,6 +358,14 @@ public sealed class CloudMediaServiceTests
             ? new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("Unexpected HTTP call.")))
             : new HttpClient(new StubHttpMessageHandler(request =>
             {
+                if (request.RequestUri?.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(CatalogResponse, Encoding.UTF8, "application/json")
+                    };
+                }
+
                 if (request.Content is not null)
                 {
                     capture.Body = request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -351,6 +389,7 @@ public sealed class CloudMediaServiceTests
             usage?.Object ?? Mock.Of<ICloudChatUsageService>(),
             internet.Object,
             Mock.Of<IProgressPublisher>(),
+            new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
             Mock.Of<ILogger<CloudMediaService>>());
     }
 

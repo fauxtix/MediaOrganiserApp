@@ -18,6 +18,13 @@
         </div>
     }
 
+    @if (!string.IsNullOrWhiteSpace(sourceMessage))
+    {
+        <div class="mb-2" style="background:var(--app-info-bg);color:var(--app-info-text);border:1px solid var(--app-info-border);padding:8px;border-radius:4px;">
+            <i class="fa fa-info-circle"></i>&nbsp;@sourceMessage
+        </div>
+    }
+
 
     <div class="form-row mt-1">
         <SfTextBox Enabled="true" Placeholder="@localizerApp["lblTitulo"]"

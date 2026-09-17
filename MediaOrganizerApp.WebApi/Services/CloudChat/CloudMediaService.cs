@@ -29,6 +29,7 @@ public sealed class CloudMediaService
     private readonly ICloudChatUsageService _usageService;
     private readonly IInternetAvailabilityService _internet;
     private readonly IProgressPublisher _progressPublisher;
+    private readonly OpenRouterCatalogService _catalogService;
     private readonly ILogger<CloudMediaService> _logger;
 
     public CloudMediaService(
@@ -38,6 +39,7 @@ public sealed class CloudMediaService
         ICloudChatUsageService usageService,
         IInternetAvailabilityService internet,
         IProgressPublisher progressPublisher,
+        OpenRouterCatalogService catalogService,
         ILogger<CloudMediaService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -46,6 +48,7 @@ public sealed class CloudMediaService
         _usageService = usageService;
         _internet = internet;
         _progressPublisher = progressPublisher;
+        _catalogService = catalogService;
         _logger = logger;
     }
 
@@ -123,19 +126,6 @@ public sealed class CloudMediaService
         string? correlationId,
         CancellationToken cancellationToken)
     {
-        var (ok, apiKey) = await TryBootstrapAsync(cancellationToken);
-        if (!ok)
-            return null;
-
-        var model = await ResolveModelAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(model))
-            model = CloudChatSettingsKeys.DefaultModelValue;
-
-        var allowPaid = bool.TryParse(
-            await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.AllowPaidModels, null, cancellationToken),
-            out var paid) ? paid : false;
-        model = CloudChatSettingsKeys.ApplyPaidModelGate(model, allowPaid);
-
         var additionalInfo = $"Release year not found in external databases for '{title}' by '{artist}'. Only return the year if certain.";
         var template = await _prompts.GetTemplateAsync("media-edition-year.prompt.txt", cancellationToken);
         var userPrompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -146,18 +136,21 @@ public sealed class CloudMediaService
             ["additionalInfo"] = additionalInfo
         });
 
-        await PublishCloudProgressAsync(connectionId, correlationId, "cloud_try", model, 30, "media-edition-year", cancellationToken);
-
-        var raw = await TryRawCompletionAsync(model, apiKey, userPrompt, maxTokens: 32, isJsonOnly: false, cancellationToken);
-        if (raw is null)
+        var year = await ExecuteExtractionRawAsync(
+            userPrompt,
+            connectionId,
+            correlationId,
+            operation: "media-edition-year",
+            maxTokens: 32,
+            isWeak: value => string.IsNullOrWhiteSpace(value),
+            normalize: NormalizeYear,
+            cancellationToken);
+        if (year is null)
         {
-            await PublishCloudProgressAsync(connectionId, correlationId, "cloud_failed", model, 70, "media-edition-year", cancellationToken);
             _logger.LogWarning("[CloudMedia] OpenRouter falhou a resolver o ano de edição de '{Title}' - '{Artist}'. A usar fallback Ollama.", title, artist);
             return null;
         }
 
-        var year = NormalizeYear(raw);
-        await PublishCloudProgressAsync(connectionId, correlationId, "cloud_success", $"{model}|{year ?? "N/A"}", 100, "media-edition-year", cancellationToken);
         return year;
     }
 
@@ -187,8 +180,9 @@ public sealed class CloudMediaService
         var firstModel = await ResolveModelAsync(cancellationToken);
         if (string.IsNullOrWhiteSpace(firstModel))
             firstModel = CloudChatSettingsKeys.DefaultModelValue;
+        firstModel = CloudChatSettingsKeys.ApplyPaidModelGate(firstModel, allowPaid);
 
-        var candidates = BuildCandidateModels(firstModel, allowPaid);
+        var candidates = await BuildCandidateModelsAsync(firstModel, allowPaid, cancellationToken);
         T? lastWeak = null;
         for (var i = 0; i < candidates.Count; i++)
         {
@@ -219,6 +213,73 @@ public sealed class CloudMediaService
 
             await PublishCloudProgressAsync(connectionId, correlationId, "cloud_empty", model, percent, operation, cancellationToken);
             lastWeak = attempt;
+        }
+
+        if (candidates.Count > 1)
+        {
+            await PublishCloudProgressAsync(
+                connectionId, correlationId, "cloud_fallback", string.Empty, 75, operation, cancellationToken);
+        }
+
+        return lastWeak;
+    }
+
+    /// <summary>
+    /// Runs a plain-string (non-JSON) extraction with the resolved model,
+    /// mirroring <see cref="ExecuteExtractionAsync{T}"/>: when the first
+    /// candidate returns a null/weak answer the sweep continues to the next
+    /// model, strongest first, honouring the <c>AllowPaidModels</c> toggle.
+    /// Used for single-value extractions such as the media edition year.
+    /// </summary>
+    private async Task<string?> ExecuteExtractionRawAsync(
+        string userPrompt,
+        string? connectionId,
+        string? correlationId,
+        string operation,
+        int maxTokens,
+        Func<string?, bool> isWeak,
+        Func<string?, string?> normalize,
+        CancellationToken cancellationToken)
+    {
+        var (ok, apiKey) = await TryBootstrapAsync(cancellationToken);
+        if (!ok)
+            return null;
+
+        var allowPaid = bool.TryParse(
+            await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.AllowPaidModels, null, cancellationToken),
+            out var paid) ? paid : false;
+
+        var firstModel = await ResolveModelAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(firstModel))
+            firstModel = CloudChatSettingsKeys.DefaultModelValue;
+        firstModel = CloudChatSettingsKeys.ApplyPaidModelGate(firstModel, allowPaid);
+
+        var candidates = await BuildCandidateModelsAsync(firstModel, allowPaid, cancellationToken);
+        string? lastWeak = null;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var model = candidates[i];
+            var percent = Math.Min(10 + i * 60 / candidates.Count, 70);
+            await PublishCloudProgressAsync(connectionId, correlationId, "cloud_try", model, percent, operation, cancellationToken);
+
+            var raw = await TryRawCompletionAsync(model, apiKey, userPrompt, maxTokens, isJsonOnly: false, cancellationToken);
+            if (raw is null)
+            {
+                await PublishCloudProgressAsync(connectionId, correlationId, "cloud_failed", model, percent, operation, cancellationToken);
+                continue;
+            }
+
+            var attempt = normalize(raw);
+            if (attempt is null || isWeak(attempt))
+            {
+                await PublishCloudProgressAsync(connectionId, correlationId, "cloud_empty", model, percent, operation, cancellationToken);
+                lastWeak = attempt;
+                continue;
+            }
+
+            await PublishCloudProgressAsync(connectionId, correlationId, "cloud_success", $"{model}|{attempt}", 100, operation, cancellationToken);
+            return attempt;
         }
 
         if (candidates.Count > 1)
@@ -268,24 +329,50 @@ public sealed class CloudMediaService
 
     /// <summary>
     /// When the resolved model is free, a weak/empty answer is treated as a poor
-    /// result and the curated recommended models are tried next. Paid models are
-    /// only swept when paid models are enabled; otherwise ":free" variants are used.
-    /// Non-free/recommended models run alone.
+    /// result and the sweep continues. Paid models are only swept when paid models
+    /// are enabled; otherwise the candidates come from the LIVE OpenRouter catalog
+    /// of actual free models (recommended ones first), never from fabricated
+    /// ":free" names that may not exist. Non-free/recommended models run alone.
     /// </summary>
-    private static List<string> BuildCandidateModels(string first, bool allowPaid)
+    private async Task<List<string>> BuildCandidateModelsAsync(string first, bool allowPaid, CancellationToken ct)
     {
         if (!CloudChatSettingsKeys.IsFreeModel(first))
             return new List<string> { first };
 
         var models = new List<string> { first };
-        foreach (var prefix in RecommendedExtractionModels.Prefixes)
+        if (allowPaid)
         {
-            var candidate = allowPaid ? prefix : prefix + ":free";
-            if (models.Contains(candidate, StringComparer.OrdinalIgnoreCase))
-                continue;
-            models.Add(candidate);
+            foreach (var prefix in RecommendedExtractionModels.Prefixes)
+                AddUniqueModel(models, prefix);
+        }
+        else
+        {
+            var catalog = await _catalogService.GetFreeModelsAsync(ct);
+            var recommended = new List<string>();
+            var others = new List<string>();
+            foreach (var model in catalog)
+            {
+                if (string.IsNullOrWhiteSpace(model.Id)
+                    || models.Contains(model.Id, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                if (RecommendedExtractionModels.IsRecommended(model.Id))
+                    recommended.Add(model.Id);
+                else
+                    others.Add(model.Id);
+            }
+
+            models.AddRange(recommended);
+            var remaining = Math.Max(0, 12 - models.Count);
+            models.AddRange(others.Take(remaining));
         }
         return models;
+    }
+
+    private static void AddUniqueModel(List<string> models, string candidate)
+    {
+        if (!models.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            models.Add(candidate);
     }
 
     private async Task<string?> TryRawCompletionAsync(

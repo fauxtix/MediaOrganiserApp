@@ -1,10 +1,6 @@
-@using MediaOrganizerApp.Application
+    @using MediaOrganizerApp.Application
 @using MediaOrganizerApp.Application.DTOs
 @using MediaOrganizerApp.Application.Interfaces.Services.Api
-@using Microsoft.AspNetCore.Components
-@using System.Collections.Concurrent
-@using System.Threading
-@using System.Globalization
 @using Microsoft.Extensions.Localization
 @using Microsoft.Extensions.Options
 @using Web.Blazor.Components.MediaGrids
@@ -63,6 +59,18 @@
         if (fn.Any())
         {
             <div>
+                @if (booksFromCache)
+                {
+                    <div class="text-muted small mb-1">@L["AuthorSearchCacheInfo"]</div>
+                }
+                else if (booksJustCached)
+                {
+                    <div class="text-muted small mb-1">@L["AuthorSearchFreshGoogleAndCached"]</div>
+                }
+                else if (booksFromWikidata)
+                {
+                    <div class="text-muted small mb-1">@L["AuthorSearchWikidataSource"]</div>
+                }
                 <p class="font-weight-bolder mt-2" style="font-size:18px;">@L["TituloListaLivros"]</p>
                 <hr />
             </div>
@@ -74,22 +82,93 @@
                 <div class="text-muted small">@L["lblPagina"] @currentPage / @TotalPages</div>
             </div>
 
-            <MediaGrid TItem="GoogleBookInfo"
-                       Items="PagedBooks"
-                       Columns="PageSize"
-                       ImageSelector="b => b.Thumbnail">
+            @if (aiFallbackUsed)
+            {
+                <div class="books-table-card">
+                    <table class="books-table">
+                        <thead>
+                            <tr>
+                                <th class="col-num">#</th>
+                                <th>@L["AuthorBooksTitulo"]</th>
+                                <th class="col-year">@L["AuthorBooksAno"]</th>
+                                <th>@L["AuthorBooksEditora"]</th>
+                                <th class="col-confidence">@L["AuthorBooksConfianca"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var pageItems = PagedBooks.ToList();
+                                for (var idx = 0; idx < pageItems.Count; idx++)
+                                {
+                                    var b = pageItems[idx];
+                                    var displayIndex = (currentPage - 1) * PageSize + idx + 1;
+                                    <tr>
+                                        <td class="col-num">@displayIndex</td>
+                                        <td>
+                                            <div class="table-title-cell">
+                                                @if (HasUsableThumbnail(b))
+                                                {
+                                                    <img class="table-thumb" src="@b.Thumbnail" alt="@b.Title" loading="lazy"
+                                                         @onclick="() => ShowImageViewer(b)" />
+                                                }
+                                                <span class="table-title">
+                                                    @if (IsGoogleLinked(b.Id))
+                                                    {
+                                                        <a href="@($"https://books.google.com/books?id={b.Id}")" target="_blank">@b.Title</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@b.Title</span>
+                                                    }
+                                                    @if (b.Synthesized == true)
+                                                    {
+                                                        <span class="ai-chip">@L["AuthorBooksSintetizado"]</span>
+                                                    }
+                                                </span>
+                                                @if (!string.IsNullOrWhiteSpace(b.Subtitle))
+                                                {
+                                                    <span class="table-subtitle">@b.Subtitle</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="col-year">@b.PublishedDate</td>
+                                        <td class="table-publisher">@b.Publisher</td>
+                                        <td class="col-confidence">
+                                            @if (b.Confidence is null)
+                                            {
+                                                <span class="conf-missing">&ndash;</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="conf-badge @ConfidenceCss(b.Confidence)">@ConfidenceText(b.Confidence)</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <MediaGrid TItem="GoogleBookInfo"
+                           Items="PagedBooks"
+                           Columns="PageSize"
+                           ImageSelector="b => b.Thumbnail">
 
-                <TitleTemplate Context="b">
-                    <a class="media-title" href="@($"https://books.google.com/books?id={b.Id}")" target="_blank">
-                        @b.Title
-                    </a>
-                </TitleTemplate>
+                    <TitleTemplate Context="b">
+                        <a class="media-title" href="@($"https://books.google.com/books?id={b.Id}")" target="_blank">
+                            @b.Title
+                        </a>
+                    </TitleTemplate>
 
-                <MetaTemplate Context="b">
-                    @b.PublishedDate
-                </MetaTemplate>
+                    <MetaTemplate Context="b">
+                        @b.PublishedDate
+                    </MetaTemplate>
 
-            </MediaGrid>
+                </MediaGrid>
+            }
 
 
             <div class="d-flex justify-content-end align-items-center mt-2">
@@ -98,6 +177,21 @@
         }
         else
         {
+            @if (!googleRateLimited &&
+                (!string.IsNullOrEmpty(_googleOutcome) || !string.IsNullOrEmpty(_wikidataOutcome)))
+            {
+                @* Explicit per-provider outcome: what Google and Wikidata each returned *@
+                <div class="mb-2 small">
+                    @if (!string.IsNullOrEmpty(_googleOutcome))
+                    {
+                        <div class="text-warning">@_googleOutcome</div>
+                    }
+                    @if (!string.IsNullOrEmpty(_wikidataOutcome))
+                    {
+                        <div class="text-warning">@_wikidataOutcome</div>
+                    }
+                </div>
+            }
             @if (!string.IsNullOrEmpty(MessageLabel))
             {
                 @* Option A: show a single user-facing message to avoid duplicated "rate limited" text *@
@@ -121,13 +215,23 @@
 
 
 <ConfirmAppWarning DialogTitle="@L["AuthorSearchDialogTitle"]"
-                   Message=@(googleRateLimited ? @L["TituloErroTooManyRequests"] : @L["TituloNenhumResultadoGoogle"])
+                   Message="@GetAISearchDialogMessage()"
                    AlertMessageType="AlertMessageType.Warning" AlertMessageNote="@L["TituloPesquisaPorAI"]"
                    AlertMessage="@L["AuthorSearchDialogAlertMessage"]"
                    PositionX="center" PositionY="center"
                    Visible="@showAISearchDialog"
                    OnConfirmationYes="@OnConfirmYes"
                    OnConfirmationNo="@OnConfirmNo" />
+
+<ConfirmAppWarning DialogTitle="@L["AuthorSearchDialogTitle"]"
+                   Message="@_cloudFailureReason"
+                   AlertMessageType="AlertMessageType.Warning"
+                   AlertMessageNote="@L["AuthorSearchOllamaNote"]"
+                   AlertMessage="@L["AuthorSearchOllamaAlertMessage"]"
+                   PositionX="center" PositionY="center"
+                   Visible="@showOllamaConfirmDialog"
+                   OnConfirmationYes="@OnOllamaConfirmYes"
+                   OnConfirmationNo="@OnOllamaConfirmNo" />
 
 <style>
 
@@ -138,6 +242,169 @@
         display: flex;
         flex-direction: column;
         background: #fff;
+    }
+
+    /* Modern results table for AI-sourced books (no cover images) */
+    .books-table-card {
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        box-shadow: var(--app-shadow);
+        overflow-x: auto;
+        margin-bottom: 0.5rem;
+    }
+
+    .books-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        min-width: 480px;
+    }
+
+    .books-table thead th {
+        background: var(--app-surface-alt);
+        color: var(--app-text-secondary);
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--app-border);
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .books-table tbody td {
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--app-border);
+        color: var(--app-text-primary);
+        vertical-align: middle;
+    }
+
+    .books-table tbody tr {
+        transition: background-color 0.15s ease;
+    }
+
+    .books-table tbody tr:hover {
+        background-color: var(--app-surface-hover);
+    }
+
+    .books-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .books-table .col-num {
+        width: 44px;
+        text-align: right;
+        color: var(--app-text-secondary);
+    }
+
+    .books-table .col-year {
+        width: 90px;
+        white-space: nowrap;
+        color: var(--app-text-secondary);
+    }
+
+    .books-table .col-confidence {
+        width: 110px;
+    }
+
+    .books-table .table-publisher {
+        color: var(--app-text-secondary);
+    }
+
+    .table-title-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .table-title {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        font-weight: 600;
+        color: var(--app-text-primary);
+        line-height: 1.3;
+    }
+
+    .table-title a {
+        color: var(--app-primary);
+        text-decoration: none;
+    }
+
+    .table-title a:hover {
+        color: var(--app-primary-hover);
+        text-decoration: underline;
+    }
+
+    .table-subtitle {
+        display: block;
+        margin-top: 0.1rem;
+        font-size: 0.78rem;
+        color: var(--app-text-secondary);
+        font-weight: 400;
+    }
+
+    .table-thumb {
+        width: 30px;
+        height: 44px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--app-border);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        cursor: pointer;
+        float: left;
+        margin-right: 0.65rem;
+        margin-bottom: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .ai-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        border: 1px solid var(--app-info-border);
+        background-color: var(--app-info-bg);
+        color: var(--app-info-text);
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .conf-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .conf-badge.good {
+        background-color: var(--app-success-bg);
+        color: var(--app-success-text);
+    }
+
+    .conf-badge.mid {
+        background-color: var(--app-warning-bg);
+        color: var(--app-warning-text);
+    }
+
+    .conf-badge.low {
+        background-color: var(--app-danger-bg);
+        color: var(--app-danger-text);
+    }
+
+    .conf-missing {
+        color: var(--app-text-secondary);
+        font-size: 0.9rem;
     }
 
     .book-body {

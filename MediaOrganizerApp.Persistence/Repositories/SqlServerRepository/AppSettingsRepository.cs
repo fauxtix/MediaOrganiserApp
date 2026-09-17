@@ -84,6 +84,9 @@ public class AppSettingsRepository : IAppSettingsRepository
 
         parameters.Add("@LastFmApiKey", settings?.LastFmApiKey);
         parameters.Add("@LastFmApiSecret", settings?.LastFmApiSecret);
+
+        parameters.Add("@GoogleBooksApiKey", settings?.GoogleBooksApiKey);
+        parameters.Add("@GoogleBooksCountry", settings?.GoogleBooksCountry);
         try
         {
             using (var connection = _context.CreateConnection())

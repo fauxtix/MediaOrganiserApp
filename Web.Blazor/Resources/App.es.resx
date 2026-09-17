@@ -1264,6 +1264,12 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="Database_ConnectionString" xml:space="preserve">
     <value>Cadena de conexión a la base de datos</value>
   </data>
+  <data name="GoogleBooksApiKey" xml:space="preserve">
+    <value>Clave de API de Google Books</value>
+  </data>
+  <data name="GoogleBooksCountry" xml:space="preserve">
+    <value>País de Google Books (p. ej. PT)</value>
+  </data>
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>¿Quieres probar la búsqueda con IA?</value>
   </data>
@@ -1495,9 +1501,6 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TestChatImportInvalid" xml:space="preserve">
     <value>Archivo JSON no válido o sin conversaciones.</value>
   </data>
-  <data name="BooksCachedMessage" xml:space="preserve">
-    <value>Resultado en caché</value>
-  </data>
   <data name="AuthorSearchErrorGoogle" xml:space="preserve">
     <value>Error al obtener Google Books de {0}; probando Wikidata.</value>
   </data>
@@ -1506,6 +1509,9 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   </data>
   <data name="AuthorSearchGoogleRateLimited" xml:space="preserve">
     <value>Google Books limitó la tasa de solicitudes para {0}; probando Wikidata.</value>
+  </data>
+  <data name="AuthorSearchGoogleNoKey" xml:space="preserve">
+    <value>Google Books: la clave de API no está configurada en la base de datos. Defínela en 'Ajustes → Otros ajustes 2'.</value>
   </data>
   <data name="AuthorSearchSearchingWikidata" xml:space="preserve">
     <value>Buscando en Wikidata a {0}...</value>
@@ -1534,8 +1540,14 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="AuthorSearchProviderOpenRouter" xml:space="preserve">
     <value>Resultados obtenidos vía OpenRouter.</value>
   </data>
+  <data name="AuthorSearchProviderOpenRouterModel" xml:space="preserve">
+    <value>Resultados obtenidos vía OpenRouter (modelo «{0}»).</value>
+  </data>
   <data name="AuthorSearchProviderOllama" xml:space="preserve">
     <value>Resultados obtenidos vía Ollama (local).</value>
+  </data>
+  <data name="AuthorSearchProviderOllamaModel" xml:space="preserve">
+    <value>Resultados obtenidos vía Ollama (local) (modelo «{0}»).</value>
   </data>
   <data name="MediaInfoProviderOpenRouter" xml:space="preserve">
     <value>Información obtenida vía OpenRouter.</value>
@@ -1545,6 +1557,21 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   </data>
   <data name="AuthorSearchNoBooksFromAi" xml:space="preserve">
     <value>La búsqueda de IA no devolvió libros para {0}.</value>
+  </data>
+  <data name="AuthorSearchCloudFailedReason" xml:space="preserve">
+    <value>Error en la búsqueda de OpenRouter: {0}</value>
+  </data>
+  <data name="AuthorSearchCloudUnavailable" xml:space="preserve">
+    <value>OpenRouter no disponible para {0}</value>
+  </data>
+  <data name="AuthorSearchOllamaAlertMessage" xml:space="preserve">
+    <value>¿Quieres continuar con la IA local (Ollama) para obtener los títulos?</value>
+  </data>
+  <data name="AuthorSearchOllamaNote" xml:space="preserve">
+    <value>La búsqueda local usa el modelo de IA instalado y puede tardar unos minutos.</value>
+  </data>
+  <data name="AuthorSearchCloudCancelledNoBooks" xml:space="preserve">
+    <value>Búsqueda cancelada. No se encontraron títulos para {0}.</value>
   </data>
   <data name="AuthorSearchFailedAfter" xml:space="preserve">
     <value>La búsqueda de IA falló para {0} después de {1:F1}s.</value>
@@ -1572,6 +1599,54 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   </data>
   <data name="AuthorSearchSweepFallback" xml:space="preserve">
     <value>OpenRouter sin resultados; usando el fallback local (Ollama).</value>
+  </data>
+
+  <data name="AuthorSearchCacheInfo" xml:space="preserve">
+    <value>Resultados de una búsqueda anterior de Google (caché). Esta caché se usa para reducir el uso de la cuota de la API.</value>
+  </data>
+
+  <data name="AuthorSearchFreshGoogleAndCached" xml:space="preserve">
+    <value>Resultados obtenidos ahora mismo mediante la API de Google Books y guardados en caché para la próxima visita.</value>
+  </data>
+
+  <data name="AuthorSearchWikidataSource" xml:space="preserve">
+    <value>Resultados obtenidos ahora mismo mediante Wikidata.</value>
+  </data>
+
+  <data name="SearchSourceGoogleBooks" xml:space="preserve">
+    <value>Datos obtenidos mediante la API de Google Books.</value>
+  </data>
+
+  <data name="SearchSourceGoogleBooksTranslated" xml:space="preserve">
+    <value>Título traducido (MyMemory); datos obtenidos mediante la API de Google Books.</value>
+  </data>
+
+  <data name="SearchSourceAiSummary" xml:space="preserve">
+    <value>Libro encontrado en Google Books; resumen generado por IA.</value>
+  </data>
+
+  <data name="SearchSourceAiMetadata" xml:space="preserve">
+    <value>Sin resultados de Google; metadatos generados por IA.</value>
+  </data>
+
+  <data name="SearchSourceAiOffline" xml:space="preserve">
+    <value>Datos generados por IA (sin acceso a Google / límite de API alcanzado).</value>
+  </data>
+
+  <data name="AuthorBooksTitulo" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="AuthorBooksAno" xml:space="preserve">
+    <value>Año</value>
+  </data>
+  <data name="AuthorBooksEditora" xml:space="preserve">
+    <value>Editorial</value>
+  </data>
+  <data name="AuthorBooksConfianca" xml:space="preserve">
+    <value>Confianza</value>
+  </data>
+  <data name="AuthorBooksSintetizado" xml:space="preserve">
+    <value>Sintetizado</value>
   </data>
 
   <data name="LogViewer" xml:space="preserve">
@@ -2136,6 +2211,10 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
 
   <data name="MsgGoogleApiError" xml:space="preserve">
     <value>Error al consultar la API de Google. Por favor, compruebe.</value>
+  </data>
+
+  <data name="MsgGoogleBooksNoKey" xml:space="preserve">
+    <value>La clave de API de Google Books no está configurada en la base de datos. Defínela en 'Ajustes → Otros ajustes 2'.</value>
   </data>
 
   <data name="AiSearchingBookDescription" xml:space="preserve">

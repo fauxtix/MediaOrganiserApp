@@ -91,7 +91,7 @@ public partial class AiMediaClientService
                 return null;
             }
 
-            return await resp.Content.ReadFromJsonAsync<AiMediaMetadataResponseDto>();
+            return await resp.Content.ReadFromJsonAsync<AiMediaMetadataResponseDto>(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

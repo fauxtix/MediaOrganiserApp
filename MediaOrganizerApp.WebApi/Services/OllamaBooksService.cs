@@ -34,9 +34,11 @@ public sealed class OllamaBooksService : OllamaBaseClient, IAiBooksService
 
         try
         {
-            const int defaultMaxResults = 20;
+            const int defaultMaxResults = 50;
             await PublishAsync(connectionId, correlationId, "preparing_prompt", 5, "Preparing books prompt...", cancellationToken);
             await Task.Delay(1000);
+            var (_, modelName) = await GetAiSettingsAsync();
+            await PublishAsync(connectionId, correlationId, "provider", 8, modelName, cancellationToken);
             var fullPrompt = await BuildFullPromptAsync("author-books.prompt.txt", new Dictionary<string, string?>
             {
                 ["author"] = author,
@@ -177,12 +179,30 @@ public sealed class OllamaBooksService : OllamaBaseClient, IAiBooksService
                         return null;
                     }
 
+                    static bool? ReadBool(JsonElement e, params string[] names)
+                    {
+                        foreach (var n in names)
+                        {
+                            if (e.TryGetProperty(n, out var p))
+                            {
+                                if (p.ValueKind == JsonValueKind.True) return true;
+                                if (p.ValueKind == JsonValueKind.False) return false;
+                                if (p.ValueKind == JsonValueKind.String &&
+                                    bool.TryParse(p.GetString(), out var b)) return b;
+                            }
+                        }
+                        return null;
+                    }
+
                     var title = ReadString(el, "Title", "title", "name");
                     if (string.IsNullOrWhiteSpace(title)) continue;
                     var id = ReadString(el, "Id", "id") ?? ReadString(el, "googleId", "google_id");
                     var published = ReadString(el, "PublishedDate", "publishedDate", "date") ?? string.Empty;
-                    var thumb = ReadString(el, "Thumbnail", "thumbnail", "image") ?? "images/NoPhoto.png";
+                    var subtitle = ReadString(el, "Subtitle", "subtitle");
+                    var publisher = ReadString(el, "Publisher", "publisher", "publishingHouse", "publishing_house");
+                    var thumb = ReadString(el, "Thumbnail", "thumbnail", "image");
                     var confidence = ReadDouble(el, "Confidence", "confidence");
+                    var synthesized = ReadBool(el, "Synthesized", "synthesized");
 
                     if (confidence is not null)
                     {
@@ -194,9 +214,12 @@ public sealed class OllamaBooksService : OllamaBaseClient, IAiBooksService
                     {
                         Id = id,
                         Title = title,
+                        Subtitle = string.IsNullOrWhiteSpace(subtitle) ? null : subtitle,
                         PublishedDate = published,
-                        Thumbnail = thumb,
-                        Confidence = confidence
+                        Publisher = string.IsNullOrWhiteSpace(publisher) ? null : publisher,
+                        Thumbnail = GoogleBookInfo.IsUsableCover(thumb) ? thumb : null,
+                        Confidence = confidence,
+                        Synthesized = synthesized
                     };
 
                     var tLower = (g.Title ?? string.Empty).ToLowerInvariant();

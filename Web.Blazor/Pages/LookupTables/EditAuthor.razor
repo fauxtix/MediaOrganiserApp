@@ -78,11 +78,11 @@
                                   Content="@L["TituloTraduzirBio"]" OnClick="@(()=> showTranslateModal = true)" />
                     }
 
-                    @* @if (blnEdit)
+                    @if (blnEdit)
                     {
                         <SfButton CssClass="e-warning e-round-corner"
                                   Content="@L["TituloLivrosDoAutor"]" OnClick="@(()=>ShowBooksVisibility = true)" />
-                    } *@
+                    }
                 </div>
             </div>
             <div class="col-md-4 text-center h-100">
@@ -130,6 +130,37 @@
                TranslateFunc="@(TranslateClient.TranslateAsync)"
                OnTranslateRequested="OnTranslateApplied"
                OnClose="@(()=> showTranslateModal = false)" />
+
+
+<SfDialog Width="580px"
+          Height="auto"
+          IsModal="true"
+          MinHeight="380px"
+          ShowCloseIcon="true"
+          @bind-Visible="ShowBooksVisibility">
+    <DialogTemplates>
+        <Header>
+            <div class="font-weight-bold" style="font-size:1.25rem;">
+                <img src="images/book-picture-icon.png" width="36" height="36" />
+                @SelectedAuthor?.Descricao
+            </div>
+        </Header>
+        <Content>
+            <div class="d-flex justify-content-around align-items-center mb-2">
+                <AuthorBooks AuthorName="@SelectedAuthor?.Descricao" PageSize="3" />
+            </div>
+        </Content>
+        <FooterTemplate>
+            <div>
+                <SfButton CssClass="e-outline e-round-corner"
+                          IconCss="fa fa-times"
+                          Content="@L["BtnSalir"]"
+                          @onclick="() => ShowBooksVisibility = false">
+                </SfButton>
+            </div>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
 
 
 <style>

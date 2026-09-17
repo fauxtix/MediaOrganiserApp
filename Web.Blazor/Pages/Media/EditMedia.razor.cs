@@ -343,84 +343,89 @@ namespace Web.Blazor.Pages.Media
                 ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
                 ProgressClient.ProgressEventReceived += OnProgressEventReceived;
 
-                // AI fallback for Notas (OpenRouter primeiro, depois Ollama)
-                if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
+                // AI fallback (apenas para formatos suportados CD/LP/DVD/Audio-DVD)
+                if (shouldAIBeUsed)
                 {
-                    var ai = await AiMediaClient.GetMediaNotesCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
-                    if (ai is null)
+                    // AI fallback for Notas (OpenRouter primeiro, depois Ollama)
+                    if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
                     {
-                        ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId);
-                        if (ai is not null)
-                            aiProviderMessage = L["MediaInfoProviderOllama"];
-                    }
-                    else
-                    {
-                        aiProviderMessage = L["MediaInfoProviderOpenRouter"];
-                    }
-
-                    if (ai == null)
-                    {
-                        ShowMessage(L["AINotesServiceFailed"] ?? L["AINotesServiceFailedFallback"], MessageSeverity.Warning);
-                    }
-                    else
-                    {
-                        var notesValue = ai.Notes;
-                        if (!string.IsNullOrWhiteSpace(notesValue))
+                        var ai = await AiMediaClient.GetMediaNotesCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                        if (ai is null)
                         {
-                            SelectedRecord.Notas = notesValue;
-                            if (!string.IsNullOrWhiteSpace(ai.Warnings))
-                            {
-                                ShowMessage(ai.Warnings, MessageSeverity.Warning);
-                                alertMessage = ai.Warnings;
-                                aiProviderMessage = null;
-                            }
+                            ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                            if (ai is not null)
+                                aiProviderMessage = L["MediaInfoProviderOllama"];
                         }
                         else
                         {
-                            aiProviderMessage = null;
+                            aiProviderMessage = L["MediaInfoProviderOpenRouter"];
+                        }
+
+                        if (ai == null)
+                        {
+                            ShowMessage(L["AINotesServiceFailed"] ?? L["AINotesServiceFailedFallback"], MessageSeverity.Warning);
+                        }
+                        else
+                        {
+                            var notesValue = ai.Notes;
+                            if (!string.IsNullOrWhiteSpace(notesValue))
+                            {
+                                SelectedRecord.Notas = notesValue;
+                                if (!string.IsNullOrWhiteSpace(ai.Warnings))
+                                {
+                                    ShowMessage(ai.Warnings, MessageSeverity.Warning);
+                                    alertMessage = ai.Warnings;
+                                    aiProviderMessage = null;
+                                }
+                            }
+                            else
+                            {
+                                aiProviderMessage = null;
+                            }
                         }
                     }
-                }
 
-                // AI fallback for AnoEdicao (OpenRouter primeiro, depois Ollama)
-                if (!anoEdicaoFilled || SelectedRecord.AnoEdicao == DateTime.Now.Year.ToString())
-                {
-                    var year = await AiMediaClient.GetMediaEditionYearCloudAsync(
-                        artist,
-                        mediaTitle,
-                        uiLanguage,
-                        ProgressClient.ConnectionId,
-                        null,
-                        mediaInfoCts.Token);
-                    var yearProviderMessage = L["MediaInfoProviderOpenRouter"];
-                    if (year is null)
+                    // AI fallback for AnoEdicao (OpenRouter primeiro, depois Ollama)
+                    if (!anoEdicaoFilled || SelectedRecord.AnoEdicao == DateTime.Now.Year.ToString())
                     {
-                        year = await AiMediaClient.GetMediaEditionYearAsync(
+                        var year = await AiMediaClient.GetMediaEditionYearCloudAsync(
                             artist,
                             mediaTitle,
                             uiLanguage,
                             ProgressClient.ConnectionId,
                             null,
                             mediaInfoCts.Token);
-                        if (year is not null)
-                            yearProviderMessage = L["MediaInfoProviderOllama"];
-                    }
+                        var yearProviderMessage = L["MediaInfoProviderOpenRouter"];
+                        if (year is null)
+                        {
+                            year = await AiMediaClient.GetMediaEditionYearAsync(
+                                artist,
+                                mediaTitle,
+                                uiLanguage,
+                                ProgressClient.ConnectionId,
+                                null,
+                                mediaInfoCts.Token);
+                            if (year is not null)
+                                yearProviderMessage = L["MediaInfoProviderOllama"];
+                        }
 
-                    if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
-                    {
-                        ShowMessage(L["NoEditionYearReturned"], MessageSeverity.Warning);
-                        return;
-                    }
-                    if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
-                    {
-                        ShowMessage(L["InvalidEditionYearReturned", year], MessageSeverity.Warning);
-                        return;
+                        var invalidYearReturned = false;
+                        if (!string.IsNullOrWhiteSpace(year) && year == "N/A")
+                        {
+                            ShowMessage(L["NoEditionYearReturned"], MessageSeverity.Warning);
+                            invalidYearReturned = true;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(year) && !DataFormat.IsNumeric(year))
+                        {
+                            ShowMessage(L["InvalidEditionYearReturned", year], MessageSeverity.Warning);
+                            invalidYearReturned = true;
+                        }
 
-                    }
-                    if (!string.IsNullOrWhiteSpace(year))
-                    {
-                        SelectedRecord.AnoEdicao = year;
-                        aiProviderMessage ??= yearProviderMessage;
+                        if (!string.IsNullOrWhiteSpace(year) && !invalidYearReturned)
+                        {
+                            SelectedRecord.AnoEdicao = year;
+                            aiProviderMessage ??= yearProviderMessage;
+                        }
                     }
                 }
             }
@@ -791,14 +796,16 @@ namespace Web.Blazor.Pages.Media
 
                 if (ai is not null)
                 {
-                    if (!string.IsNullOrEmpty(ai.Tempo))
+                    if (!string.IsNullOrEmpty(ai.Runtime))
+                        SelectedRecord.Tempo = ai.Runtime;
+                    else if (!string.IsNullOrEmpty(ai.Tempo))
                         SelectedRecord.Tempo = ai.Tempo;
-                    if (!string.IsNullOrEmpty(ai.CoverFile) && ai.CoverFile != "Unknown poster image")
+                    if (!string.IsNullOrEmpty(ai.Poster) && ai.Poster != "Unknown poster image")
+                        SelectedRecord.CoverFile = ai.Poster;
+                    else if (!string.IsNullOrEmpty(ai.CoverFile) && ai.CoverFile != "Unknown poster image")
                         SelectedRecord.CoverFile = ai.CoverFile;
                     if (!string.IsNullOrEmpty(ai.Notes))
                         SelectedRecord.Notas = ai.Notes;
-                    if (!string.IsNullOrEmpty(ai.Runtime))
-                        SelectedRecord.Tempo = ai.Runtime;
                     if (!string.IsNullOrEmpty(ai.Released))
                     {
                         if (DateTime.TryParse(ai.Released, out var releasedDate))
@@ -817,8 +824,6 @@ namespace Web.Blazor.Pages.Media
                         if (!string.IsNullOrEmpty(yearStr))
                             SelectedRecord.AnoEdicao = yearStr;
                     }
-                    if (!string.IsNullOrEmpty(ai.Poster) && ai.Poster != "Unknown poster image")
-                        SelectedRecord.CoverFile = ai.Poster;
 
                     var warningMsg = !string.IsNullOrEmpty(ai.Warnings) ? ai.Warnings : ai.Warning;
                     if (!string.IsNullOrEmpty(warningMsg))

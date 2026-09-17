@@ -260,6 +260,18 @@ else
                             <div class="row">
                                 <div class="col-md-6 col-sm-12">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["GoogleBooksApiKey"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.GoogleBooksApiKey" Placeholder="@L["GoogleBooksApiKey"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["GoogleBooksCountry"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.GoogleBooksCountry" Placeholder="@L["GoogleBooksCountry"]"></SfTextBox>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
                                                Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["IMDbKey"]</h5></SfMessage>
                                     <SfTextBox @bind-Value="settings.IMDbKey" Placeholder="@L["IMDbKey"]"></SfTextBox>
                                 </div>
@@ -584,25 +596,21 @@ else
     }
 
     .e-dialog .e-dlg-header {
-        color: #F0FFFF;
+        color: var(--app-text-primary);
         font-size: 20px;
         font-weight: normal;
     }
 
     .e-dialog .e-dlg-content {
-        color: #F0FFFF;
+        color: var(--app-text-primary);
         font-size: 10px;
         font-weight: normal;
         line-height: normal;
     }
 
     .e-dlg-overlay {
-        background-color: slategray;
+        background-color: var(--app-bg);
         opacity: 0.6;
-    }
-
-    .e-dialog .e-dlg-header {
-        color: #F0FFFF;
     }
 
     .ename {
@@ -1010,18 +1018,5 @@ else
                 [data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
                     color: var(--app-primary) !important;
                 }
-
-    [data-theme="dark"] .e-dialog .e-dlg-header {
-        color: var(--app-text-primary);
-    }
-
-    [data-theme="dark"] .e-dialog .e-dlg-content {
-        color: var(--app-text-primary);
-    }
-
-    [data-theme="dark"] .e-dlg-overlay {
-        background-color: var(--app-bg);
-        opacity: 0.6;
-    }
 
 </style>

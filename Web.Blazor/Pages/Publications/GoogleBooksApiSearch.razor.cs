@@ -8,6 +8,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Configuration;
 using Syncfusion.Blazor.Spinner;
 using System.Globalization;
+using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.Common;
 
 namespace Web.Blazor.Pages.Publications
@@ -49,6 +50,12 @@ namespace Web.Blazor.Pages.Publications
         private string? lastAiNotes;
         private double? lastAiConfidence;
         private bool lastAiUsed;
+
+        // How the last search obtained the record (informational; there is no Google Books cache
+        // in this flow - every search hits the live API or falls back to AI).
+        private enum BookSearchSource { None, GoogleBooks, GoogleBooksTranslated, AiSummary, AiMetadata, AiOffline }
+        private BookSearchSource lastSource;
+        private string? sourceMessage;
 
         private SfSpinner? spinner;
         private bool isBusy;
@@ -136,6 +143,8 @@ namespace Web.Blazor.Pages.Publications
                 lastAiUsed = false;
                 lastAiNotes = null;
                 lastAiConfidence = null;
+                lastSource = BookSearchSource.None;
+                sourceMessage = null;
 
                 var hasInternet = await Internet.HasInternetAsync();
                 if (!hasInternet)
@@ -145,6 +154,8 @@ namespace Web.Blazor.Pages.Publications
                     if (ai is not null)
                     {
                         ApplyAiBookToRecord(ai, bookTitle, author);
+                        lastSource = BookSearchSource.AiOffline;
+                        sourceMessage = localizerApp["SearchSourceAiOffline"];
 
                         noteMessage = localizerApp["MsgInternetUnavailableAiUsed"];
                         await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
@@ -164,6 +175,7 @@ namespace Web.Blazor.Pages.Publications
                 }
 
                 string translatedTitle = "";
+                bool usedTranslation = false;
                 var bookInfo = await GoogleBooksService.GetBookAsync(bookTitle, author);
                 if (bookInfo is null)
                 {
@@ -177,6 +189,10 @@ namespace Web.Blazor.Pages.Publications
                             // TODO completar
                         }
                     }
+                    else
+                    {
+                        usedTranslation = true;
+                    }
                 }
 
                 if (bookInfo.items is null || bookInfo.items.Length == 0)
@@ -186,6 +202,8 @@ namespace Web.Blazor.Pages.Publications
                     if (ai is not null)
                     {
                         ApplyAiBookToRecord(ai, bookTitle, author);
+                        lastSource = BookSearchSource.AiMetadata;
+                        sourceMessage = localizerApp["SearchSourceAiMetadata"];
 
                         await OnGoogleResponse.InvokeAsync(new GoogleBooksSearchResult
                         {
@@ -413,6 +431,11 @@ namespace Web.Blazor.Pages.Publications
                     ApiRecord.Paginas = int.Parse(bookItemPages) > 0 ? int.Parse(bookItemPages) : 0;
                     ApiRecord.Preco = (decimal)salePrice > 0 ? (decimal)salePrice : 0;
 
+                    lastSource = usedTranslation
+                        ? BookSearchSource.GoogleBooksTranslated
+                        : lastAiUsed ? BookSearchSource.AiSummary : BookSearchSource.GoogleBooks;
+                    sourceMessage = localizerApp[GetSourceKey(lastSource)];
+
                     await OnGoogleResponse.InvokeAsync(new Web.Blazor.Pages.Publications.GoogleBooksSearchResult
                     {
                         Record = ApiRecord,
@@ -434,6 +457,8 @@ namespace Web.Blazor.Pages.Publications
                     if (ai is not null)
                     {
                         ApplyAiBookToRecord(ai, bookTitle, author);
+                        lastSource = BookSearchSource.AiOffline;
+                        sourceMessage = localizerApp["SearchSourceAiOffline"];
 
                         // Inform UI and parent that AI was used due to rate limit
                         alertUser = true;
@@ -464,6 +489,12 @@ namespace Web.Blazor.Pages.Publications
                     alertMessage = localizerApp["MsgTitleNotFoundConfirm", bookTitle];
                 }
 
+            }
+            catch (GoogleBooksKeyNotConfiguredException)
+            {
+                alertUser = true;
+                alertMessage = localizerApp["MsgGoogleBooksNoKey"];
+                _logger.LogWarning("Google Books API key not configured in database. Skipping Google Books lookup for title '{Title}' author '{Author}'.", bookTitle, author);
             }
             catch (Exception ex)
             {
@@ -634,6 +665,16 @@ namespace Web.Blazor.Pages.Publications
                 ApiRecord.IdFormato = iFormato;
             }
         }
+
+        private string GetSourceKey(BookSearchSource source) => source switch
+        {
+            BookSearchSource.GoogleBooks => "SearchSourceGoogleBooks",
+            BookSearchSource.GoogleBooksTranslated => "SearchSourceGoogleBooksTranslated",
+            BookSearchSource.AiSummary => "SearchSourceAiSummary",
+            BookSearchSource.AiMetadata => "SearchSourceAiMetadata",
+            BookSearchSource.AiOffline => "SearchSourceAiOffline",
+            _ => "SearchSourceGoogleBooks"
+        };
 
         private string ConvertToProperCase(string input)
         {

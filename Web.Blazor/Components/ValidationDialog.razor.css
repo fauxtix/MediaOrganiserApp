@@ -46,13 +46,13 @@
     }
 
 .modal-confirm .icon-box {
-    color: black;
+    color: var(--app-on-danger);
     width: 75px;
     height: 75px;
     display: inline-block;
     border-radius: 50%;
     z-index: 6;
-    border: 5px solid #000;
+    border: 5px solid var(--app-on-danger);
     padding: 5px;
     text-align: center;
 }
