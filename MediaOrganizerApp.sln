@@ -24,8 +24,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReportsRenderer", "ReportsRenderer\ReportsRenderer.csproj", "{9A4FE71B-F8D7-C381-E938-7DEBB6F35F51}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Blazor.Reporting", "Web.Blazor.ReportObjects\Web.Blazor.Reporting.csproj", "{6CBE13DF-B88F-1620-8B82-C6615287D5EB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Blazor", "Web.Blazor\Web.Blazor.csproj", "{EDDFBE3E-A65D-6B3C-3EB7-B52414BADD81}"
@@ -58,10 +56,6 @@ Global
 		{618F9B8A-9916-4163-986C-6BFEA8533A74}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{618F9B8A-9916-4163-986C-6BFEA8533A74}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{618F9B8A-9916-4163-986C-6BFEA8533A74}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A4FE71B-F8D7-C381-E938-7DEBB6F35F51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A4FE71B-F8D7-C381-E938-7DEBB6F35F51}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A4FE71B-F8D7-C381-E938-7DEBB6F35F51}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A4FE71B-F8D7-C381-E938-7DEBB6F35F51}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6CBE13DF-B88F-1620-8B82-C6615287D5EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6CBE13DF-B88F-1620-8B82-C6615287D5EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CBE13DF-B88F-1620-8B82-C6615287D5EB}.Release|Any CPU.ActiveCfg = Release|Any CPU

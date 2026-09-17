@@ -182,7 +182,7 @@ Where to look in the code (quick map)
     - Services/OllamaBooksService.cs
     - Prompts/*.prompt.txt
     - Helpers/BusinessObjects/BO_*.cs (file integrity / repair helpers)
-- ReportsRenderer and Web.Blazor.ReportObjects (report templates & helpers)
+- Web.Blazor.ReportObjects (report templates & helpers)
 
 Detailed features implemented (expanded)
 
@@ -210,9 +210,9 @@ Detailed features implemented (expanded)
   - In-browser .docx editing (Syncfusion SfDocumentEditor) and a viewer with print/export support.
 
 5) Reporting
-- Files: ReportsRenderer project, Web.Blazor.ReportObjects/Helpers/ReportLists.cs
+- Files: Web.Blazor.ReportObjects/Helpers/ReportLists.cs, MediaOrganizerApp.WebApi/Controllers/ReportController.cs
 - Behavior:
-  - Server-side report rendering to PDF/Excel. Blazor pages trigger report generation via the Web API or ReportsRenderer service.
+  - Server-side report rendering to PDF. Blazor pages trigger report generation via the Web API, which renders locally with ReportViewerCore.NETCore (RDLC templates in `Reports_RDLC/`).
 
 6) Background helpers & integrity checks
 - Files: Helpers/BusinessObjects/BO_*.cs

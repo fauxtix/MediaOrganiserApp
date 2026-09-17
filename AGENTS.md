@@ -8,7 +8,7 @@ dotnet build MediaOrganizerApp.sln
 dotnet test MediaOrganizerApp.sln
 ```
 
-Run the full app locally: `scripts/start-all.ps1` (launches ReportsRenderer, then WebApi, then Web.Blazor).
+Run the full app locally: `scripts/start-all.ps1` (launches WebApi, then Web.Blazor).
 
 **Port conflict**: both WebApi and Web.Blazor default to `https://localhost:5001`. Run them with separate launch profiles or override ports. The `start-all.ps1` script uses default profiles and expects you to handle this.
 
@@ -24,11 +24,8 @@ Run the full app locally: `scripts/start-all.ps1` (launches ReportsRenderer, the
 | `MediaOrganizerApp.Identity` | ASP.NET Core Identity setup | net10.0 |
 | `MediaOrganizerApp.EmailService` | FluentEmail-based email sending | net10.0 |
 | `MediaOrganizerApp.Tests` | xUnit + Moq tests | net10.0 |
-| `ReportsRenderer` | Standalone RDLC report rendering microservice | **net7.0** |
-| `MediaOrganizerApp.Shared` | Shared utilities | **net7.0** |
-| `MediaOrganizerApp.YouTubeNotificationApi` | YouTube notification microservice | **net7.0** |
-| `Infrastructure` | Legacy, currently unused | **net5.0** |
-| `PromptEditor` | Windows Forms prompt editor tool | net10.0-windows |
+| `Web.Blazor.Reporting` | RDLC report templates & helpers (`Web.Blazor.ReportObjects/`) | net10.0 |
+| `PromptEditor` | Windows Forms prompt editor tool (standalone, not in solution) | net10.0-windows |
 
 **Two independent processes**: WebApi and Web.Blazor run separately. Web.Blazor calls WebApi over HTTP using `BaseUrl` in its `appsettings.json` (defaults to `http://localhost:4100/api` in production, read from config in dev).
 
@@ -66,7 +63,7 @@ Tests mock HTTP calls (no live Ollama/DB required). Pattern: create a `StubHttpM
 
 Prompt templates live in `MediaOrganizerApp.WebApi/Prompts/*.prompt.txt` and are copied to output on build (`CopyToOutputDirectory: Always`). They are also editable at runtime via the "Edit Prompts" Blazor admin page.
 
-**Workflow for AI changes:** before implementing any change to the AI flows (Media/Publicações/AuthorBooks — anything that can consume OpenRouter credits), first write the proposed steps to a markdown plan at the repo root (e.g. `PLAN_AI_MEDIA_FIXES.md`) and present it to the user. **Implement only after the user confirms.** This avoids burning daily/paid credits while work is still being planned. If the investigation finds nothing to change, don't create the plan and report the finding instead. The plan file is a transient working doc: delete/replace it once the work is done — do NOT keep completed plans in the repo.
+**Workflow for any multi-step change:** before implementing any non-trivial multi-step change (AI flows, refactors, project/file removals — any work whose mid-way interruption would lose continuity), first write a transient markdown plan at the repo root (e.g. `PLAN_<TOPIC>.md`) with a **progress checklist** (`- [x]`/`- [ ]`) stating the status of each step, and present it to the user. **Implement only after the user confirms.** **Update the checklist as work progresses**, marking each step done. The plan file is a local working doc and must **not be committed**; delete it only when the work is finished and committed — never before. This ensures that if assistant credits run out mid-way, the plan still records exactly what is done, what remains, and where to resume. If the investigation finds nothing to change, don't create the plan and report the finding instead.
 
 **Documentation drift rule:** live docs (AGENTS.md, `Web.Blazor/docs/ai-fallback-*.md`, `ollama-local-setup.md`, `docs/architecture/USER_ROLE_DATA_FLOW.md`, `media_organizer_arquitetura_visao_geral.md`) must be updated in the same pass as the code change that affects them — never in a separate request. Do NOT reintroduce one-shot audit/history/plan docs into master.
 
@@ -98,17 +95,17 @@ App-wide theming uses CSS custom properties (tokens), **NOT** Syncfusion theme p
 - **ORM mix**: Dapper for most queries, EF Core for Identity and some persistence. Raw SQL strings are common in repositories (e.g., `StringBuilder`-based query building).
 - **Localization**: Default culture is `pt` (Portuguese). Supported: en, fr, pt, es. Resources in `Web.Blazor/Resources/`.
 - **Syncfusion**: UI components use Syncfusion Blazor suite. Requires a license key (hardcoded in `Web.Blazor/Program.cs`).
-- **Reports**: RDLC templates in `Reports_RDLC/` directories. `ReportsRenderer` is a separate microservice that renders them.
+- **Reports**: RDLC templates in `Reports_RDLC/` directories, shipped with `MediaOrganizerApp.WebApi`. The WebApi renders them locally via `ReportViewerCore.NETCore` (`ReportController.cs`).
 - **Service registration**: register services that depend on `HttpClient` via `AddHttpClient` in `ServiceRegistration.cs` (`AddServicesInfrastructure`) — never directly in `Program.cs`; persistence services go in `AddPersistenceInfrastructure`. Blazor API clients are registered via `AddHttpClient` in `Web.Blazor`'s `ServiceRegistration`. UI components should not call API endpoints directly — use typed API client wrappers reading `BaseUrl` and the `ApiKey` header from configuration.
 - **SignalR**: all SignalR/Hub work lives in the service layer, not the UI.
-- **No CI/CD config** found in the repo. No pre-commit hooks.
+- **No CI/CD config** in use: `.github/workflows/*.yml` exist but are stale (reference non-existent projects). No pre-commit hooks.
 - **No linting/formatting enforcement** beyond the single `.editorconfig` rule (CA1051 suppressed).
 
 ## Gotchas
 
 - `Web.Blazor.csproj` explicitly disables `GenerateAssemblyInfo` and `GenerateTargetFrameworkAttribute` to avoid duplicates — don't re-enable without checking.
 - The `Web.Blazor` project excludes `Services/ApiRelated/**` from compilation — dead code kept for reference.
-- `MediaOrganizerApp.Shared` and `ReportsRenderer` are still on **net7.0** while the main app targets net10.0 — cross-project references work but watch for API surface mismatches.
+- All projects in the solution target **net10.0** (only `PromptEditor` is `net10.0-windows` and is not part of any solution).
 - `nuget.config` includes a Syncfusion NuGet source with a placeholder API key (`<your-api-key>`). If restore fails, check this.
 - Serilog writes to SQL Server (`AppLogs` table) — `autoCreateSqlTable: true` in config. The table is auto-created on first write.
 - AI Ollama client uses `SocketsHttpHandler` with aggressive keepalive to handle long-running LLM inference requests (up to 10-15 minute timeouts).
