@@ -66,6 +66,10 @@ Tests mock HTTP calls (no live Ollama/DB required). Pattern: create a `StubHttpM
 
 Prompt templates live in `MediaOrganizerApp.WebApi/Prompts/*.prompt.txt` and are copied to output on build (`CopyToOutputDirectory: Always`). They are also editable at runtime via the "Edit Prompts" Blazor admin page.
 
+**Workflow for AI changes:** before implementing any change to the AI flows (Media/Publicações/AuthorBooks — anything that can consume OpenRouter credits), first write the proposed steps to a markdown plan at the repo root (e.g. `PLAN_AI_MEDIA_FIXES.md`) and present it to the user. **Implement only after the user confirms.** This avoids burning daily/paid credits while work is still being planned. If the investigation finds nothing to change, don't create the plan and report the finding instead. The plan file is a transient working doc: delete/replace it once the work is done — do NOT keep completed plans in the repo.
+
+**Documentation drift rule:** live docs (AGENTS.md, `Web.Blazor/docs/ai-fallback-*.md`, `ollama-local-setup.md`, `docs/architecture/USER_ROLE_DATA_FLOW.md`, `media_organizer_arquitetura_visao_geral.md`) must be updated in the same pass as the code change that affects them — never in a separate request. Do NOT reintroduce one-shot audit/history/plan docs into master.
+
 ## Data Isolation
 
 Two roles: **Admin** (sees all data) and **GeneralUser** (sees only own data). Data isolation is enforced at the **repository level** via `UserID` filtering, not at the UI layer. When modifying queries in repositories, ensure the `UserRole` check pattern is preserved.

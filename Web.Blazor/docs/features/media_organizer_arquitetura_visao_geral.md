@@ -1,8 +1,8 @@
 # 📦 Media Organizer App — Arquitetura e Visão Geral
 
-![.NET](https://img.shields.io/badge/.NET-8.0-blue)
+![.NET](https://img.shields.io/badge/.NET-net10.0-blue)
 ![Blazor](https://img.shields.io/badge/Blazor-Server-purple)
-![Ollama](https://img.shields.io/badge/LLM-Ollama-orange)
+![OpenRouter](https://img.shields.io/badge/LLM-OpenRouter--%2B--Ollama-orange)
 ![Architecture-Data--First](https://img.shields.io/badge/Architecture-Data--First-brightgreen)
 
 ---
@@ -65,9 +65,14 @@ Music: 30 dias
 </details>
 
 <details>
-<summary>🟦 LLM (Ollama / phi4-mini)</summary>
+<summary>🟦 LLM (OpenRouter primário + Ollama local fallback)</summary>
 
-Usado apenas como fallback ou enriquecimento:
+Duas camadas (cloud-first, com fallback local):
+
+- **OpenRouter (cloud)** — provider primário para tradução, notas/metadados/ano de edição de media e author-books
+- **Ollama (local)** — fallback quando o cloud está indisponível (offline, sem API key, 429, erro HTTP/parse)
+
+Usado como enriquecimento/fallback (nunca fonte primária de verdade):
 
 - Preenchimento de metadados
 - Geração de descrições
@@ -174,17 +179,15 @@ var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, stri
 
 ---
 
-## 🔌 Exemplo — chamada ao Ollama
+## 🔌 Exemplo — chamada ao LLM
 
 ```csharp
-var payload = new
-{
-    model = "phi4-mini",
-    prompt,
-    stream = false
-};
+// OpenRouter (cloud-first) — os serviços cloud devolvem null em falha
+var model = CloudChatSettingsKeys.ApplyPaidModelGate(resolvedModel, allowPaid);
+var response = await _chatService.CompleteAsync(model, prompt);
 
-var response = await _httpClient.PostAsJsonAsync("/api/generate", payload);
+// se null → fallback Ollama local
+var result = await _ollamaClient.GenerateAsync(prompt);
 ```
 
 ---
