@@ -99,6 +99,8 @@ App-wide theming uses CSS custom properties (tokens), **NOT** Syncfusion theme p
 - **Localization**: Default culture is `pt` (Portuguese). Supported: en, fr, pt, es. Resources in `Web.Blazor/Resources/`.
 - **Syncfusion**: UI components use Syncfusion Blazor suite. Requires a license key (hardcoded in `Web.Blazor/Program.cs`).
 - **Reports**: RDLC templates in `Reports_RDLC/` directories. `ReportsRenderer` is a separate microservice that renders them.
+- **Service registration**: register services that depend on `HttpClient` via `AddHttpClient` in `ServiceRegistration.cs` (`AddServicesInfrastructure`) — never directly in `Program.cs`; persistence services go in `AddPersistenceInfrastructure`. Blazor API clients are registered via `AddHttpClient` in `Web.Blazor`'s `ServiceRegistration`. UI components should not call API endpoints directly — use typed API client wrappers reading `BaseUrl` and the `ApiKey` header from configuration.
+- **SignalR**: all SignalR/Hub work lives in the service layer, not the UI.
 - **No CI/CD config** found in the repo. No pre-commit hooks.
 - **No linting/formatting enforcement** beyond the single `.editorconfig` rule (CA1051 suppressed).
 
