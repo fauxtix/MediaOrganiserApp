@@ -1,45 +1,142 @@
-name: Build and Deploy MediaorganiserApi to IIS
+name: Build and Deploy MediaOrganizer to IIS
 
 on:
   push:
     branches:
-      - main  # Ou o nome da branch que você deseja monitorar
+      - master
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
+  WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
+  API_SITE: 'MediaOrganizerApi'
+  WEB_SITE: 'MediaOrganizerWeb'
+  API_POOL: 'MediaOrganizerApiPool'
+  WEB_POOL: 'MediaOrganizerWebPool'
+  API_PORT: '4100'
+  WEB_PORT: '4110'
+  API_PATH: 'C:\NewProjects\MediaOrganizer\MediaOrganizerApp\MediaOrganizerApp.WebApi'
+  WEB_PATH: 'C:\NewProjects\MediaOrganizer\MediaOrganizerApp\Web.Blazor'
+  DEPLOY_PATH: 'C:\NewProjects\Publish\MediaOrganizer.Api'
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-deploy:
+    # Ajusta estas labels para as do teu self-hosted runner no servidor IIS.
+    runs-on: [self-hosted, windows, mediaorganizer]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '7.0.x'  # Certifique-se de usar a versão correta do .NET
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore dependencies
-        run: dotnet restore MediaorganiserApi/MediaorganiserApi.csproj
+      - name: Restore solution
+        shell: powershell
+        run: dotnet restore MediaOrganizerApp.sln
 
-      - name: Build
-        run: dotnet build MediaorganiserApi/MediaorganiserApi.csproj --configuration Release --no-restore
+      - name: Build solution
+        shell: powershell
+        run: dotnet build MediaOrganizerApp.sln --configuration Release --no-restore
 
-      - name: Publish
-        run: dotnet publish MediaorganiserApi/MediaorganiserApi.csproj --configuration Release --output ./publish --no-build
+      - name: Publish API
+        shell: powershell
+        run: |
+          $apiPublish = Join-Path $env:DEPLOY_PATH 'api'
+          if (Test-Path $apiPublish) { Remove-Item $apiPublish -Recurse -Force }
+          New-Item -Path $apiPublish -ItemType Directory -Force | Out-Null
+
+          dotnet publish $env:API_PROJECT `
+            --configuration Release `
+            --output $apiPublish `
+            --no-build
+
+      - name: Publish frontend
+        shell: powershell
+        run: |
+          $webPublish = Join-Path $env:DEPLOY_PATH 'web'
+          if (Test-Path $webPublish) { Remove-Item $webPublish -Recurse -Force }
+          New-Item -Path $webPublish -ItemType Directory -Force | Out-Null
+
+          dotnet publish $env:WEB_PROJECT `
+            --configuration Release `
+            --output $webPublish `
+            --no-build
 
       - name: Deploy to IIS
+        shell: powershell
         run: |
-          $publishPath = "${{ github.workspace }}\publish"
-          $siteName = "MediaorganiserApi"
-          $iisPath = "C:\inetpub\wwwroot\$siteName"
-          if (!(Test-Path $iisPath)) {
-              New-Item -Path $iisPath -ItemType Directory
-          }
-          Copy-Item -Path "$publishPath\*" -Destination $iisPath -Recurse
+          $ErrorActionPreference = 'Stop'
           Import-Module WebAdministration
-          if (-not (Get-Website -Name $siteName)) {
-              New-Website -Name $siteName -Port 4100 -PhysicalPath $iisPath -ApplicationPool ".NET v4.5"
-          } else {
-              Set-ItemProperty IIS:\Sites\$siteName -Name physicalPath -Value $iisPath
+
+          foreach ($path in @($env:API_PATH, $env:WEB_PATH, $env:DEPLOY_PATH)) {
+              New-Item -Path $path -ItemType Directory -Force | Out-Null
           }
-          Start-Process -FilePath "iisreset" -ArgumentList "/noforce"
+
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+              if (-not (Test-Path "IIS:\AppPools\$pool")) {
+                  New-WebAppPool -Name $pool | Out-Null
+              }
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion -Value ''
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode -Value 'Integrated'
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
+          }
+
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+              $state = (Get-WebAppPoolState -Name $pool).Value
+              if ($state -ne 'Stopped') { Stop-WebAppPool -Name $pool }
+          }
+
+          robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5
+          if ($LASTEXITCODE -gt 7) { throw "API deployment copy failed with code $LASTEXITCODE" }
+
+          robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5
+          if ($LASTEXITCODE -gt 7) { throw "Frontend deployment copy failed with code $LASTEXITCODE" }
+
+          if (-not (Get-Website -Name $env:API_SITE -ErrorAction SilentlyContinue)) {
+              New-Website -Name $env:API_SITE `
+                -Port ([int]$env:API_PORT) `
+                -IPAddress '*' `
+                -HostHeader 'localhost' `
+                -PhysicalPath $env:API_PATH `
+                -ApplicationPool $env:API_POOL | Out-Null
+          } else {
+              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name physicalPath -Value $env:API_PATH
+              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name applicationPool -Value $env:API_POOL
+          }
+
+          if (-not (Get-Website -Name $env:WEB_SITE -ErrorAction SilentlyContinue)) {
+              New-Website -Name $env:WEB_SITE `
+                -Port ([int]$env:WEB_PORT) `
+                -IPAddress '*' `
+                -HostHeader 'localhost' `
+                -PhysicalPath $env:WEB_PATH `
+                -ApplicationPool $env:WEB_POOL | Out-Null
+          } else {
+              Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name physicalPath -Value $env:WEB_PATH
+              Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name applicationPool -Value $env:WEB_POOL
+          }
+
+          Start-WebAppPool -Name $env:API_POOL
+          Start-WebAppPool -Name $env:WEB_POOL
+          Start-Website -Name $env:API_SITE
+          Start-Website -Name $env:WEB_SITE
+
+      - name: Smoke test API and frontend
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Start-Sleep -Seconds 5
+
+          $api = Invoke-WebRequest -Uri "http://localhost:$env:API_PORT" -UseBasicParsing -TimeoutSec 30
+          if ($api.StatusCode -lt 200 -or $api.StatusCode -ge 500) {
+              throw "API returned HTTP $($api.StatusCode)"
+          }
+
+          $web = Invoke-WebRequest -Uri "http://localhost:$env:WEB_PORT" -UseBasicParsing -TimeoutSec 30
+          if ($web.StatusCode -lt 200 -or $web.StatusCode -ge 500) {
+              throw "Frontend returned HTTP $($web.StatusCode)"
+          }
