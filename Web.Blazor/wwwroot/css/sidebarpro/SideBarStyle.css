@@ -23,7 +23,7 @@
     }
 
 .sidebar {
-    color: var(--app-text-secondary);
+    color: var(--sidebar-text-secondary);
     /*overflow-x: hidden !important;*/
     position: relative;
 }
@@ -33,12 +33,12 @@
     }
 
     .sidebar:hover::-webkit-scrollbar-thumb {
-        background-color: var(--app-border);
+        background-color: var(--sidebar-border);
     }
 
     .sidebar::-webkit-scrollbar {
         width: 6px;
-        background-color: var(--app-bg);
+        background-color: var(--sidebar-bg-strong);
     }
 
     .sidebar .image-wrapper {
@@ -69,7 +69,7 @@
         display: flex;
         flex-direction: column;
         position: relative;
-        background-color: var(--app-surface);
+        background-color: var(--sidebar-bg);
         z-index: 2;
     }
 
@@ -141,7 +141,7 @@
     letter-spacing: 2px;
     transition: opacity 0.3s;
     opacity: 1;
-    color: var(--app-text-primary);
+    color: var(--sidebar-text-primary);
 }
 
 .layout .sidebar .menu .menu-item a {
@@ -149,7 +149,7 @@
     align-items: center;
     height: 38px;
     padding: 2px 14px;
-    color: var(--app-text-secondary);
+    color: var(--sidebar-text-secondary);
 }
 
     .layout .sidebar .menu .menu-item a .menu-icon {
@@ -187,11 +187,11 @@
     }
 
     .layout .sidebar .menu .menu-item a:hover .menu-title {
-        color: var(--app-text-primary);
+        color: var(--sidebar-text-primary);
     }
 
     .layout .sidebar .menu .menu-item a:hover .menu-icon {
-        color: var(--app-primary);
+        color: var(--sidebar-accent);
     }
 
         .layout .sidebar .menu .menu-item a:hover .menu-icon i {
@@ -199,7 +199,7 @@
         }
 
     .layout .sidebar .menu .menu-item a:hover::after {
-        border-color: var(--app-primary) !important;
+        border-color: var(--sidebar-accent) !important;
     }
 
 .layout .sidebar .menu .menu-item.sub-menu {
@@ -225,7 +225,7 @@
 
 
     .layout .sidebar .menu .menu-item.sub-menu.open > a {
-        color: var(--app-text-primary);
+        color: var(--sidebar-text-primary);
     }
 
         .layout .sidebar .menu .menu-item.sub-menu.open > a::after {
@@ -239,23 +239,23 @@
 }
 
 .layout .sidebar .menu .menu-item.active > a .menu-title {
-    color: var(--app-text-primary);
+    color: var(--sidebar-text-primary);
 }
 
 .layout .sidebar .menu .menu-item.active > a::after {
-    border-color: var(--app-text-primary);
+    border-color: var(--sidebar-text-primary);
 }
 
 .layout .sidebar .menu .menu-item.active > a .menu-icon {
-    color: var(--app-primary);
+    color: var(--sidebar-accent);
 }
 
 .layout .sidebar .menu > ul > .sub-menu > .sub-menu-list {
-    background-color: var(--app-surface-alt);
+    background-color: var(--sidebar-bg-alt);
 }
 
 .layout .sidebar .menu.icon-shape-circle .menu-item a .menu-icon, .layout .sidebar .menu.icon-shape-rounded .menu-item a .menu-icon, .layout .sidebar .menu.icon-shape-square .menu-item a .menu-icon {
-    background-color: var(--app-surface-alt);
+    background-color: var(--sidebar-bg-alt);
 }
 
 .layout .sidebar .menu.icon-shape-circle .menu-item a .menu-icon {
@@ -300,7 +300,7 @@
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.sub-menu > a:hover::after {
-    background-color: var(--app-primary);
+    background-color: var(--sidebar-accent);
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.sub-menu > .sub-menu-list {
@@ -312,7 +312,7 @@
 }
 
 .layout .sidebar.collapsed .menu > ul > .menu-item.active > a::after {
-    background-color: var(--app-primary);
+    background-color: var(--sidebar-accent);
 }
 
 .layout .sidebar.has-bg-image .menu.icon-shape-circle .menu-item a .menu-icon, .layout .sidebar.has-bg-image .menu.icon-shape-rounded .menu-item a .menu-icon, .layout .sidebar.has-bg-image .menu.icon-shape-square .menu-item a .menu-icon {
@@ -420,7 +420,7 @@ a {
     width: 180px;
     min-width: 190px;
     margin: 0 auto;
-    background-color: var(--app-primary);
+    background-color: var(--sidebar-accent);
 }
 
     .layout .sidebar .footer-box img.react-logo {
@@ -443,7 +443,7 @@ a {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: var(--app-primary);
+    background-color: var(--sidebar-accent);
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -455,7 +455,7 @@ a {
     z-index: 111;
     cursor: pointer;
     color: white;
-    box-shadow: 1px 1px 4px var(--app-bg);
+    box-shadow: 1px 1px 4px var(--sidebar-bg-strong);
 }
 
 .layout .sidebar.collapsed .pro-sidebar-logo > h5 {

@@ -63,6 +63,49 @@
     --body-bg: var(--app-bg);
     --body-color: var(--app-text-primary);
     --border-color: var(--app-border);
+
+    /* Sidebar — aspeto tema-independente (igual em light e dark).
+       Fixados na paleta do dark mode de propósito; NÃO redefinir em
+       [data-theme="dark"]. Usados apenas por SideBarStyle.css. */
+    --sidebar-bg: #1E293B;
+    --sidebar-bg-alt: #243244;
+    --sidebar-bg-strong: #0F172A;
+    --sidebar-text-primary: #F8FAFC;
+    --sidebar-text-secondary: #94A3B8;
+    --sidebar-accent: #3B82F6;
+    --sidebar-border: #334155;
+
+    /* Header / top bar — aspeto tema-independente (igual em light e dark).
+       Fixados na paleta do dark mode de propósito; NÃO redefinir em
+       [data-theme="dark"]. Usados por MainLayout.razor / ThemeToggle.razor. */
+    --header-bg: #1E293B;
+    --header-text: #F8FAFC;
+    --header-border: #334155;
+    --header-hover-bg: #283852;
+}
+
+/* --- Sidebar: superfícies reafirmadas -------------------------------------
+   Este ficheiro é carregado por ÚLTIMO no <head>; estas regras garantem que
+   NENHUM outro CSS (mesmo antigo/em cache, que use --app-surface etc.) pinta
+   o menu de branco em light mode. Valores sempre via tokens --sidebar-*
+   (tema-independentes; ver comentário nos tokens acima). */
+.sidebar,
+.sidebar .sidebar-layout,
+.sidebar .sidebar-header,
+.sidebar .sidebar-content,
+.sidebar .sidebar-footer {
+    background-color: var(--sidebar-bg);
+}
+
+.sidebar .menu > ul > .sub-menu > .sub-menu-list,
+.sidebar.has-bg-image:not(.collapsed) .menu > ul > .sub-menu > .sub-menu-list {
+    background-color: var(--sidebar-bg-alt);
+}
+
+.sidebar .menu li,
+.sidebar .menu .menu-item a {
+    background-color: transparent;
+    color: var(--sidebar-text-secondary);
 }
 
 /* -------------------------- Tema Escuro --------------------------------- */
