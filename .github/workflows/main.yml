@@ -8,28 +8,35 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.x'
+
   API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
   WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
-  API_SITE: 'MediaOrganizerApi'
-  WEB_SITE: 'MediaOrganizerWeb'
+
+  API_SITE: 'MediaOrganizerAPI'
+  WEB_SITE: 'OrganiseIt'
+
   API_POOL: 'MediaOrganizerApiPool'
-  WEB_POOL: 'MediaOrganizerWebPool'
+  WEB_POOL: 'OrganiseItPool'
+
   API_PORT: '4100'
   WEB_PORT: '4110'
-  API_PATH: 'C:\NewProjects\MediaOrganizer\MediaOrganizerApp\MediaOrganizerApp.WebApi'
-  WEB_PATH: 'C:\NewProjects\MediaOrganizer\MediaOrganizerApp\Web.Blazor'
-  DEPLOY_PATH: 'C:\NewProjects\Publish\MediaOrganizer.Api'
+
+  # Pastas finais no IIS
+  API_PATH: 'C:\inetpub\MediaOrganizerAPI'
+  WEB_PATH: 'C:\inetpub\OrganiseIt'
+
+  # Pasta temporária de staging para publicação
+  DEPLOY_PATH: 'C:\NewProjects\Publish\MediaOrganizer'
 
 jobs:
   build-and-deploy:
-    # Ajusta estas labels para as do teu self-hosted runner no servidor IIS.
     runs-on: [self-hosted, windows, mediaorganizer]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up .NET
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -82,25 +89,25 @@ jobs:
               }
               Set-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion -Value ''
               Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode -Value 'Integrated'
-              Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
           }
 
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
-              $state = (Get-WebAppPoolState -Name $pool).Value
-              if ($state -ne 'Stopped') { Stop-WebAppPool -Name $pool }
+              try {
+                  $state = (Get-WebAppPoolState -Name $pool).Value
+                  if ($state -ne 'Stopped') { Stop-WebAppPool -Name $pool }
+              } catch { }
           }
 
           robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5
-          if ($LASTEXITCODE -gt 7) { throw "API deployment copy failed with code $LASTEXITCODE" }
+          if ($LASTEXITCODE -gt 7) { throw "API deployment failed with code $LASTEXITCODE" }
 
           robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5
-          if ($LASTEXITCODE -gt 7) { throw "Frontend deployment copy failed with code $LASTEXITCODE" }
+          if ($LASTEXITCODE -gt 7) { throw "Frontend deployment failed with code $LASTEXITCODE" }
 
           if (-not (Get-Website -Name $env:API_SITE -ErrorAction SilentlyContinue)) {
               New-Website -Name $env:API_SITE `
                 -Port ([int]$env:API_PORT) `
                 -IPAddress '*' `
-                -HostHeader 'localhost' `
                 -PhysicalPath $env:API_PATH `
                 -ApplicationPool $env:API_POOL | Out-Null
           } else {
@@ -112,7 +119,6 @@ jobs:
               New-Website -Name $env:WEB_SITE `
                 -Port ([int]$env:WEB_PORT) `
                 -IPAddress '*' `
-                -HostHeader 'localhost' `
                 -PhysicalPath $env:WEB_PATH `
                 -ApplicationPool $env:WEB_POOL | Out-Null
           } else {
