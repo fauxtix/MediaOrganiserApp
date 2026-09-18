@@ -12,7 +12,7 @@ env:
   API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
   WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
 
-API_SITE: 'MediaOrganiserApi'
+  API_SITE: 'MediaOrganiserApi'
   WEB_SITE: 'OrganiseIt'
 
   API_POOL: 'MediaOrganiserApiPool'
