@@ -12,10 +12,10 @@ env:
   API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
   WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
 
-  API_SITE: 'MediaOrganizerAPI'
+API_SITE: 'MediaOrganiserApi'
   WEB_SITE: 'OrganiseIt'
 
-  API_POOL: 'MediaOrganizerApiPool'
+  API_POOL: 'MediaOrganiserApiPool'
   WEB_POOL: 'OrganiseItPool'
 
   API_PORT: '4100'
