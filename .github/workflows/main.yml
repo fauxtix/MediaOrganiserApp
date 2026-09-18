@@ -21,7 +21,7 @@ env:
   API_PORT: '4100'
   WEB_PORT: '4110'
 
-  # Pastas finais no IIS
+  # Pastas finais dos sites do IIS
   API_PATH: 'C:\inetpub\MediaOrganizerAPI'
   WEB_PATH: 'C:\inetpub\OrganiseIt'
 
