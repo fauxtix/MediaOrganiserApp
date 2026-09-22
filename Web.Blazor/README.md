@@ -57,11 +57,11 @@ This application is designed to streamline the organization, management, and ret
 ### 🔄 Real-Time Updates
 - **SignalR Integration**: Real-time progress updates for long-running operations like bulk imports or metadata retrieval.
 
-### 🤖 AI Fallback
-- **Metadata Retrieval**: Automatically fetch metadata (e.g., author profiles) using AI when external API calls fail.
-- **Ollama Integration**: Utilized for generating author profiles and metadata.
-  - **Author Profiles**: Fetches detailed author information using AI prompts.
-  - **Customizable Prompts**: Supports dynamic queries for personalized results.
+### 🤖 AI Integration
+- **Cloud-first with local fallback**: AI features call **OpenRouter (cloud)** first and fall back to a **local Ollama** model when the cloud is unavailable (no API key, offline, 429/HTTP errors). Author-profile can also use an OpenAI-SDK client pointed at the configured local model.
+- **Metadata Retrieval**: Automatically fetch metadata (e.g., author profiles, author books, book summaries, media notes/metadata) using AI when external API calls fail.
+- **Cloud Chat & Conversations**: User-facing chat (streaming) with conversation grouping, copy-to-clipboard and 👍/👎 feedback.
+- **Customizable Prompts**: Supports dynamic queries for personalized results; templates editable via the "Edit Prompts" admin page.
 
 ### 🔧 Additional server & utility features
 
@@ -119,12 +119,12 @@ This application is designed to streamline the organization, management, and ret
 
 ## ⚙️ Technologies Used
 
-- **Frontend**: Blazor WebAssembly
+- **Frontend**: Blazor Server
 - **Backend**: ASP.NET Core Web API
 - **Database**: SQL Server
 - **ORM**: Dapper
 - **Real-Time Communication**: SignalR
-- **AI Integration**: OpenAI API for metadata fallback
+- **AI Integration**: OpenRouter (cloud-first) with local Ollama fallback; Cloud Chat with AI usage logging
 - **Authentication**: ASP.NET Core Identity
 - **Logging**: Serilog
 - **Other Tools**: FluentValidation, AutoMapper
@@ -142,7 +142,7 @@ This application is designed to streamline the organization, management, and ret
 ### Setup
 1. Clone the repository:
 ```
-   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+   git clone https://github.com/fauxtix/MediaOrganiserApp.git
 ```
 
 2. Navigate to the solution directory:
@@ -311,7 +311,7 @@ The **Backup Options** feature ensures data integrity and disaster recovery. Adm
 ### Setup
 1. Clone the repository:
 ```
-   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+   git clone https://github.com/fauxtix/MediaOrganiserApp.git
 ```
 
 2. Navigate to the solution directory:
@@ -372,7 +372,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 For questions or support, please contact:
 - **Email**: support@mediaorganizerapp.com
-- **GitHub Issues**: [Submit an Issue](https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor/issues)
+- **GitHub Issues**: [Submit an Issue](https://github.com/fauxtix/MediaOrganiserApp/issues)
 
 ---
 

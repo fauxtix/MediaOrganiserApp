@@ -62,17 +62,18 @@ This application is designed to streamline the organization, management, and ret
 ### 🔄 Real-Time Updates
 - **SignalR Integration**: Real-time progress updates for long-running operations like bulk imports or metadata retrieval.
 
-### 🤖 AI Fallback
-- **Metadata Retrieval**: Automatically fetch metadata (e.g., author profiles) using AI when external API calls fail.
-- **Ollama Integration**: Utilized for generating author profiles and metadata.
-  - **Author Profiles**: Fetches detailed author information using AI prompts.
-  - **Customizable Prompts**: Supports dynamic queries for personalized results.
+### 🤖 AI Integration
+- **Cloud-first with local fallback**: AI features call **OpenRouter (cloud)** first and fall back to a **local Ollama** model when the cloud is unavailable (no API key, offline, 429/HTTP errors). Author-profile can also use an OpenAI-SDK client pointed at the configured local model.
+- **Metadata Retrieval**: Automatically fetch metadata (author profiles, author books, book summaries, media notes/metadata, edition year) using AI when external API calls fail.
+- **Customizable Prompts**: Dynamic queries for personalized results; prompt templates are editable via the "Edit Prompts" admin page.
 
-### 4ac AI Chat & Conversations (user-facing)
-- **Chat page**: The app exposes a user-facing Chat page (AI) reachable from the main sidebar. Use Chat to run ad-hoc queries, fetch author profiles, or request metadata for media and publications.
+### 🤖 AI Chat & Conversations (user-facing)
+- **Chat page**: The app exposes a user-facing Cloud Chat page (AI) reachable from the main sidebar. Use Chat to run ad-hoc queries, fetch author profiles, or request metadata for media and publications.
 - **Conversations**: Chats are grouped into conversations. Each conversation stores messages, context and can be re-opened for follow-up queries. The UI supports streaming replies for a natural chat experience.
+- **Chat feedback**: Assistant replies can be copied to the clipboard and rated 👍/👎 (persisted per conversation, shown in the UI).
 - **Edit Prompts**: Admins can edit prompt templates used by the AI directly from the Blazor admin UI (Edit Prompts). This enables tuning of LLM behavior without code deployments.
 - **Fallback behavior**: The UI prefers external APIs (Google Books) and falls back to the AI model only when external lookups do not return acceptable results. This reduces unnecessary LLM usage and improves metadata accuracy.
+- **Usage logging**: Every non-chat AI call is recorded in the `AIUsageLog` table and surfaced on the dashboard ("IA em uso interno").
 
 
 ### 🔧 Additional server & utility features
@@ -290,7 +291,7 @@ Suggested next additions (optional, high ROI)
 - **Database**: SQL Server
 - **ORM**: Dapper
 - **Real-Time Communication**: SignalR
-- **AI Integration**: Ollama API for metadata fallback (local)
+- **AI Integration**: OpenRouter (cloud-first) with local Ollama fallback; Cloud Chat with AI usage logging
 - **Authentication**: ASP.NET Core Identity
 - **Logging**: Serilog
 - **Other Tools**: FluentValidation, AutoMapper
@@ -493,44 +494,6 @@ The **Backup Options** feature ensures data integrity and disaster recovery. Adm
 
 ---
 
-## ⚙️ Installation
-
-### Prerequisites
-1. **.NET SDK 10.0** installed.
-2. **SQL Server** with the `Publicacoes_Prod` database.
-3. **IIS** for deployment (optional).
-4. **Node.js** (if using JavaScript libraries).
-
-### Setup
-1. Clone the repository:
-```
-   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
-```
-
-2. Navigate to the solution directory:
-```
-   cd MediaOrganizerApp
-```
-
-3. Restore dependencies:
-```
-   dotnet restore
-```
-
-4. Update the `appsettings.json` file with your database connection string.
-
-5. Run the migrations:
-```
-   dotnet ef database update
-```
-
-6. Start the application:
-```
-   dotnet run
-```
-
----
-
 ## 🤝 Contribution Guidelines
 
 We welcome contributions! To contribute:
@@ -565,7 +528,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 For questions or support, please contact:
 - **Email**: support@mediaorganizerapp.com
-- **GitHub Issues**: [Submit an Issue](https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor/issues)
+- **GitHub Issues**: [Submit an Issue](https://github.com/fauxtix/MediaOrganiserApp/issues)
 
 ---
 

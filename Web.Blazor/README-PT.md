@@ -49,7 +49,9 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 - **SignalR** para progresso em operações longas.
 
 ### 🤖 Fallback de IA
-- **Recuperação de metadados com IA**: Usa Ollama/local LLM para gerar perfis de autor e metadados quando APIs externas falham.
+- **Cloud-first com fallback local**: as funcionalidades de IA chamam primeiro o **OpenRouter (cloud)** e fazem fallback para um modelo **Ollama local** quando a cloud está indisponível (sem API key, offline, erros 429/HTTP). O perfil de autor pode também usar um cliente OpenAI-SDK apontado para o modelo local configurado.
+- **Recuperação de metadados com IA**: Obtém perfis de autor, livros do autor, resumos e metadados quando APIs externas falham.
+- **Cloud Chat & Conversas**: Chat com streaming, conversas agrupadas, copiar para o clipboard e avaliação 👍/👎.
 - **Gestão de prompts**: Página para editar prompts usados pelo fallback.
 
 ### 📊 Analítica & Relatórios
@@ -95,11 +97,11 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 
 ## ⚙️ Tecnologias Utilizadas
 
-- **Frontend**: Blazor WebAssembly
+- **Frontend**: Blazor Server
 - **Backend**: ASP.NET Core Web API
 - **Base de Dados**: SQL Server
 - **Comunicação em Tempo Real**: SignalR
-- **Integração com IA**: Ollama API para recuperação de metadados (local LLM)
+- **Integração com IA**: OpenRouter (cloud-first) com fallback local Ollama; Cloud Chat e registo de uso de IA
 - **Autenticação**: ASP.NET Core Identity
 - **Registos**: Serilog
 - **Outras Ferramentas**: FluentValidation, AutoMapper
@@ -117,7 +119,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 ### Configuração
 1. Clone o repositório:
 ```
-   git clone https://github.com/fauxtix/MediaOrganiserApp.Web.Blazor.git
+   git clone https://github.com/fauxtix/MediaOrganiserApp.git
 ```
 
 2. Navegue até ao diretório da solução:

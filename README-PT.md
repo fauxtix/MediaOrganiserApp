@@ -47,10 +47,11 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 - **SignalR**: Progresso em tempo real para operações longas (importações em massa, extração de metadados, backups).
 
 ### 🤖 IA, Chat e Fallback
-- **Recuperação de metadados com IA**: A aplicação tenta primeiro APIs externas (ex.: Google Books) e, caso não obtenha resultados suficientes, utiliza um LLM local (Ollama) como fallback.
-- **Página de Chat / Conversas**: Interface para conversas com a IA para consultas ad-hoc — p. ex. “obter perfil de autor” — com suporte a conversas encadeadas e streaming de respostas.
+- **Cloud-first com fallback local**: as funcionalidades de IA chamam primeiro o **OpenRouter (cloud)** e fazem fallback para um modelo **Ollama local** quando a cloud está indisponível (sem API key, offline, erros 429/HTTP). O perfil de autor pode também usar um cliente OpenAI-SDK apontado para o modelo local configurado.
+- **Recuperação de metadados com IA**: A aplicação tenta primeiro APIs externas (ex.: Google Books) e, caso não obtenha resultados suficientes, utiliza IA para obter perfis de autor, livros do autor, resumos e metadados.
+- **Página de Chat / Conversas**: Interface para conversas com a IA (Cloud Chat) para consultas ad-hoc — p. ex. "obter perfil de autor" — com suporte a conversas encadeadas e streaming de respostas. As respostas podem ser avaliadas 👍/👎 e copiadas.
 - **Editar Prompts**: Administradores podem editar templates de prompts através da interface "Edit Prompts" sem necessidade de deploys.
-- **Confiança e Badges AI**: Quando um resultado é gerado por IA, a UI pode exibir um badge de confiança (por exemplo: "AI 78%"), indicando que aquele item foi sugerido pelo modelo.
+- **Registo de uso de IA**: Cada operação de IA fora de chat é registada na tabela `AIUsageLog` e apresentada no dashboard ("IA em uso interno").
 
 ### 🔧 Funcionalidades do Servidor e Utilitários
 - **Verificações de integridade de ficheiros**: Ferramentas para detetar publicações com ficheiros ausentes e executar operações de reparação.
@@ -105,7 +106,7 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 - **Base de Dados**: SQL Server
 - **ORM**: Dapper
 - **Comunicação em Tempo Real**: SignalR
-- **Integração com IA**: Ollama (execução local) como fallback, e suporte para OpenAI quando configurado
+- **Integração com IA**: OpenRouter (cloud-first) com fallback local Ollama; Cloud Chat e registo de uso de IA
 - **Autenticação**: ASP.NET Core Identity
 - **Registos**: Serilog
 - **Outras Ferramentas**: Syncfusion (SfDocumentEditor, Grids), FluentValidation, AutoMapper
