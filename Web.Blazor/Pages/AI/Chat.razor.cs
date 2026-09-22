@@ -5,77 +5,79 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
-using Syncfusion.Blazor.DropDowns;
 using Syncfusion.Blazor.Notifications;
+using System.Globalization;
 using System.Text.Json;
+using Web.Blazor.Components.Chat;
 using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.CloudChat;
+using Web.Blazor.Services.Common;
 
 namespace Web.Blazor.Pages.AI
 {
     public partial class Chat : IAsyncDisposable
     {
-
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
         [Inject] private ChatFeedbackClientService ChatFeedbackClient { get; set; } = null!;
+        [Inject] private AiClientService AiClient { get; set; } = null!;
         [Inject] private IJSRuntime JS { get; set; } = null!;
-
-        [Inject] private IConfiguration Configuration { get; set; } = null!;
         [Inject] private IAppSettingsService AppSettingsService { get; set; } = null!;
         [Inject] private IAiModelsService AiModelsService { get; set; } = null!;
-        [Inject] private Web.Blazor.Services.Common.IAiModelResolver AiModelResolver { get; set; } = null!;
+        [Inject] private IAiModelResolver AiModelResolver { get; set; } = null!;
         [Inject] private IStringLocalizer<App> L { get; set; } = null!;
 
-        private bool ShowSpinnerOverlay;
-        private CancellationTokenSource spinnerCts;
-
-        private List<ChatMessage> messages = new();
+        private readonly List<ChatUiMessage> messages = new();
+        private ChatUiMessage? currentAssistantMessage;
         private string userInput = "";
-        private ChatMessage? currentAssistantMessage;
-        private ElementReference messagesDiv;
-        private bool isConnecting = false;
-        private bool isProcessing = false;
-        private bool ignoreHubChunks = false;
-        private CancellationTokenSource? chatCts;
+        private string? lastUserPrompt;
+        private string welcomeMessage = "";
 
+        private string _selectedModel = "";
+
+        private int _contextLength = DefaultContextLimit;
+        private int _contextUsedTokens;
+        private bool _showContextBar;
+
+        private bool isProcessing;
+        private bool isConnecting;
+        private double _elapsed;
+        private System.Threading.Timer? _elapsedTimer;
+        private CancellationTokenSource? chatCts;
+        private DotNetObjectReference<Chat>? dotNetRef;
+        private ElementReference messagesDiv;
+        private ElementReference chatInputRef;
         private bool userAtBottom = true;
 
-        private string modeloAtual = "";
-        private int limiteTokens { get; set; }
-        private int tokensEstimados { get; set; }
-        private int tokensUsados { get; set; } = 0;
-        private bool ShowTokenWarning => limiteTokens > 0 && ((double)tokensEstimados / limiteTokens) >= 0.80;
+        private HistoryPanel? historyPanel;
 
-
-        private ElementReference chatInputRef;
-        private DotNetObjectReference<Chat>? dotNetRef;
-        private bool showConfirmNewConversation = false;
-        private bool showConfirmDeleteConversation = false;
         private List<ConversationItem> conversations = new();
         private string? selectedConversationId;
+
         private readonly Dictionary<int, int> _feedbackByIndex = new();
-        private readonly DropDownListFieldSettings convFields = new() { Text = "Title", Value = "Id" };
 
         private SfToast? toastObj;
         protected string ToastTitle = "";
         protected string ToastContent = "";
         protected string ToastCssClass = "";
-        public int ToastTimeOut { get; set; } = 1500;
-        private string SpinnerLabel { get; set; } = "Loading...";
-        private string ProgressStatus { get; set; } = "";
+        public int ToastTimeOut { get; set; } = 3000;
 
-        private string? InputStyle { get; set; }
-        protected bool AlertVisibility { get; set; } = false;
+        private const int DefaultContextLimit = 8192;
 
-        private string? lastUserPrompt;
+        private static readonly Dictionary<string, int> KnownModelContextLimits = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "mistral:latest", 32768 },
+            { "qwen3.5:latest", 128000 },
+            { "phi4-mini:latest", 128000 }
+        };
+
+        private Dictionary<string, int> ModelContextLimits = new(KnownModelContextLimits, StringComparer.OrdinalIgnoreCase);
 
         protected override async Task OnInitializedAsync()
         {
-            await LoadConversations();
-            modeloAtual = await AiModelResolver.ResolveModelAsync();
+            welcomeMessage = L["TestChatWelcome"];
 
-            // Carrega os modelos reais instalados no Ollama para obter limites de contexto dinâmicos.
-            // Modelos desconhecidos usam o limite padrão.
+            _selectedModel = await AiModelResolver.ResolveModelAsync();
+
             try
             {
                 var models = await AiModelsService.GetAllAsync();
@@ -93,29 +95,15 @@ namespace Web.Blazor.Pages.AI
             }
             catch
             {
-                // Fallback: mantém os limites conhecidos quando a API de modelos não está acessível.
                 ModelContextLimits = new Dictionary<string, int>(KnownModelContextLimits, StringComparer.OrdinalIgnoreCase);
             }
+
+            _contextLength = ResolveContextLength(_selectedModel);
+
+            await LoadConversations();
+
+            messages.Add(new ChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
         }
-
-        //protected override async Task OnAfterRenderAsync(bool firstRender)
-        //{
-        //    if (firstRender)
-        //    {
-        //        dotNetRef = DotNetObjectReference.Create(this);
-        //    }
-
-        //    await Task.Yield();
-
-        //    try
-        //    {
-        //        await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Erro ao anexar handlers do chat: {ex.Message}");
-        //    }
-        //}
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -126,37 +114,11 @@ namespace Web.Blazor.Pages.AI
                 await JS.InvokeVoidAsync("chatInput.attachHandlers", chatInputRef, dotNetRef);
             }
         }
-        private void OnProgressReceived(string? message)
+
+        private string FormatMessage(string? content, bool showCursor)
         {
-            ProgressStatus = message ?? string.Empty;
+            content ??= string.Empty;
 
-            _ = InvokeAsync(async () =>
-            {
-                StateHasChanged();
-                try { await SafeScrollToBottomAsync(); } catch { }
-            });
-        }
-
-        private async Task SafeScrollToBottomAsync()
-        {
-            try
-            {
-                await Task.Delay(50);
-                if (messagesDiv.Context != null)
-                    await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
-            }
-            catch { }
-        }
-
-        //private string FormatMessage(string content, bool showCursor)
-        //{
-        //    var escaped = System.Net.WebUtility.HtmlEncode(content).Replace("\n", "<br>");
-        //    if (showCursor) escaped += "<span class='cursor'>|</span>";
-        //    return escaped;
-        //}
-
-        private string FormatMessage(string content, bool showCursor)
-        {
             if (string.IsNullOrEmpty(content))
                 return showCursor ? "<span class='cursor'>|</span>" : "";
 
@@ -186,205 +148,260 @@ namespace Web.Blazor.Pages.AI
             return html;
         }
 
-        async Task Send()
+        private int ResolveContextLength(string model)
         {
+            if (string.IsNullOrWhiteSpace(model)) return DefaultContextLimit;
+            return ModelContextLimits.TryGetValue(model, out var limit) && limit > 0 ? limit : DefaultContextLimit;
+        }
 
-            //if (!IsPromptValid(userInput))
-            //{
-            //    ToastContent = "O prompt não foi usado corretamente. Por favor, faça uma pergunta relacionada com autores, publicações, músicas, vídeos ou livros";
-            //    AlertVisibility = true;
-            //    return;
-            //}
-
-            if (string.IsNullOrWhiteSpace(userInput) || isConnecting)
+        private async Task Send()
+        {
+            if (string.IsNullOrWhiteSpace(userInput) || isProcessing || isConnecting)
                 return;
 
-            limiteTokens = ModelContextLimits.TryGetValue(modeloAtual, out var limit) ? limit : DefaultContextLimit;
-            var simulacaoMensagens = messages.ToList();
-            simulacaoMensagens.Add(new ChatMessage { Role = "user", Content = userInput });
+            var userText = userInput.Trim();
+            userInput = string.Empty;
+            lastUserPrompt = userText;
 
-            tokensEstimados = EstimateTokens(simulacaoMensagens);
-
-            // 4. Validar se ultrapassou o limite
-            if (tokensEstimados > limiteTokens)
+            if (_contextLength > 0 && _contextUsedTokens + ChatComposerService.EstimateTokens(userText) > _contextLength)
             {
-                ToastContent = $"Atenção: A conversa atual possui aproximadamente {tokensEstimados} tokens, o que ultrapassa o limite de {limiteTokens} do modelo {modeloAtual}. Limpe o chat ou inicie uma nova conversa para evitar alucinações.";
-                AlertVisibility = true;
-
-                await InvokeAsync(StateHasChanged);
-                return; // Bloqueia o envio para proteger a API e evitar respostas erradas
+                await ShowWarningToastAsync(
+                    L["ChatRoomTitle"],
+                    string.Format(L["TestChatContextExceededDetail"], _contextLength));
+                return;
             }
 
+            var userMsg = new ChatUiMessage { Role = "user", Content = userText };
+            messages.Add(userMsg);
 
-            messages.Add(new ChatMessage { Role = "user", Content = userInput });
+            _contextUsedTokens += ChatComposerService.EstimateTokens(userText);
+            _showContextBar = true;
 
-            currentAssistantMessage = new ChatMessage
+            currentAssistantMessage = new ChatUiMessage
             {
                 Role = "assistant",
-                Content = ""
+                Content = "..."
             };
-
             messages.Add(currentAssistantMessage);
 
             await InvokeAsync(StateHasChanged);
-            await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
+            await SafeScrollToBottomAsync();
 
             chatCts?.Cancel();
             chatCts?.Dispose();
-
             chatCts = new CancellationTokenSource();
             var localToken = chatCts.Token;
 
-            lastUserPrompt = userInput;
+            isProcessing = true;
+            _elapsed = 0;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _elapsedTimer = new System.Threading.Timer(_ =>
+            {
+                if (!isProcessing) return;
 
-            userInput = string.Empty;
+                stopwatch.Stop();
+                var seconds = stopwatch.Elapsed.TotalSeconds;
+                stopwatch.Start();
+                _elapsed = seconds;
+
+                if (currentAssistantMessage is not null)
+                {
+                    currentAssistantMessage.ElapsedTime = seconds < 10
+                        ? $"{seconds:F2}s"
+                        : $"{seconds:F1}s";
+                }
+
+                _ = InvokeAsync(StateHasChanged);
+            }, null, 0, 150);
+
             await InvokeAsync(StateHasChanged);
-
-            // 🔥 Esperar o Blazor terminar o re-render
-            await Task.Delay(10);
-
-            // 🔥 Agora sim, o textarea está realmente vazio
-            try { await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef); } catch { }
+            await SafeScrollToBottomAsync();
 
             try
             {
                 var dtoList = messages
+                    .Where(m => !m.IsWelcome)
                     .Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content })
                     .ToList();
 
-                string? language = null;
-
-                try
-                {
-                    var settings = await AppSettingsService.GetSettingsAsync();
-                    language = settings?.Language ?? settings?.DefaultLanguage;
-
-                    if (!string.IsNullOrWhiteSpace(language))
-                        language = language.Split(new[] { '-', '_' })[0];
-                }
-                catch
-                {
-                    language = null;
-                }
-
-                ProgressStatus = "Thinking...";
-                isProcessing = true;
-                await InvokeAsync(StateHasChanged);
-
-                var firstChunkReceived = false;
+                var language = await ResolveRequestLanguageAsync();
 
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, localToken))
                 {
-                    if (!firstChunkReceived)
-                    {
-                        firstChunkReceived = true;
-                        ProgressStatus = string.Empty;
-                        await InvokeAsync(StateHasChanged);
-                    }
-
                     if (currentAssistantMessage is null)
                     {
-                        currentAssistantMessage = new ChatMessage
-                        {
-                            Role = "assistant",
-                            Content = ""
-                        };
-
+                        currentAssistantMessage = new ChatUiMessage { Role = "assistant", Content = "" };
                         messages.Add(currentAssistantMessage);
                     }
 
-                    currentAssistantMessage.Content += chunk;
+                    if (!string.IsNullOrEmpty(chunk))
+                    {
+                        if (currentAssistantMessage.Content == "...")
+                            currentAssistantMessage.Content = chunk;
+                        else
+                            currentAssistantMessage.Content += chunk;
 
+                        _contextUsedTokens += ChatComposerService.EstimateTokens(chunk);
+                    }
+
+                    _elapsed = stopwatch.Elapsed.TotalSeconds;
                     await InvokeAsync(StateHasChanged);
 
                     if (userAtBottom)
                     {
-                        await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
+                        try { await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv); } catch { }
                     }
                 }
 
-                tokensUsados = EstimateTokens(messages);
-                await InvokeAsync(StateHasChanged);
+                if (currentAssistantMessage is not null)
+                {
+                    if (currentAssistantMessage.Content == "...")
+                        currentAssistantMessage.Content = string.Empty;
+
+                    currentAssistantMessage.RealModelName = _selectedModel;
+                    currentAssistantMessage.LanguageWarning = LanguageWarningFor(currentAssistantMessage.Content);
+                }
 
                 await SaveCurrentConversationAsync();
 
-                if (toastObj != null)
-                {
-                    ToastTitle = "AI";
-                    ToastContent = "Response received";
-                    ToastCssClass = "e-toast-success";
-                    await toastObj.ShowAsync();
-                }
+                await ShowSuccessToastAsync(L["TestChatResponseReceived"]);
             }
             catch (OperationCanceledException)
             {
-                // Garantir que existe uma mensagem do assistente
-                if (currentAssistantMessage is null)
+                if (currentAssistantMessage is not null)
                 {
-                    currentAssistantMessage = new ChatMessage
-                    {
-                        Role = "assistant",
-                        Content = ""
-                    };
-                    messages.Add(currentAssistantMessage);
+                    if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
+                    currentAssistantMessage.Content += "\n\n⚠️ " + L["TestChatCancelled"];
                 }
 
-                // Mensagem amigável para cancelamento ou timeout
-                currentAssistantMessage.Content += "\n\n⚠️ O pedido foi cancelado ou interrompido. Tente novamente.";
-
-                ProgressStatus = string.Empty;
-
-                if (toastObj != null)
-                {
-                    ToastTitle = "AI";
-                    ToastCssClass = "e-toast-warning";
-                    ToastTimeOut = 3000;
-                    ToastContent = "O pedido foi cancelado ou interrompido.";
-                    await InvokeAsync(StateHasChanged);
-                    await toastObj.ShowAsync();
-                }
+                await ShowWarningToastAsync("Chat", L["TestChatCancelled"]);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Garantir que existe uma mensagem do assistente
-                if (currentAssistantMessage is null)
+                if (currentAssistantMessage is not null)
                 {
-                    currentAssistantMessage = new ChatMessage
-                    {
-                        Role = "assistant",
-                        Content = ""
-                    };
-                    messages.Add(currentAssistantMessage);
+                    if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
+                    currentAssistantMessage.Content += "\n\n⚠️ " + string.Format(L["TestChatError"], ex.Message);
+                    currentAssistantMessage.IsError = true;
                 }
 
-                // Mensagem amigável para o utilizador
-                currentAssistantMessage.Content += "\n\n⚠️ Não foi possível obter resposta da IA neste momento. Tente novamente dentro de alguns segundos.";
-
-                ProgressStatus = string.Empty;
-
-                if (toastObj != null)
-                {
-                    ToastTitle = "AI";
-                    ToastCssClass = "e-toast-warning";
-                    ToastTimeOut = 4000;
-                    ToastContent = "A resposta foi interrompida. Tente novamente.";
-                    await InvokeAsync(StateHasChanged);
-                    await toastObj.ShowAsync();
-                }
+                await ShowWarningToastAsync("Chat", Truncate(ex.Message));
             }
             finally
             {
+                stopwatch.Stop();
+                _elapsed = stopwatch.Elapsed.TotalSeconds;
+                _elapsedTimer?.Dispose();
+                _elapsedTimer = null;
+
+                if (currentAssistantMessage is not null)
+                {
+                    currentAssistantMessage.ElapsedTime = _elapsed < 10
+                        ? $"{_elapsed:F2}s"
+                        : $"{_elapsed:F1}s";
+                }
+
                 chatCts?.Dispose();
                 chatCts = null;
-
                 isProcessing = false;
-                ProgressStatus = string.Empty;
 
                 try { await JS.InvokeVoidAsync("focusElement", chatInputRef); } catch { }
 
                 await InvokeAsync(StateHasChanged);
+                await SafeScrollToBottomAsync();
             }
         }
+
+        private static string Truncate(string message)
+        {
+            return string.IsNullOrWhiteSpace(message) || message.Length <= 200
+                ? message
+                : message[..200] + "...";
+        }
+
+        private async Task<string?> ResolveRequestLanguageAsync()
+        {
+            try
+            {
+                var settings = await AppSettingsService.GetSettingsAsync();
+                var language = settings?.Language ?? settings?.DefaultLanguage;
+
+                if (!string.IsNullOrWhiteSpace(language))
+                    language = language.Split(new[] { '-', '_' })[0];
+
+                return language;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string LanguageCode
+        {
+            get
+            {
+                try
+                {
+                    return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+                }
+                catch
+                {
+                    return "pt";
+                }
+            }
+        }
+
+        private string? LanguageWarningFor(string? text)
+        {
+            var detected = ResponseLanguageChecker.Detect(text);
+
+            if (!ResponseLanguageChecker.IsMismatch(detected, LanguageCode))
+                return null;
+
+            return string.Format(L["TestChatLanguageWarning"], TargetLanguageResolver.GetTargetLanguage());
+        }
+
+        private string GetContextPercent()
+        {
+            if (_contextLength <= 0) return "0%";
+            double ratio = Math.Clamp((double)_contextUsedTokens / _contextLength, 0, 1);
+            return (ratio * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+        }
+
+        private string GetContextColor()
+        {
+            if (_contextLength <= 0) return "var(--app-primary)";
+            double ratio = (double)_contextUsedTokens / _contextLength;
+            if (ratio >= 0.9) return "var(--app-accent-yellow)";
+            return "var(--app-primary)";
+        }
+
+        private int ContextRemaining => Math.Max(0, _contextLength - _contextUsedTokens);
+
+        private async Task SafeScrollToBottomAsync()
+        {
+            try
+            {
+                await Task.Delay(50);
+                if (messagesDiv.Context != null)
+                    await JS.InvokeVoidAsync("scrollMessagesToBottom", messagesDiv);
+            }
+            catch { }
+        }
+
+        private async Task OnScroll()
+        {
+            try
+            {
+                if (messagesDiv.Context is null) return;
+                var state = await JS.InvokeAsync<ScrollState>("chatScroll.getScrollState", messagesDiv);
+                if (state is null) return;
+                userAtBottom = (state.ScrollHeight - state.ScrollTop - state.ClientHeight) < 80;
+            }
+            catch { }
+        }
+
         [JSInvokable]
         public async Task OnEnterPressedFromJs()
         {
@@ -392,191 +409,74 @@ namespace Web.Blazor.Pages.AI
             await Send();
         }
 
-        async Task ShowConfirmNewConversation()
+        private async Task HandleKeyDown(KeyboardEventArgs e)
         {
-            if (messages.Count > 0)
+            if (isProcessing)
+                return;
+
+            if (e.Key == "ArrowUp")
             {
-                showConfirmNewConversation = true;
-                await InvokeAsync(StateHasChanged);
-            }
-            else
-            {
-                await NewConversation();
-            }
-        }
-        void ShowConfirmDeleteConversation() => showConfirmDeleteConversation = true;
-
-        async Task OnConfirmYes()
-        {
-            showConfirmNewConversation = false;
-            await NewConversation();
-        }
-
-        void OnConfirmNo() => showConfirmNewConversation = false;
-        void OnConfirmDeleteNo() => showConfirmDeleteConversation = false;
-
-        async Task OnConfirmDeleteYes()
-        {
-            showConfirmDeleteConversation = false;
-            await DeleteSelectedConversationAsync();
-        }
-
-        async Task NewConversation()
-        {
-            try { chatCts?.Cancel(); } catch { }
-            chatCts?.Dispose(); chatCts = null;
-
-            messages.Clear(); currentAssistantMessage = null;
-            _feedbackByIndex.Clear();
-
-            await InvokeAsync(StateHasChanged);
-
-            try
-            {
-                await JS.InvokeVoidAsync("focusElement", chatInputRef);
-                var id = Guid.NewGuid().ToString();
-                var title = "Conversation " + DateTime.Now.ToString("g");
-                var conv = new ConversationCreateDto { Id = id, Title = title, Json = "[]" };
-                await ConversationsClient.CreateAsync(conv);
-                await LoadConversations();
-                selectedConversationId = id;
-                await InvokeAsync(StateHasChanged);
-                try
+                if (!string.IsNullOrWhiteSpace(lastUserPrompt) && string.IsNullOrWhiteSpace(userInput))
                 {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = "Conversation";
-                        ToastContent = "Started new conversation";
-                        ToastCssClass = "e-toast-success";
-                        await InvokeAsync(StateHasChanged);
-                        await toastObj.ShowAsync();
-                    }
-                }
-                catch { }
-            }
-            catch { }
-        }
+                    userInput = lastUserPrompt;
 
-        async Task LoadConversations()
-        {
-            try
-            {
-                var arr = await ConversationsClient.GetAllAsync();
-                if (arr != null)
-                {
-                    conversations.Clear();
-                    conversations = arr
-                        .Select(c => new ConversationItem { Id = c.Id, Title = c.Title, Json = c.Json })
-                        .ToList();
-
-                    selectedConversationId = null;
                     await InvokeAsync(StateHasChanged);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error loading conversations: " + ex.Message);
-            }
-        }
 
-        async Task OnConversationSelected(string? id)
-        {
-            selectedConversationId = id;
-            _feedbackByIndex.Clear();
-            if (string.IsNullOrEmpty(id)) return;
-            var conv = conversations.FirstOrDefault(c => c.Id == id);
-            if (conv != null)
-            {
-                messages.Clear();
-                if (!string.IsNullOrEmpty(conv.Json))
-                {
                     try
                     {
-                        var restored = JsonSerializer.Deserialize<List<ChatMessage>>(conv.Json);
-                        if (restored != null) messages.AddRange(restored);
+                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
                     }
                     catch { }
                 }
-                try
+            }
+            else if (e.Key == "ArrowDown")
+            {
+                if (userInput == lastUserPrompt)
                 {
-                    var ratings = await ChatFeedbackClient.GetByConversationAsync("ollama", id);
-                    foreach (var r in ratings)
+                    userInput = string.Empty;
+
+                    await InvokeAsync(StateHasChanged);
+
+                    try
                     {
-                        if (r.Rating == 1 || r.Rating == -1)
-                            _feedbackByIndex[r.MessageIndex] = r.Rating;
+                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
                     }
+                    catch { }
                 }
-                catch { }
-                try
-                {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = "Conversation";
-                        ToastContent = "Loaded conversation: " + conv.Title;
-                        ToastCssClass = "e-toast-success";
-                        ToastTimeOut = 2000;
-                        await InvokeAsync(StateHasChanged);
-                        await toastObj.ShowAsync();
-                    }
-                }
-                catch { }
-                await InvokeAsync(StateHasChanged);
             }
         }
 
-        private void OnConversationChanged(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ConversationItem> args)
+        private async Task CancelSend()
         {
-            var id = args.Value;
-            _ = OnConversationSelected(id);
-        }
-
-        private async Task SaveCurrentConversationAsync()
-        {
-            if (!messages.Any(m => !string.IsNullOrWhiteSpace(m.Content))) return;
-
-            var json = JsonSerializer.Serialize(messages);
-
-            if (string.IsNullOrEmpty(selectedConversationId))
-            {
-                var id = Guid.NewGuid().ToString();
-                var firstUser = messages.FirstOrDefault(m => m.Role == "user" && !string.IsNullOrWhiteSpace(m.Content))?.Content?.Trim();
-                var title = !string.IsNullOrEmpty(firstUser)
-                    ? (firstUser.Length > 60 ? firstUser.Substring(0, 60).TrimEnd() + "..." : firstUser)
-                    : ("Conversation " + DateTime.Now.ToString("g"));
-                var conv = new ConversationCreateDto { Id = id, Title = title, Json = json };
-                await ConversationsClient.CreateAsync(conv);
-                selectedConversationId = id;
-                await LoadConversations();
-            }
-            else
-            {
-                var conv = new ConversationUpdateDto { Id = selectedConversationId, Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")), Json = json };
-                await ConversationsClient.SaveAsync(conv);
-                await LoadConversations();
-            }
+            try { chatCts?.Cancel(); } catch { }
+            try { chatCts?.Dispose(); chatCts = null; } catch { }
+            isProcessing = false;
+            await InvokeAsync(StateHasChanged);
         }
 
         private int GetFeedback(int index)
             => _feedbackByIndex.TryGetValue(index, out var value) ? value : 0;
 
-        private async Task CopyMessageAsync(ChatMessage msg)
+        private async Task CopyMessageAsync(ChatUiMessage msg)
         {
             if (string.IsNullOrWhiteSpace(msg.Content)) return;
 
             try
             {
                 var ok = await JS.InvokeAsync<bool>("copyText", msg.Content);
-                await ShowFeedbackToastAsync(
-                    ok ? L["ChatResponseCopied"] : L["ChatCopyFailed"],
-                    ok ? "e-toast-success" : "e-toast-warning");
+                if (ok)
+                    await ShowSuccessToastAsync(L["ChatResponseCopied"]);
+                else
+                    await ShowWarningToastAsync("Chat", L["ChatCopyFailed"]);
             }
-            catch
+            catch (Exception ex)
             {
-                await ShowFeedbackToastAsync(L["ChatCopyFailed"], "e-toast-warning");
+                Console.WriteLine("Error copying response: " + ex.Message);
+                await ShowWarningToastAsync("Chat", L["ChatCopyFailed"]);
             }
         }
 
-        private async Task RateMessageAsync(int index, ChatMessage msg, int rating)
+        private async Task RateMessageAsync(int index, ChatUiMessage msg, int rating)
         {
             var current = GetFeedback(index);
             var effective = current == rating ? 0 : rating;
@@ -595,16 +495,18 @@ namespace Web.Blazor.Pages.AI
                     Rating = effective
                 });
 
-                await ShowFeedbackToastAsync(
-                    effective == 0 ? L["ChatRatingRemoved"]
-                        : current != 0 ? L["ChatRatingUpdated"]
-                        : L["ChatRatingSaved"],
-                    "e-toast-success");
+                if (effective == 0)
+                    await ShowSuccessToastAsync(L["ChatRatingRemoved"]);
+                else if (current != 0)
+                    await ShowSuccessToastAsync(L["ChatRatingUpdated"]);
+                else
+                    await ShowSuccessToastAsync(L["ChatRatingSaved"]);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("Error saving rating: " + ex.Message);
                 _feedbackByIndex[index] = current;
-                await ShowFeedbackToastAsync(L["ChatRatingFailed"], "e-toast-warning");
+                await ShowWarningToastAsync("Chat", L["ChatRatingFailed"]);
             }
 
             await InvokeAsync(StateHasChanged);
@@ -620,234 +522,185 @@ namespace Web.Blazor.Pages.AI
             return null;
         }
 
-        private async Task ShowFeedbackToastAsync(string content, string cssClass)
-        {
-            try
-            {
-                if (toastObj != null)
-                {
-                    ToastTitle = "AI";
-                    ToastContent = content;
-                    ToastCssClass = cssClass;
-                    ToastTimeOut = 3000;
-                    await InvokeAsync(StateHasChanged);
-                    await toastObj.ShowAsync();
-                }
-            }
-            catch { }
-        }
-
-        private async Task DeleteSelectedConversationAsync()
-        {
-            if (string.IsNullOrEmpty(selectedConversationId)) return;
-            var deletedId = selectedConversationId;
-
-            try
-            {
-                await ConversationsClient.DeleteAsync(deletedId);
-                await LoadConversations();
-
-                if (!conversations.Any(c => c.Id == deletedId))
-                {
-                    messages.Clear();
-                    currentAssistantMessage = null;
-                    selectedConversationId = conversations.FirstOrDefault()?.Id;
-                }
-
-                await InvokeAsync(StateHasChanged);
-                try
-                {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = L["TituloApagarRegisto"];
-                        ToastContent = L["SuccessDelete"];
-                        ToastCssClass = "e-toast-success";
-                        await InvokeAsync(StateHasChanged);
-                        await toastObj.ShowAsync();
-                    }
-                }
-                catch { }
-            }
-            catch
-            {
-                try
-                {
-                    if (toastObj != null)
-                    {
-                        ToastTitle = "Error";
-                        ToastContent = "Error deleting conversation";
-                        ToastCssClass = "e-toast-danger";
-                        await InvokeAsync(StateHasChanged);
-                        await toastObj.ShowAsync();
-                    }
-                }
-                catch { }
-            }
-        }
-
-        private async void HandleKeyDown(KeyboardEventArgs e)
-        {
-            if (isProcessing)
-                return;
-
-            if (e.Key == "ArrowUp")
-            {
-                if (!string.IsNullOrWhiteSpace(lastUserPrompt) &&
-                    string.IsNullOrWhiteSpace(userInput))
-                {
-                    userInput = lastUserPrompt;
-
-                    await InvokeAsync(StateHasChanged);
-
-                    try
-                    {
-                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
-                    }
-                    catch { }
-                }
-            }
-
-            if (e.Key == "ArrowDown")
-            {
-                if (userInput == lastUserPrompt)
-                {
-                    userInput = string.Empty;
-
-                    await InvokeAsync(StateHasChanged);
-
-                    try
-                    {
-                        await JS.InvokeVoidAsync("chatInput.resetHeight", chatInputRef);
-                    }
-                    catch { }
-                }
-            }
-        }
-        private int EstimateTokens(List<ChatMessage> messageList)
-        {
-            int total = 0;
-
-            foreach (var msg in messageList)
-            {
-                if (!string.IsNullOrEmpty(msg.Role))
-                    total += msg.Role.Length;
-
-                if (!string.IsNullOrEmpty(msg.Content))
-                    total += msg.Content.Length;
-            }
-
-            // Média realista: 1 token ≈ 4 caracteres (línguas latinas)
-            return (int)Math.Ceiling(total / 4.0);
-        }
-        private string GetTokenPercent()
-        {
-            if (limiteTokens <= 0) return "0%";
-            double ratio = (double)tokensEstimados / limiteTokens;
-            ratio = Math.Clamp(ratio, 0, 1);
-            return (ratio * 100).ToString("0.##") + "%";
-        }
-
-        private string GetTokenClass()
-        {
-            if (limiteTokens <= 0) return "";
-
-            double ratio = (double)tokensEstimados / limiteTokens;
-
-            if (ratio < 0.40)
-                return "token-low";      // verde
-            else if (ratio < 0.75)
-                return "token-medium";   // amarelo
-            else
-                return "token-high";     // vermelho
-        }
-
-        private string GetWarningClass()
-        {
-            if (limiteTokens <= 0) return "";
-
-            double ratio = (double)tokensEstimados / limiteTokens;
-
-            if (ratio >= 0.90)
-                return "token-warning-high";   // vermelho forte
-            else
-                return "token-warning-medium"; // amarelo
-        }
-
-
-        private bool IsPromptValid(string userPrompt)
-        {
-            // Lista de palavras-chave obrigatórias
-            var keywords = new[]
-            {
-                "autor",
-                "author",
-                "publica",
-                "mp3",
-                "mp4",
-                "video",
-                "lp",
-                "cd",
-                "dvd",
-                "livro",
-                "book",
-                "top",
-                "obras",
-                "works",
-                "artist"
-            };
-
-            string lowerPrompt = userPrompt.ToLower();
-
-            return keywords.Any(keyword => lowerPrompt.Contains(keyword));
-        }
-
-        private async Task ShowSpinnerWithDelay(int delayMs = 300)
-        {
-            spinnerCts?.Cancel();
-            spinnerCts = new CancellationTokenSource();
-
-            try
-            {
-                await Task.Delay(delayMs, spinnerCts.Token);
-                ShowSpinnerOverlay = true;
-                StateHasChanged();
-            }
-            catch { }
-        }
-
-        private void HideSpinner()
-        {
-            spinnerCts?.Cancel();
-            ShowSpinnerOverlay = false;
-        }
-
-        async Task CancelSend()
+        private async Task NewChat()
         {
             try { chatCts?.Cancel(); } catch { }
-            try { chatCts?.Dispose(); chatCts = null; } catch { }
+            chatCts?.Dispose(); chatCts = null;
 
-            ignoreHubChunks = false;
-            isProcessing = false;
-            ProgressStatus = string.Empty;
+            messages.Clear();
+            currentAssistantMessage = null;
+            messages.Add(new ChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+            _contextUsedTokens = 0;
+            _showContextBar = false;
+            _elapsed = 0;
+            selectedConversationId = null;
+            _feedbackByIndex.Clear();
 
             await InvokeAsync(StateHasChanged);
-        }
-        private Task MigrateLocalConversationsAsync() => Task.CompletedTask;
 
+            try
+            {
+                await JS.InvokeVoidAsync("focusElement", chatInputRef);
+            }
+            catch { }
+        }
+
+        private void OpenHistory()
+        {
+            if (historyPanel is not null)
+            {
+                _ = historyPanel.Open();
+            }
+        }
+
+        private async Task LoadConversationAsync(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+
+            selectedConversationId = id;
+
+            messages.Clear();
+            currentAssistantMessage = null;
+            _feedbackByIndex.Clear();
+
+            var conv = conversations.FirstOrDefault(c => c.Id == id);
+            if (conv is not null && !string.IsNullOrEmpty(conv.Json))
+            {
+                try
+                {
+                    var restored = JsonSerializer.Deserialize<List<HistoryMessage>>(conv.Json);
+                    if (restored != null)
+                    {
+                        foreach (var m in restored)
+                        {
+                            messages.Add(new ChatUiMessage
+                            {
+                                Role = m.Role,
+                                Content = m.Content,
+                                Temperature = m.Temperature,
+                                ElapsedTime = m.ElapsedTime,
+                                IsWelcome = m.IsWelcome
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            if (messages.Count == 0)
+                messages.Add(new ChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+
+            _contextUsedTokens = messages.Sum(m => ChatComposerService.EstimateTokens(m.Content));
+            _showContextBar = true;
+
+            try
+            {
+                var ratings = await ChatFeedbackClient.GetByConversationAsync("ollama", id);
+                foreach (var r in ratings)
+                {
+                    if (r.Rating == 1 || r.Rating == -1)
+                        _feedbackByIndex[r.MessageIndex] = r.Rating;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error restoring ratings: " + ex.Message);
+            }
+
+            await InvokeAsync(StateHasChanged);
+            await SafeScrollToBottomAsync();
+        }
+
+        async Task LoadConversations()
+        {
+            try
+            {
+                var arr = await ConversationsClient.GetAllAsync();
+                conversations.Clear();
+                conversations = arr
+                    .Select(c => new ConversationItem { Id = c.Id, Title = c.Title, Json = c.Json })
+                    .ToList();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading conversations: " + ex.Message);
+            }
+        }
+
+        private async Task SaveCurrentConversationAsync()
+        {
+            if (!messages.Any(m => !string.IsNullOrWhiteSpace(m.Content) && m.Content != "...")) return;
+
+            var json = JsonSerializer.Serialize(messages.Select(m => new HistoryMessage
+            {
+                Role = m.Role,
+                Content = m.Content,
+                Temperature = m.Temperature,
+                ElapsedTime = m.ElapsedTime,
+                IsWelcome = m.IsWelcome
+            }));
+
+            if (string.IsNullOrEmpty(selectedConversationId))
+            {
+                var id = Guid.NewGuid().ToString();
+                var firstUser = messages.FirstOrDefault(m => m.Role == "user" && !string.IsNullOrWhiteSpace(m.Content))?.Content?.Trim();
+                var title = !string.IsNullOrEmpty(firstUser)
+                    ? (firstUser.Length > 60 ? firstUser.Substring(0, 60).TrimEnd() + "..." : firstUser)
+                    : ("Conversation " + DateTime.Now.ToString("g"));
+                var conv = new ConversationCreateDto { Id = id, Title = title, Json = json };
+                await ConversationsClient.CreateAsync(conv);
+                selectedConversationId = id;
+                await LoadConversations();
+            }
+            else
+            {
+                var conv = new ConversationUpdateDto
+                {
+                    Id = selectedConversationId,
+                    Title = conversations.FirstOrDefault(c => c.Id == selectedConversationId)?.Title ?? ("Conversation " + DateTime.Now.ToString("g")),
+                    Json = json
+                };
+                await ConversationsClient.SaveAsync(conv);
+                await LoadConversations();
+            }
+        }
+
+        private async Task ShowSuccessToastAsync(string content)
+        {
+            ToastTitle = "Chat";
+            ToastContent = content;
+            ToastCssClass = "e-toast-success";
+            await ShowToastAsync();
+        }
+
+        private async Task ShowWarningToastAsync(string title, string content)
+        {
+            ToastTitle = title;
+            ToastContent = content;
+            ToastCssClass = "e-toast-warning";
+            await ShowToastAsync();
+        }
+
+        private async Task ShowToastAsync()
+        {
+            try
+            {
+                ToastTimeOut = 3000;
+                await InvokeAsync(StateHasChanged);
+                if (toastObj != null)
+                    await toastObj.ShowAsync();
+            }
+            catch { }
+        }
 
         public async ValueTask DisposeAsync()
         {
             chatCts?.Cancel();
             chatCts?.Dispose();
+            _elapsedTimer?.Dispose();
             try { await JS.InvokeVoidAsync("chatInput.detachHandlers", chatInputRef); } catch { }
             dotNetRef?.Dispose();
-        }
-
-        private async Task OnScroll()
-        {
-            var state = await JS.InvokeAsync<ScrollState>("chatScroll.getScrollState", messagesDiv);
-
-            userAtBottom = (state.ScrollHeight - state.ScrollTop - state.ClientHeight) < 80;
         }
 
         public class ScrollState
@@ -857,15 +710,26 @@ namespace Web.Blazor.Pages.AI
             public double ClientHeight { get; set; }
         }
 
-        private const int DefaultContextLimit = 8192;
-
-        private static readonly Dictionary<string, int> KnownModelContextLimits = new(StringComparer.OrdinalIgnoreCase)
+        private sealed class HistoryMessage
         {
-            { "mistral:latest", 32768 },
-            { "qwen3.5:latest", 128000 },
-            { "phi4-mini:latest", 128000 }
-        };
+            public string Role { get; set; } = string.Empty;
+            public string Content { get; set; } = string.Empty;
+            public double Temperature { get; set; }
+            public string? ElapsedTime { get; set; }
+            public bool IsWelcome { get; set; }
+        }
 
-        private Dictionary<string, int> ModelContextLimits = new(KnownModelContextLimits, StringComparer.OrdinalIgnoreCase);
+        public class ChatUiMessage
+        {
+            public string Role { get; set; } = "assistant";
+            public string Content { get; set; } = string.Empty;
+            public bool IsError { get; set; }
+            public bool IsWelcome { get; set; }
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+            public double Temperature { get; set; }
+            public string? ElapsedTime { get; set; }
+            public string? RealModelName { get; set; }
+            public string? LanguageWarning { get; set; }
+        }
     }
 }

@@ -1,193 +1,1037 @@
 ﻿@page "/admin/appsettings2"
-@using Syncfusion.Blazor.Navigations
-@using Microsoft.Extensions.Localization
+@using Web.Blazor.Components
+@using Syncfusion.Blazor.FileManager
+@using Web.Blazor.Services.CloudChat
 
-@inject Microsoft.AspNetCore.Components.NavigationManager UriHelper
-<div class="control-section">
-    <div class="row">
-        <div class="col-md-3">
-            <SfTreeView TValue="TreeItem" SortOrder="Syncfusion.Blazor.Navigations.SortOrder.Ascending">
-                <TreeViewFieldsSettings DataSource="@TreeDataSource"
-                                        Id="NodeId" Text="NodeText" Expanded="Expanded" Child="@("Child")"
-                                        IconCss="Icon" ImageUrl="ImageUrl" />
-                <TreeViewEvents TValue="TreeItem" NodeClicked="NodeClickedHandler"></TreeViewEvents>
-            </SfTreeView>
-        </div>
-        <div class="col-md-5">
-            @if (nodeOption == "downloads")
-            {
-                <div class="card-box">
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsPdf" Placeholder="@L["PdfDownloads"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaDownloadsMedia" Placeholder="@L["MediaFiles"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.MediaDownloads))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                </div>
-            }
-            @if (nodeOption == "backups")
-            {
-                <div class="card-box">
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="@L["Database"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["UploadsFolder"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                </div>
-            }
-            @if (nodeOption == "storage")
-            {
-                <div class="card-box">
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupBD" Placeholder="@L["Database"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                    <div class="input-content">
-                        <SfTextBox class="form-control mt-2" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["UploadsFolder"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
-                        <SfButton CssClass="mt-4" OnClick="(()=>OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></SfButton>
-                    </div>
-                </div>
-            }
+<PageTitle>@L["menu-admin-main"]</PageTitle>
+<PageTitleComponent PageTitle="@L["menu-admin-main"]"></PageTitleComponent>
+@if (settings is null || AiModels is null || !AiModels.Any())
+{
+    <LoadingData />
+}
+else
+{
+    <SfBreadcrumb>
+        <BreadcrumbItems>
+            <BreadcrumbItem Text="@L["Home"]" IconCss="e-icons e-home" Url="/" />
+            <BreadcrumbItem Text="@L["TituloDefinicoes"]" Url="/admin/appsettings2" />
+        </BreadcrumbItems>
+    </SfBreadcrumb>
+    <hr />
 
-        </div>
+    <div class="container settings-shell">
+        <EditForm Model="@settings">
+            <div class="row">
+                <div class="col-md-3 col-sm-12">
+                    <aside class="settings-sidebar">
+                        @foreach (var group in SettingsGroups)
+                        {
+                            var isExpanded = ExpandedGroups.Contains(group.Id);
+                            <div class="settings-group">
+                                <button type="button" class="settings-group-header @(isExpanded ? "expanded" : "")" @onclick="(() => ToggleGroup(group.Id))">
+                                    <i class="fa @group.Icon settings-group-icon" aria-hidden="true"></i>
+                                    <span class="settings-group-title">@L[group.ResxKey]</span>
+                                    <i class="fa fa-chevron-down settings-group-chevron" aria-hidden="true"></i>
+                                </button>
+                                @if (isExpanded)
+                                {
+                                    <div class="settings-group-items">
+                                        @foreach (var leaf in group.Leaves)
+                                        {
+                                            <button type="button"
+                                                    class="settings-item @(SelectedNode == leaf.Id ? "active" : "")"
+                                                    @onclick="(() => SelectNode(leaf.Id))">
+                                                <i class="fa @leaf.Icon settings-item-icon" aria-hidden="true"></i>
+                                                <span class="settings-item-label">@L[leaf.ResxKey]</span>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </aside>
+                </div>
+                <div class="col-md-9 col-sm-12">
+                    <div class="settings-content">
+                        @switch (SelectedNode)
+                        {
+                            case "downloads":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["Downloads"]</h6>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaDownloadsPdf" Placeholder="@L["PdfDownloads"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.PdfDownloads))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaDownloadsMedia" Placeholder="@L["TituloFormatoMedia"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.MediaDownloads))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                </div>
+                                break;
+                            case "backups":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloBackups"]</h6>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaBackupBD" Placeholder="@L["btnManutBD"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.BackupBD))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaBackupUploads" Placeholder="@L["TituloUploadsPublicacoes"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.BackupUploads))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                </div>
+                                break;
+                            case "armazenamento":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloArmazenamento"]</h6>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaPublicacoes" Placeholder="@L["mnuLivros"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.PublicationsFolder))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaListagens" Placeholder="@L["TituloListagens"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.ReportsFolder))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                </div>
+                                break;
+                            case "imagens":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["lblImagens"]</h6>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaImagens" Placeholder="@L["TituloAplicacao"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.ImagesFolder))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaImagensCapasLivros" Placeholder="@L["TituloImagensCapasLivros"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.BookImagesFolder))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                    <div class="settings-field settings-field-folder">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.PastaImagensAutores" Placeholder="@L["TituloImagensAutores"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                        <span class="settings-folder-btn" @onclick="(() => OpenFileManager(FileManagerOptions.AuthorImagesFolder))"><i class="fa fa-folder-open"></i></span>
+                                    </div>
+                                </div>
+                                break;
+                            case "contactos":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloContactos"]</h6>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.AuthorMobile" Placeholder="@L["lblAutor"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.SupportMail" Placeholder="@L["TituloEmailSuporte"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                </div>
+                                break;
+                            case "definicoes":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloOutrasDefinicoes"]</h6>
+                                    <div class="settings-field">
+                                        <SfNumericTextBox CssClass="form-control" @bind-Value="settings.TempoNotifier" Min="1" Max="5" Format="N0" Placeholder="@L["TituloNotificationTime"]" FloatLabelType="FloatLabelType.Always"></SfNumericTextBox>
+                                    </div>
+                                    <div class="settings-toggle-row">
+                                        <span class="settings-toggle-label">@L["TituloFicheirosOrganizados"]</span>
+                                        <SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.FicheirosOrganizados" OnLabel="On" OffLabel="Off"></SfSwitch>
+                                    </div>
+                                    <div class="settings-toggle-row">
+                                        <span class="settings-toggle-label">@L["TituloRemoverImagemAposEdicao"]</span>
+                                        <SfSwitch CssClass="mt-1 p-2" @bind-Checked="settings.RemoveImagemAposAlteracao" OnLabel="On" OffLabel="Off"></SfSwitch>
+                                    </div>
+                                </div>
+                                break;
+                            case "idioma":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloDefaultLanguage"]</h6>
+                                    <SfDropDownList TValue="string" CssClass="template"
+                                                    TItem="CountryModel"
+                                                    Placeholder="@L["lblEscolhaLinguagem"]"
+                                                    DataSource="@CountryData" Value="@selectedCulture">
+                                        <DropDownListTemplates TItem="CountryModel">
+                                            <ItemTemplate Context="langCtx">
+                                                <div>
+                                                    <img class="empImage" src="/images/@((langCtx as CountryModel).Pic).png" alt="pa�s" />
+                                                    <div class="ename">@L[((langCtx as CountryModel).Text!)] </div>
+                                                </div>
+                                            </ItemTemplate>
+                                            <ValueTemplate Context="ctx">
+                                                <div class="dropdown-width" style="width:100%;height:100%;">
+                                                    <img class="value" src="/images/@((ctx as CountryModel).Pic).png" height="26" width="26" alt="pa�s">
+                                                    <div class="name">@L[((ctx as CountryModel).Text!)] </div>
+                                                </div>
+                                            </ValueTemplate>
+                                        </DropDownListTemplates>
+                                        <DropDownListFieldSettings Value="ID" Text="Text"></DropDownListFieldSettings>
+                                        <DropDownListEvents TItem="CountryModel" TValue="string" ValueChange="OnSelected"></DropDownListEvents>
+                                    </SfDropDownList>
+                                </div>
+                                break;
+                            case "ialocal":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloIALocal"]</h6>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.ModelBaseUrl" Placeholder="@L["TituloModelBaseUrl"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfDropDownList TItem="AIModelVM"
+                                                        TValue="string"
+                                                        DataSource="@AiModels"
+                                                        @bind-Value="settings.AiModelName"
+                                                        Placeholder="@L["TituloAIModelName"]">
+                                            <DropDownListFieldSettings Text="Descricao" Value="Descricao" />
+                                        </SfDropDownList>
+                                    </div>
+                                </div>
+                                break;
+                            case "webapi":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloWebApi"]</h6>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.ApiBaseUrl_Production" Placeholder="@L["ApiBaseUrl_Production"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.ApiBaseUrl_Development" Placeholder="@L["ApiBaseUrl_Development"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.FileManagerApiBaseUrl_Production" Placeholder="@L["FileManagerApiBaseUrl_Production"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.FileManagerApiBaseUrl_Development" Placeholder="@L["FileManagerApiBaseUrl_Development"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                </div>
+                                break;
+                            case "servicos":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloServicos"]</h6>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.LastFmApiKey" Placeholder="@L["LastFmApiKey"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.LastFmApiSecret" Placeholder="@L["LastFmApiSecret"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.GoogleBooksApiKey" Placeholder="@L["GoogleBooksApiKey"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.GoogleBooksCountry" Placeholder="@L["GoogleBooksCountry"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.IMDbKey" Placeholder="@L["IMDbKey"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                </div>
+                                break;
+                            case "basedados":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloBaseDados"]</h6>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.Database_ConnectionString" Placeholder="@L["Database_ConnectionString"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                </div>
+                                break;
+                            case "cloudchat":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["CloudChatTab"]</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 col-sm-12">
+                                            @if (CloudChatIsAdmin)
+                                            {
+                                                <SfTextBox CssClass="form-control mt-1"
+                                                           @bind-Value="CloudChatApiKey"
+                                                           Placeholder="@L["CloudChatApiKey"]"
+                                                           HtmlAttributes="@(new Dictionary<string, object> { ["type"] = "password" })"
+                                                           ShowClearButton="true"></SfTextBox>
+                                                <div class="cloudchat-status @(CloudChatApiKeyStatus == "Configured" ? "cloudchat-ok" : "cloudchat-warn")">
+                                                    @(CloudChatApiKeyStatus == "Configured" ? L["CloudChatApiKeyConfigured"] : L["CloudChatApiKeyMissing"])
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="cloudchat-status cloudchat-warn">@L["CloudChatAdminOnly"]</div>
+                                            }
+                                            <hr />
+                                            <div class="cloudchat-model-list mt-4 mx-3">
+                                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
+                                                <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAllowPaidModels"]</div>
+                                                <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAllowPaidModels" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAuthorBooksUseCloud"]</div>
+                                                <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAuthorBooksUseCloud" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                                <div class="cloudchat-hint" style="color:var(--app-text-secondary); font-size:x-small">@L["CloudChatAuthorBooksUseCloudHint"]</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-sm-12">
+                                            @if (CloudChatIsAdmin)
+                                            {
+                                                <div class="cloudchat-active">
+                                                    <span class="cloudchat-active-label">@L["CloudChatActiveModelLabel"]</span>
+                                                    <span class="cloudchat-active-id @(ModeloSelecionadoEhPago ? "paid" : "")">@CloudChatDefaultModel</span>
+                                                    @if (ModeloSelecionadoEhPago)
+                                                    {
+                                                        <span class="cloudchat-model-badge paid">@L["CloudChatModelPaidBadge"]</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="cloudchat-model-badge free">@L["CloudChatModelFreeBadge"]</span>
+                                                    }
+                                                    @if (EhModeloRecomendado(CloudChatDefaultModel))
+                                                    {
+                                                        <span class="cloudchat-model-badge recommended">@L["CloudChatModelRecommendedBadge"]</span>
+                                                    }
+                                                </div>
+                                                @if (AvisoModeloPagoSemChave)
+                                                {
+                                                    <div class="cloudchat-status cloudchat-warn">@AvisoModeloPagoMensagem</div>
+                                                }
+                                                <div class="cloudchat-search">
+                                                    <input class="cloudchat-search-input"
+                                                           @bind="CloudChatModelFilter"
+                                                           @bind:event="oninput"
+                                                           onkeydown="if(event.key==='Enter')event.preventDefault();"
+                                                           placeholder="@L["CloudChatModelSearchPlaceholder"]" />
+                                                </div>
+                                                <div class="cloudchat-model-list">
+                                                    @foreach (var modelo in OpenRouterModelsExibidos)
+                                                    {
+                                                        var selecionado = string.Equals(modelo.Id, CloudChatDefaultModel, StringComparison.OrdinalIgnoreCase);
+                                                        <label class="cloudchat-model-row">
+                                                            <input type="radio"
+                                                                   name="cloudchat-default-model"
+                                                                   value="@modelo.Id"
+                                                                   checked="@selecionado"
+                                                                   @onchange="() => SelectCloudChatModel(modelo.Id)" />
+                                                            <span class="cloudchat-model-info">
+                                                                <span class="cloudchat-model-name">@modelo.Nome</span>
+                                                                <span class="cloudchat-model-id">@modelo.Id</span>
+                                                            </span>
+                                                            <span class="cloudchat-model-badges">
+                                                                @if (modelo.EhRouter)
+                                                                {
+                                                                    <span class="cloudchat-model-badge router">@L["CloudChatModelRouterBadge"]</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    @if (modelo.ContextLength.HasValue)
+                                                                    {
+                                                                        <span class="cloudchat-model-badge">@($"~{FormatarContextoCloud(modelo.ContextLength.Value)}")</span>
+                                                                    }
+                                                                    @if (modelo.EhGratuito)
+                                                                    {
+                                                                        <span class="cloudchat-model-badge free">@L["CloudChatModelFreeBadge"]</span>
+                                                                    }
+                                                                    @if (EhModeloRecomendado(modelo.Id))
+                                                                    {
+                                                                        <span class="cloudchat-model-badge recommended">@L["CloudChatModelRecommendedBadge"]</span>
+                                                                    }
+                                                                }
+                                                            </span>
+                                                        </label>
+                                                    }
+                                                    @if (!OpenRouterModelsExibidos.Any())
+                                                    {
+                                                        <div class="cloudchat-model-empty">@L["CloudChatModelNoResults"]</div>
+                                                    }
+                                                </div>
+                                                <div class="cloudchat-usage-grid mt-3">
+                                                    <div class="cloudchat-card">
+                                                        <h6 class="cloudchat-card-title">@L["CloudChatCreditsTitle"]</h6>
+                                                        @if (CloudChatUsage is null)
+                                                        {
+                                                            <div class="cloudchat-status cloudchat-warn">@L["CloudChatUsageUnavailable"]</div>
+                                                        }
+                                                        else if (!CloudChatUsage.ChaveConfigurada)
+                                                        {
+                                                            <div class="cloudchat-status cloudchat-warn">@L["CloudChatApiKeyMissing"]</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            @if (!string.IsNullOrWhiteSpace(CloudChatUsage.Erro))
+                                                            {
+                                                                <div class="cloudchat-status cloudchat-warn">@CloudChatUsage.Erro</div>
+                                                            }
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatBalanceLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.SaldoRestante?.ToString("0.##")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatUsageTodayLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.UsoHoje?.ToString("0.##")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatUsageWeekLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.UsoSemana?.ToString("0.##")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatUsageMonthLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.UsoMes?.ToString("0.##")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatKeyLimitLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.LimiteKey?.ToString("0.##")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatKeyLimitRemainingLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.LimiteKeyRestante?.ToString("0.##")</span>
+                                                            </div>
+                                                            @if (!CloudChatUsage.PodeUsarModelosPagos)
+                                                            {
+                                                                <div class="cloudchat-status cloudchat-warn">@L["CloudChatPaidUnsupportedWarning"]</div>
+                                                            }
+                                                        }
+                                                    </div>
+                                                    <div class="cloudchat-card">
+                                                        <h6 class="cloudchat-card-title">@L["CloudChatFreeUsageTitle"]</h6>
+                                                        @if (CloudChatUsage is null)
+                                                        {
+                                                            <div class="cloudchat-status cloudchat-warn">@L["CloudChatUsageUnavailable"]</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatFreeUsedLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.UsadosGratisHoje / @CloudChatUsage.TetoDiario</span>
+                                                            </div>
+                                                            <div class="cloudchat-progress">
+                                                                <div class="cloudchat-progress-fill @(CloudChatUsage.PercentagemUsada >= 80 ? "warn" : "")"
+                                                                     style="width:@(Math.Min(100, CloudChatUsage.PercentagemUsada))%"></div>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatFreeResetLabel"]</span>
+                                                                <span class="cloudchat-row-value">@CloudChatUsage.ResetUTC?.ToString("dd/MM HH:mm 'UTC'")</span>
+                                                            </div>
+                                                            <div class="cloudchat-row">
+                                                                <span class="cloudchat-row-label">@L["CloudChatFreeCapModeLabel"]</span>
+                                                                <span class="cloudchat-row-value">@(CloudChatUsage.TetoAutomatico ? L["CloudChatFreeCapAutomatic"] : L["CloudChatFreeCapCustom"])</span>
+                                                            </div>
+                                                            @if (CloudChatUsage.PercentagemUsada >= 80)
+                                                            {
+                                                                <div class="cloudchat-status cloudchat-warn">@L["CloudChatFreeNearLimitWarning"]</div>
+                                                            }
+                                                            <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatFreeCapOverrideLabel"]</div>
+                                                            <input class="form-control cloudchat-cap-input"
+                                                                   type="number" min="0" step="1"
+                                                                   @bind="CloudChatFreeDailyCap" />
+                                                            <div class="cloudchat-hint">@L["CloudChatFreeCapOverrideHint"]</div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                break;
+                        }
+                    </div>
+                    <div class="d-flex justify-content-end align-items-md-center my-3">
+                        <SfButton CssClass="e-btn e-primary e-round-corner pl-2 pr-3"
+                                  IconCss="fa fa-save"
+                                  Content="@L["btnSalvar"]"
+                                  OnClick="UpdateSettings">
+                        </SfButton>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
     </div>
-
-
-</div>
-
-
-@code {
-    // Specifies the DataSource value for TreeView component.
-    List<TreeItem> TreeDataSource = new List<TreeItem>();
-
-    protected string eventName;
-    protected string nodeOption;
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        TreeDataSource.Add(new TreeItem
-            {
-                NodeId = "01",
-                NodeText = L["TituloPastas"],
-                Icon = "folder",
-                Child = new List<TreeItem>()
-            {
-                new TreeItem { NodeId = "01-01", NodeText = L["Downloads"], Icon = "audio" },
-                new TreeItem { NodeId = "01-02", NodeText = L["TituloBackups"], Icon = "audio" },
-                new TreeItem { NodeId = "01-03", NodeText = L["TituloArmazenamento"], Icon = "audio" },
-                new TreeItem { NodeId = "01-04", NodeText = L["lblImagens"], Icon = "audio" },
-            }
-            });
-        TreeDataSource.Add(new TreeItem
-            {
-                NodeId = "02",
-                NodeText = L["TituloOtherSettings"],
-                Icon = "folder",
-                Child = new List<TreeItem>()
-            {
-                new TreeItem { NodeId = "02-01", NodeText = L["TituloContactos"], Icon = "video" },
-                new TreeItem { NodeId = "02-02", NodeText = L["TituloOutrasDefinicoes"], Icon = "video" },
-                new TreeItem { NodeId = "02-03", NodeText = L["TituloDefaultLanguage"], Icon = "video" },
-                new TreeItem { NodeId = "02-04", NodeText = L["TituloChaveApi"], Icon = "video" },
-            },
-            });
-    }
-
-    public void NodeClickedHandler(NodeClickEventArgs args)
-    {
-        eventName = args.Name.ToLower();
-        nodeOption = args.NodeData.Id switch
-        {
-            "01-01" => "downloads",
-            "01-02" => "backups",
-            "01-03" => "storage",
-            _ => "none"
-        };
-    }
-
-    class TreeItem
-    {
-        public string NodeId { get; set; }
-        public string NodeText { get; set; }
-        public string Icon { get; set; }
-        public string ImageUrl { get; set; }
-        public bool Expanded { get; set; }
-        public bool Selected { get; set; }
-        public List<TreeItem> Child;
-    }
 }
 
-<style>
-    .card-box {
-        padding: 15px;
-        -webkit-border-radius: 5px;
-        border-radius: 25px;
-        -moz-border-radius: 5px;
-        background-clip: padding-box;
-        margin-bottom: 5px;
-        background-color: var(--app-surface);
-        box-shadow: 0 0px 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0px 0 rgba(0, 0, 0, 0.02);
-    }
-    .input-content{
-        display:flex;
-        background-color: steelblue;
-        color:white;
-        font-size: 18px;
-        justify-content:space-between;
-        align-items:center;
-        gap: 5px;
+
+<SfDialog Width="50%"
+          Height="auto"
+          IsModal="true"
+          EnableResize="true"
+          AllowDragging="true"
+          CloseOnEscape="true"
+          ShowCloseIcon="false"
+          @bind-Visible="IsFileManagerVisible">
+    <DialogTemplates>
+        <Header>
+            <h5>@dialogTitle</h5>
+        </Header>
+        <Content>
+            <SfFileManager TValue="FileManagerDirectoryContent"
+                           AllowMultiSelection="false"
+                           Width="100%" Height="400px">
+                <FileManagerAjaxSettings Url="/api/FileManager/FileOperations"
+                                         UploadUrl="/api/FileManager/Upload"
+                                         DownloadUrl="/api/FileManager/Download"
+                                         GetImageUrl="/api/FileManager/GetImage">
+                </FileManagerAjaxSettings>
+                <FileManagerEvents TValue="FileManagerDirectoryContent"
+                                   FileSelection="FileSelection"></FileManagerEvents>
+            </SfFileManager>
+        </Content>
+        <FooterTemplate>
+            <SfButton CssClass="e-btn e-success e-round-corner"
+                      IconCss="fa fa-times p-1"
+                      @onclick="(() => IsFileManagerVisible = false)" Content="@L["TituloConfirmar"]">
+            </SfButton>
+        </FooterTemplate>
+    </DialogTemplates>
+    <DialogAnimationSettings Effect="@Effects" Duration=600></DialogAnimationSettings>
+</SfDialog>
+
+<SfToast ID="toast_custom" @ref="ToastObj" ShowProgressBar=true
+         Title="@ToastTitle" Icon="@ToastIcon"
+         Content="@ToastMessage"
+         CssClass="@ToastCss" Timeout="2000"
+         ShowCloseButton="true">
+    <ToastAnimationSettings>
+        <ToastShowAnimationSettings Effect="ToastEffect.FadeIn" Duration="600"></ToastShowAnimationSettings>
+        <ToastHideAnimationSettings Effect="ToastEffect.FadeOut" Duration="600"></ToastHideAnimationSettings>
+    </ToastAnimationSettings>
+    <ToastButtons>
+        <ToastButton Content="@L["btnFechar"]" OnClick="@HideToast"></ToastButton>
+    </ToastButtons>
+    <ToastPosition X="Right" Y="Bottom"></ToastPosition>
+</SfToast>
+
+<style type="text/css">
+    .e-round-corner {
+        border-radius: 10px;
     }
 
-    .e-treeview .e-list-img {
+    .template.e-popup .e-list-item * {
+        display: block;
+        text-indent: 0;
+    }
+
+    .e-bigger:not(.bootstrap) .template .e-dropdownbase .e-list-item {
+        line-height: 42px;
+        height: 80px;
+    }
+
+    .e-bigger:not(.bootstrap) .template.e-popup .empImage {
+        margin: 10px 16px;
+    }
+
+    .bootstrap4 .template.e-popup .empImage {
+        margin: 0px 16px;
+    }
+
+    .bootstrap .ename {
+        font-size: 15px;
+        margin-top: 20px;
+        opacity: .87;
+        padding: 3px 0 20px;
+    }
+
+    .e-bigger.bootstrap .ename {
+        font-size: 12px;
+        padding-bottom: 15px;
+    }
+
+    .e-dialog .e-dlg-header {
+        color: var(--app-text-primary);
+        font-size: 20px;
+        font-weight: normal;
+    }
+
+    .e-dialog .e-dlg-content {
+        color: var(--app-text-primary);
+        font-size: 10px;
+        font-weight: normal;
+        line-height: normal;
+    }
+
+    .e-dlg-overlay {
+        background-color: var(--app-bg);
+        opacity: 0.6;
+    }
+
+    .ename {
+        display: block !important;
+        opacity: .87;
+        font-size: 16px;
+        margin-top: 8px;
+    }
+
+    .name {
+        padding: 5px 42px;
+        opacity: .87;
+        line-height: 1.063em;
+    }
+
+    .empImage {
+        margin: 6px 16px;
+        float: left;
         width: 25px;
         height: 25px;
     }
-    /* Loading sprite image for TreeView */
-    .e-treeview .e-list-icon {
-        background-repeat: no-repeat;
-        background-image: url("css/treeview/images/file_Icons.png");
-        height: 20px;
+
+    .value {
+        border-radius: 50%;
+        float: left;
+        margin-top: 2px;
+        margin-left: 2px;
     }
-        /* Specify the Icon positions based upon class name */
-        .e-treeview .e-list-icon.folder {
-            background-position: -197px -552px
+
+    .settings-shell {
+        max-width: 1280px;
+    }
+
+    .settings-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface);
+    }
+
+    .settings-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--app-text-primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .15s ease;
+    }
+
+        .settings-group-header:hover {
+            background: var(--app-surface-hover);
         }
 
-        .e-treeview .e-list-icon.docx {
-            background-position: -197px -20px
+    .settings-group-icon {
+        color: var(--app-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+
+    .settings-group-title {
+        flex: 1;
+    }
+
+    .settings-group-chevron {
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+        transition: transform .2s ease;
+    }
+
+    .settings-group-header.expanded .settings-group-chevron {
+        transform: rotate(180deg);
+    }
+
+    .settings-group-items {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 2px 0 6px 12px;
+        padding-left: 8px;
+        border-left: 2px solid var(--app-border);
+    }
+
+    .settings-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--app-text-secondary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+        .settings-item:hover {
+            background: var(--app-surface-hover);
+            color: var(--app-text-primary);
         }
 
-        .e-treeview .e-list-icon.ppt {
-            background-position: -197px -48px
+        .settings-item.active {
+            background: var(--app-primary);
+            border-color: var(--app-primary);
+            color: var(--app-on-primary);
         }
 
-        .e-treeview .e-list-icon.pdf {
-            background-position: -197px -104px
+            .settings-item.active .settings-item-icon {
+                color: var(--app-on-primary);
+            }
+
+    .settings-item-icon {
+        color: var(--app-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+
+    .settings-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .settings-card {
+        padding: 20px;
+    }
+
+    .settings-card-title {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--app-text-primary);
+    }
+
+    .settings-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+        .settings-field .e-control,
+        .settings-field .e-control-wrapper {
+            flex: 1;
         }
 
-        .e-treeview .e-list-icon.images {
-            background-position: -197px -132px
+    .settings-field-folder {
+        max-width: 720px;
+    }
+
+        .settings-field-folder .e-control-wrapper {
+            flex: 0 0 50%;
+            max-width: 50%;
         }
 
-        .e-treeview .e-list-icon.zip {
-            background-position: -197px -188px
+    .settings-folder-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        color: var(--app-text-secondary);
+        cursor: pointer;
+    }
+
+        .settings-folder-btn:hover {
+            color: var(--app-primary);
+            background: var(--app-surface-hover);
         }
 
-        .e-treeview .e-list-icon.audio {
-            background-position: -197px -244px
+    .settings-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+    }
+
+    .settings-toggle-label {
+        color: var(--app-text-primary);
+        font-size: 0.9rem;
+    }
+
+    .card-box {
+        padding: 15px;
+        border-radius: 25px;
+        background-clip: padding-box;
+        margin-bottom: 5px;
+        background-color: var(--app-surface);
+        box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0 0 rgba(0, 0, 0, 0.02);
+    }
+
+    .cloudchat-status {
+        margin-top: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .cloudchat-ok {
+        background: var(--app-success-bg);
+        border: 1px solid var(--app-success-border);
+        color: var(--app-success-text);
+    }
+
+    .cloudchat-warn {
+        background: var(--app-warning-bg);
+        border: 1px solid var(--app-warning-border);
+        color: var(--app-warning-text);
+    }
+
+    .cloudchat-active {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        margin-bottom: 8px;
+    }
+
+    .cloudchat-active-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-active-id {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--app-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .cloudchat-active-id.paid {
+            color: var(--app-accent-yellow);
         }
 
-        .e-treeview .e-list-icon.video {
-            background-position: -197px -272px
+    .cloudchat-model-badge.paid {
+        background: var(--app-warning-bg);
+        color: var(--app-warning-text);
+        border: 1px solid var(--app-warning-border);
+    }
+
+    .cloudchat-search {
+        margin-bottom: 8px;
+    }
+
+    .cloudchat-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        color: var(--app-text-primary);
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+        .cloudchat-search-input:focus {
+            border-color: var(--app-primary);
         }
 
-        .e-treeview .e-list-icon.exe {
-            background-position: -197px -412px
+    .cloudchat-model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 340px;
+        overflow-y: auto;
+        padding: 8px;
+        border: 1px solid var(--app-border);
+        border-radius: 10px;
+        background: var(--app-surface-alt);
+    }
+
+    .cloudchat-model-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: var(--app-surface);
+        cursor: pointer;
+        transition: border-color .15s ease, background-color .15s ease;
+    }
+
+        .cloudchat-model-row:hover {
+            background: var(--app-surface-hover);
         }
+
+        .cloudchat-model-row:has(input:checked) {
+            border-color: var(--app-primary);
+            background: var(--app-surface-hover);
+        }
+
+        .cloudchat-model-row input[type="radio"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            border: 2px solid var(--app-border);
+            border-radius: 50%;
+            flex-shrink: 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+            .cloudchat-model-row input[type="radio"]:checked {
+                border-color: var(--app-primary);
+            }
+
+                .cloudchat-model-row input[type="radio"]:checked::after {
+                    content: "";
+                    position: absolute;
+                    inset: 3px;
+                    border-radius: 50%;
+                    background: var(--app-primary);
+                }
+
+    .cloudchat-model-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .cloudchat-model-name {
+        font-weight: 600;
+        color: var(--app-text-primary);
+    }
+
+    .cloudchat-model-id {
+        font-size: 12px;
+        color: var(--app-text-secondary);
+        font-family: Consolas, "Courier New", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cloudchat-model-badges {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .cloudchat-model-badge {
+        font-size: 11px;
+        line-height: 1;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--app-surface);
+        color: var(--app-text-secondary);
+        white-space: nowrap;
+    }
+
+        .cloudchat-model-badge.free {
+            background: var(--app-success-bg);
+            color: var(--app-success-text);
+        }
+
+        .cloudchat-model-badge.router {
+            background: var(--app-info-bg);
+            color: var(--app-info-text);
+        }
+
+        .cloudchat-model-badge.recommended {
+            background: var(--app-accent-green);
+            color: var(--app-on-accent-green);
+        }
+
+    .cloudchat-hint {
+        border-left: 2px solid var(--app-border);
+        padding-left: 8px;
+        margin-top: 2px;
+    }
+
+    .cloudchat-model-empty {
+        padding: 8px;
+        font-size: 12px;
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-usage-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .cloudchat-card {
+        padding: 14px;
+        border: 1px solid var(--app-border);
+        border-radius: 10px;
+        background: var(--app-surface-alt);
+    }
+
+    .cloudchat-card-title {
+        margin: 0 0 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--app-text-primary);
+    }
+
+    .cloudchat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 4px 0;
+        font-size: 0.82rem;
+    }
+
+    .cloudchat-row-label {
+        color: var(--app-text-secondary);
+    }
+
+    .cloudchat-row-value {
+        font-weight: 600;
+        color: var(--app-text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cloudchat-progress {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
+        overflow: hidden;
+        margin: 6px 0 10px;
+    }
+
+    .cloudchat-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--app-primary);
+        transition: width .3s ease;
+    }
+
+        .cloudchat-progress-fill.warn {
+            background: var(--app-accent-yellow);
+        }
+
+    .cloudchat-cap-input {
+        max-width: 180px;
+        background: var(--app-surface);
+        color: var(--app-text-primary);
+        border-color: var(--app-border);
+    }
+
+    .cloudchat-hint {
+        font-size: 11px;
+        color: var(--app-text-secondary);
+        margin-top: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .cloudchat-model-list {
+            max-height: 260px;
+        }
+
+        .cloudchat-usage-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── Dark mode overrides ─────────────────────────── */
+
+    [data-theme="dark"] .settings-sidebar {
+        background: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .card-box {
+        box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.35);
+    }
 </style>

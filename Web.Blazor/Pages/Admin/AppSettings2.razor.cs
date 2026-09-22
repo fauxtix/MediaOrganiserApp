@@ -1,79 +1,101 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
 using MediaOrganizerApp.Application.Enums;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Utilities;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
-using Syncfusion.Blazor.Buttons;
 using Syncfusion.Blazor.FileManager;
 using Syncfusion.Blazor.Notifications;
 using Syncfusion.Blazor.Popups;
-using Syncfusion.Blazor.SplitButtons;
 using System.Globalization;
+using Web.Blazor.Services.CloudChat;
 
 namespace Web.Blazor.Pages.Admin
 {
     public partial class AppSettings2
     {
-        [Inject] public IStringLocalizer<App> L { get; set; }
-        [Inject] public ILogger<App> logger { get; set; }
-        [Inject] public IAppSettingsService AppSettingsService { get; set; }
-        [Inject] IWebHostEnvironment _environment { get; set; }
+        [Inject] public IAiModelsService? AIModelsSrvice { get; set; }
+        [Inject] public IStringLocalizer<App>? L { get; set; }
+        [Inject] public ILogger<App>? logger { get; set; }
+        [Inject] public IAppSettingsService? AppSettingsService { get; set; }
         [Inject] NavigationManager NavigationManager { get; set; }
-
         [Inject] IJSRuntime JSRuntime { get; set; }
+        [Inject] public CloudChatClientService? CloudChatClient { get; set; }
+        [Inject] public CurrentUserIdentity? CurrentUser { get; set; }
 
+        private IEnumerable<AIModelVM>? AiModels { get; set; } = [];
         private ApplicationSettingsDto? settings;
-        private SfButton? ToggleBtnObj;
+        private List<OpenRouterCatalogModel>? OpenRouterModels;
+        private string CloudChatDefaultModel { get; set; } = "openrouter/free";
+        private string? CloudChatApiKey;
+        private bool CloudChatEnableReasoning;
+        private bool CloudChatAllowPaidModels;
+        private string CloudChatApiKeyStatus = "NotConfigured";
+        private string CloudChatModelFilter = string.Empty;
+        private bool CloudChatIsAdmin;
+        private CloudChatUsageDto? CloudChatUsage;
+        private int? CloudChatFreeDailyCap;
+        private bool CloudChatAuthorBooksUseCloud = true;
+
+        private static bool EhModeloPago(string? modelId)
+            => !string.IsNullOrWhiteSpace(modelId)
+               && !string.Equals(modelId, "openrouter/free", StringComparison.OrdinalIgnoreCase)
+               && !modelId.EndsWith(":free", StringComparison.OrdinalIgnoreCase);
+
+        private static bool EhModeloRecomendado(string? modelId)
+            => RecommendedExtractionModels.IsRecommended(modelId);
+
+        private bool ModeloSelecionadoEhPago => EhModeloPago(CloudChatDefaultModel);
+
+        private bool ChaveExistente
+            => !string.IsNullOrWhiteSpace(CloudChatApiKey) || CloudChatApiKeyStatus == "Configured";
+
+        private bool ChaveSemSuportePago
+            => CloudChatUsage is not null
+               && CloudChatUsage.ChaveConfigurada
+               && !CloudChatUsage.PodeUsarModelosPagos;
+
+        private bool AvisoModeloPagoSemChave
+            => ModeloSelecionadoEhPago && (!ChaveExistente || ChaveSemSuportePago);
+
+        private string AvisoModeloPagoMensagem
+            => !ChaveExistente
+                ? L["CloudChatPaidNoKeyWarning"]
+                : L["CloudChatPaidUnsupportedWarning"];
 
         private string? culture;
         private string selectedCulture = Thread.CurrentThread.CurrentCulture.Name;
 
-        private string portugues;
-        protected SfToast ToastObj { get; set; }
-
-        protected string ToastTitle;
-        protected string ToastMessage;
-        protected string ToastCss;
-        protected string ToastIcon;
-
+        protected SfToast? ToastObj { get; set; }
+        protected string? ToastTitle;
+        protected string? ToastMessage;
+        protected string? ToastCss;
+        protected string? ToastIcon;
 
         private bool IsFileManagerVisible = false;
         protected DialogEffect Effects = DialogEffect.SlideTop;
         protected string dialogTitle = string.Empty;
 
         SfFileManager<FileManagerDirectoryContent>? FileManager;
-        protected string ApiFileOperations { get; set; }
-        protected string ApiUrl { get; set; }
-        protected string ApiUploadUrl { get; set; }
-        protected string ApiDownloadUrl { get; set; }
-        protected string ApiGetImageUrl { get; set; }
         protected FileManagerOptions fileManagerOption { get; set; }
         protected bool IsDirectoryUpload = true;
 
-        private Syncfusion.Blazor.AnimationEffect PreviousEffect = Syncfusion.Blazor.AnimationEffect.SlideLeftIn;
-        private Syncfusion.Blazor.AnimationEffect NextEffect = Syncfusion.Blazor.AnimationEffect.SlideRightIn;
+        private List<SettingsGroup> SettingsGroups = new();
+        private string SelectedNode = "downloads";
+        private readonly HashSet<string> ExpandedGroups = new() { "pastas" };
 
         protected override async Task OnInitializedAsync()
         {
-            ApiUrl = _environment.IsProduction()
-                ? "http://localhost:4100/"
-                : "https://localhost:44327";
-
-            CultureInfo culture;
-
-            portugues = L["TituloIdiomaPortugues"]; // TODO set languages
             ToastTitle = "";
             ToastMessage = "";
             ToastCss = "";
             ToastIcon = "";
-            ApiFileOperations = Path.Combine(ApiUrl, "api/FileManager/FileOperations");
-            ApiUploadUrl = Path.Combine(ApiUrl, "api/FileManager/Upload");
-            ApiDownloadUrl = Path.Combine(ApiUrl, "api/FileManager/Download");
-            ApiGetImageUrl = Path.Combine(ApiUrl, "api/FileManager/GetImage");
 
             try
             {
+                AiModels = (await AIModelsSrvice.GetAllAsync()).ToList();
                 settings = await AppSettingsService.GetSettingsAsync();
             }
             catch
@@ -81,7 +103,39 @@ namespace Web.Blazor.Pages.Admin
                 settings = new();
             }
 
-            selectedCulture = settings.DefaultLanguage;
+            CultureInfo culture;
+
+            try
+            {
+                var (_, isAdmin) = CurrentUser is null ? ((string?)null, false) : await CurrentUser.GetAsync();
+                CloudChatIsAdmin = isAdmin;
+
+                if (isAdmin && CloudChatClient is not null)
+                {
+                    OpenRouterModels = await CloudChatClient.GetModelsAsync();
+                    var ccSettings = await CloudChatClient.GetSettingsAsync();
+                    if (ccSettings is not null)
+                    {
+                        CloudChatDefaultModel = string.IsNullOrWhiteSpace(ccSettings.DefaultModel)
+                            ? "openrouter/free"
+                            : ccSettings.DefaultModel;
+                        CloudChatEnableReasoning = ccSettings.EnableReasoning;
+                        CloudChatAllowPaidModels = ccSettings.AllowPaidModels;
+                        CloudChatApiKeyStatus = ccSettings.ApiKeyConfigured ? "Configured" : "NotConfigured";
+                        CloudChatFreeDailyCap = ccSettings.FreeDailyCap;
+                        CloudChatAuthorBooksUseCloud = ccSettings.AuthorBooksUseCloud;
+                        CloudChatUsage = await CloudChatClient.GetUsageAsync();
+                    }
+
+                    MontarListaModelosCloud();
+                }
+            }
+            catch
+            {
+                // ignora: definicoes cloud chat indisponiveis (ex.: WebApi sem cloud-chat)
+            }
+
+            selectedCulture = settings.Language;
             if (!string.IsNullOrEmpty(selectedCulture))
             {
                 culture = new CultureInfo(selectedCulture);
@@ -89,26 +143,51 @@ namespace Web.Blazor.Pages.Admin
             else
             {
                 culture = new CultureInfo("pt-PT");
-
             }
 
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
+            SettingsGroups = new List<SettingsGroup>
+            {
+                new("pastas", "TituloPastas", "fa-folder-open", new List<SettingsLeaf>
+                {
+                    new("downloads", "Downloads", "fa-download"),
+                    new("backups", "TituloBackups", "fa-hdd-o"),
+                    new("armazenamento", "TituloArmazenamento", "fa-archive"),
+                    new("imagens", "lblImagens", "fa-picture-o")
+                }),
+                new("outras", "TituloOtherSettings", "fa-cog", new List<SettingsLeaf>
+                {
+                    new("contactos", "TituloContactos", "fa-address-book"),
+                    new("definicoes", "TituloOutrasDefinicoes", "fa-sliders"),
+                    new("idioma", "TituloDefaultLanguage", "fa-language"),
+                    new("ialocal", "TituloIALocal", "fa-microchip")
+                }),
+                new("apis", "TituloApisUrls", "fa-plug", new List<SettingsLeaf>
+                {
+                    new("webapi", "TituloWebApi", "fa-server"),
+                    new("servicos", "TituloServicos", "fa-key"),
+                    new("basedados", "TituloBaseDados", "fa-database")
+                }),
+                new("cloud", "CloudChatTab", "fa-cloud", new List<SettingsLeaf>
+                {
+                    new("cloudchat", "CloudChatTab", "fa-cloud")
+                })
+            };
         }
 
-        public async void ItemSelected(MenuEventArgs args)
+        private void ToggleGroup(string id)
         {
-            if (args.Item.Id == "Folder")
+            if (!ExpandedGroups.Remove(id))
             {
-                IsDirectoryUpload = true;
+                ExpandedGroups.Add(id);
             }
-            else
-            {
-                IsDirectoryUpload = false;
-            }
-            await Task.Delay(100);
-            await JSRuntime.InvokeVoidAsync("uploadClick");
+        }
+
+        private void SelectNode(string id)
+        {
+            SelectedNode = id;
         }
 
         private void OpenFileManager(FileManagerOptions option)
@@ -131,6 +210,7 @@ namespace Web.Blazor.Pages.Admin
                 FileManagerOptions.ImagesFolder => L["DlgImagesFolder"],
                 FileManagerOptions.ReportsFolder => L["DlgReportsFolder"],
                 FileManagerOptions.AuthorImagesFolder => L["DlgAuthorImagesFolder"],
+                FileManagerOptions.BookImagesFolder => L["DlgBookImagesFolder"],
                 _ => string.Empty
             };
         }
@@ -159,6 +239,7 @@ namespace Web.Blazor.Pages.Admin
                     { FileManagerOptions.PublicationsFolder, () => settings.PastaPublicacoes = folderPath },
                     { FileManagerOptions.ImagesFolder, () => settings.PastaImagens = folderPath },
                     { FileManagerOptions.ReportsFolder, () => settings.PastaListagens = folderPath },
+                    { FileManagerOptions.BookImagesFolder, () => settings.PastaImagensCapasLivros = folderPath },
                     { FileManagerOptions.AuthorImagesFolder, () => settings.PastaImagensAutores = folderPath }
                 };
 
@@ -171,17 +252,66 @@ namespace Web.Blazor.Pages.Admin
             }
         }
 
-        public void OnToggleClick()
+        private void MontarListaModelosCloud()
         {
-            if (ToggleBtnObj?.Content == "Ssl")
+            var saved = CloudChatDefaultModel;
+            var lista = new List<OpenRouterCatalogModel>
             {
-                settings!.UseSsl = true; // Hotmail
+                new OpenRouterCatalogModel { Id = "openrouter/free", Nome = L["CloudChatAutomaticModel"], EhRouter = true }
+            };
+
+            if (OpenRouterModels is not null)
+            {
+                lista.AddRange(OpenRouterModels.Select(m =>
+                    new OpenRouterCatalogModel
+                    {
+                        Id = m.Id,
+                        Nome = string.IsNullOrWhiteSpace(m.Nome) ? m.Id : m.Nome,
+                        ContextLength = m.ContextLength,
+                        EhRouter = m.EhRouter,
+                        EhGratuito = m.EhGratuito,
+                        Descricao = m.Descricao,
+                        ReleaseDate = m.ReleaseDate,
+                        IntelligenceIndex = m.IntelligenceIndex,
+                        CodingIndex = m.CodingIndex,
+                        AgenticIndex = m.AgenticIndex
+                    }));
             }
-            else
+
+            if (!string.IsNullOrWhiteSpace(saved) &&
+                !string.Equals(saved, "openrouter/free", StringComparison.OrdinalIgnoreCase) &&
+                !lista.Any(m => string.Equals(m.Id, saved, StringComparison.OrdinalIgnoreCase)))
             {
-                settings!.UseSsl = false;
+                lista.Add(new OpenRouterCatalogModel { Id = saved, Nome = saved });
+            }
+
+            OpenRouterModels = lista;
+        }
+
+        private IEnumerable<OpenRouterCatalogModel> OpenRouterModelsExibidos
+        {
+            get
+            {
+                if (OpenRouterModels is null) return Enumerable.Empty<OpenRouterCatalogModel>();
+
+                var filtro = CloudChatModelFilter?.Trim();
+                if (string.IsNullOrEmpty(filtro)) return OpenRouterModels;
+
+                return OpenRouterModels.Where(m =>
+                    m.Id.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    m.Nome.Contains(filtro, StringComparison.OrdinalIgnoreCase));
             }
         }
+
+        private void SelectCloudChatModel(string id)
+        {
+            CloudChatDefaultModel = id;
+        }
+
+        private static string FormatarContextoCloud(int ctx) =>
+            ctx >= 100_000 ? $"~{ctx / 1_000}K"
+            : ctx >= 1_000 ? $"~{Math.Round(ctx / 1_000d, 1):0.#}K"
+            : ctx.ToString(CultureInfo.InvariantCulture);
 
         private async Task UpdateSettings()
         {
@@ -191,9 +321,32 @@ namespace Web.Blazor.Pages.Admin
             {
                 await AppSettingsService.UpdateSettingsAsync(settings!);
                 await AppSettingsService.UpdateLanguageAsync(selectedCulture);
-                ToastCss = "e-toast-success";
-                ToastMessage = $"{L["SuccessUpdate"]}";
-                ToastIcon = "fas fa-check";
+
+                if (CloudChatIsAdmin && CloudChatClient is not null)
+                {
+                    await CloudChatClient.UpdateSettingsAsync(new CloudChatSettingsUpdateDto
+                    {
+                        ApiKey = string.IsNullOrWhiteSpace(CloudChatApiKey) ? null : CloudChatApiKey.Trim(),
+                        DefaultModel = CloudChatDefaultModel,
+                        EnableReasoning = CloudChatEnableReasoning,
+                        AllowPaidModels = CloudChatAllowPaidModels,
+                        FreeDailyCap = CloudChatFreeDailyCap,
+                        AuthorBooksUseCloud = CloudChatAuthorBooksUseCloud
+                    });
+                }
+
+                if (AvisoModeloPagoSemChave)
+                {
+                    ToastCss = "e-toast-warning";
+                    ToastMessage = $"{AvisoModeloPagoMensagem}";
+                    ToastIcon = "fas fa-exclamation-triangle";
+                }
+                else
+                {
+                    ToastCss = "e-toast-success";
+                    ToastMessage = $"{L["SuccessUpdate"]}";
+                    ToastIcon = "fas fa-check";
+                }
                 await ShowToastMessage();
             }
             catch (Exception ex)
@@ -246,23 +399,6 @@ namespace Web.Blazor.Pages.Admin
             await ToastObj!.HideAsync();
         }
 
-        public List<ToolBarItemModel> Items = new List<ToolBarItemModel>()
-    {
-        new ToolBarItemModel() { Name = "NewFolder" },
-        new ToolBarItemModel() { Name = "Upload" },
-        new ToolBarItemModel() { Name = "Cut" },
-        new ToolBarItemModel() { Name = "Copy" },
-        new ToolBarItemModel() { Name = "Paste" },
-        new ToolBarItemModel() { Name = "Delete" },
-        new ToolBarItemModel() { Name = "Download" },
-        new ToolBarItemModel() { Name = "Rename" },
-        new ToolBarItemModel() { Name = "SortBy" },
-        new ToolBarItemModel() { Name = "Refresh" },
-        new ToolBarItemModel() { Name = "Selection" },
-        new ToolBarItemModel() { Name = "View" },
-        new ToolBarItemModel() { Name = "Details" },
-    };
-
         public List<CountryModel> CountryData = new List<CountryModel>
         {
             new CountryModel { ID ="pt-PT", Text = "TituloIdiomaPortugues", Pic = "portugal" },
@@ -278,5 +414,34 @@ namespace Web.Blazor.Pages.Admin
             public string? Pic { get; set; }
         }
 
+        private sealed class SettingsGroup
+        {
+            public SettingsGroup(string id, string resxKey, string icon, List<SettingsLeaf> leaves)
+            {
+                Id = id;
+                ResxKey = resxKey;
+                Icon = icon;
+                Leaves = leaves;
+            }
+
+            public string Id { get; }
+            public string ResxKey { get; }
+            public string Icon { get; }
+            public List<SettingsLeaf> Leaves { get; }
+        }
+
+        private sealed class SettingsLeaf
+        {
+            public SettingsLeaf(string id, string resxKey, string icon)
+            {
+                Id = id;
+                ResxKey = resxKey;
+                Icon = icon;
+            }
+
+            public string Id { get; }
+            public string ResxKey { get; }
+            public string Icon { get; }
+        }
     }
 }

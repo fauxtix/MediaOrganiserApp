@@ -11,7 +11,7 @@
 <PageTitleComponent PageTitle="@L["TituloTabelasAuxiliares"]" />
 
 <div class="container-fluid">
-    <SfTab class="e-info" OverflowMode="OverflowMode.Scrollable">
+    <SfTab OverflowMode="OverflowMode.Scrollable">
         <TabAnimationSettings>
             <TabAnimationPrevious Effect="@PreviousEffect"></TabAnimationPrevious>
             <TabAnimationNext Effect="@NextEffect"></TabAnimationNext>
@@ -19,7 +19,7 @@
         <TabItems>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["TituloCategoriasPublicacoes"]"></TabHeader>
+                    <TabHeader Text="@L["TituloCategoriasPublicacoes"]" IconCss="fa fa-book"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mx-md-3">
@@ -29,7 +29,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["frmEditoras"]"></TabHeader>
+                    <TabHeader Text="@L["frmEditoras"]" IconCss="fa fa-building-o"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">
@@ -39,7 +39,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["frmFormatos"]"></TabHeader>
+                    <TabHeader Text="@L["frmFormatos"]" IconCss="fa fa-th-large"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">
@@ -49,7 +49,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["frmLocaisArquivo"]"></TabHeader>
+                    <TabHeader Text="@L["frmLocaisArquivo"]" IconCss="fa fa-folder-open-o"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">
@@ -59,7 +59,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["TituloCategoriasMedia"]"></TabHeader>
+                    <TabHeader Text="@L["TituloCategoriasMedia"]" IconCss="fa fa-camera"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">
@@ -69,7 +69,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@(L["frmFormatos"] + " " + "Media")"></TabHeader>
+                    <TabHeader Text="@(L["frmFormatos"] + " " + "Media")" IconCss="fa fa-film"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">
@@ -79,7 +79,7 @@
             </TabItem>
             <TabItem>
                 <ChildContent>
-                    <TabHeader Text="@L["AiModelsTitle"]"></TabHeader>
+                    <TabHeader Text="@L["AiModelsTitle"]" IconCss="fa fa-cogs"></TabHeader>
                 </ChildContent>
                 <ContentTemplate>
                     <div class="mt-md-4 mx-md-3">

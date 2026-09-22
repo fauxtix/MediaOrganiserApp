@@ -476,16 +476,106 @@ button.e-btn.e-primary:focus {
     background-color: var(--app-surface-hover);
 }
 
-/* Tabs — indicador e texto do separador ativo */
-.e-tab .e-tab-header .e-indicator,
+/* Tabs — visual moderno mapeado para os tokens (claro/escuro automático) */
+.e-tab {
+    background-color: var(--app-surface);
+    color: var(--app-text-primary);
+}
+
+.e-tab .e-tab-header {
+    background-color: var(--app-surface);
+    border-bottom: 1px solid var(--app-border);
+}
+
+.e-tab .e-tab-header::before {
+    border-bottom-color: var(--app-border);
+}
+
+.e-tab .e-tab-header .e-toolbar-items {
+    background: inherit;
+}
+
+.e-tab .e-tab-header .e-toolbar-item {
+    background: inherit;
+    border: 0;
+}
+
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap {
+    border: 0;
+    border-radius: 8px 8px 0 0;
+    color: var(--app-text-secondary);
+}
+
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap .e-tab-text,
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap .e-tab-icon {
+    color: var(--app-text-secondary);
+    transition: color 0.15s ease;
+}
+
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover {
+    background: var(--app-surface-hover);
+    border: 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover .e-tab-text,
+.e-tab .e-tab-header .e-toolbar-item .e-tab-wrap:hover .e-tab-icon {
+    color: var(--app-text-primary);
+}
+
+.e-tab .e-tab-header .e-toolbar-item.e-active {
+    background: var(--app-surface);
+    border: 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-wrap,
+.e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-wrap:hover {
+    border: 0;
+}
+
 .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
 .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon,
 .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text .e-icons {
     color: var(--app-primary);
+    font-weight: 600;
 }
 
 .e-tab .e-tab-header .e-indicator {
     background-color: var(--app-primary) !important;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+}
+
+.e-tab .e-tab-header .e-hor-nav,
+.e-tab .e-tab-header .e-scroll-nav {
+    color: var(--app-text-secondary);
+    background: var(--app-surface);
+}
+
+.e-tab .e-tab-header .e-hor-nav:hover,
+.e-tab .e-tab-header .e-scroll-nav:hover {
+    color: var(--app-primary);
+    background: var(--app-surface-hover);
+}
+
+.e-tab .e-content,
+.e-tab .e-content .e-item {
+    background-color: var(--app-surface);
+    color: var(--app-text-primary);
+}
+
+.e-tab .e-tab-header .e-toolbar-pop .e-toolbar-item {
+    background: var(--app-surface);
+}
+
+.e-tab .e-tab-header .e-toolbar-pop .e-toolbar-item .e-tab-wrap {
+    color: var(--app-text-secondary);
+}
+
+[data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text,
+[data-theme="dark"] .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-icon {
+    color: var(--app-primary);
 }
 
 /* Accordion — cabeçalho ativo */

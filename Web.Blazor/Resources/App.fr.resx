@@ -2407,4 +2407,19 @@
   <data name="DSH_UsoInternoDuracao" xml:space="preserve">
     <value>Durée</value>
   </data>
+  <data name="TituloIALocal" xml:space="preserve">
+    <value>IA locale</value>
+  </data>
+  <data name="TituloApisUrls" xml:space="preserve">
+    <value>APIs &amp; URLs</value>
+  </data>
+  <data name="TituloWebApi" xml:space="preserve">
+    <value>WebApi</value>
+  </data>
+  <data name="TituloServicos" xml:space="preserve">
+    <value>Services</value>
+  </data>
+  <data name="TituloBaseDados" xml:space="preserve">
+    <value>Base de données</value>
+  </data>
 </root>

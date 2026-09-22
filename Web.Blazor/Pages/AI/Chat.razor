@@ -1,118 +1,125 @@
 ﻿@page "/ai/chat"
 
 @using Markdig
-@using Microsoft.Extensions.Localization
-@inject NavigationManager Nav
-@using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Buttons
-@using Syncfusion.Blazor.Spinner
 @using Syncfusion.Blazor.Notifications
-@using MediaOrganizerApp.Application.DTOs.AI
-@using Web.Blazor.Components
-@inject Web.Blazor.Services.ApiWrappers.AiClientService AiClient
+@using Web.Blazor.Components.Chat
 
 <div class="chat-container">
-    <div class="chat-header">
-        <div class="header-inner">
-            <div class="header-title">@L["ChatRoomTitle"]</div>
-            <div class="header-actions">
-                @* <div class="token-bar-container">
-                    <div class="token-bar-fill @GetTokenClass()" style="width:@GetTokenPercent()%"></div>
-                </div>
-                <div class="token-bar-label">
-                    @tokensEstimados / @limiteTokens
-                    <span style="margin-left:10px;">Usados: @tokensUsados</span>
-                </div> *@
+    <div class="chat-card">
 
-                <div class="token-bar-container">
-                    <div class="token-bar-fill @GetTokenClass()" style="width:@GetTokenPercent()%"></div>
+        <div class="chat-header-bar">
+            <div class="chat-persona">
+                <div class="chat-avatar @(isProcessing ? "busy" : "available")">
+                    <span class="chat-avatar-initials">AI</span>
+                    <span class="chat-presence"></span>
                 </div>
+                <div class="chat-persona-name">@L["ChatRoomTitle"]</div>
+            </div>
 
-                <div class="token-bar-label">
-                    @if (isProcessing)
-                    {
-                        <span>@string.Format(L["ChatEstimatedTokens"], tokensEstimados, limiteTokens)</span>
-                    }
-                    else
-                    {
-                        <span>@string.Format(L["ChatUsedTokens"], tokensUsados, limiteTokens)</span>
-                    }
-                </div>
-                @if (ShowTokenWarning)
-                {
-                    <div class="token-warning @GetWarningClass()">
-                        @L["ChatTokenWarning"]
-                    </div>
-                }
-                <div>@modeloAtual</div>
-                <div class="conversation-list">
-                    <SfDropDownList TValue="string" TItem="ConversationItem"
-                                    DataSource="@conversations"
-                                    @bind-Value="selectedConversationId"
-                                    Placeholder="@L["Conversations"]"
-                                    CssClass="conversation-dropdown">
-                        <DropDownListFieldSettings Text="Title" Value="Id" />
-                        <DropDownListEvents TItem="ConversationItem"
-                                            TValue="string"
-                                            ValueChange="OnConversationChanged" />
-                    </SfDropDownList>
-                </div>
+            <div class="chat-model-pill" title="_selectedModel">
+                @_selectedModel
+            </div>
 
-                <SfButton CssClass="new-conversation" OnClick="ShowConfirmNewConversation">
-                    <span class="sf-btn-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"
-                                  stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </span>
-                    <span class="btn-text">@L["NewMsg"]</span>
-                </SfButton>
-
-                <SfButton CssClass="delete-conversation"
-                          OnClick="ShowConfirmDeleteConversation"
-                          Disabled="@string.IsNullOrEmpty(selectedConversationId)"
-                          Content="@L["DeleteMsg"]" />
+            <div class="chat-elapsed">
+                @(_elapsed > 0 ? $"{_elapsed:F1}s" : "")
             </div>
         </div>
-    </div>
 
-    <div class="messages" @ref="messagesDiv" @onscroll="OnScroll">
-        @{ var msgIndex = 0; }
-        @foreach (var msg in messages)
+        <div class="chat-actions">
+            <SfButton CssClass="chat-action-btn" OnClick="NewChat" Disabled="@isProcessing">
+                <span class="btn-icon">+</span>
+                <span class="btn-text">@L["TestChatNewChat"]</span>
+            </SfButton>
+            <SfButton CssClass="chat-action-btn" OnClick="OpenHistory" Disabled="@isProcessing">
+                <span class="btn-icon">&#9776;</span>
+                <span class="btn-text">@L["TestChatHistory"]</span>
+            </SfButton>
+        </div>
+
+        @if (_showContextBar && _contextLength > 0)
         {
-            var index = msgIndex++;
-            var isUser = msg.Role == "user";
-            <div class="msg @(msg.Role)">
-                @((MarkupString)FormatMessage(msg.Content, msg == currentAssistantMessage))
-                @if (!isUser && msg != currentAssistantMessage && !string.IsNullOrWhiteSpace(msg.Content))
-                {
-                    <div class="msg-actions">
-                        <span class="msg-vote-state @(GetFeedback(index) == 1 ? "state-liked" : GetFeedback(index) == -1 ? "state-disliked" : "state-none")">
-                            @(GetFeedback(index) == 1 ? L["ChatVoteLiked"] : GetFeedback(index) == -1 ? L["ChatVoteDisliked"] : L["ChatVoteNone"])
-                        </span>
-                        <button type="button" class="msg-action-btn" title="@L["ChatCopyResponse"]" @onclick="() => CopyMessageAsync(msg)">
-                            <span class="fa fa-copy"></span>
-                        </button>
-                        <button type="button" class="msg-action-btn @(GetFeedback(index) == 1 ? "active-thanks" : "")" title="@L["ChatMarkCorrect"]" @onclick="() => RateMessageAsync(index, msg, 1)">👍</button>
-                        <button type="button" class="msg-action-btn @(GetFeedback(index) == -1 ? "active-dislike" : "")" title="@L["ChatMarkIncorrect"]" @onclick="() => RateMessageAsync(index, msg, -1)">👎</button>
+            <div class="context-progress">
+                <div class="context-progress-track">
+                    <div class="context-progress-fill" style="width:@GetContextPercent(); background-color:@GetContextColor();"></div>
+                </div>
+                <div class="context-progress-labels">
+                    <span>@string.Format(L["TestChatTokensUsed"], _contextUsedTokens.ToString("N0"), _contextLength.ToString("N0"))</span>
+                    <span>@string.Format(L["TestChatTokensRemaining"], ContextRemaining.ToString("N0"))</span>
+                </div>
+            </div>
+        }
+
+        <div class="messages" @ref="messagesDiv" @onscroll="OnScroll">
+            @{ var msgIndex = 0; }
+            @foreach (var msg in messages)
+            {
+                var index = msgIndex++;
+                var isUser = msg.Role == "user";
+                <div class="msg-row @(isUser ? "user" : "assistant")">
+                    <div class="msg-meta">
+                        @if (isUser)
+                        {
+                            <span class="msg-author">@L["TestChatUserName"]</span>
+                            @if (msg.Temperature > 0)
+                            {
+                                <span class="msg-temp-chip">@string.Format(L["TestChatTemperature"], msg.Temperature)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="msg-author">@L["ChatRoomTitle"]</span>
+                            <span class="msg-timestamp">- @msg.Timestamp.ToString("HH:mm")</span>
+                            @if (!string.IsNullOrEmpty(msg.ElapsedTime))
+                            {
+                                <span class="msg-elapsed-chip">- @msg.ElapsedTime</span>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(msg.RealModelName))
+                            {
+                                <span class="msg-model-chip">Ollama - @msg.RealModelName</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(msg.LanguageWarning))
+                            {
+                                <span class="msg-language-warning" title="@msg.LanguageWarning">! @msg.LanguageWarning</span>
+                            }
+                        }
                     </div>
-                }
-            </div>
-        }
 
-        @if (!string.IsNullOrWhiteSpace(ProgressStatus))
-        {
-            <div class="msg assistant assistant-status">
-                <span class="status-text">@((MarkupString)FormatMessage(ProgressStatus, false))</span>
-                <span class="dots"><span></span><span></span><span></span></span>
-            </div>
-        }
-    </div>
+                    <div class="chat-content">
+                        @if (msg.IsError)
+                        {
+                            <div class="msg-error-label">⚠️</div>
+                        }
+                        else if (msg.Role == "assistant" && msg.Content == "...")
+                        {
+                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                        }
+                        else
+                        {
+                            @((MarkupString)FormatMessage(msg.Content, msg == currentAssistantMessage))
+                        }
+                    </div>
 
-    <div class="input-area">
-        <div class="input-inner">
+                    @if (!isUser && !msg.IsWelcome && !msg.IsError && !string.IsNullOrWhiteSpace(msg.Content) && msg.Content != "...")
+                    {
+                        <div class="msg-actions">
+                            <span class="msg-vote-state @(GetFeedback(index) == 1 ? "state-liked" : GetFeedback(index) == -1 ? "state-disliked" : "state-none")">
+                                @(GetFeedback(index) == 1 ? L["ChatVoteLiked"] : GetFeedback(index) == -1 ? L["ChatVoteDisliked"] : L["ChatVoteNone"])
+                            </span>
+                            <button type="button" class="msg-action-btn" title="@L["ChatCopyResponse"]" @onclick="() => CopyMessageAsync(msg)">
+                                <span class="fa fa-copy"></span>
+                            </button>
+                            <button type="button" class="msg-action-btn @(GetFeedback(index) == 1 ? "active-thanks" : "")" title="@L["ChatMarkCorrect"]" @onclick="() => RateMessageAsync(index, msg, 1)">👍</button>
+                            <button type="button" class="msg-action-btn @(GetFeedback(index) == -1 ? "active-dislike" : "")" title="@L["ChatMarkIncorrect"]" @onclick="() => RateMessageAsync(index, msg, -1)">👎</button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="input-area">
             <textarea class="chat-input"
-                      style="@InputStyle"
                       @bind="userInput"
                       @ref="chatInputRef"
                       @onkeydown="HandleKeyDown"
@@ -120,7 +127,7 @@
                       disabled="@isConnecting"></textarea>
 
             <div class="send-controls">
-                <button class="chat-action-button"
+                <button class="chat-send-button @(isProcessing ? "cancel" : "")"
                         @onclick="@(isProcessing ? CancelSend : Send)"
                         disabled="@isConnecting">
                     @if (isProcessing)
@@ -135,30 +142,9 @@
             </div>
         </div>
     </div>
+
+    <HistoryPanel @ref="historyPanel" OnLoadConversation="LoadConversationAsync" />
 </div>
-
-@if (ShowSpinnerOverlay)
-{
-    <div class="global-spinner-overlay">
-        <div class="spinner-container">
-            <SfSpinner Visible="true" Label="@SpinnerLabel" Type="@SpinnerType.Tailwind" />
-        </div>
-    </div>
-}
-
-<ConfirmAppWarning DialogTitle="@L["StartNewConversation"]"
-                   AlertMessage="@L["StartNewConversationMessage"]"
-                   AlertMessageType="AlertMessageType.Warning"
-                   Visible="@showConfirmNewConversation"
-                   OnConfirmationYes="@OnConfirmYes"
-                   OnConfirmationNo="@OnConfirmNo" />
-
-<ConfirmAppWarning DialogTitle="@L["ChatDeleteMessasagesTitle"]"
-                   AlertMessage="@L["ChatDeleteMessage"]"
-                   AlertMessageType="AlertMessageType.Warning"
-                   Visible="@showConfirmDeleteConversation"
-                   OnConfirmationYes="@OnConfirmDeleteYes"
-                   OnConfirmationNo="@OnConfirmDeleteNo" />
 
 <SfToast @ref="toastObj"
          Title="@ToastTitle"
@@ -169,716 +155,536 @@
     <ToastPosition X="right" Y="bottom" />
 </SfToast>
 
-@* <style>
-    .chat-container {
-        margin: 0 !important;
-        padding: 0 !important;
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 80px);
-        overflow: hidden;
-        position: relative;
-        top: 0;
-    }
-
-    .chat-header {
-        flex: 0 0 auto;
-        background: var(--app-surface-alt);
-        z-index: 10;
-        border-bottom: 1px solid var(--app-border);
-        border-radius: 10px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .header-inner {
-        width: 100%;
-        max-width: none;
-        margin: 0;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        padding: 6px 16px;
-        box-sizing: border-box;
-    }
-
-    .header-title {
-        text-align: left;
-        padding-left: 8px;
-        padding-right: 12px;
-        flex: 0 0 auto;
-        margin: 0;
-        font-weight: 600;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-left: auto;
-    }
-
-    .messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-
-        border: 1px solid #ddd;
-        background-color: #FFFCFC;
-        border-radius: 10px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-top: 16px;
-    }
-
-    .msg {
-        max-width: 70%;
-        padding: 8px;
-        font-size: 0.8rem;
-        margin: 4px 5px;
-        border-radius: 12px;
-        white-space: pre-line;
-    }
-
-        .msg p {
-            margin: 0;
-        }
-        .msg div {
-            margin: 0;
-        }
-
-        .msg.user {
-            align-self: flex-end;
-            background: var(--app-primary);
-            color: var(--app-on-primary);
-        }
-
-        .msg.assistant {
-            align-self: flex-start;
-            background: #e5e5ea;
-        }
-
-    .input-area {
-        flex: 0 0 auto;
-        background: var(--app-surface);
-        padding: 12px;
-        border-top: 1px solid var(--app-border);
-    }
-
-    .input-inner {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .chat-input {
-        flex: 1;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        min-height: 40px;
-        max-height: 220px;
-        resize: vertical;
-        overflow: auto;
-        box-sizing: border-box;
-    }
-
-    .send-button {
-        padding: 0 14px;
-        border-radius: 10px;
-        background: #007bff;
-        color: white;
-        border: none;
-        height: 40px;
-        min-width: 72px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        align-self: flex-start;
-    }
-
-    .conversation-list {
-        display: inline-block;
-        margin-right: 12px;
-        vertical-align: middle;
-    }
-
-    .conversation-dropdown {
-        min-width: 300px;
-        max-width: 360px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .cursor {
-        display: inline-block;
-        width: 8px;
-        animation: blink 1s step-start infinite;
-        color: var(--app-primary);
-    }
-
-    @@keyframes blink {
-        50% {
-            opacity: 0;
-        }
-    }
-
-    .spinner-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.5);
-        z-index: 9999;
-        animation: fadeIn 0.2s ease-in-out;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    #spinner-container {
-        display: none;
-    }
-
-    .global-spinner-overlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
-        z-index: 9999;
-    }
-
-        .global-spinner-overlay .spinner-container {
-            pointer-events: auto;
-            background: rgba(255,255,255,0.85);
-            padding: 10px;
-            border-radius: 8px;
-        }
-
-    .assistant-status {
-        margin-left: 12px;
-        color: var(--app-text-secondary);
-        font-size: 0.8rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-        .assistant-status .dots {
-            display: inline-flex;
-            gap: 6px;
-            align-items: center;
-            margin-left: 6px;
-        }
-
-            .assistant-status .dots span {
-                width: 6px;
-                height: 6px;
-                background: var(--app-text-secondary);
-                border-radius: 50%;
-                opacity: 0.25;
-                animation: assistant-dot 1000ms ease-in-out infinite;
-            }
-
-                .assistant-status .dots span:nth-child(1) {
-                    animation-delay: 0ms;
-                }
-
-                .assistant-status .dots span:nth-child(2) {
-                    animation-delay: 160ms;
-                }
-
-                .assistant-status .dots span:nth-child(3) {
-                    animation-delay: 320ms;
-                }
-
-    @@keyframes assistant-dot {
-        0% {
-            opacity: 0.25;
-            transform: translateY(0);
-        }
-
-        50% {
-            opacity: 1;
-            transform: translateY(-4px);
-        }
-
-        100% {
-            opacity: 0.25;
-            transform: translateY(0);
-        }
-    }
-
-    .send-controls {
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .chat-action-button {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        border: solid 0.08em var(--app-border);
-        background-color: transparent;
-        color: var(--app-text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-
-        .chat-action-button:hover {
-            transform: scale(1.05);
-        }
-
-        .chat-action-button:disabled {
-            opacity: .5;
-            cursor: not-allowed;
-        }
-
-    .stop-icon {
-        width: 12px;
-        height: 12px;
-        background: var(--app-danger);
-        border-radius: 2px;
-    }
-</style> *@
-
 <style>
-    /* ===========================
-                   CONTAINER E HEADER
-                   =========================== */
     .chat-container {
-        margin: 0 !important;
-        padding: 0 !important;
         display: flex;
-        flex-direction: column;
-        height: calc(100vh - 80px);
-        overflow: hidden;
-        position: relative;
-        top: 0;
+        justify-content: center;
+        padding: 20px;
+        min-width: 0;
     }
 
-    .chat-header {
-        flex: 0 0 auto;
-        background: var(--app-surface-alt);
-        z-index: 10;
-        border-bottom: 1px solid var(--app-border);
-        border-radius: 10px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .header-inner {
+    .chat-card {
         width: 100%;
-        margin: 0;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        padding: 6px 16px;
-        box-sizing: border-box;
-    }
-
-    .header-title {
-        padding-left: 8px;
-        padding-right: 12px;
-        font-weight: 600;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-left: auto;
-    }
-
-    /* ===========================
-                   ÁREA DE MENSAGENS
-                   =========================== */
-    .messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px;
-        min-height: 0;
+        max-width: 1100px;
+        height: calc(100dvh - 210px);
+        min-height: 420px;
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
+        padding: 16px;
         border: 1px solid var(--app-border);
-        background-color: var(--app-surface);
-        border-radius: 10px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-top: 16px;
-    }
-
-    /* ===========================
-                   BALÕES DE MENSAGEM (ChatGPT-like)
-                   =========================== */
-    .msg {
-        max-width: 70%;
-        padding: 10px 14px;
-        font-size: 0.9rem;
-        line-height: 1.45;
-        margin: 6px 5px;
         border-radius: 12px;
-        white-space: normal; /* preserva <br> sem criar linhas extra */
-        word-wrap: break-word;
-    }
-
-        /* Parágrafos dentro das mensagens */
-        .msg div {
-            margin: 0 0 6px 0; /* igual ao ChatGPT */
-        }
-
-            /* Último parágrafo sem margem extra */
-            .msg div:last-child {
-                margin-bottom: 0;
-            }
-
-        /* USER (lado direito) */
-.msg.user {
-            align-self: flex-end;
-            background: var(--app-primary);
-            color: var(--app-on-primary);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-
-        /* ASSISTANT (lado esquerdo) */
-        .msg.assistant {
-            align-self: flex-start;
-            background: var(--app-surface-alt);
-            border: 1px solid var(--app-border);
-            color: var(--app-text-primary);
-        }
-
-        /* Listas */
-        .msg ul, .msg ol {
-            margin: 6px 0 6px 18px;
-            padding: 0;
-        }
-
-        /* Headings */
-        .msg h1, .msg h2, .msg h3 {
-            margin: 10px 0 6px 0;
-            font-weight: 600;
-        }
-
-        /* Ações por resposta (copiar / 👍 / 👎, como no ChatGPT) */
-        .msg .msg-actions {
-            display: flex;
-            gap: 4px;
-            margin-top: 6px;
-            align-items: center;
-        }
-
-        .msg-vote-state {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--app-text-secondary);
-            padding: 1px 8px;
-            border: 1px solid var(--app-border);
-            border-radius: 999px;
-            background: var(--app-surface);
-        }
-
-        .msg-vote-state.state-liked {
-            color: var(--app-accent-green);
-            border-color: var(--app-accent-green);
-        }
-
-        .msg-vote-state.state-disliked {
-            color: var(--app-danger);
-            border-color: var(--app-danger);
-        }
-
-        .msg-action-btn {
-            border: none;
-            background: transparent;
-            color: var(--app-text-secondary);
-            border-radius: 6px;
-            padding: 3px 0;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            min-width: 30px;
-            min-height: 26px;
-            cursor: pointer;
-            transition: color 0.15s ease;
-        }
-
-        .msg-action-btn:hover {
-            color: var(--app-text-primary);
-        }
-
-        .msg-action-btn.active-thanks {
-            color: var(--app-accent-green);
-        }
-
-        .msg-action-btn.active-dislike {
-            color: var(--app-danger);
-        }
-
-    /* ===========================
-                   INPUT
-                   =========================== */
-    .input-area {
-        flex: 0 0 auto;
         background: var(--app-surface);
-        padding: 12px;
-        border-top: 1px solid var(--app-border);
-    }
-
-    .input-inner {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .chat-input {
-        flex: 1;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        min-height: 40px;
-        max-height: 220px;
-        resize: vertical;
-        overflow: auto;
+        box-shadow: var(--app-shadow);
         box-sizing: border-box;
+        min-width: 0;
     }
 
-    /* ===========================
-                   BOTÃO DE ENVIAR
-                   =========================== */
-    .chat-action-button {
-        width: 42px;
-        height: 42px;
+    .chat-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--app-border);
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+
+    .chat-persona {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .chat-avatar {
+        position: relative;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        border: solid 0.08em var(--app-border);
-        background-color: transparent;
-        color: var(--app-text-primary);
+        background: var(--app-primary);
+        color: var(--app-on-primary);
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        transition: all .2s ease;
+        font-weight: 700;
+        font-size: 0.9rem;
+        flex-shrink: 0;
     }
 
-        .chat-action-button:hover {
-            transform: scale(1.05);
-        }
+    .chat-avatar-initials {
+        line-height: 1;
+    }
 
-        .chat-action-button:disabled {
-            opacity: .5;
-            cursor: not-allowed;
-        }
-
-    .stop-icon {
+    .chat-presence {
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
         width: 12px;
         height: 12px;
-        background: var(--app-danger);
-        border-radius: 2px;
+        border-radius: 50%;
+        border: 2px solid var(--app-surface);
+        box-sizing: border-box;
     }
 
-    /* ===========================
-                   STATUS DO ASSISTENTE
-                   =========================== */
-    .assistant-status {
-        margin-left: 12px;
+    .chat-presence {
+        background: var(--app-success-text);
+    }
+
+    .chat-avatar.busy .chat-presence {
+        background: var(--app-warning-text);
+        animation: presencePulse 1.6s infinite ease-out;
+    }
+
+    @@keyframes presencePulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
+
+    .chat-persona-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--app-text-primary);
+        white-space: nowrap;
+    }
+
+    .chat-model-pill {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
         color: var(--app-text-secondary);
         font-size: 0.8rem;
-        display: inline-flex;
+        font-family: Consolas, "Courier New", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-elapsed {
+        flex-shrink: 0;
+        min-width: 56px;
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--app-text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .chat-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .chat-action-btn.e-btn {
+        border: 1px solid var(--app-border);
+        background: var(--app-surface-alt);
+        color: var(--app-text-primary);
+        border-radius: 8px;
+        padding: 6px 14px;
+        box-shadow: none;
+        font-size: 0.9rem;
+    }
+
+    .chat-action-btn.e-btn:hover {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-action-btn .btn-icon {
+        margin-right: 6px;
+        font-weight: 700;
+    }
+
+    .context-progress {
+        margin-bottom: 12px;
+    }
+
+    .context-progress-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--app-surface-alt);
+        overflow: hidden;
+    }
+
+    .context-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .2s ease;
+    }
+
+    .context-progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .messages {
+        flex-grow: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 8px;
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .msg-row {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .msg-row.user {
+        align-items: flex-end;
+    }
+
+    .msg-meta {
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        margin-bottom: 3px;
+        display: flex;
         align-items: center;
         gap: 6px;
+        flex-wrap: wrap;
     }
 
-        .assistant-status .dots {
-            display: inline-flex;
-            gap: 6px;
-            align-items: center;
-            margin-left: 6px;
-        }
-
-            .assistant-status .dots span {
-                width: 6px;
-                height: 6px;
-                background: var(--app-text-secondary);
-                border-radius: 50%;
-                opacity: 0.25;
-                animation: assistant-dot 1000ms ease-in-out infinite;
-            }
-
-                .assistant-status .dots span:nth-child(1) {
-                    animation-delay: 0ms;
-                }
-
-                .assistant-status .dots span:nth-child(2) {
-                    animation-delay: 160ms;
-                }
-
-                .assistant-status .dots span:nth-child(3) {
-                    animation-delay: 320ms;
-                }
-
-    @@keyframes assistant-dot {
-        0% {
-            opacity: 0.25;
-            transform: translateY(0);
-        }
-
-        50% {
-            opacity: 1;
-            transform: translateY(-4px);
-        }
-
-        100% {
-            opacity: 0.25;
-            transform: translateY(0);
-        }
-    }
-
-    /* ===========================
-                   CURSOR
-                   =========================== */
-    .cursor {
-        display: inline-block;
-        width: 8px;
-        animation: blink 1s step-start infinite;
-        color: var(--app-primary);
-    }
-
-    @@keyframes blink {
-        50% {
-            opacity: 0;
-        }
-    }
-
-    .token-info {
-        font-size: 0.8rem;
-        color: var(--app-text-secondary);
-        padding: 4px 8px;
-        background: var(--app-surface);
-        border: 1px solid var(--app-border);
-        border-radius: 6px;
-    }
-
-    .token-info {
-        font-size: 0.8rem;
-        padding: 4px 10px;
-        border-radius: 6px;
-        border: 1px solid var(--app-border);
-        background: var(--app-surface);
-        transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    /* Verde */
-    .token-low {
-        background: var(--app-success-bg);
-        border-color: var(--app-success-border);
-        color: var(--app-success-text);
-    }
-
-    /* Amarelo */
-    .token-medium {
-        background: var(--app-warning-bg);
-        border-color: var(--app-warning-border);
-        color: var(--app-warning-text);
-    }
-
-    /* Vermelho */
-    .token-high {
-        background: var(--app-danger-bg);
-        border-color: var(--app-danger-border);
-        color: var(--app-danger-text);
-    }
-
-    /* Container da barra */
-    .token-bar-container {
-        width: 180px;
-        height: 8px;
-        background: var(--app-surface-alt);
-        border-radius: 6px;
-        overflow: hidden;
-        margin-right: 12px;
-        align-self: center;
-    }
-
-    /* Parte preenchida */
-    .token-bar-fill {
-        height: 100%;
-        transition: width 0.35s ease, background-color 0.35s ease;
-    }
-
-    /* Verde */
-    .token-low {
-        background: var(--app-accent-green);
-    }
-
-    /* Amarelo */
-    .token-medium {
-        background: var(--app-accent-yellow);
-    }
-
-    /* Vermelho */
-    .token-high {
-        background: var(--app-danger);
-    }
-
-    /* Texto ao lado */
-    .token-bar-label {
-        font-size: 0.8rem;
-        color: var(--app-text-secondary);
-        align-self: center;
-    }
-
-    .token-warning {
-        margin-top: 6px;
-        padding: 6px 10px;
-        border-radius: 6px;
-        font-size: 0.8rem;
+    .msg-author {
         font-weight: 600;
-        animation: fadeIn 0.3s ease;
     }
 
-    /* Aviso moderado (80%–90%) */
-    .token-warning-medium {
+    .msg-timestamp {
+        color: var(--app-text-secondary);
+    }
+
+    .msg-temp-chip {
+        padding: 1px 6px;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+    }
+
+    .msg-elapsed-chip {
+        font-size: 0.75rem;
+        color: var(--app-text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .msg-model-chip {
+        padding: 1px 6px;
+        background: var(--app-surface-alt);
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+    }
+
+    .msg-language-warning {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
         background: var(--app-warning-bg);
         border: 1px solid var(--app-warning-border);
         color: var(--app-warning-text);
     }
 
-    /* Aviso crítico (>90%) */
-    .token-warning-high {
-        background: var(--app-danger-bg);
-        border: 1px solid var(--app-danger-border);
-        color: var(--app-danger-text);
+    .msg-error-label {
+        font-size: 1.2rem;
     }
 
-    @@keyframes fadeIn {
-        from {
+    .msg-actions {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+        align-items: center;
+    }
+
+    .msg-vote-state {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--app-text-secondary);
+        padding: 1px 8px;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        background: var(--app-surface);
+    }
+
+    .msg-vote-state.state-liked {
+        color: var(--app-accent-green);
+        border-color: var(--app-accent-green);
+    }
+
+    .msg-vote-state.state-disliked {
+        color: var(--app-danger);
+        border-color: var(--app-danger);
+    }
+
+    .msg-action-btn {
+        border: none;
+        background: transparent;
+        color: var(--app-text-secondary);
+        border-radius: 6px;
+        padding: 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        min-width: 30px;
+        min-height: 26px;
+        cursor: pointer;
+        transition: color 0.15s ease;
+    }
+
+    .msg-action-btn:hover {
+        color: var(--app-text-primary);
+    }
+
+    .msg-action-btn.active-thanks {
+        color: var(--app-accent-green);
+    }
+
+    .msg-action-btn.active-dislike {
+        color: var(--app-danger);
+    }
+
+    .chat-content {
+        max-width: 95%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        background: var(--app-surface-alt);
+        color: var(--app-text-primary);
+        word-break: break-word;
+    }
+
+    .msg-row.user .chat-content {
+        background: var(--app-primary);
+        color: var(--app-on-primary);
+    }
+
+    .chat-content h1,
+    .chat-content h2,
+    .chat-content h3,
+    .chat-content h4 {
+        font-size: 0.95rem !important;
+        font-weight: bold !important;
+        margin-top: 0px !important;
+        margin-bottom: 2px !important;
+        display: block !important;
+        color: inherit !important;
+    }
+
+    .chat-content p,
+    .chat-content div {
+        font-size: 0.9rem;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .chat-content ul, .chat-content ol {
+        padding-left: 20px;
+        margin: 4px 0;
+    }
+
+    .chat-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 0.85rem;
+    }
+
+    .chat-content th, .chat-content td {
+        border: 1px solid var(--app-border);
+        padding: 6px 10px;
+        text-align: left;
+    }
+
+    .chat-content th {
+        background-color: var(--app-surface-hover);
+        font-weight: bold;
+    }
+
+    .chat-content pre {
+        background: var(--app-surface-hover);
+        padding: 8px;
+        border-radius: 6px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .chat-content code {
+        background: var(--app-surface-hover);
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .msg-row.user .chat-content code {
+        background: rgba(255, 255, 255, 0.2);
+        color: inherit;
+    }
+
+    .cursor {
+        animation: blink 1s step-end infinite;
+    }
+
+    @@keyframes blink {
+        50% {
             opacity: 0;
-            transform: translateY(-4px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
         }
     }
 
+    .typing-dots {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        color: var(--app-text-secondary);
+    }
+
+    .typing-dots span {
+        width: 6px;
+        height: 6px;
+        background-color: currentColor;
+        border-radius: 50%;
+        display: inline-block;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @@keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0);
+        }
+
+        40% {
+            transform: scale(1);
+        }
+    }
+
+    .input-area {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: var(--app-surface-alt);
+        border: 1px solid var(--app-border);
+        color: var(--app-text-primary);
+        min-height: 40px;
+        max-height: 220px;
+        resize: vertical;
+        overflow: auto;
+        box-sizing: border-box;
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: var(--app-primary);
+    }
+
+    .send-controls {
+        flex-shrink: 0;
+    }
+
+    .chat-send-button {
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: none;
+        background: var(--app-primary);
+        color: var(--app-on-primary);
+        cursor: pointer;
+        font-size: 1rem;
+        transition: transform .15s ease, background-color .2s ease;
+    }
+
+    .chat-send-button:hover:not(:disabled) {
+        background: var(--app-primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .chat-send-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .chat-send-button.cancel {
+        background: var(--app-danger);
+        animation: cancelPulse 1.6s infinite ease-out;
+    }
+
+    .stop-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        background: var(--app-on-danger);
+    }
+
+    @@keyframes cancelPulse {
+        0% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 0 rgba(220, 38, 38, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 10px rgba(220, 38, 38, 0);
+        }
+
+        100% {
+            box-shadow: 0 2px 6px var(--app-shadow), 0 0 0 0 rgba(220, 38, 38, 0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .chat-container {
+            padding: 8px;
+        }
+
+        .chat-card {
+            height: calc(100dvh - 150px);
+        }
+
+        .chat-header-bar {
+            flex-wrap: wrap;
+            row-gap: 8px;
+        }
+
+        .chat-model-pill {
+            order: 3;
+            flex-basis: 100%;
+            text-align: center;
+        }
+    }
 </style>
