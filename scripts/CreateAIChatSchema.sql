@@ -217,7 +217,7 @@ BEGIN
         NomeModelo nvarchar(200) NOT NULL,
         ModeloResolvido nvarchar(200) NULL,
         TextoResposta nvarchar(max) NOT NULL,
-        TempoProcessamento float NULL,      -- total ms
+        TempoProcessamento float NULL,      -- total seconds (stream duration)
         TokensPorSegundo float NULL,
         TempoPuroMs float NULL,
         TempoCargaMs float NULL,            -- time to first chunk

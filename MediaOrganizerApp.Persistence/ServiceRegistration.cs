@@ -67,6 +67,12 @@ namespace MediaOrganizerApp.Persistence
             services.AddScoped<IAIChatSettingsRepository, AIChatSettingsRepository>();
             services.AddScoped<IAIBenchmarkRepository, AIBenchmarkRepository>();
 
+            // Internal AI usage logging (non-chat)
+            services.AddScoped<IAiUsageLogRepository, AiUsageLogRepository>();
+
+            // Chat feedback ratings (like/dislike in both chats)
+            services.AddScoped<IChatFeedbackRepository, ChatFeedbackRepository>();
+
             //services.AddSingleton<ILastFmService, LastFmService>();
             services.AddMemoryCache();
 

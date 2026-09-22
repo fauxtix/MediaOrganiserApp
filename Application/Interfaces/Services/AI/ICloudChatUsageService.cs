@@ -15,4 +15,12 @@ public interface ICloudChatUsageService
     Task<CloudChatUsageDto> GetUsageAsync(CancellationToken ct = default);
     Task RegisterFreeModelUsageAsync(CancellationToken ct = default);
     Task SyncFreeUsageFromHeadersAsync(int cap, int remaining, CancellationToken ct = default);
+
+    /// <summary>
+    /// Number of free-model requests still allowed today (cap minus local counter).
+    /// The cap is resolved without network: it favors the <c>FreeDailyCap</c> override,
+    /// then the last "ever purchased credits" snapshot persisted by <see cref="GetUsageAsync"/>,
+    /// defaulting to cap 50 until the dashboard refreshes the snapshot.
+    /// </summary>
+    Task<int> GetFreeRequestsRemainingAsync(CancellationToken ct = default);
 }

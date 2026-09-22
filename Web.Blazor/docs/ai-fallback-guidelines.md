@@ -7,6 +7,26 @@ This document describes the implemented AI fallback approach in this solution.
 
 External metadata APIs first; AI fallback runs **only** when external lookup fails/returns empty.
 
+## Usage logging (non-chat)
+
+Every non-chat AI operation is auto-recorded server-side by `MediaOrganizerApp.WebApi\Controllers\AiController.cs`
+into the `AIUsageLog` table (`AiUsageRecorderService`). The `Scenario` column tags the caller context:
+- `cloud-fallback` set by the Blazor wrappers (`TranslateClientService`, `AiBookClientService`, `AuthorBooks.razor.cs`) when OpenRouter failed and the local Ollama provider was used;
+- `googlebooks` / `author-api` / `media-api` tagged at the page call sites (`GoogleBooksApiSearch`, `EditAuthor`, `EditMedia`);
+- `direct` (default) for plain cloud/direct usage.
+
+Dashboard section "IA em uso interno" reads `GET /api/ai-usage/summary` via `Web.Blazor\Services\ApiWrappers\AiUsageClientService.cs`.
+Chat is intentionally excluded — it stays in `AIResponses`.
+
+### Books: "Pesquisar Books Online/AI"
+
+`Web.Blazor\Pages\Publications\GoogleBooksApiSearch.razor.cs` (hosted by `EditPublicacoes`) resolves a book as:
+1. **Google Books API** (`GoogleBooksClientService.GetBookAsync`) with `intitle:"..."`/`inauthor:"..."` phrase syntax, plus **one retry with the title translated to English** when the first query returns zero items (retry becomes active — previously dead code because `GetBookAsync` never returned `null`). When a found volume lacks `volumeInfo.description`, its `searchInfo.textSnippet` becomes `Resumo` (MyMemory-translated) — AI is only reached for items that have **neither** `description` **nor** `textSnippet`.
+2. **OpenRouter cloud** — `AiBookClientService.GetBookSummaryCloudAsync`/`GetBookSummaryOnlyCloudAsync` → `POST api/Ai/book-summary-cloud` / `book-summary-only-cloud` → `CloudBookSummaryService` (free/paid gate + catalog sweep + free-daily-cap). Only when Google Books returns no items at all, or items without both `description` and `textSnippet`.
+3. **Ollama local** — on cloud null/503 it falls back to `book-summary`/`book-summary-only` with `scenario: "cloud-fallback"`.
+
+Both cloud endpoints record `AIUsageLog` rows with `provider=openrouter` + the caller `scenario` (`googlebooks`); the local fallback records `provider=ollama` + `scenario=cloud-fallback` (`EraFallback=1`).
+
 ## Implemented components
 
 ### Shared contracts
@@ -17,15 +37,16 @@ External metadata APIs first; AI fallback runs **only** when external lookup fai
 
 ### Web API
 
-- Endpoint: `POST api/Ai/author-profile`
+- Endpoints: `POST api/Ai/author-profile-cloud` (OpenRouter first) and `POST api/Ai/author-profile` (local fallback)
 - Controller: `MediaOrganizerApp.WebApi\Controllers\AiController.cs`
-- Service: `MediaOrganizerApp.WebApi\Services\AiAuthorProfileService.cs`
+- Services: `MediaOrganizerApp.WebApi\Services\CloudChat\CloudAuthorProfileService.cs` (OpenRouter, gate + catalog sweep + free-daily-cap) and `MediaOrganizerApp.WebApi\Services\AiAuthorProfileService.cs` / `OllamaAuthorProfileService.cs` (local)
 - DI registration: `MediaOrganizerApp.WebApi\Program.cs`
+  - `builder.Services.AddScoped<CloudAuthorProfileService>();`
   - `builder.Services.AddScoped<IAiAuthorProfileService, AiAuthorProfileService>();`
 
 ### Blazor
 
-- Wrapper: `Web.Blazor\Services\ApiWrappers\AiClientService.cs`
+- Wrapper: `Web.Blazor\Services\ApiWrappers\AiClientService.cs` — `GetAuthorProfileAsync` calls `author-profile-cloud` first, falls back to `author-profile` with `Scenario = "cloud-fallback"` on null/503
 - DI registration: `Web.Blazor\ServiceRegistration.cs`
   - `services.AddHttpClient<AiClientService>();`
 - Usage (external first, AI fallback only if empty):

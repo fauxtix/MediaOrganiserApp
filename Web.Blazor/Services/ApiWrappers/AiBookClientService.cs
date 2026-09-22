@@ -28,7 +28,8 @@ public sealed class AiBookClientService
         string author,
         string language = "pt",
         string? connectionId = null,
-        string? correlationId = null)
+        string? correlationId = null,
+        string? scenario = null)
     {
         try
         {
@@ -37,6 +38,8 @@ public sealed class AiBookClientService
                 endpoint += $"&connectionId={Uri.EscapeDataString(connectionId)}";
             if (!string.IsNullOrWhiteSpace(correlationId))
                 endpoint += $"&correlationId={Uri.EscapeDataString(correlationId)}";
+            if (!string.IsNullOrWhiteSpace(scenario))
+                endpoint += $"&scenario={Uri.EscapeDataString(scenario)}";
             using var resp = await _httpClient.GetAsync(endpoint);
 
             if (!resp.IsSuccessStatusCode)
@@ -76,7 +79,8 @@ public sealed class AiBookClientService
         string? author,
         string language = "pt",
         string? connectionId = null,
-        string? correlationId = null)
+        string? correlationId = null,
+        string? scenario = null)
     {
         try
         {
@@ -88,7 +92,8 @@ public sealed class AiBookClientService
                     Author = author,
                     Language = language,
                     ConnectionId = connectionId,
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Scenario = scenario
                 });
 
             if (!resp.IsSuccessStatusCode)
@@ -104,6 +109,128 @@ public sealed class AiBookClientService
     }
 
     /// <summary>
+    /// Fetches a book summary/metadata via the OpenRouter-backed endpoint. Returns
+    /// null whenever the cloud path is unavailable/failed so callers fall back to
+    /// the local Ollama provider (mirroring the translate/media cloud wrappers).
+    /// </summary>
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryCloudAsync(
+        string title,
+        string? author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        string? scenario = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                _httpClient,
+                $"{_uri}/book-summary-cloud",
+                new AiBookSummaryRequestDto
+                {
+                    Title = title,
+                    Author = author,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId,
+                    Scenario = scenario
+                },
+                cancellationToken);
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                _logger.LogWarning("AI book-summary-cloud indisponível (503). A usar fallback local (Ollama) para '{Title}'.", title);
+                return null;
+            }
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errorBody = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("AI book-summary-cloud failed. Status={StatusCode} Body={Body} for title={Title}", (int)resp.StatusCode, errorBody, title);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<AiBookSummaryResponseDto>(cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("AI book-summary-cloud request foi abatida por timeout para title={Title}", title);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("AI book-summary-cloud request cancelled for title={Title}", title);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI - Error generating book summary via OpenRouter for title={Title}", title);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Fetches a book summary (without extra metadata) via the OpenRouter-backed
+    /// endpoint. Returns null whenever the cloud path is unavailable/failed so
+    /// callers fall back to the local Ollama provider.
+    /// </summary>
+    public async Task<AiBookSummaryResponseDto?> GetBookSummaryOnlyCloudAsync(
+        string title,
+        string? author,
+        string language = "pt",
+        string? connectionId = null,
+        string? correlationId = null,
+        string? scenario = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(
+                _httpClient,
+                $"{_uri}/book-summary-only-cloud",
+                new AiBookSummaryRequestDto
+                {
+                    Title = title,
+                    Author = author,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId,
+                    Scenario = scenario
+                },
+                cancellationToken);
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                _logger.LogWarning("AI book-summary-only-cloud indisponível (503). A usar fallback local (Ollama) para '{Title}'.", title);
+                return null;
+            }
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errorBody = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("AI book-summary-only-cloud failed. Status={StatusCode} Body={Body} for title={Title}", (int)resp.StatusCode, errorBody, title);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<AiBookSummaryResponseDto>(cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("AI book-summary-only-cloud request foi abatida por timeout para title={Title}", title);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("AI book-summary-only-cloud request cancelled for title={Title}", title);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI - Error generating book summary-only via OpenRouter for title={Title}", title);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Fetches an author's books via the OpenRouter-backed endpoint. Returns a
     /// result with the books and, when the cloud path yields nothing, a failure
     /// reason/outcomes so the UI can explain and let the user decide whether to
@@ -114,6 +241,7 @@ public sealed class AiBookClientService
         string language = "pt",
         string? connectionId = null,
         string? correlationId = null,
+        string? scenario = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -129,6 +257,8 @@ public sealed class AiBookClientService
                 endpoint += $"&connectionId={Uri.EscapeDataString(connectionId)}";
             if (!string.IsNullOrWhiteSpace(correlationId))
                 endpoint += $"&correlationId={Uri.EscapeDataString(correlationId)}";
+            if (!string.IsNullOrWhiteSpace(scenario))
+                endpoint += $"&scenario={Uri.EscapeDataString(scenario)}";
             using var resp = await _httpClient.GetAsync(endpoint, cts.Token);
 
             if (!resp.IsSuccessStatusCode)
@@ -202,6 +332,7 @@ public sealed class AiBookClientService
         string language = "pt",
         string? connectionId = null,
         string? correlationId = null,
+        string? scenario = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -214,7 +345,8 @@ public sealed class AiBookClientService
                 Author = author,
                 Language = language,
                 ConnectionId = connectionId,
-                CorrelationId = correlationId
+                CorrelationId = correlationId,
+                Scenario = scenario
             };
 
             using var resp = await HttpClientJsonExtensions.PostAsJsonAsync(

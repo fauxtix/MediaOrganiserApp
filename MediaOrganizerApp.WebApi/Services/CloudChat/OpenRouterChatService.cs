@@ -6,6 +6,7 @@ using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
 using MediaOrganizerApp.Application.Exceptions;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
+using MediaOrganizerApp.Application.Utilities;
 using MediaOrganizerApp.Domain.Entities;
 using MediaOrganizerApp.WebApi.Services;
 
@@ -23,6 +24,7 @@ public sealed class OpenRouterChatService
     private readonly IAIBenchmarkRepository _benchmarkRepository;
     private readonly ICloudChatUsageService _usageService;
     private readonly IInternetAvailabilityService _internet;
+    private readonly OpenRouterCatalogService _catalogService;
     private readonly ILogger<OpenRouterChatService> _logger;
 
     public OpenRouterChatService(
@@ -31,6 +33,7 @@ public sealed class OpenRouterChatService
         IAIBenchmarkRepository benchmarkRepository,
         ICloudChatUsageService usageService,
         IInternetAvailabilityService internet,
+        OpenRouterCatalogService catalogService,
         ILogger<OpenRouterChatService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -38,6 +41,7 @@ public sealed class OpenRouterChatService
         _benchmarkRepository = benchmarkRepository;
         _usageService = usageService;
         _internet = internet;
+        _catalogService = catalogService;
         _logger = logger;
     }
 
@@ -64,21 +68,46 @@ public sealed class OpenRouterChatService
             out var paid) ? paid : false;
         payload.Model = CloudChatSettingsKeys.ApplyPaidModelGate(payload.Model, allowPaid);
 
-        if (CloudChatSettingsKeys.IsFreeModel(payload.Model))
-        {
-            try
-            {
-                await _usageService.RegisterFreeModelUsageAsync(ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[OpenRouter] Falha a registar requisição gratuita.");
-            }
-        }
+        // Model sweep: quando o modelo efetivo é o router "openrouter/free", a varredura
+        // tenta automaticamente os candidatos seguintes quando um deles termina sem
+        // produzir texto. Modelos pagos, modelos gratuitos escolhidos explicitamente e
+        // falhas HTTP/404/429 nunca são varridos.
+        var sweep = await BuildChatCandidatesAsync(payload.Model, allowPaid, ct);
+        var sweepIndex = sweep is null ? 0 : 1; // o primeiro candidato já foi tentado abaixo
 
         var reasoningRetried = false;
+        var producedText = false;
+        var skipUsageCheck = false;
+
         while (true)
         {
+            if (producedText)
+                yield break;
+
+            if (CloudChatSettingsKeys.IsFreeModel(payload.Model) && !skipUsageCheck)
+            {
+                try
+                {
+                    if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
+                    {
+                        _logger.LogWarning("[OpenRouter] Teto diário de modelos gratuitos atingido ({Model}).", payload.Model);
+                        throw new CloudProviderTransientException(
+                            "Limite diário de modelos gratuitos do OpenRouter atingido. Aguarde o reset diário ou use um modelo pago.");
+                    }
+
+                    await _usageService.RegisterFreeModelUsageAsync(ct);
+                }
+                catch (CloudProviderTransientException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[OpenRouter] Falha a registar requisição gratuita.");
+                }
+            }
+            skipUsageCheck = false;
+
             var inner = StreamOpenRouterInternalAsync(payload, apiKey, userId, idiomaSessao, ct);
             await using var enumerator = inner.GetAsyncEnumerator(ct);
 
@@ -100,12 +129,80 @@ public sealed class OpenRouterChatService
                     break;
                 }
 
+                if (!string.IsNullOrEmpty(chunk.Text))
+                    producedText = true;
                 yield return chunk;
             }
 
-            if (!retry)
+            if (retry)
+            {
+                // Repetição do mesmo candidato (a mesma tentativa já registou o uso gratuito).
+                skipUsageCheck = true;
+                continue;
+            }
+
+            // Candidato terminou sem produzir texto: tenta o próximo da varredura.
+            if (sweep is null || sweepIndex >= sweep.Count)
                 yield break;
+
+            var next = sweep[sweepIndex];
+            sweepIndex++;
+            if (string.Equals(next, payload.Model, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            _logger.LogWarning("[OpenRouter] Candidato '{Model}' não produziu texto; a tentar '{Next}'.", payload.Model, next);
+            payload.Model = next;
+            reasoningRetried = false;
         }
+    }
+
+    /// <summary>
+    /// Builds the candidate list for the model sweep. Returns null when the
+    /// effective model is NOT the OpenRouter router ("openrouter/free") — i.e.
+    /// paid models and explicitly chosen free models are never swept.
+    /// With paid models enabled, the curated paid prefixes are attempted after
+    /// the router; otherwise candidates come from the LIVE free catalog
+    /// (recommended ones first), never from fabricated ":free" names.
+    /// </summary>
+    private async Task<List<string>?> BuildChatCandidatesAsync(string first, bool allowPaid, CancellationToken ct)
+    {
+        if (!string.Equals(first, CloudChatSettingsKeys.DefaultModelValue, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var models = new List<string> { first };
+        if (allowPaid)
+        {
+            foreach (var prefix in RecommendedExtractionModels.Prefixes)
+                AddUniqueModel(models, prefix);
+        }
+        else
+        {
+            var catalog = await _catalogService.GetFreeModelsAsync(ct);
+            var recommended = new List<string>();
+            var others = new List<string>();
+            foreach (var model in catalog)
+            {
+                if (string.IsNullOrWhiteSpace(model.Id)
+                    || models.Contains(model.Id, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                if (RecommendedExtractionModels.IsRecommended(model.Id))
+                    recommended.Add(model.Id);
+                else
+                    others.Add(model.Id);
+            }
+
+            models.AddRange(recommended);
+            var remaining = Math.Max(0, 12 - models.Count);
+            models.AddRange(others.Take(remaining));
+        }
+        return models;
+    }
+
+    private static void AddUniqueModel(List<string> models, string candidate)
+    {
+        if (!models.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            models.Add(candidate);
     }
 
     private async IAsyncEnumerable<CloudChatChunk> StreamOpenRouterInternalAsync(
@@ -277,6 +374,11 @@ public sealed class OpenRouterChatService
 
             var totalTokens = promptTokens + completionTokens;
             var seconds = elapsed.TotalSeconds > 0 ? elapsed.TotalSeconds : 0.001;
+            // A rate só é representativa para streams reais (>= 1s). Respostas "instantâneas"
+            // (cached/buffered em menos de um segundo) produzem tokens/s sem significado físico.
+            var tokensPerSecond = totalTokens > 0 && seconds >= 1.0
+                ? Math.Round(totalTokens / seconds, 2)
+                : (double?)null;
             var response = new AIResponse
             {
                 PromptId = promptId,
@@ -287,7 +389,7 @@ public sealed class OpenRouterChatService
                     : null,
                 TextoResposta = text,
                 TempoProcessamento = seconds,
-                TokensPorSegundo = totalTokens > 0 ? Math.Round(totalTokens / seconds, 2) : null,
+                TokensPorSegundo = tokensPerSecond,
                 TempoPuroMs = elapsed.TotalMilliseconds,
                 TempoCargaMs = firstChunkSeconds > 0 ? firstChunkSeconds * 1000 : null,
                 TamanhoTokens = completionTokens > 0 ? completionTokens : CloudResponseMetrics.EstimateTokens(text),

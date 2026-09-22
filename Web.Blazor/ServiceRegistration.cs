@@ -98,9 +98,16 @@ namespace Web.Blazor
             // Conversations client for server-side persisted chat
             services.AddHttpClient<Web.Blazor.Services.ApiWrappers.ConversationsClientService>();
 
+            // AI benchmark summary client (dashboard activity section)
+            services.AddHttpClient<Web.Blazor.Services.ApiWrappers.AiBenchmarkClientService>();
+            services.AddHttpClient<Web.Blazor.Services.ApiWrappers.AiUsageClientService>();
+
             // Cloud chat (OpenRouter proxy) client + user identity for per-request headers
             services.AddScoped<Web.Blazor.Services.CloudChat.CurrentUserIdentity>();
             services.AddHttpClient<Web.Blazor.Services.CloudChat.CloudChatClientService>();
+
+            // Chat feedback (like/dislike) client used by both chats (cloud + local)
+            services.AddHttpClient<Web.Blazor.Services.CloudChat.ChatFeedbackClientService>();
 
             // Chat-specific SignalR client removed: chat now uses HTTP streaming via AiClientService
 

@@ -157,8 +157,11 @@ public class Program
         builder.Services.AddScoped<OpenRouterCatalogService>();
         builder.Services.AddScoped<CloudAuthorBooksService>();
         builder.Services.AddScoped<CloudMediaService>();
+        builder.Services.AddScoped<CloudBookSummaryService>();
         builder.Services.AddScoped<CloudTranslateService>();
+        builder.Services.AddScoped<CloudAuthorProfileService>();
         builder.Services.AddScoped<ICloudChatUsageService, CloudChatUsageService>();
+        builder.Services.AddScoped<AiUsageRecorderService>();
         builder.Services.AddSingleton<IInternetAvailabilityService, InternetAvailability>();
 
         // ----------------------------------------------------------------

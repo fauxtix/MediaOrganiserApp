@@ -14,16 +14,17 @@ using Web.Blazor.Services.CloudChat;
 
 namespace Web.Blazor.Pages.AI
 {
-    public partial class TestChat : IAsyncDisposable
+    public partial class OpenRouterChat : IAsyncDisposable
     {
         private const string ModeloRouterFree = "openrouter/free";
 
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
         [Inject] private CloudChatClientService CloudChatClient { get; set; } = null!;
+        [Inject] private ChatFeedbackClientService ChatFeedbackClient { get; set; } = null!;
         [Inject] private CurrentUserIdentity UserIdentity { get; set; } = null!;
         [Inject] private IJSRuntime JS { get; set; } = null!;
         [Inject] private IStringLocalizer<App> Localizer { get; set; } = null!;
-        [Inject] private ILogger<TestChat> Logger { get; set; } = null!;
+        [Inject] private ILogger<OpenRouterChat> Logger { get; set; } = null!;
 
         private readonly List<TestChatMessage> messages = new();
         private TestChatMessage? currentAssistantMessage;
@@ -48,7 +49,7 @@ namespace Web.Blazor.Pages.AI
         private double _elapsed;
         private System.Threading.Timer? _elapsedTimer;
         private CancellationTokenSource? chatCts;
-        private DotNetObjectReference<TestChat>? dotNetRef;
+        private DotNetObjectReference<OpenRouterChat>? dotNetRef;
         private ElementReference messagesDiv;
         private ElementReference chatInputRef;
         private bool userAtBottom = true;
@@ -57,6 +58,8 @@ namespace Web.Blazor.Pages.AI
 
         private List<ConversationItem> conversations = new();
         private string? selectedConversationId;
+
+        private readonly Dictionary<int, int> _feedbackByIndex = new();
 
         private SfToast? toastObj;
         protected string ToastTitle = "";
@@ -104,7 +107,7 @@ namespace Web.Blazor.Pages.AI
             _contextLength = ContextWindowResolver.GetContextLength("OpenRouter", _selectedModel, _contextLengthCatalog);
             _contextResolvedForModel = _selectedModel;
 
-            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage });
+            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -463,6 +466,75 @@ namespace Web.Blazor.Pages.AI
             await InvokeAsync(StateHasChanged);
         }
 
+        private int GetFeedback(int index)
+            => _feedbackByIndex.TryGetValue(index, out var value) ? value : 0;
+
+        private async Task CopyMessageAsync(TestChatMessage msg)
+        {
+            if (string.IsNullOrWhiteSpace(msg.Content)) return;
+
+            try
+            {
+                var ok = await JS.InvokeAsync<bool>("copyText", msg.Content);
+                if (ok)
+                    await ShowSuccessToastAsync(Localizer["ChatResponseCopied"]);
+                else
+                    await ShowWarningToastAsync("Test Chat", Localizer["ChatCopyFailed"]);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Falha ao copiar resposta do chat.");
+                await ShowWarningToastAsync("Test Chat", Localizer["ChatCopyFailed"]);
+            }
+        }
+
+        private async Task RateMessageAsync(int index, TestChatMessage msg, int rating)
+        {
+            var current = GetFeedback(index);
+            var effective = current == rating ? 0 : rating;
+            _feedbackByIndex[index] = effective;
+
+            try
+            {
+                var model = !string.IsNullOrWhiteSpace(msg.RealModelName) ? msg.RealModelName : _selectedModel;
+                await ChatFeedbackClient.UpsertAsync(new ChatFeedbackDto
+                {
+                    Interface = "openrouter",
+                    ConversationId = string.IsNullOrEmpty(selectedConversationId) ? null : selectedConversationId,
+                    MessageIndex = index,
+                    PromptText = LastUserPromptBefore(index),
+                    ResponseText = msg.Content,
+                    ModelName = string.IsNullOrWhiteSpace(model) ? null : model,
+                    Rating = effective
+                });
+
+                if (effective == 0)
+                    await ShowSuccessToastAsync(Localizer["ChatRatingRemoved"]);
+                else if (current != 0)
+                    await ShowSuccessToastAsync(Localizer["ChatRatingUpdated"]);
+                else
+                    await ShowSuccessToastAsync(Localizer["ChatRatingSaved"]);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Falha ao registar avaliação no chat.");
+                _feedbackByIndex[index] = current;
+                await ShowWarningToastAsync("Test Chat", Localizer["ChatRatingFailed"]);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private string? LastUserPromptBefore(int index)
+        {
+            for (var i = index - 1; i >= 0; i--)
+            {
+                if (string.Equals(messages[i].Role, "user", StringComparison.OrdinalIgnoreCase))
+                    return messages[i].Content;
+            }
+            return null;
+        }
+
         private async Task NewChat()
         {
             try { chatCts?.Cancel(); } catch { }
@@ -470,11 +542,12 @@ namespace Web.Blazor.Pages.AI
 
             messages.Clear();
             currentAssistantMessage = null;
-            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage });
+            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
             _contextUsedTokens = 0;
             _showContextBar = false;
             _elapsed = 0;
             selectedConversationId = null;
+            _feedbackByIndex.Clear();
 
             await InvokeAsync(StateHasChanged);
 
@@ -504,6 +577,7 @@ namespace Web.Blazor.Pages.AI
             _contextUsedTokens = 0;
             _showContextBar = false;
             _elapsed = 0;
+            _feedbackByIndex.Clear();
 
             var conv = conversations.FirstOrDefault(c => c.Id == id);
             if (conv is not null && !string.IsNullOrEmpty(conv.Json))
@@ -529,7 +603,21 @@ namespace Web.Blazor.Pages.AI
             }
 
             if (messages.Count == 0)
-                messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage });
+            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+
+            try
+            {
+                var ratings = await ChatFeedbackClient.GetByConversationAsync("openrouter", id);
+                foreach (var r in ratings)
+                {
+                    if (r.Rating == 1 || r.Rating == -1)
+                        _feedbackByIndex[r.MessageIndex] = r.Rating;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Falha ao restaurar avaliações da conversa.");
+            }
 
             await InvokeAsync(StateHasChanged);
             await SafeScrollToBottomAsync();
@@ -639,6 +727,7 @@ namespace Web.Blazor.Pages.AI
             public string Content { get; set; } = string.Empty;
             public double Temperature { get; set; }
             public string? ElapsedTime { get; set; }
+            public bool IsWelcome { get; set; }
         }
 
         public class TestChatMessage
@@ -646,6 +735,7 @@ namespace Web.Blazor.Pages.AI
             public string Role { get; set; } = "assistant";
             public string Content { get; set; } = string.Empty;
             public bool IsError { get; set; }
+            public bool IsWelcome { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
             public double Temperature { get; set; }
             public string? ElapsedTime { get; set; }

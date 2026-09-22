@@ -1,14 +1,15 @@
 ﻿@page "/aimodels"
 @inherits AModelsBase
-@using Syncfusion.Blazor.Spinner
-@using Syncfusion.Blazor.Buttons
-@using Syncfusion.Blazor.Notifications
-@using Syncfusion.Blazor.Navigations
+
+@inject IStringLocalizer<App> L
 
 @using MediaOrganizerApp.Application.Enums
+@using Microsoft.Extensions.Localization
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Spinner
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.BaseComponents
-@using Web.Blazor.Pages.Tools
 
 @attribute [Authorize]
 
@@ -20,9 +21,7 @@
     );
 }
 
-<div class="title">@localizerApp["frmCategorias"] (@localizerApp["frmLivros"])</div>
-<div class="underline"></div>
-<br />
+<PageTitleComponent PageTitle="@L["AiModelsTitle"]" />
 
 <div id="spinnerContainer"></div>
 <SfSpinner @ref="SpinnerObj"

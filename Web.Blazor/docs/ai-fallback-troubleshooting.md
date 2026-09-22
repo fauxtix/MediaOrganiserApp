@@ -3,7 +3,8 @@
 This note documents common issues when testing the AI fallback endpoint.
 
 Endpoint:
-- `POST https://localhost:<port>/api/Ai/author-profile`
+- `POST https://localhost:<port>/api/Ai/author-profile` (local fallback)
+- `POST https://localhost:<port>/api/Ai/author-profile-cloud` (OpenRouter; returns 503 when the cloud path is unavailable, triggering the fallback)
 
 Headers:
 - `ApiKey: <APP_API_KEY>` (this is the key consumed by `ApiKeyMiddleware`)

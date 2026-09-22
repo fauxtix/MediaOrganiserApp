@@ -31,7 +31,55 @@ public sealed class AiClientService
         string name,
         string language,
         string? connectionId = null,
-        string? correlationId = null)
+        string? correlationId = null,
+        string? scenario = null)
+    {
+        var cloud = await GetAuthorProfileCloudAsync(name, language, connectionId, correlationId, scenario);
+        if (cloud is not null)
+            return cloud;
+
+        _logger.LogInformation("OpenRouter author-profile unavailable; falling back to local provider.");
+        return await GetAuthorProfileLocalAsync(name, language, connectionId, correlationId, "cloud-fallback");
+    }
+
+    public async Task<AiAuthorProfileResponseDto?> GetAuthorProfileCloudAsync(
+        string name,
+        string language,
+        string? connectionId = null,
+        string? correlationId = null,
+        string? scenario = null)
+    {
+        try
+        {
+            using var resp = await _httpClient.PostAsJsonAsync(
+                $"{_uri}/author-profile-cloud",
+                new AiAuthorProfileRequestDto
+                {
+                    Name = name,
+                    Language = language,
+                    ConnectionId = connectionId,
+                    CorrelationId = correlationId,
+                    Scenario = scenario
+                });
+
+            if (!resp.IsSuccessStatusCode)
+                return null;
+
+            return await resp.Content.ReadFromJsonAsync<AiAuthorProfileResponseDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI - Error generating author profile via OpenRouter.");
+            return null;
+        }
+    }
+
+    private async Task<AiAuthorProfileResponseDto?> GetAuthorProfileLocalAsync(
+        string name,
+        string language,
+        string? connectionId = null,
+        string? correlationId = null,
+        string? scenario = null)
     {
         try
         {
@@ -42,7 +90,8 @@ public sealed class AiClientService
                     Name = name,
                     Language = language,
                     ConnectionId = connectionId,
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Scenario = scenario
                 });
 
             if (!resp.IsSuccessStatusCode)

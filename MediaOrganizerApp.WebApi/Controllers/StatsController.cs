@@ -248,7 +248,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 var output = await _repoStats.GetStatEntities();
                 if (output.Any())
                 {
-                    return Ok(new List<StatRecord>());
+                    return Ok(output);
                 }
 
                 else

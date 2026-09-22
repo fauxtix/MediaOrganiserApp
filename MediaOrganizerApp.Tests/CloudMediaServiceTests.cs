@@ -249,6 +249,26 @@ public sealed class CloudMediaServiceTests
     }
 
     [Fact]
+    public async Task GetMediaEditionYearAsync_ReturnsNull_WhenFreeDailyCapExhausted()
+    {
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o"
+            },
+            capture,
+            freeRequestsRemaining: 0);
+
+        var result = await service.GetMediaEditionYearAsync("Opeth", "Blackwater Park", "pt", null, null, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Empty(capture.RequestBodies);
+    }
+
+    [Fact]
     public async Task GetMediaEditionYearAsync_UsesFreeVariant_WhenPaidModelConfiguredAndToggleOff()
     {
         var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -342,7 +362,8 @@ public sealed class CloudMediaServiceTests
         Dictionary<string, string?> settings,
         HttpCapture capture,
         bool internetReachable = true,
-        Mock<ICloudChatUsageService>? usage = null)
+        Mock<ICloudChatUsageService>? usage = null,
+        int freeRequestsRemaining = 1000)
     {
         var repo = new Mock<IAIChatSettingsRepository>();
         repo.Setup(x => x.GetValueAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -382,11 +403,16 @@ public sealed class CloudMediaServiceTests
         var internet = new Mock<IInternetAvailabilityService>();
         internet.Setup(x => x.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(internetReachable);
 
+        var usageMock = usage ?? new Mock<ICloudChatUsageService>();
+        usageMock
+            .Setup(x => x.GetFreeRequestsRemainingAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(freeRequestsRemaining);
+
         return new CloudMediaService(
             factory.Object,
             repo.Object,
             prompts.Object,
-            usage?.Object ?? Mock.Of<ICloudChatUsageService>(),
+            usageMock.Object,
             internet.Object,
             Mock.Of<IProgressPublisher>(),
             new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),

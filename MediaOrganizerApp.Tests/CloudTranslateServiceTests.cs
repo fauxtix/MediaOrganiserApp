@@ -14,10 +14,12 @@ namespace MediaOrganizerApp.Tests;
 public sealed class CloudTranslateServiceTests
 {
     private const string ApiKey = "sk-test-123";
+    private const string EmptyCatalogResponse = """{"data":[]}""";
 
     private sealed class HttpCapture
     {
         public string? Body { get; set; }
+        public List<string> RequestBodies { get; } = new();
     }
 
     private static TranslateRequestDto Request() => new()
@@ -166,6 +168,26 @@ public sealed class CloudTranslateServiceTests
     }
 
     [Fact]
+    public async Task TranslateAsync_ReturnsNull_WhenFreeDailyCapExhausted()
+    {
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: null,
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-3.5-turbo"
+            },
+            capture,
+            freeRequestsRemaining: 0);
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.True(string.IsNullOrEmpty(capture.Body), "Nenhum pedido HTTP deve ser enviado quando o teto diário está esgotado.");
+    }
+
+    [Fact]
     public async Task TranslateAsync_AddsBearerToken_AndPlatformHeaders()
     {
         var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -270,12 +292,49 @@ public sealed class CloudTranslateServiceTests
         Assert.Contains("\"openrouter/free\"", capture.Body);
     }
 
+    [Fact]
+    public async Task TranslateAsync_SweepsToCatalogModel_WhenFreeModelReturnsWeakResult()
+    {
+        var weak = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"Hello, world!"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+        var strong = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { weak, strong }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture,
+            catalogResponse: """{"data":[{"id":"z-ai/glm-5.2:free","name":"GLM 5.2"}]}""");
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(0.95, result!.Confidence);
+        Assert.Equal(2, capture.RequestBodies.Count);
+        Assert.Contains("\"openrouter/free\"", capture.RequestBodies[0]);
+        Assert.Contains("\"z-ai/glm-5.2:free\"", capture.RequestBodies[1]);
+    }
+
     private static CloudTranslateService CreateService(
         Queue<HttpResponseMessage>? responses,
         Dictionary<string, string?> settings,
         HttpCapture capture,
         bool internetReachable = true,
-        Mock<ICloudChatUsageService>? usage = null)
+        Mock<ICloudChatUsageService>? usage = null,
+        int freeRequestsRemaining = 1000,
+        string catalogResponse = EmptyCatalogResponse)
     {
         var repo = new Mock<IAIChatSettingsRepository>();
         repo.Setup(x => x.GetValueAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -287,16 +346,28 @@ public sealed class CloudTranslateServiceTests
             .Setup(x => x.GetTemplateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Translate from {{sourceLanguage}} to {{targetLanguage}}: {{text}}");
 
-        var httpClient = responses is null
-            ? new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("Unexpected HTTP call.")))
-            : new HttpClient(new StubHttpMessageHandler(request =>
+        var httpClient = new HttpClient(new StubHttpMessageHandler(request =>
+        {
+            if (request.RequestUri?.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase) == true)
             {
-                if (request.Content is not null)
-                    capture.Body = request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                return responses.Count == 0
-                    ? throw new InvalidOperationException("No canned responses left.")
-                    : responses.Dequeue();
-            }));
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(catalogResponse, Encoding.UTF8, "application/json")
+                };
+            }
+
+            if (responses is null)
+                throw new InvalidOperationException("Unexpected HTTP call.");
+
+            if (request.Content is not null)
+            {
+                capture.Body = request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                capture.RequestBodies.Add(capture.Body);
+            }
+            return responses.Count == 0
+                ? throw new InvalidOperationException("No canned responses left.")
+                : responses.Dequeue();
+        }));
 
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
@@ -304,12 +375,18 @@ public sealed class CloudTranslateServiceTests
         var internet = new Mock<IInternetAvailabilityService>();
         internet.Setup(x => x.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(internetReachable);
 
+        var usageMock = usage ?? new Mock<ICloudChatUsageService>();
+        usageMock
+            .Setup(x => x.GetFreeRequestsRemainingAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(freeRequestsRemaining);
+
         return new CloudTranslateService(
             factory.Object,
             repo.Object,
             prompts.Object,
-            usage?.Object ?? Mock.Of<ICloudChatUsageService>(),
+            usageMock.Object,
             internet.Object,
+            new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
             Mock.Of<ILogger<CloudTranslateService>>());
     }
 

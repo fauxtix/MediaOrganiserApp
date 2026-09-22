@@ -103,17 +103,17 @@ namespace Web.Blazor.Pages.LookupTables
                     SelectedAuthor.Sobre = resp.TranslatedText;
                     aiNotes = null;
                     aiConfidence = resp.Confidence;
-                    ShowAlert("Bio traduzida pelo serviço de tradução.");
+                    ShowAlert("Bio traduzida pelo serviï¿½o de traduï¿½ï¿½o.");
                 }
                 else
                 {
-                    ShowAlert("Serviço de tradução não retornou texto.");
+                    ShowAlert("Serviï¿½o de traduï¿½ï¿½o nï¿½o retornou texto.");
                 }
             }
             catch (System.Exception ex)
             {
                 Logger.LogError(ex, "Error calling translate service");
-                ShowAlert("Erro ao chamar serviço de tradução.");
+                ShowAlert("Erro ao chamar serviï¿½o de traduï¿½ï¿½o.");
             }
             finally
             {
@@ -162,7 +162,7 @@ namespace Web.Blazor.Pages.LookupTables
                         }
                         else
                         {
-                            message = $"O local previsto ({pastaImagensAutores.TrimEnd('\\')}) não é o que está configurado. Experimente mover imagem para esse local e tente de novo.";
+                            message = $"O local previsto ({pastaImagensAutores.TrimEnd('\\')}) nï¿½o ï¿½ o que estï¿½ configurado. Experimente mover imagem para esse local e tente de novo.";
                             ShowAlert(message);
                         }
 
@@ -255,13 +255,13 @@ namespace Web.Blazor.Pages.LookupTables
                     if (SelectedAuthor.Sobre is not null &&
                         !string.IsNullOrWhiteSpace(SelectedAuthor.Sobre))
                     {
-                        ShowAlert("Já existe Bio para o Autor. AI não foi consultada.");
+                        ShowAlert("Jï¿½ existe Bio para o Autor. AI nï¿½o foi consultada.");
                         await Task.Delay(20);
                         await SpinnerObj.HideAsync();
                         return;
                     }
 
-                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, scenario: "author-api");
 
                     if (!string.IsNullOrWhiteSpace(ai?.Bio))
                     {
@@ -275,7 +275,7 @@ namespace Web.Blazor.Pages.LookupTables
                         return;
                     }
 
-                    ShowAlert("Não foi possível obter detalhes do autor (API e AI).");
+                    ShowAlert("Nï¿½o foi possï¿½vel obter detalhes do autor (API e AI).");
                     await Task.Delay(20);
                     await SpinnerObj.HideAsync();
                     return;
@@ -301,7 +301,7 @@ namespace Web.Blazor.Pages.LookupTables
                 try
                 {
                     var authorName = SelectedAuthor.Descricao;
-                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+                    var ai = await AiClientService.GetAuthorProfileAsync(authorName, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, scenario: "author-api");
 
                     if (!string.IsNullOrWhiteSpace(ai?.Bio))
                     {
@@ -313,7 +313,7 @@ namespace Web.Blazor.Pages.LookupTables
                     }
                     else
                     {
-                        ShowAlert("Internet indisponível e AI não devolveu bio.");
+                        ShowAlert("Internet indisponï¿½vel e AI nï¿½o devolveu bio.");
                     }
                 }
                 finally
@@ -378,12 +378,12 @@ namespace Web.Blazor.Pages.LookupTables
             try
             {
                 var authorInfo = await AutoresService.GetAuthorInfo_Api(SelectedAuthor.Descricao);
-                message = "Autor tem informação disponível...";
+                message = "Autor tem informaï¿½ï¿½o disponï¿½vel...";
 
             }
             catch
             {
-                message = "Autor não tem informação disponível";
+                message = "Autor nï¿½o tem informaï¿½ï¿½o disponï¿½vel";
                 StateHasChanged();
             }
         }

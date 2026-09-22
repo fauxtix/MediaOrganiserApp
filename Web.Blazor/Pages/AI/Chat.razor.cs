@@ -9,6 +9,7 @@ using Syncfusion.Blazor.DropDowns;
 using Syncfusion.Blazor.Notifications;
 using System.Text.Json;
 using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.CloudChat;
 
 namespace Web.Blazor.Pages.AI
 {
@@ -16,6 +17,7 @@ namespace Web.Blazor.Pages.AI
     {
 
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
+        [Inject] private ChatFeedbackClientService ChatFeedbackClient { get; set; } = null!;
         [Inject] private IJSRuntime JS { get; set; } = null!;
 
         [Inject] private IConfiguration Configuration { get; set; } = null!;
@@ -51,6 +53,7 @@ namespace Web.Blazor.Pages.AI
         private bool showConfirmDeleteConversation = false;
         private List<ConversationItem> conversations = new();
         private string? selectedConversationId;
+        private readonly Dictionary<int, int> _feedbackByIndex = new();
         private readonly DropDownListFieldSettings convFields = new() { Text = "Title", Value = "Id" };
 
         private SfToast? toastObj;
@@ -424,6 +427,7 @@ namespace Web.Blazor.Pages.AI
             chatCts?.Dispose(); chatCts = null;
 
             messages.Clear(); currentAssistantMessage = null;
+            _feedbackByIndex.Clear();
 
             await InvokeAsync(StateHasChanged);
 
@@ -478,6 +482,7 @@ namespace Web.Blazor.Pages.AI
         async Task OnConversationSelected(string? id)
         {
             selectedConversationId = id;
+            _feedbackByIndex.Clear();
             if (string.IsNullOrEmpty(id)) return;
             var conv = conversations.FirstOrDefault(c => c.Id == id);
             if (conv != null)
@@ -492,6 +497,16 @@ namespace Web.Blazor.Pages.AI
                     }
                     catch { }
                 }
+                try
+                {
+                    var ratings = await ChatFeedbackClient.GetByConversationAsync("ollama", id);
+                    foreach (var r in ratings)
+                    {
+                        if (r.Rating == 1 || r.Rating == -1)
+                            _feedbackByIndex[r.MessageIndex] = r.Rating;
+                    }
+                }
+                catch { }
                 try
                 {
                     if (toastObj != null)
@@ -539,6 +554,87 @@ namespace Web.Blazor.Pages.AI
                 await ConversationsClient.SaveAsync(conv);
                 await LoadConversations();
             }
+        }
+
+        private int GetFeedback(int index)
+            => _feedbackByIndex.TryGetValue(index, out var value) ? value : 0;
+
+        private async Task CopyMessageAsync(ChatMessage msg)
+        {
+            if (string.IsNullOrWhiteSpace(msg.Content)) return;
+
+            try
+            {
+                var ok = await JS.InvokeAsync<bool>("copyText", msg.Content);
+                await ShowFeedbackToastAsync(
+                    ok ? L["ChatResponseCopied"] : L["ChatCopyFailed"],
+                    ok ? "e-toast-success" : "e-toast-warning");
+            }
+            catch
+            {
+                await ShowFeedbackToastAsync(L["ChatCopyFailed"], "e-toast-warning");
+            }
+        }
+
+        private async Task RateMessageAsync(int index, ChatMessage msg, int rating)
+        {
+            var current = GetFeedback(index);
+            var effective = current == rating ? 0 : rating;
+            _feedbackByIndex[index] = effective;
+
+            try
+            {
+                await ChatFeedbackClient.UpsertAsync(new ChatFeedbackDto
+                {
+                    Interface = "ollama",
+                    ConversationId = string.IsNullOrEmpty(selectedConversationId) ? null : selectedConversationId,
+                    MessageIndex = index,
+                    PromptText = LastUserPromptBefore(index),
+                    ResponseText = msg.Content,
+                    ModelName = null,
+                    Rating = effective
+                });
+
+                await ShowFeedbackToastAsync(
+                    effective == 0 ? L["ChatRatingRemoved"]
+                        : current != 0 ? L["ChatRatingUpdated"]
+                        : L["ChatRatingSaved"],
+                    "e-toast-success");
+            }
+            catch
+            {
+                _feedbackByIndex[index] = current;
+                await ShowFeedbackToastAsync(L["ChatRatingFailed"], "e-toast-warning");
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private string? LastUserPromptBefore(int index)
+        {
+            for (var i = index - 1; i >= 0; i--)
+            {
+                if (string.Equals(messages[i].Role, "user", StringComparison.OrdinalIgnoreCase))
+                    return messages[i].Content;
+            }
+            return null;
+        }
+
+        private async Task ShowFeedbackToastAsync(string content, string cssClass)
+        {
+            try
+            {
+                if (toastObj != null)
+                {
+                    ToastTitle = "AI";
+                    ToastContent = content;
+                    ToastCssClass = cssClass;
+                    ToastTimeOut = 3000;
+                    await InvokeAsync(StateHasChanged);
+                    await toastObj.ShowAsync();
+                }
+            }
+            catch { }
         }
 
         private async Task DeleteSelectedConversationAsync()

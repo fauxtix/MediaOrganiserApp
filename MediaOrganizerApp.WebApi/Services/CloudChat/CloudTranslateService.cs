@@ -27,6 +27,7 @@ public sealed class CloudTranslateService
     private readonly IPromptTemplateProvider _prompts;
     private readonly ICloudChatUsageService _usageService;
     private readonly IInternetAvailabilityService _internet;
+    private readonly OpenRouterCatalogService _catalogService;
     private readonly ILogger<CloudTranslateService> _logger;
 
     public CloudTranslateService(
@@ -35,6 +36,7 @@ public sealed class CloudTranslateService
         IPromptTemplateProvider prompts,
         ICloudChatUsageService usageService,
         IInternetAvailabilityService internet,
+        OpenRouterCatalogService catalogService,
         ILogger<CloudTranslateService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -42,6 +44,7 @@ public sealed class CloudTranslateService
         _prompts = prompts;
         _usageService = usageService;
         _internet = internet;
+        _catalogService = catalogService;
         _logger = logger;
     }
 
@@ -85,13 +88,34 @@ public sealed class CloudTranslateService
             ["text"] = request.Text
         });
 
-        var content = await TryRawCompletionAsync(model, apiKey, userPrompt, maxTokens: 1024, cancellationToken);
-        if (content is null)
+        var candidates = await BuildCandidateModelsAsync(model, allowPaid, cancellationToken);
+        TranslateResponseDto? lastWeak = null;
+        for (var i = 0; i < candidates.Count; i++)
         {
-            _logger.LogWarning("[CloudTranslate] OpenRouter falhou a tradução; a usar fallback local (Ollama).");
-            return null;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var content = await TryRawCompletionAsync(candidates[i], apiKey, userPrompt, maxTokens: 1024, cancellationToken);
+            if (content is null)
+                continue;
+
+            var attempt = ParseTranslateResponse(content);
+            if (attempt is not null
+                && !string.IsNullOrWhiteSpace(attempt.TranslatedText)
+                && attempt.Confidence >= 0.5)
+                return attempt;
+
+            lastWeak = attempt;
         }
 
+        if (lastWeak is not null)
+            return lastWeak;
+
+        _logger.LogWarning("[CloudTranslate] OpenRouter falhou a tradução; a usar fallback local (Ollama).");
+        return null;
+    }
+
+    private TranslateResponseDto? ParseTranslateResponse(string content)
+    {
         var cleaned = CleanResponseText(content);
         var extracted = OllamaResponseHelper.TryExtractFirstJsonObject(cleaned);
         if (!string.IsNullOrWhiteSpace(extracted))
@@ -109,6 +133,12 @@ public sealed class CloudTranslateService
     {
         if (CloudChatSettingsKeys.IsFreeModel(model))
         {
+            if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
+            {
+                _logger.LogWarning("[CloudTranslate] Teto diário de modelos gratuitos do OpenRouter atingido; a usar fallback local (Ollama).");
+                return null;
+            }
+
             try { await _usageService.RegisterFreeModelUsageAsync(ct); }
             catch (Exception ex) { _logger.LogWarning(ex, "[CloudTranslate] Falha a registar requisição gratuita."); }
         }
@@ -193,6 +223,54 @@ public sealed class CloudTranslateService
             return defaultModel;
 
         return CloudChatSettingsKeys.DefaultModelValue;
+    }
+
+    /// <summary>
+    /// When the resolved model is free, a weak/empty answer is treated as a poor
+    /// result and the sweep continues. Paid models are only swept when paid models
+    /// are enabled; otherwise the candidates come from the LIVE OpenRouter catalog
+    /// of actual free models (recommended ones first), never from fabricated
+    /// ":free" names that may not exist. Non-free/recommended models run alone.
+    /// </summary>
+    private async Task<List<string>> BuildCandidateModelsAsync(string first, bool allowPaid, CancellationToken ct)
+    {
+        if (!CloudChatSettingsKeys.IsFreeModel(first))
+            return new List<string> { first };
+
+        var models = new List<string> { first };
+        if (allowPaid)
+        {
+            foreach (var prefix in RecommendedExtractionModels.Prefixes)
+                AddUniqueModel(models, prefix);
+        }
+        else
+        {
+            var catalog = await _catalogService.GetFreeModelsAsync(ct);
+            var recommended = new List<string>();
+            var others = new List<string>();
+            foreach (var model in catalog)
+            {
+                if (string.IsNullOrWhiteSpace(model.Id)
+                    || models.Contains(model.Id, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                if (RecommendedExtractionModels.IsRecommended(model.Id))
+                    recommended.Add(model.Id);
+                else
+                    others.Add(model.Id);
+            }
+
+            models.AddRange(recommended);
+            var remaining = Math.Max(0, 12 - models.Count);
+            models.AddRange(others.Take(remaining));
+        }
+        return models;
+    }
+
+    private static void AddUniqueModel(List<string> models, string candidate)
+    {
+        if (!models.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            models.Add(candidate);
     }
 
     private TranslateResponseDto? TryDeserializeTranslateResponse(string text)

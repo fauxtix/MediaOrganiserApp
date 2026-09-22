@@ -1,10 +1,13 @@
 ﻿using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.DTOs.AI;
+using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
 using MediaOrganizerApp.Application.Interfaces.Services;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Localization;
 using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.CloudChat;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
 using static MediaOrganizerApp.Application.Enums.QueryEnums;
 
@@ -25,6 +28,11 @@ namespace Web.Blazor.Pages.BaseComponents
         [Inject] public IEditorasService editorasService { get; set; }
         [Inject] public IDashboardService dashboardService { get; set; }
         [Inject] public IMediaServiceWrapper mediaService { get; set; }
+        [Inject] public ConversationsClientService ConversationsClient { get; set; }
+        [Inject] public AiBenchmarkClientService AiBenchmarkClient { get; set; }
+        [Inject] public AiUsageClientService AiUsageClient { get; set; }
+        [Inject] public CloudChatClientService CloudChatClient { get; set; }
+        [Inject] public ILogService LogService { get; set; }
 
         [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
 
@@ -67,6 +75,17 @@ namespace Web.Blazor.Pages.BaseComponents
         protected int editorasCount;
         protected int formatosCount;
         protected int formatosMediaCount;
+
+        protected bool IsAdmin;
+
+        protected DashboardHealthDto HealthStats;
+        protected AiBenchmarkSummaryDto BenchmarkSummary;
+        protected AiUsageSummaryDto AiUsageSummary;
+        protected int ConversationsTotal;
+        protected CloudChatUsageDto CloudUsage;
+        protected ICollection<AppLogDto> RecentErrorLogs = new List<AppLogDto>();
+        protected int ErrorLogsCount;
+        protected ICollection<AppLogDto> LoginLogs = new List<AppLogDto>();
 
         protected override async Task OnInitializedAsync()
         {
@@ -129,6 +148,41 @@ namespace Web.Blazor.Pages.BaseComponents
 
             var fmtMed = await formatosMediaService.GetAllAsync();
             formatosMediaCount = fmtMed is not null ? fmtMed.Count() : 0;
+
+            IsAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+            await LoadOutputsAsync();
+        }
+
+        private async Task LoadOutputsAsync()
+        {
+            HealthStats = await dashboardService.GetHealthAsync() ?? new DashboardHealthDto();
+
+            BenchmarkSummary = await AiBenchmarkClient.GetSummaryAsync() ?? new AiBenchmarkSummaryDto();
+
+            AiUsageSummary = await AiUsageClient.GetSummaryAsync() ?? new AiUsageSummaryDto();
+
+            var conversations = await ConversationsClient.GetAllAsync();
+            ConversationsTotal = conversations?.Count ?? 0;
+
+            if (IsAdmin)
+            {
+                CloudUsage = await CloudChatClient.GetUsageAsync();
+
+                var logs = await LogService.GetAppLogs();
+                ErrorLogsCount = logs?.Count() ?? 0;
+                RecentErrorLogs = logs?
+                        .Where(l => string.Equals(l.Level, "Error", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(l.Level, "Fatal", StringComparison.OrdinalIgnoreCase)
+                            || !string.IsNullOrWhiteSpace(l.Exception))
+                        .OrderByDescending(l => l.TimeStamp)
+                        .Take(5)
+                        .ToList()
+                    ?? new List<AppLogDto>();
+
+                var logins = await LogService.ViewLogins();
+                LoginLogs = logins?.OrderByDescending(l => l.TimeStamp).Take(5).ToList() ?? new List<AppLogDto>();
+            }
         }
 
         protected bool IsAppConfigured()

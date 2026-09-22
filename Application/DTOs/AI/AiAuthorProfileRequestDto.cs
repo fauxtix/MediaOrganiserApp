@@ -19,4 +19,7 @@ public sealed class AiAuthorProfileRequestDto
 
     [JsonPropertyName("correlationId")]
     public string? CorrelationId { get; set; }
+
+    /// <summary>Optional context tag for AI usage logging (e.g. 'author-api').</summary>
+    public string? Scenario { get; set; }
 }

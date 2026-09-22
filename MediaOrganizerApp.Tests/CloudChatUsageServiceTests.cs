@@ -152,6 +152,78 @@ public sealed class CloudChatUsageServiceTests
         Assert.Contains((TodayKey(), "0"), writes);
     }
 
+    [Fact]
+    public async Task GetFreeRequestsRemainingAsync_UsesDefaultCap50_WithoutSnapshotOrOverride()
+    {
+        var (service, _, _) = CreateService(new Dictionary<string, string?>
+        {
+            [TodayKey()] = "12"
+        });
+
+        var remaining = await service.GetFreeRequestsRemainingAsync();
+
+        Assert.Equal(38, remaining);
+    }
+
+    [Fact]
+    public async Task GetFreeRequestsRemainingAsync_UsesCap1000_WhenCreditsSnapshotTrue()
+    {
+        var (service, _, _) = CreateService(new Dictionary<string, string?>
+        {
+            [TodayKey()] = "5",
+            [CloudChatSettingsKeys.EverPurchasedCredits] = "True"
+        });
+
+        var remaining = await service.GetFreeRequestsRemainingAsync();
+
+        Assert.Equal(995, remaining);
+    }
+
+    [Fact]
+    public async Task GetFreeRequestsRemainingAsync_ClampsAtZero()
+    {
+        var (service, _, _) = CreateService(new Dictionary<string, string?>
+        {
+            [TodayKey()] = "60"
+        });
+
+        var remaining = await service.GetFreeRequestsRemainingAsync();
+
+        Assert.Equal(0, remaining);
+    }
+
+    [Fact]
+    public async Task GetFreeRequestsRemainingAsync_UsesFreeDailyCapOverride()
+    {
+        var (service, _, _) = CreateService(new Dictionary<string, string?>
+        {
+            [TodayKey()] = "40",
+            [CloudChatSettingsKeys.FreeDailyCap] = "80"
+        });
+
+        var remaining = await service.GetFreeRequestsRemainingAsync();
+
+        Assert.Equal(40, remaining);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_PersistsCreditsSnapshot()
+    {
+        var (service, _, writes) = CreateService(
+            new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = "sk-test"
+            },
+            handler: request => request.RequestUri!.AbsoluteUri == KeyUrl
+                ? Json(KeyPayload(false, limit: 100, limitRemaining: 93, usage: 7,
+                    usageDaily: 2, usageWeekly: 5, usageMonthly: 7))
+                : Json(CreditsPayload(totalCredits: 25, totalUsage: 7)));
+
+        await service.GetUsageAsync();
+
+        Assert.Contains((CloudChatSettingsKeys.EverPurchasedCredits, "True"), writes);
+    }
+
     private static (CloudChatUsageService Service, Mock<IAIChatSettingsRepository> Settings, List<(string Key, string Value)> Writes) CreateService(
         Dictionary<string, string?> settings,
         Func<HttpRequestMessage, HttpResponseMessage>? handler = null)

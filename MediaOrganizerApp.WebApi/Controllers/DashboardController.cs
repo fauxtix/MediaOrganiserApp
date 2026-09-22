@@ -32,11 +32,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly ICategoriasRepository _repoCategorias;
         private readonly IMediaRepository _repoMedia;
         private readonly ILocalArquivoRepository _repoLocaisArquivo;
+        private readonly IStatsRepository _repoStats;
 
         public DashboardController(ILogger<AuthorsController> logger, IMapper mapper,
             IAutoresRepository repoAutores, IEditorasRepository repoEditoras,
             IFormatosRepository repoFormatos, IFormatos_MediaRepository repoFormatos_Media,
-            ICategoriasRepository repoCategorias, ILocalArquivoRepository repoLocaisArquivo, IMediaRepository repoMedia)
+            ICategoriasRepository repoCategorias, ILocalArquivoRepository repoLocaisArquivo, IMediaRepository repoMedia,
+            IStatsRepository repoStats)
         {
             _logger = logger;
             _mapper = mapper;
@@ -48,6 +50,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _repoCategorias = repoCategorias;
             _repoLocaisArquivo = repoLocaisArquivo;
             _repoMedia = repoMedia;
+            _repoStats = repoStats;
         }
 
         [HttpGet("{option}")]
@@ -65,6 +68,37 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 }
                 else
                     return Ok(Enumerable.Empty<SummaryDataDTO>());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Erro no Api {location}");
+                return InternalError($"{location}: {e.Message} - {e.InnerException}");
+            }
+        }
+
+        /// <summary>
+        /// Data-quality counters for the dashboard (publications without cover/pages,
+        /// lookup entities without publications, duplicate titles).
+        /// </summary>
+        [HttpGet("health")]
+        public async Task<IActionResult> GetHealth()
+        {
+            var location = GetControllerActionNames();
+            try
+            {
+                var health = new DashboardHealthDto
+                {
+                    PubsSemCapa = await _repoStats.GetCountFromPubsWithoutCover(),
+                    PubsSemPaginas = await _repoStats.GetCountFromPubsWithoutPages(),
+                    AutoresSemPublicacoes = await _repoStats.GetCountFromAuthorsWithoutPubs(),
+                    EditorasSemPublicacoes = await _repoStats.GetCountFromEditorasWithoutPubs(),
+                    CategoriasSemPublicacoes = await _repoStats.GetCountFromGenerosWithoutPubs(),
+                    FormatosSemPublicacoes = await _repoStats.GetCountFromFormatosWithoutPubs(),
+                    LocaisArquivoSemPublicacoes = await _repoStats.GetCountFromLocaisArquivoWithoutPubs(),
+                    TitulosDuplicados = (await _repoStats.GetTitulosDuplicados())?.Count ?? 0
+                };
+
+                return Ok(health);
             }
             catch (Exception e)
             {

@@ -127,10 +127,16 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [HttpGet("runtime-settings")]
         public async Task<ActionResult<CloudChatRuntimeSettingsDto>> GetRuntimeSettings(CancellationToken ct)
         {
+            var allowPaid = bool.TryParse(
+                await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.AllowPaidModels, null, ct),
+                out var paid) && paid;
+
+            var defaultModel = await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.DefaultModel, null, ct)
+                ?? CloudChatSettingsKeys.DefaultModelValue;
+
             var dto = new CloudChatRuntimeSettingsDto
             {
-                DefaultModel = await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.DefaultModel, null, ct)
-                    ?? CloudChatSettingsKeys.DefaultModelValue,
+                DefaultModel = CloudChatSettingsKeys.ApplyPaidModelGate(defaultModel, allowPaid),
                 EnableReasoning = bool.TryParse(await _settingsRepository.GetValueAsync(
                     CloudChatSettingsKeys.EnableReasoning, null, ct), out var enabled) && enabled
             };

@@ -95,6 +95,21 @@ public sealed class CloudChatUsageService : ICloudChatUsageService
         }
     }
 
+    public async Task<int> GetFreeRequestsRemainingAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var used = await GetFreeModelUsageTodayAsync(ct);
+            var cap = await ResolveDailyCapWithoutNetworkAsync(ct);
+            return Math.Max(0, cap - used);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CloudChat] Falha a calcular pedidos gratuitos restantes; a assumir 0.");
+            return 0;
+        }
+    }
+
     private async Task<bool> TryLoadKeyInfoAsync(
         HttpClient client, string apiKey, CloudChatUsageDto dto, CancellationToken ct)
     {
@@ -177,6 +192,29 @@ public sealed class CloudChatUsageService : ICloudChatUsageService
             || dto.UsoSemana.GetValueOrDefault() > 0
             || dto.UsoMes.GetValueOrDefault() > 0;
 
+        try
+        {
+            await _settingsRepository.SetValueAsync(
+                CloudChatSettingsKeys.EverPurchasedCredits,
+                everPurchased.ToString(CultureInfo.InvariantCulture),
+                null, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CloudChat] Falha a persistir snapshot de créditos comprados.");
+        }
+
+        return everPurchased ? FreeCapWithCredits : FreeCapWithoutCredits;
+    }
+
+    private async Task<int> ResolveDailyCapWithoutNetworkAsync(CancellationToken ct)
+    {
+        var overrideRaw = await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.FreeDailyCap, null, ct);
+        if (int.TryParse(overrideRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out var customCap) && customCap > 0)
+            return customCap;
+
+        var snapshotRaw = await _settingsRepository.GetValueAsync(CloudChatSettingsKeys.EverPurchasedCredits, null, ct);
+        var everPurchased = bool.TryParse(snapshotRaw, out var bought) && bought;
         return everPurchased ? FreeCapWithCredits : FreeCapWithoutCredits;
     }
 

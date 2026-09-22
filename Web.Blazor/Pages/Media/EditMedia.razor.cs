@@ -349,10 +349,10 @@ namespace Web.Blazor.Pages.Media
                     // AI fallback for Notas (OpenRouter primeiro, depois Ollama)
                     if (!notasFilled || (notasFilled && SelectedRecord.Notas == "N/A"))
                     {
-                        var ai = await AiMediaClient.GetMediaNotesCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                        var ai = await AiMediaClient.GetMediaNotesCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, "media-api", mediaInfoCts.Token);
                         if (ai is null)
                         {
-                            ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                            ai = await AiMediaClient.GetMediaNotesAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, "media-api", mediaInfoCts.Token);
                             if (ai is not null)
                                 aiProviderMessage = L["MediaInfoProviderOllama"];
                         }
@@ -394,6 +394,7 @@ namespace Web.Blazor.Pages.Media
                             uiLanguage,
                             ProgressClient.ConnectionId,
                             null,
+                            "media-api",
                             mediaInfoCts.Token);
                         var yearProviderMessage = L["MediaInfoProviderOpenRouter"];
                         if (year is null)
@@ -404,6 +405,7 @@ namespace Web.Blazor.Pages.Media
                                 uiLanguage,
                                 ProgressClient.ConnectionId,
                                 null,
+                                "media-api",
                                 mediaInfoCts.Token);
                             if (year is not null)
                                 yearProviderMessage = L["MediaInfoProviderOllama"];
@@ -785,11 +787,11 @@ namespace Web.Blazor.Pages.Media
                 ProgressClient.ProgressEventReceived -= OnProgressEventReceived;
                 ProgressClient.ProgressEventReceived += OnProgressEventReceived;
 
-                var ai = await AiMediaClient.GetMediaMetadataCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                var ai = await AiMediaClient.GetMediaMetadataCloudAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, "media-api", mediaInfoCts.Token);
                 var aiProviderMessage = L["MediaInfoProviderOpenRouter"];
                 if (ai is null)
                 {
-                    ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, mediaInfoCts.Token);
+                    ai = await AiMediaClient.GetMediaMetadataAsync(artist, mediaTitle, uiLanguage, ProgressClient.ConnectionId, null, "media-api", mediaInfoCts.Token);
                     if (ai is not null)
                         aiProviderMessage = L["MediaInfoProviderOllama"];
                 }

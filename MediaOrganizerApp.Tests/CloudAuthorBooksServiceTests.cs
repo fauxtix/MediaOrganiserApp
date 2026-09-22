@@ -229,6 +229,26 @@ public sealed class CloudAuthorBooksServiceTests
     }
 
     [Fact]
+    public async Task GetAuthorBooksAsync_ReturnsNull_WhenFreeDailyCapExhausted()
+    {
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-3.5-turbo"
+            },
+            capture,
+            freeRequestsRemaining: 0);
+
+        var result = await service.GetAuthorBooksAsync("Camões", "pt");
+
+        Assert.Null(result);
+        Assert.Empty(capture.RequestBodies);
+    }
+
+    [Fact]
     public async Task GetAuthorBooksAsync_RegistersFreeUsage_WhenModelIsFree()
     {
         var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -467,7 +487,8 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
         Queue<HttpResponseMessage>? responses,
         Dictionary<string, string?> settings,
         HttpCapture capture,
-        Mock<ICloudChatUsageService>? usageMock = null)
+        Mock<ICloudChatUsageService>? usageMock = null,
+        int freeRequestsRemaining = 1000)
     {
         var repo = new Mock<IAIChatSettingsRepository>();
         repo.Setup(x => x.GetValueAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -508,11 +529,16 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
         var internet = new Mock<IInternetAvailabilityService>();
         internet.Setup(x => x.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
+        var effectiveUsage = usageMock ?? new Mock<ICloudChatUsageService>();
+        effectiveUsage
+            .Setup(x => x.GetFreeRequestsRemainingAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(freeRequestsRemaining);
+
         return new CloudAuthorBooksService(
             factory.Object,
             repo.Object,
             prompts.Object,
-            usageMock?.Object ?? Mock.Of<ICloudChatUsageService>(),
+            effectiveUsage.Object,
             internet.Object,
             Mock.Of<IProgressPublisher>(),
             new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),

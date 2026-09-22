@@ -13,6 +13,7 @@ public static class CloudChatSettingsKeys
     public const string FreeDailyCap = "CloudChat:FreeDailyCap";
     public const string AuthorBooksUseCloud = "CloudChat:AuthorBooksUseCloud";
     public const string ExtractionModels = "CloudChat:ExtractionModels";
+    public const string EverPurchasedCredits = "CloudChat:EverPurchasedCredits";
     public const string DefaultModelValue = "openrouter/free";
 
     /// <summary>Determines whether a model id runs on OpenRouter's free tier.</summary>

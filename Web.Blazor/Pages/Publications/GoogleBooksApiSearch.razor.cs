@@ -177,27 +177,47 @@ namespace Web.Blazor.Pages.Publications
                 string translatedTitle = "";
                 bool usedTranslation = false;
                 var bookInfo = await GoogleBooksService.GetBookAsync(bookTitle, author);
-                if (bookInfo is null)
+                if (!HasUsableItems(bookInfo))
                 {
+                    // Zero results with the original title (or hard failure returning an
+                    // empty GoogleBook). Retry once with the title translated to English
+                    // before giving up to the AI fallback.
+                    _logger.LogWarning(
+                        "Google Books devolveu zero resultados para '{Title}' - '{Author}'. A tentar título traduzido para inglês.",
+                        bookTitle, author);
+
                     translatedTitle = await autoresService.TranslateWithMyMemoryAsync(bookTitle, "pt", "en");
-                    bookInfo = await GoogleBooksService.GetBookAsync(translatedTitle, author);
-                    if (bookInfo is null)
+                    if (!string.IsNullOrWhiteSpace(translatedTitle)
+                        && !string.Equals(translatedTitle.Trim(), bookTitle, StringComparison.OrdinalIgnoreCase))
                     {
-                        var ai = await TryGetAiBookAsync(bookTitle, author);
-                        if(ai is not null)
+                        var translatedBook = await GoogleBooksService.GetBookAsync(translatedTitle, author);
+                        if (HasUsableItems(translatedBook))
                         {
-                            // TODO completar
+                            bookInfo = translatedBook;
+                            usedTranslation = true;
+                            _logger.LogInformation(
+                                "Google Books devolveu resultados para o título traduzido '{TranslatedTitle}' (original '{Title}' - '{Author}').",
+                                translatedTitle, bookTitle, author);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Google Books também devolveu zero resultados com o título traduzido '{TranslatedTitle}' para '{Title}' - '{Author}'. A avançar para o fallback AI.",
+                                translatedTitle, bookTitle, author);
                         }
                     }
                     else
                     {
-                        usedTranslation = true;
+                        _logger.LogWarning("Tradução do título '{Title}' devolveu texto vazio; a avançar para o fallback AI.", bookTitle);
                     }
                 }
 
                 if (bookInfo.items is null || bookInfo.items.Length == 0)
                 {
                     // Situation 1: Google Books has no results. Try AI fallback to at least fill the summary.
+                    _logger.LogWarning(
+                        "Google Books sem resultados finais para '{Title}' - '{Author}'. A avançar para o fallback AI (OpenRouter -> Ollama).",
+                        bookTitle, author);
                     var ai = await TryGetAiBookAsync(bookTitle, author);
                     if (ai is not null)
                     {
@@ -222,15 +242,21 @@ namespace Web.Blazor.Pages.Publications
                 else
                 {
                     float salePrice = 0;
-                    var retailPrice = bookInfo.items[0].saleInfo.retailPrice;
+                    var firstItem = bookInfo.items?.FirstOrDefault();
+                    var retailPrice = firstItem?.saleInfo?.retailPrice;
                     if (retailPrice is not null)
                     {
+                        // Defensivo: itens, saleInfo/listPrice/retailPrice podem vir ausentes da API.
+                        var pricedItem = bookInfo.items?
+                            .FirstOrDefault(bi => bi.saleInfo?.retailPrice?.amount > 0);
+                        var listPrice = pricedItem?.saleInfo?.listPrice?.amount;
+                        var retPrice = pricedItem?.saleInfo?.retailPrice?.amount;
+                        var itemAmount = listPrice is > 0
+                            ? listPrice.Value
+                            : (retPrice is > 0 ? retPrice.Value : 0f);
 
-                        var itemPrice = bookInfo.items
-                            .FirstOrDefault(bi => bi.saleInfo.retailPrice != null && bi.saleInfo.retailPrice.amount > 0).saleInfo.listPrice.amount;
-
-                        if (itemPrice > 0)
-                            salePrice = itemPrice;
+                        if (itemAmount > 0)
+                            salePrice = itemAmount;
                     }
                     var booksAuthors = new List<string>();
                     var booksDescriptions = new List<string>();
@@ -240,25 +266,21 @@ namespace Web.Blazor.Pages.Publications
                     var booksPages = new List<string>();
                     var booksItems = bookInfo.items;
 
-                    string textSnippet = "";
-                    var AiDescription = "";
-                    if (booksItems[0].searchInfo == null) // may have more than one item (?!), search the first one with data in the AI
-                                               // (second one may have data that don't match the book we're interested in)
-                    {
-                        AiDescription = await TryGetAiSummaryAsync(bookTitle, author) ;
-                    }
+                    // A descrição AI só é usada quando os resultados da Google Books não têm
+                    // descrição nenhuma (tratado no ramo "Situation 2" mais abaixo). `searchInfo`
+                    // vem frequentemente null nas pesquisas de volumes (só aparece quando há um
+                    // "text snippet" de correspondência de texto completo) — não pode decidir o
+                    // fallback AI, senão resultados válidos do Google Books levar à chamada AI indevida.
+                    // Quando a `description` falta, o `searchInfo.textSnippet` é usado como descrição
+                    // antes de se recorrer ao AI (ver `bookDescription` mais abaixo).
 
                     foreach (var bookitem in booksItems.Select(v => v.volumeInfo))
                     {
                         if (bookitem is not null)
                         {
-                            var bookDesc = bookitem.description is not null ? 
-                                bookitem.description : 
-                                !string.IsNullOrEmpty(textSnippet) 
-                                ? textSnippet : 
-                                !string.IsNullOrEmpty(AiDescription) 
-                                ? AiDescription : "";
-                            booksDescriptions.Add(!string.IsNullOrEmpty(bookDesc) ? bookDesc : "N/A");
+                            var bookDesc = bookitem.description ?? "";
+                            if (!string.IsNullOrWhiteSpace(bookDesc))
+                                booksDescriptions.Add(bookDesc);
 
                             if (bookitem.authors is not null)
                                 booksAuthors.Add(bookitem.authors.FirstOrDefault());
@@ -343,8 +365,11 @@ namespace Web.Blazor.Pages.Publications
                     bookAuthor = author;
                     //}
 
-                    var bookCategory = bookInfo.items[0].volumeInfo.categories is not null ? bookInfo.items[0].volumeInfo.categories.FirstOrDefault() : "Desconhecida";
-                    var bookDescription = booksDescriptions.Where(bd => bd is not null).FirstOrDefault();
+                    var bookCategory = bookInfo.items?.FirstOrDefault()?.volumeInfo?.categories?.FirstOrDefault() ?? "Desconhecida";
+                    var bookDescription = booksDescriptions.FirstOrDefault();
+                    var snippet = booksItems.Select(b => b.searchInfo?.textSnippet).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+                    if (string.IsNullOrWhiteSpace(bookDescription) && !string.IsNullOrWhiteSpace(snippet))
+                        bookDescription = System.Net.WebUtility.HtmlDecode(snippet);
                     var bookImage = booksImages.Where(bi => bi is not null).FirstOrDefault();
                     var bookPublishDate = booksPublishedDates.FirstOrDefault();
                     var bookItemPages = booksPages.FirstOrDefault();
@@ -428,7 +453,7 @@ namespace Web.Blazor.Pages.Publications
                     ApiRecord.Titulo = bookTitle;
                     ApiRecord.IdFormato = iFormato;
                     ApiRecord.IdAutor = authorId;
-                    ApiRecord.Paginas = int.Parse(bookItemPages) > 0 ? int.Parse(bookItemPages) : 0;
+                    ApiRecord.Paginas = int.TryParse(bookItemPages, out var pages) && pages > 0 ? pages : 0;
                     ApiRecord.Preco = (decimal)salePrice > 0 ? (decimal)salePrice : 0;
 
                     lastSource = usedTranslation
@@ -531,7 +556,16 @@ namespace Web.Blazor.Pages.Publications
 
                 var connectionId = ProgressClient.ConnectionId;
 
-                var resp = await AiBookClient.GetBookSummaryOnlyAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, connectionId);
+                var normalizedAuthor = string.IsNullOrWhiteSpace(author) ? null : author;
+
+                var resp = await AiBookClient.GetBookSummaryOnlyCloudAsync(title, normalizedAuthor, uiLanguage, connectionId, scenario: "googlebooks");
+                if (resp is null)
+                {
+                    _logger.LogWarning(
+                        "OpenRouter não devolveu descrição para '{Title}' - '{Author}'. A usar fallback local (Ollama).",
+                        title, normalizedAuthor);
+                    resp = await AiBookClient.GetBookSummaryOnlyAsync(title, normalizedAuthor, uiLanguage, connectionId, scenario: "cloud-fallback");
+                }
                 if (resp is null)
                 {
                     aiProgressMessage = localizerApp["AiNoResponse"];
@@ -582,7 +616,16 @@ namespace Web.Blazor.Pages.Publications
                 await InvokeAsync(StateHasChanged);
 
                 var connectionId = ProgressClient.ConnectionId;
-                var resp = await AiBookClient.GetBookSummaryAsync(title, string.IsNullOrWhiteSpace(author) ? null : author, uiLanguage, connectionId);
+                var normalizedAuthor = string.IsNullOrWhiteSpace(author) ? null : author;
+
+                var resp = await AiBookClient.GetBookSummaryCloudAsync(title, normalizedAuthor, uiLanguage, connectionId, scenario: "googlebooks");
+                if (resp is null)
+                {
+                    _logger.LogWarning(
+                        "OpenRouter não devolveu metadados/sumário para '{Title}' - '{Author}'. A usar fallback local (Ollama).",
+                        title, normalizedAuthor);
+                    resp = await AiBookClient.GetBookSummaryAsync(title, normalizedAuthor, uiLanguage, connectionId, scenario: "cloud-fallback");
+                }
                 if (resp is null)
                     return null;
 
@@ -675,6 +718,9 @@ namespace Web.Blazor.Pages.Publications
             BookSearchSource.AiOffline => "SearchSourceAiOffline",
             _ => "SearchSourceGoogleBooks"
         };
+
+        private static bool HasUsableItems(GoogleBook book)
+            => book is not null && book.items is not null && book.items.Length > 0;
 
         private string ConvertToProperCase(string input)
         {

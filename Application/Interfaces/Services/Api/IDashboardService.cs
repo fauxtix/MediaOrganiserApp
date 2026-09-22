@@ -8,5 +8,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.Api
     public interface IDashboardService
     {
         Task<IEnumerable<SummaryDataDTO>> GetSummaryAsync(QueryEnums.QueryOptions option);
+
+        Task<DashboardHealthDto> GetHealthAsync();
     }
 }

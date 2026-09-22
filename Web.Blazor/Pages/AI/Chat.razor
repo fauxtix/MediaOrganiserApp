@@ -77,10 +77,26 @@
     </div>
 
     <div class="messages" @ref="messagesDiv" @onscroll="OnScroll">
+        @{ var msgIndex = 0; }
         @foreach (var msg in messages)
         {
+            var index = msgIndex++;
+            var isUser = msg.Role == "user";
             <div class="msg @(msg.Role)">
                 @((MarkupString)FormatMessage(msg.Content, msg == currentAssistantMessage))
+                @if (!isUser && msg != currentAssistantMessage && !string.IsNullOrWhiteSpace(msg.Content))
+                {
+                    <div class="msg-actions">
+                        <span class="msg-vote-state @(GetFeedback(index) == 1 ? "state-liked" : GetFeedback(index) == -1 ? "state-disliked" : "state-none")">
+                            @(GetFeedback(index) == 1 ? L["ChatVoteLiked"] : GetFeedback(index) == -1 ? L["ChatVoteDisliked"] : L["ChatVoteNone"])
+                        </span>
+                        <button type="button" class="msg-action-btn" title="@L["ChatCopyResponse"]" @onclick="() => CopyMessageAsync(msg)">
+                            <span class="fa fa-copy"></span>
+                        </button>
+                        <button type="button" class="msg-action-btn @(GetFeedback(index) == 1 ? "active-thanks" : "")" title="@L["ChatMarkCorrect"]" @onclick="() => RateMessageAsync(index, msg, 1)">👍</button>
+                        <button type="button" class="msg-action-btn @(GetFeedback(index) == -1 ? "active-dislike" : "")" title="@L["ChatMarkIncorrect"]" @onclick="() => RateMessageAsync(index, msg, -1)">👎</button>
+                    </div>
+                }
             </div>
         }
 
@@ -562,6 +578,60 @@
         .msg h1, .msg h2, .msg h3 {
             margin: 10px 0 6px 0;
             font-weight: 600;
+        }
+
+        /* Ações por resposta (copiar / 👍 / 👎, como no ChatGPT) */
+        .msg .msg-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            align-items: center;
+        }
+
+        .msg-vote-state {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--app-text-secondary);
+            padding: 1px 8px;
+            border: 1px solid var(--app-border);
+            border-radius: 999px;
+            background: var(--app-surface);
+        }
+
+        .msg-vote-state.state-liked {
+            color: var(--app-accent-green);
+            border-color: var(--app-accent-green);
+        }
+
+        .msg-vote-state.state-disliked {
+            color: var(--app-danger);
+            border-color: var(--app-danger);
+        }
+
+        .msg-action-btn {
+            border: none;
+            background: transparent;
+            color: var(--app-text-secondary);
+            border-radius: 6px;
+            padding: 3px 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            min-width: 30px;
+            min-height: 26px;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .msg-action-btn:hover {
+            color: var(--app-text-primary);
+        }
+
+        .msg-action-btn.active-thanks {
+            color: var(--app-accent-green);
+        }
+
+        .msg-action-btn.active-dislike {
+            color: var(--app-danger);
         }
 
     /* ===========================

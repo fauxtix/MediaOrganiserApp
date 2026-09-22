@@ -23,6 +23,9 @@ namespace MediaOrganizerApp.WebApi.Controllers
         private readonly CloudAuthorBooksService _cloudBooks;
         private readonly CloudMediaService _cloudMedia;
         private readonly CloudTranslateService _cloudTranslate;
+        private readonly CloudBookSummaryService _cloudSummaries;
+        private readonly CloudAuthorProfileService _cloudAuthorProfile;
+        private readonly AiUsageRecorderService _usage;
         private readonly ILogger<AiController> _logger;
 
         public AiController(
@@ -37,7 +40,10 @@ namespace MediaOrganizerApp.WebApi.Controllers
             ITranslateService translateService,
             CloudAuthorBooksService cloudBooks,
             CloudMediaService cloudMedia,
-            CloudTranslateService cloudTranslate)
+            CloudTranslateService cloudTranslate,
+            CloudBookSummaryService cloudSummaries,
+            CloudAuthorProfileService cloudAuthorProfile,
+            AiUsageRecorderService usage)
         {
             _ai = ai;
             _books = books;
@@ -51,6 +57,25 @@ namespace MediaOrganizerApp.WebApi.Controllers
             _cloudBooks = cloudBooks;
             _cloudMedia = cloudMedia;
             _cloudTranslate = cloudTranslate;
+            _cloudSummaries = cloudSummaries;
+            _cloudAuthorProfile = cloudAuthorProfile;
+            _usage = usage;
+        }
+
+        private async Task RecordUsageAsync(
+            string operacao,
+            string provider,
+            bool sucesso,
+            double durationMs,
+            string? contexto = null,
+            string? scenario = null,
+            CancellationToken ct = default)
+        {
+            var userId = Request?.Headers["X-UserId"].ToString();
+            if (string.IsNullOrWhiteSpace(userId))
+                userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            await _usage.RecordAsync(userId, operacao, provider, contexto: contexto, scenario: scenario, durationMs: durationMs, sucesso: sucesso, ct: ct);
         }
 
         private static string MapLanguageCodeToName(string? language)
@@ -229,11 +254,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     });
                 }
 
+                var sw = System.Diagnostics.Stopwatch.StartNew();
                 var resp = await _translateService.TranslateAsync(request, cancellationToken);
 
                 if (resp == null)
                 {
                     // Service returned no object - map to DTO with error message
+                    await RecordUsageAsync("translate", AiUsageRecorderService.ProviderOllama, false, sw.ElapsedMilliseconds,
+                        $"{request.SourceLanguage}->{request.TargetLanguage}", request.Scenario, cancellationToken);
                     return Ok(new TranslateResponseDto
                     {
                         TranslatedText = string.Empty,
@@ -241,6 +269,15 @@ namespace MediaOrganizerApp.WebApi.Controllers
                         ErrorMessage = "Translation service returned no response."
                     });
                 }
+
+                await RecordUsageAsync(
+                    "translate",
+                    AiUsageRecorderService.ProviderOllama,
+                    !string.IsNullOrWhiteSpace(resp.TranslatedText) && string.IsNullOrWhiteSpace(resp.ErrorMessage),
+                    sw.ElapsedMilliseconds,
+                    $"{request.SourceLanguage}->{request.TargetLanguage}",
+                    request.Scenario,
+                    cancellationToken);
 
                 return Ok(resp);
             }
@@ -322,13 +359,65 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Field 'name' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var provider = _ai is OllamaAuthorProfileService
+                ? AiUsageRecorderService.ProviderOllama
+                : AiUsageRecorderService.ProviderOpenAiSdk;
             var resp = await _ai.GetAuthorProfileAsync(
                 request.Name,
                 language,
                 request.ConnectionId,
                 request.CorrelationId,
                 cancellationToken);
+
+            await RecordUsageAsync("author-profile", provider, resp is not null, sw.ElapsedMilliseconds, request.Name, request.Scenario, cancellationToken);
             return Ok(resp);
+        }
+
+        /// <summary>
+        /// Generates an author profile via OpenRouter. Returns 503 when the cloud
+        /// path is unavailable so the UI can fall back to the local provider.
+        /// </summary>
+        [HttpPost("author-profile-cloud")]
+        public async Task<ActionResult<AiAuthorProfileResponseDto>> AuthorProfileCloud(
+            [FromBody] AiAuthorProfileRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Field 'name' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var resp = await _cloudAuthorProfile.GetAuthorProfileAsync(request.Name, language, cancellationToken);
+                if (resp is null)
+                {
+                    await RecordUsageAsync("author-profile", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Name, request.Scenario, cancellationToken);
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync(
+                    "author-profile",
+                    AiUsageRecorderService.ProviderOpenRouter,
+                    !string.IsNullOrWhiteSpace(resp.Bio),
+                    sw.ElapsedMilliseconds,
+                    request.Name,
+                    request.Scenario,
+                    cancellationToken);
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("AuthorProfileCloud request cancelled.");
+                await RecordUsageAsync("author-profile", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Name, request.Scenario, cancellationToken);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating author-profile via OpenRouter");
+                await RecordUsageAsync("author-profile", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Name, request.Scenario, cancellationToken);
+                return StatusCode(503, "Error generating author-profile via OpenRouter");
+            }
         }
 
         /// <summary>
@@ -349,7 +438,9 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var resp = await _books.GetBookSummaryAsync(request.Title, request.Author, language, cancellationToken);
+            await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOllama, resp is not null, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
             return Ok(resp);
         }
 
@@ -370,6 +461,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var resp = await _books.GetBookSummaryOnlyAsync(
                 request.Title,
                 request.Author,
@@ -377,7 +469,100 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 request.ConnectionId,
                 request.CorrelationId,
                 cancellationToken);
+            await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOllama, resp is not null, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
             return Ok(resp);
+        }
+
+        /// <summary>
+        /// Get an AI-generated book summary/metadata via OpenRouter. Returns 503
+        /// when the cloud path is unavailable (offline, no key, HTTP/parse
+        /// failure) so the UI can fall back to the local Ollama provider.
+        /// </summary>
+        [HttpPost("book-summary-cloud")]
+        public async Task<ActionResult<AiBookSummaryResponseDto>> BookSummaryCloud(
+            [FromBody] AiBookSummaryRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var resp = await _cloudSummaries.GetBookSummaryAsync(
+                    request.Title,
+                    request.Author,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
+                if (resp is null)
+                {
+                    await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, true, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("BookSummaryCloud request cancelled for '{Title}'", request.Title);
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating book summary via OpenRouter for '{Title}'", request.Title);
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return StatusCode(503, "Error generating book summary via OpenRouter");
+            }
+        }
+
+        /// <summary>
+        /// Get an AI-generated book summary (without extra metadata) via OpenRouter.
+        /// Returns 503 when the cloud path is unavailable so the UI can fall back
+        /// to the local Ollama provider.
+        /// </summary>
+        [HttpPost("book-summary-only-cloud")]
+        public async Task<ActionResult<AiBookSummaryResponseDto>> BookSummaryOnlyCloud(
+            [FromBody] AiBookSummaryRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request is null) return BadRequest("Request body is required.");
+            if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Field 'title' is required.");
+
+            var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var resp = await _cloudSummaries.GetBookSummaryOnlyAsync(
+                    request.Title,
+                    request.Author,
+                    language,
+                    request.ConnectionId,
+                    request.CorrelationId,
+                    cancellationToken);
+                if (resp is null)
+                {
+                    await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, true, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return Ok(resp);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("BookSummaryOnlyCloud request cancelled for '{Title}'", request.Title);
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating book summary-only via OpenRouter for '{Title}'", request.Title);
+                await RecordUsageAsync("book-summary", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, request.Title, request.Scenario, cancellationToken);
+                return StatusCode(503, "Error generating book summary-only via OpenRouter");
+            }
         }
 
         /// <summary>
@@ -396,14 +581,17 @@ namespace MediaOrganizerApp.WebApi.Controllers
             string language = "pt",
             string? connectionId = null,
             string? correlationId = null,
+            string? scenario = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(author))
                 return BadRequest("author parameter is required");
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var books = await _aiBooks.GetBooksByAuthorAsync(author, language, connectionId, correlationId, cancellationToken);
+                await RecordUsageAsync("author-books", AiUsageRecorderService.ProviderOllama, books is not null, sw.ElapsedMilliseconds, author, scenario, cancellationToken);
                 return Ok(books);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -431,6 +619,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             string language = "pt",
             string? connectionId = null,
             string? correlationId = null,
+            string? scenario = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(author))
@@ -445,6 +634,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
 
                 var result = await _cloudBooks.GetAuthorBooksResultAsync(
                     author, language, connectionId, correlationId, cancellationToken);
+                await RecordUsageAsync(
+                    "author-books",
+                    AiUsageRecorderService.ProviderOpenRouter,
+                    result is not null && result.Books?.Count > 0,
+                    sw.ElapsedMilliseconds,
+                    author,
+                    scenario,
+                    cancellationToken);
                 return Ok(result);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -452,6 +649,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 _logger.LogWarning(
                     "AuthorBooksCloud request cancelled for {Author} após {DurationMs}ms (função terminada por timeout do cliente).",
                     author, sw.ElapsedMilliseconds);
+                await RecordUsageAsync(
+                    "author-books", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, author, scenario, cancellationToken);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     new CloudAuthorBooksResult
                     {
@@ -462,6 +661,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating author books via OpenRouter for {Author} após {DurationMs}ms", author, sw.ElapsedMilliseconds);
+                await RecordUsageAsync(
+                    "author-books", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, author, scenario, cancellationToken);
                 return StatusCode(503,
                     new CloudAuthorBooksResult { FailureReason = TruncateMessage(ex) });
             }
@@ -511,6 +712,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var resp = await _media.GetMediaNotesAsync(
@@ -520,11 +722,13 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     request.ConnectionId,
                     request.CorrelationId,
                     cancellationToken);
+                await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOllama, resp is not null, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return Ok(resp);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating media notes for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOllama, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return BadRequest("Error generating media notes.");
             }
         }
@@ -548,6 +752,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var resp = await _mediaMetadata.GetMediaMetadataAsync(
                 request.Artist,
                 request.Title,
@@ -555,6 +760,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 request.ConnectionId,
                 request.CorrelationId,
                 cancellationToken);
+            await RecordUsageAsync("media-metadata", AiUsageRecorderService.ProviderOllama, resp is not null, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
             return Ok(resp);
         }
 
@@ -575,6 +781,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var year = await _mediaMetadata.GetMediaEditionYearAsync(
                 request.Artist,
                 request.Title,
@@ -582,6 +789,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
                 request.ConnectionId,
                 request.CorrelationId,
                 cancellationToken);
+            await RecordUsageAsync("media-edition-year", AiUsageRecorderService.ProviderOllama, !string.IsNullOrWhiteSpace(year), sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
             return Ok(string.IsNullOrWhiteSpace(year) ? "N/A" : year);
         }
 
@@ -600,6 +808,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var resp = await _cloudMedia.GetMediaNotesAsync(
@@ -610,17 +819,23 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     request.CorrelationId,
                     cancellationToken);
                 if (resp is null)
+                {
+                    await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOpenRouter, true, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return Ok(resp);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("MediaNotesCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating media notes via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-notes", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(503, "Error generating media notes via OpenRouter");
             }
         }
@@ -639,6 +854,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var resp = await _cloudMedia.GetMediaMetadataAsync(
@@ -649,17 +865,23 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     request.CorrelationId,
                     cancellationToken);
                 if (resp is null)
+                {
+                    await RecordUsageAsync("media-metadata", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync("media-metadata", AiUsageRecorderService.ProviderOpenRouter, true, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return Ok(resp);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("MediaMetadataCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-metadata", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating media metadata via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-metadata", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(503, "Error generating media metadata via OpenRouter");
             }
         }
@@ -678,6 +900,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
             if (string.IsNullOrWhiteSpace(request.Artist)) return BadRequest("Field 'artist' is required.");
 
             var language = string.IsNullOrWhiteSpace(request.Language) ? "pt" : request.Language;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var year = await _cloudMedia.GetMediaEditionYearAsync(
@@ -688,17 +911,23 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     request.CorrelationId,
                     cancellationToken);
                 if (year is null)
+                {
+                    await RecordUsageAsync("media-edition-year", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync("media-edition-year", AiUsageRecorderService.ProviderOpenRouter, true, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return Ok(year);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("MediaEditionYearCloud request cancelled for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-edition-year", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating media edition year via OpenRouter for '{Artist}' - '{Title}'", request.Artist, request.Title);
+                await RecordUsageAsync("media-edition-year", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.Artist} - {request.Title}", request.Scenario, cancellationToken);
                 return StatusCode(503, "Error generating media edition year via OpenRouter");
             }
         }
@@ -714,21 +943,35 @@ namespace MediaOrganizerApp.WebApi.Controllers
         {
             if (request is null) return BadRequest("Request body is required.");
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 var resp = await _cloudTranslate.TranslateAsync(request, cancellationToken);
                 if (resp is null)
+                {
+                    await RecordUsageAsync("translate", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.SourceLanguage}->{request.TargetLanguage}", request.Scenario, cancellationToken);
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "OpenRouter unavailable");
+                }
+                await RecordUsageAsync(
+                    "translate",
+                    AiUsageRecorderService.ProviderOpenRouter,
+                    !string.IsNullOrWhiteSpace(resp.TranslatedText) && string.IsNullOrWhiteSpace(resp.ErrorMessage),
+                    sw.ElapsedMilliseconds,
+                    $"{request.SourceLanguage}->{request.TargetLanguage}",
+                    request.Scenario,
+                    cancellationToken);
                 return Ok(resp);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("TranslateCloud request cancelled.");
+                await RecordUsageAsync("translate", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.SourceLanguage}->{request.TargetLanguage}", request.Scenario, cancellationToken);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Request cancelled");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error translating text via OpenRouter");
+                await RecordUsageAsync("translate", AiUsageRecorderService.ProviderOpenRouter, false, sw.ElapsedMilliseconds, $"{request.SourceLanguage}->{request.TargetLanguage}", request.Scenario, cancellationToken);
                 return StatusCode(503, "Error translating text via OpenRouter");
             }
         }

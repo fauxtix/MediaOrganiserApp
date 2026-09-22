@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Domain.Entities;
 
 namespace MediaOrganizerApp.Application.Interfaces.Repositories
@@ -18,5 +19,10 @@ namespace MediaOrganizerApp.Application.Interfaces.Repositories
             CancellationToken ct = default);
 
         Task CreateResponseAsync(AIResponse response, CancellationToken ct = default);
+
+        Task<AiBenchmarkSummaryDto> GetBenchmarkSummaryAsync(
+            string? userId = null,
+            bool isAdmin = false,
+            CancellationToken ct = default);
     }
 }

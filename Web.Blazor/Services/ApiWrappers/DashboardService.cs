@@ -49,5 +49,21 @@ namespace Web.Blazor.Services.ApiWrappers
                 return Enumerable.Empty<SummaryDataDTO>();
             }
         }
+
+        public async Task<DashboardHealthDto> GetHealthAsync()
+        {
+            var uri = $"{_uri}/health";
+
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<DashboardHealthDto>(uri)
+                    ?? new DashboardHealthDto();
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(exc, "Erro ao aceder ao serviço (Dashboard - GetHealthAsync)");
+                return new DashboardHealthDto();
+            }
+        }
     }
 }

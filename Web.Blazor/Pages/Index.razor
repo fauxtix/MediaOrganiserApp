@@ -4,6 +4,7 @@
 @using Web.Blazor.Components.Cards
 @using Web.Blazor.Pages.BaseComponents
 @using MediaOrganizerApp.Application.DTOs
+@using MediaOrganizerApp.Application.DTOs.AI
 @using Web.Blazor.Services.Common
 
 @inherits IndexBase
@@ -30,7 +31,7 @@
                 <div class="col-md-6 control-section sb-property-border">
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloCategoriasPublicacoes"]" EnableAnimation="true">
-                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
                             <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
                             <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
                                                          Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
@@ -38,7 +39,7 @@
                                 <AccumulationChartSeries DataSource="@categoriasSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
                                                          Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
                                                          InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
-                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                    <AccumulationDataLabelSettings Visible="true" Name="Contagem" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
                                 </AccumulationChartSeries>
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
@@ -46,7 +47,7 @@
 
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["frmFormatos"]" EnableAnimation="true">
-                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
                             <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
                             <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
                                                          Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
@@ -54,7 +55,7 @@
                                 <AccumulationChartSeries DataSource="@formatosSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
                                                          Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
                                                          InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
-                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                    <AccumulationDataLabelSettings Visible="true" Name="Contagem" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
                                 </AccumulationChartSeries>
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
@@ -69,7 +70,7 @@
                                 <AccumulationChartSeries DataSource="@editorasSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
                                                          Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
                                                          InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
-                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                    <AccumulationDataLabelSettings Visible="true" Name="Contagem" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
                                 </AccumulationChartSeries>
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
@@ -79,7 +80,7 @@
                 <div class="col-md-6 control-section sb-property-border">
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloCategoriasMedia"]" EnableAnimation="true">
-                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
                             <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
                             <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
                                                          Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
@@ -87,7 +88,7 @@
                                 <AccumulationChartSeries DataSource="@categoriasMediaSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
                                                          Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
                                                          InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
-                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                    <AccumulationDataLabelSettings Visible="true" Name="Contagem" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
                                 </AccumulationChartSeries>
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
@@ -95,7 +96,7 @@
 
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloFormatoMedia"]" EnableAnimation="true">
-                            <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
+                            <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
                             <AccumulationChartLegendSettings Visible="true" TextWrap="TextWrap.Wrap"></AccumulationChartLegendSettings>
                             <AccumulationChartTitleStyle FontFamily="Verdana" FontStyle="Normal" FontWeight="bold"
                                                          Color="#99ccff" Size="32px"></AccumulationChartTitleStyle>
@@ -103,7 +104,7 @@
                                 <AccumulationChartSeries DataSource="@formatosMediaSummaryTop10" XName="Descricao" YName="Contagem" Name="Descricao"
                                                          Radius="@OuterRadius" StartAngle="@StartAngle" EndAngle="@EndAngle"
                                                          InnerRadius="0%" ExplodeIndex="@ExplodeIndex" Explode="true" ExplodeOffset="@ExplodeRadius">
-                                    <AccumulationDataLabelSettings Visible="false" Name="Descricao" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
+                                    <AccumulationDataLabelSettings Visible="true" Name="Contagem" Position="AccumulationLabelPosition.Outside"></AccumulationDataLabelSettings>
                                 </AccumulationChartSeries>
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
@@ -234,6 +235,358 @@
             </div>
         </div>
 
+        <hr />
+        @* ===== Secção: Saúde / qualidade dos dados ===== *@
+        <div class="container-fluid p-0 mo-dash-section mo-dash-section-health">
+            <h4 class="mo-dash-section-title">@localizerApp["DSH_SaudeTitulo"]</h4>
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_PubsSemCapa"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.PubsSemCapa</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_PubsSemPaginas"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.PubsSemPaginas</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_AutoresSemPublicacoes"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.AutoresSemPublicacoes</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_EditorasSemPublicacoes"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.EditorasSemPublicacoes</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_CategoriasSemPublicacoes"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.CategoriasSemPublicacoes</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_FormatosSemPublicacoes"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.FormatosSemPublicacoes</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_LocaisArquivoSemPublicacoes"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.LocaisArquivoSemPublicacoes</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_TitulosDuplicados"]</div>
+                        <div class="mo-dash-card-value">@HealthStats?.TitulosDuplicados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr />
+        @* ===== Secção: Atividade IA ===== *@
+        <div class="container-fluid p-0 mo-dash-section mo-dash-section-ai">
+            <h4 class="mo-dash-section-title">@localizerApp["DSH_AtividadeTitulo"]</h4>
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_Conversas"]</div>
+                        <div class="mo-dash-card-value">@ConversationsTotal</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_TotalRespostas"]</div>
+                        <div class="mo-dash-card-value">@BenchmarkSummary?.TotalRespostas</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_Ultimos7Dias"]</div>
+                        <div class="mo-dash-card-value">@BenchmarkSummary?.Ultimos7Dias</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_LatenciaMedia"]</div>
+                        <div class="mo-dash-card-value">@(BenchmarkSummary?.LatenciaMediaSegundos is double d ? d.ToString("0.##") + " s" : "—")</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_TokensSegundo"]</div>
+                        <div class="mo-dash-card-value">@(BenchmarkSummary?.TokensPorSegundoMedio is double t ? t.ToString("#,##0.#") + " tok/s" : "—")</div>
+                        @if (BenchmarkSummary?.TokensPorSegundoMedio is null)
+                        {
+                            <div class="mo-dash-card-sub">@localizerApp["DSH_TPSNota"]</div>
+                        }
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_TamanhoTokensMedio"]</div>
+                        <div class="mo-dash-card-value">@BenchmarkSummary?.TamanhoTokensMedio?.ToString("0.#")</div>
+                    </div>
+                </div>
+                @if (IsAdmin && CloudUsage is not null)
+                {
+                    <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                        <div class="mo-dash-card">
+                            <div class="mo-dash-card-label">@localizerApp["DSH_CloudTitulo"]</div>
+                            <div class="mo-dash-card-value">
+                                @CloudUsage.UsadosGratisHoje <span class="mo-dash-card-sub">/ @CloudUsage.TetoDiario</span>
+                            </div>
+                            <div class="mo-dash-progress">
+                                <div class="mo-dash-progress-bar" style="width:@(Math.Clamp(CloudUsage.PercentagemUsada, 0, 100))%;"></div>
+                            </div>
+                            <div class="mo-dash-card-label">@CloudUsage.PercentagemUsada.ToString("0.#")% @localizerApp["DSH_CloudPercentagem"]</div>
+                        </div>
+                    </div>
+                }
+                <div class="col-md-12 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_ModelosMaisUsados"]</div>
+                        @if (BenchmarkSummary is not null && BenchmarkSummary.ModelosMaisUsados.Count > 0)
+                        {
+                            <SfGrid DataSource="@BenchmarkSummary.ModelosMaisUsados" TValue="ModeloUsageContagem"
+                                    AllowPaging="false" AllowSorting="true" Height="200px">
+                                <GridColumns>
+                                    <GridColumn Field="@nameof(ModeloUsageContagem.Modelo)"
+                                                HeaderText="@localizerApp["DSH_ModeloColuna"]"
+                                                TextAlign="TextAlign.Left" Width="70%">
+                                        <Template>
+                                            @{
+                                                var modelo = context as ModeloUsageContagem;
+                                            }
+                                            @modelo.Modelo
+                                            @if (!string.IsNullOrEmpty(modelo.Provider))
+                                            {
+                                                <span class="mo-dash-card-sub">(@modelo.Provider)</span>
+                                            }
+                                        </Template>
+                                    </GridColumn>
+                                    <GridColumn Field="@nameof(ModeloUsageContagem.Contagem)"
+                                                HeaderText="@localizerApp["DSH_ContagemColuna"]"
+                                                TextAlign="TextAlign.Right" Width="30%" />
+                                </GridColumns>
+                            </SfGrid>
+                        }
+                        else
+                        {
+                            <em>@localizerApp["NoDataAvailable"]</em>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr />
+        @* ===== Secção: IA em uso interno (não-chat) ===== *@
+        <div class="container-fluid p-0 mo-dash-section mo-dash-section-ai">
+            <h4 class="mo-dash-section-title">@localizerApp["DSH_UsoInternoTitulo"]</h4>
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoTotal"]</div>
+                        <div class="mo-dash-card-value">@AiUsageSummary?.TotalGeral</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoUltimos7"]</div>
+                        <div class="mo-dash-card-value">@AiUsageSummary?.Ultimos7</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoOpenRouter"]</div>
+                        <div class="mo-dash-card-value" style="color: var(--app-accent-green);">@AiUsageSummary?.UsosOpenRouter</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoOllama"]</div>
+                        <div class="mo-dash-card-value" style="color: var(--app-accent-yellow);">@AiUsageSummary?.UsosOllama</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoFallbacks"]</div>
+                        <div class="mo-dash-card-value">@AiUsageSummary?.UsosFallback</div>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoPorOperacao"]</div>
+                        @if (AiUsageSummary is not null && AiUsageSummary.PorOperacao.Count > 0)
+                        {
+                            <SfGrid DataSource="@AiUsageSummary.PorOperacao" TValue="AiUsageOperacaoDto"
+                                    AllowPaging="false" AllowSorting="true" Height="220px">
+                                <GridColumns>
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.Operacao)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoOperacaoColuna"]"
+                                                TextAlign="TextAlign.Left" Width="25%">
+                                        <Template>
+                                            @{
+                                                var operacao = context as AiUsageOperacaoDto;
+                                            }
+                                            <code style="color: var(--app-text-primary); background: var(--app-surface-alt);">@operacao?.Operacao</code>
+                                        </Template>
+                                    </GridColumn>
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.Contagem)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoContagemColuna"]"
+                                                TextAlign="TextAlign.Right" Width="15%" />
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.Ultimos7)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoUltimos7Coluna"]"
+                                                TextAlign="TextAlign.Right" Width="15%" />
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.OpenRouter)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoOpenRouterColuna"]"
+                                                TextAlign="TextAlign.Right" Width="15%" />
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.Ollama)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoOllamaColuna"]"
+                                                TextAlign="TextAlign.Right" Width="15%" />
+                                    <GridColumn Field="@nameof(AiUsageOperacaoDto.Fallback)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoFallbackColuna"]"
+                                                TextAlign="TextAlign.Right" Width="15%" />
+                                </GridColumns>
+                            </SfGrid>
+                        }
+                        else
+                        {
+                            <em>@localizerApp["NoDataAvailable"]</em>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <div class="mo-dash-card">
+                        <div class="mo-dash-card-label">@localizerApp["DSH_UsoInternoUltimosRegistos"]</div>
+                        @if (AiUsageSummary is not null && AiUsageSummary.UltimosRegistos.Count > 0)
+                        {
+                            <SfGrid DataSource="@AiUsageSummary.UltimosRegistos" TValue="AiUsageRegistoDto"
+                                    AllowPaging="false" AllowSorting="true" Height="220px">
+                                <GridColumns>
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.Operacao)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoOperacaoColuna"]"
+                                                TextAlign="TextAlign.Left" Width="20%">
+                                        <Template>
+                                            @{
+                                                var operacao = context as AiUsageRegistoDto;
+                                            }
+                                            <code style="color: var(--app-text-primary); background: var(--app-surface-alt);">@operacao?.Operacao</code>
+                                        </Template>
+                                    </GridColumn>
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.Provider)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoProviderColuna"]"
+                                                TextAlign="TextAlign.Left" Width="12%">
+                                        <Template>
+                                            @{
+                                                var reg = context as AiUsageRegistoDto;
+                                            }
+                                            <span style="color: @(string.Equals(reg?.Provider, "openrouter", System.StringComparison.OrdinalIgnoreCase) ? "var(--app-accent-green)" : "var(--app-accent-yellow)");">
+                                                @reg?.Provider
+                                            </span>
+                                        </Template>
+                                    </GridColumn>
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.Contexto)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoContexto"]"
+                                                TextAlign="TextAlign.Left" Width="26%" />
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.Scenario)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoScenario"]"
+                                                TextAlign="TextAlign.Left" Width="18%" />
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.DurationMs)"
+                                                HeaderText="@localizerApp["DSH_UsoInternoDuracao"]"
+                                                TextAlign="TextAlign.Right" Width="12%">
+                                        <Template>
+                                            @((context as AiUsageRegistoDto)?.DurationMs.ToString("0") + " ms")
+                                        </Template>
+                                    </GridColumn>
+                                    <GridColumn Field="@nameof(AiUsageRegistoDto.DataCriacao)"
+                                                HeaderText="@localizerApp["msgData"]"
+                                                Format="MM-dd HH:mm"
+                                                TextAlign="TextAlign.Right" Width="12%" />
+                                </GridColumns>
+                            </SfGrid>
+                        }
+                        else
+                        {
+                            <em>@localizerApp["NoDataAvailable"]</em>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (IsAdmin)
+        {
+            <hr />
+            @* ===== Secção: Auditoria / atividade (Admin) ===== *@
+            <div class="container-fluid p-0 mo-dash-section mo-dash-section-audit">
+                <h4 class="mo-dash-section-title">@localizerApp["DSH_AuditoriaTitulo"]</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="mo-dash-card">
+                            <div class="mo-dash-card-label">
+                                @localizerApp["DSH_ErrosTitulo"]
+                                <span class="mo-dash-card-sub">(@localizerApp["DSH_ErrosTotais"]: @ErrorLogsCount)</span>
+                            </div>
+                            @if (RecentErrorLogs.Count > 0)
+                            {
+                                <SfGrid DataSource="@RecentErrorLogs" TValue="AppLogDto"
+                                        AllowPaging="false" AllowSorting="true" Height="220px">
+                                    <GridColumns>
+                                        <GridColumn Field="@nameof(AppLogDto.TimeStamp)"
+                                                    HeaderText="@localizerApp["msgData"]"
+                                                    Format="yyyy-MM-dd HH:mm" TextAlign="TextAlign.Left" Width="30%" />
+                                        <GridColumn Field="@nameof(AppLogDto.Level)"
+                                                    HeaderText="@localizerApp["Level"]"
+                                                    TextAlign="TextAlign.Left" Width="15%" />
+                                        <GridColumn Field="@nameof(AppLogDto.Message)"
+                                                    HeaderText="@localizerApp["TituloMensagem"]"
+                                                    TextAlign="TextAlign.Left" Width="55%" />
+                                    </GridColumns>
+                                </SfGrid>
+                            }
+                            else
+                            {
+                                <em>@localizerApp["NoDataAvailable"]</em>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="mo-dash-card">
+                            <div class="mo-dash-card-label">@localizerApp["DSH_UltimosLogins"]</div>
+                            @if (LoginLogs.Count > 0)
+                            {
+                                <SfGrid DataSource="@LoginLogs" TValue="AppLogDto"
+                                        AllowPaging="false" AllowSorting="true" Height="220px">
+                                    <GridColumns>
+                                        <GridColumn Field="@nameof(AppLogDto.TimeStamp)"
+                                                    HeaderText="@localizerApp["msgData"]"
+                                                    Format="yyyy-MM-dd HH:mm" TextAlign="TextAlign.Left" Width="30%" />
+                                        <GridColumn Field="@nameof(AppLogDto.Message)"
+                                                    HeaderText="@localizerApp["TituloMensagem"]"
+                                                    TextAlign="TextAlign.Left" Width="70%" />
+                                    </GridColumns>
+                                </SfGrid>
+                            }
+                            else
+                            {
+                                <em>@localizerApp["NoDataAvailable"]</em>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <AlertUserComponent AlertMessageType="AlertMessageType.Warning"
                             Title="@AlertUserTitle" Message="@AlertUserMessage"
                             Visibility="@AlertUserVisibility"
@@ -242,6 +595,83 @@
 
         <br />
         <br />
+
+        <style>
+            .mo-dash-section-title {
+                color: var(--app-text-primary);
+                font-weight: 600;
+                margin-bottom: 0.75rem;
+            }
+
+            .mo-dash-card {
+                background: var(--app-surface);
+                border: 1px solid var(--app-border);
+                border-radius: 8px;
+                padding: 12px 16px;
+                height: 100%;
+            }
+
+            .mo-dash-section-health .mo-dash-card {
+                border-left: 4px solid var(--app-accent-green);
+            }
+
+            .mo-dash-section-ai .mo-dash-card {
+                border-left: 4px solid var(--app-accent-yellow);
+            }
+
+            .mo-dash-section-audit .mo-dash-card {
+                border-left: 4px solid var(--app-primary);
+            }
+
+            .mo-dash-card-label {
+                color: var(--app-text-secondary);
+                font-size: 0.85rem;
+                margin-bottom: 4px;
+            }
+
+            .mo-dash-card-value {
+                color: var(--app-text-primary);
+                font-size: 1.6rem;
+                font-weight: 600;
+            }
+
+            .mo-dash-card-sub {
+                color: var(--app-text-secondary);
+                font-size: 0.85rem;
+                font-weight: 400;
+            }
+
+            .mo-dash-progress {
+                background: var(--app-surface-alt);
+                border-radius: 4px;
+                height: 8px;
+                margin-top: 8px;
+                overflow: hidden;
+            }
+
+            .mo-dash-progress-bar {
+                background: var(--app-primary);
+                height: 100%;
+                border-radius: 4px;
+            }
+
+            [data-theme="dark"] .mo-dash-card {
+                background: var(--app-surface);
+                border-color: var(--app-border);
+            }
+
+            [data-theme="dark"] .mo-dash-section-health .mo-dash-card {
+                border-left-color: var(--app-accent-green);
+            }
+
+            [data-theme="dark"] .mo-dash-section-ai .mo-dash-card {
+                border-left-color: var(--app-accent-yellow);
+            }
+
+            [data-theme="dark"] .mo-dash-section-audit .mo-dash-card {
+                border-left-color: var(--app-primary);
+            }
+        </style>
 
 
     }

@@ -55,6 +55,8 @@ $body    = @{ name = "José Saramago" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri "$baseUrl/api/Ai/author-profile" -Headers $headers -ContentType "application/json" -Body $body
 ```
 
+The endpoint above is the local fallback. The cloud-first endpoint is `POST .../api/Ai/author-profile-cloud` (same body); it returns **HTTP 503** when OpenRouter is unavailable (offline, no key, 429, HTTP/parse failure) — exactly the trigger that makes the Blazor wrapper fall back to `/api/Ai/author-profile` with `scenario: cloud-fallback`.
+
 Expected result:
 - HTTP 200
 - JSON response containing at least `bio` (may also contain `photoUrl`, `confidence`, `notes` depending on model output)

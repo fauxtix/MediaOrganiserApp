@@ -522,6 +522,16 @@ button.e-btn.e-primary:focus {
     background-color: var(--app-border);
 }
 
+/* Pie charts (Dashboard) — data labels com texto do tema (legível em dark) */
+.e-accumulationchart text[id*="datalabel"] {
+    fill: var(--app-text-primary) !important;
+}
+
+/* Pie charts (Dashboard) — legendas dos grupos com texto do tema */
+.e-accumulationchart text[id*="legend"] {
+    fill: var(--app-text-primary) !important;
+}
+
 /* Carousel / connectors e afins usam os tokens acima automaticamente */
 
 /* Chips */

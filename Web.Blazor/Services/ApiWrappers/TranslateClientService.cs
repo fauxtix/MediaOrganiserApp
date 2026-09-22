@@ -31,6 +31,7 @@ public sealed class TranslateClientService
             return cloud;
 
         _logger.LogInformation("OpenRouter translation unavailable; falling back to local Ollama.");
+        req.Scenario = "cloud-fallback";
         return await TranslateLocalAsync(req, cancellationToken);
     }
 

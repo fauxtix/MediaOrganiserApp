@@ -15,4 +15,6 @@ public sealed class AiBookSummaryRequestDto
     public string? ConnectionId { get; set; }
     public string? CorrelationId { get; set; }
 
+    /// <summary>Optional context tag for AI usage logging (e.g. 'googlebooks', 'cloud-fallback').</summary>
+    public string? Scenario { get; set; }
 }

@@ -219,37 +219,23 @@ namespace Web.Blazor.Services.ApiWrappers
             try
             {
                 var sw = Stopwatch.StartNew();
-                var query = "";
 
-                // Author is required
-                var finalAuthorQueryString = "";
-                var authorNames = author?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
-                foreach (var word in authorNames)
+                // Build the 'q' parameter with the correct Google Books phrase syntax:
+                // double quotes ("...") denote exact-phrase matching; single quotes are
+                // treated as literal characters and produced zero results for known works.
+                var qParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(bookTitle))
+                    qParts.Add($"intitle:\"{bookTitle.Trim()}\"");
+                if (!string.IsNullOrWhiteSpace(author))
+                    qParts.Add($"inauthor:\"{author.Trim()}\"");
+
+                if (qParts.Count == 0)
                 {
-                    finalAuthorQueryString += word + "+";
+                    _logger.LogWarning("Google Books GetBookAsync: título e autor vazios. A devolver livro vazio.");
+                    return new GoogleBook();
                 }
 
-                if (finalAuthorQueryString.Length > 0)
-                    finalAuthorQueryString = finalAuthorQueryString.Remove(finalAuthorQueryString.Length - 1); // remove last '+'
-
-                if (string.IsNullOrEmpty(bookTitle))
-                {
-                    query = $"https://www.googleapis.com/books/v1/volumes?q=inauthor:'{finalAuthorQueryString}'";
-                }
-                else
-                {
-                    var finalTitleQueryString = "";
-                    var titleNames = bookTitle.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var title in titleNames)
-                    {
-                        finalTitleQueryString += title + "+";
-                    }
-
-                    if (finalTitleQueryString.Length > 0)
-                        finalTitleQueryString = finalTitleQueryString.Remove(finalTitleQueryString.Length - 1);
-
-                    query = $"https://www.googleapis.com/books/v1/volumes?q=intitle:'{finalTitleQueryString}'+inauthor:'{finalAuthorQueryString}'";
-                }
+                var query = $"https://www.googleapis.com/books/v1/volumes?q={string.Join("+", qParts.Select(p => Uri.EscapeDataString(p)))}";
 
                 var suffix = BuildAuthSuffix(out var country);
                 query += suffix;

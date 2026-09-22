@@ -1,5 +1,6 @@
 using MediaOrganizerApp.Application.Configurations;
 using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
+using MediaOrganizerApp.Application.Exceptions;
 using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.Domain.Entities;
@@ -78,6 +79,7 @@ public sealed class CloudChatHelperTests
 public sealed class OpenRouterChatServiceTests
 {
     private const string ApiKey = "sk-test-123";
+    private const string EmptyCatalogResponse = """{"data":[]}""";
 
     [Fact]
     public async Task StreamChatAsync_StreamsTextChunks()
@@ -108,6 +110,19 @@ public sealed class OpenRouterChatServiceTests
         });
 
         Assert.Contains("OpenRouter", exception.Message);
+    }
+
+    [Fact]
+    public async Task StreamChatAsync_Throws_WhenFreeDailyCapExhausted()
+    {
+        var service = CreateService(SseQueue("ignored"), out _, freeRequestsRemaining: 0);
+
+        var exception = await Assert.ThrowsAsync<CloudProviderTransientException>(async () =>
+        {
+            await foreach (var _ in service.StreamChatAsync(CreatePayload("google/gemma-4-31b-it:free"), null, "pt")) { }
+        });
+
+        Assert.Contains("modelos gratuitos", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -218,6 +233,38 @@ public sealed class OpenRouterChatServiceTests
         foreach (var response in responses) response.Dispose();
     }
 
+    [Fact]
+    public async Task StreamChatAsync_SweepsToCatalogModel_WhenRouterProducesNoText()
+    {
+        var responses = new Queue<HttpResponseMessage>(
+            new[]
+            {
+                SseResponse(
+                    """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":0,"total_tokens":10}}""" +
+                    "\ndata: [DONE]\n"),
+                SseResponse(
+                    """{"choices":[{"delta":{"content":"ok"}}],"model":"z-ai/glm-5.2:free"}""" +
+                    "\ndata: [DONE]\n")
+            });
+
+        var service = CreateService(
+            responses,
+            out var requestBodies,
+            catalogResponse: """{"data":[{"id":"z-ai/glm-5.2:free","name":"GLM 5.2"}]}""");
+        var payload = CreatePayload("openrouter/free");
+
+        var chunks = new List<CloudChatChunk>();
+        await foreach (var chunk in service.StreamChatAsync(payload, null, "pt"))
+            chunks.Add(chunk);
+
+        Assert.Equal("ok", string.Concat(chunks.Select(c => c.Text)));
+        Assert.Equal(2, requestBodies.Count);
+        Assert.Contains("\"openrouter/free\"", requestBodies[0]);
+        Assert.Contains("\"z-ai/glm-5.2:free\"", requestBodies[1]);
+
+        foreach (var response in responses) response.Dispose();
+    }
+
     private static CloudChatPayload CreatePayload(string model) => new()
     {
         Model = model,
@@ -251,7 +298,9 @@ public sealed class OpenRouterChatServiceTests
         Queue<HttpResponseMessage> responses,
         out List<string> requestBodies,
         string? apiKey = ApiKey,
-        Mock<IAIBenchmarkRepository>? benchmarkMock = null)
+        Mock<IAIBenchmarkRepository>? benchmarkMock = null,
+        int freeRequestsRemaining = 1000,
+        string catalogResponse = EmptyCatalogResponse)
     {
         requestBodies = new List<string>();
         var bodies = requestBodies;
@@ -274,6 +323,14 @@ public sealed class OpenRouterChatServiceTests
 
         var httpClient = new HttpClient(new StubHttpMessageHandler(request =>
         {
+            if (request.RequestUri?.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(catalogResponse, Encoding.UTF8, "application/json")
+                };
+            }
+
             if (responses.Count == 0)
                 throw new InvalidOperationException("No canned responses left.");
 
@@ -289,12 +346,18 @@ public sealed class OpenRouterChatServiceTests
         var internet = new Mock<IInternetAvailabilityService>();
         internet.Setup(x => x.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
+        var usageMock = new Mock<ICloudChatUsageService>();
+        usageMock
+            .Setup(x => x.GetFreeRequestsRemainingAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(freeRequestsRemaining);
+
         return new OpenRouterChatService(
             factory.Object,
             settings.Object,
             benchmark.Object,
-            Mock.Of<ICloudChatUsageService>(),
+            usageMock.Object,
             internet.Object,
+            new OpenRouterCatalogService(factory.Object, settings.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
             Mock.Of<ILogger<OpenRouterChatService>>());
     }
 

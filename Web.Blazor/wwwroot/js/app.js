@@ -28,6 +28,40 @@ window.isNearBottom = function (el, threshold) {
     } catch (e) { return true; }
 };
 
+// Copies text to the clipboard (navigator.clipboard with a legacy fallback).
+// Returns a Promise<boolean> so Blazor can await it via InvokeAsync<bool>.
+window.copyText = function (text) {
+    return new Promise((resolve) => {
+        const fallback = () => {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                let ok = false;
+                try { ok = document.execCommand('copy'); } catch (e) { }
+                document.body.removeChild(ta);
+                resolve(!!ok);
+            } catch (e) {
+                resolve(false);
+            }
+        };
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => resolve(true)).catch(() => fallback());
+            } else {
+                fallback();
+            }
+        } catch (e) {
+            fallback();
+        }
+    });
+};
+
 window.hasScrollbar = function (el) {
     try {
         if (!el) return false;

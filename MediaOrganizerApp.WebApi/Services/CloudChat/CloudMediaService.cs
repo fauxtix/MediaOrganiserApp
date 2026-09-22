@@ -385,6 +385,12 @@ public sealed class CloudMediaService
     {
         if (CloudChatSettingsKeys.IsFreeModel(model))
         {
+            if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
+            {
+                _logger.LogWarning("[CloudMedia] Teto diário de modelos gratuitos do OpenRouter atingido; a usar fallback local (Ollama).");
+                return null;
+            }
+
             try { await _usageService.RegisterFreeModelUsageAsync(ct); }
             catch (Exception ex) { _logger.LogWarning(ex, "[CloudMedia] Falha a registar requisição gratuita."); }
         }

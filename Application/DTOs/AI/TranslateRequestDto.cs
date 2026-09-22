@@ -18,4 +18,8 @@ public sealed class TranslateRequestDto
 
     [JsonPropertyName("correlationId")]
     public string? CorrelationId { get; set; }
+
+    /// <summary>Optional context tag for AI usage logging (e.g. 'cloud-fallback', 'direct').</summary>
+    [JsonPropertyName("scenario")]
+    public string? Scenario { get; set; }
 }

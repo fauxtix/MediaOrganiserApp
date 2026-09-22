@@ -413,6 +413,12 @@ public sealed class CloudAuthorBooksService
     {
         if (CloudChatSettingsKeys.IsFreeModel(model))
         {
+            if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
+            {
+                _logger.LogWarning("[CloudAuthorBooks] Teto diário de modelos gratuitos do OpenRouter atingido.");
+                return (null, "limite diário atingido");
+            }
+
             try { await _usageService.RegisterFreeModelUsageAsync(ct); }
             catch (Exception ex) { _logger.LogWarning(ex, "[CloudAuthorBooks] Falha a registar requisição gratuita."); }
         }

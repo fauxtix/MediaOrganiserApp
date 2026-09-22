@@ -13,6 +13,7 @@ public partial class AiMediaClientService
         string language = "pt",
         string? connectionId = null,
         string? correlationId = null,
+        string? scenario = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -26,7 +27,8 @@ public partial class AiMediaClientService
                     Title = title,
                     Language = language,
                     ConnectionId = connectionId,
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Scenario = scenario
                 },
                 cancellationToken);
 
@@ -60,6 +62,7 @@ public partial class AiMediaClientService
         string language = "pt",
         string? connectionId = null,
         string? correlationId = null,
+        string? scenario = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -73,7 +76,8 @@ public partial class AiMediaClientService
                     Title = title,
                     Language = language,
                     ConnectionId = connectionId,
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Scenario = scenario
                 },
                 cancellationToken);
 

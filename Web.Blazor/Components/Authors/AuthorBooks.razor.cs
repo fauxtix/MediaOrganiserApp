@@ -449,7 +449,7 @@ namespace Web.Blazor.Components.Authors
             try
             {
                 var aiResult = await AiBookClient.GetAuthorBooksAsync(
-                    _aiFlowAuthor!, _aiFlowLanguage!, _aiFlowConnectionId);
+                    _aiFlowAuthor!, _aiFlowLanguage!, _aiFlowConnectionId, null, "cloud-fallback");
                 if (aiResult != null && aiResult.Count > 0)
                 {
                     resultList = aiResult.ToList();

@@ -56,10 +56,10 @@ public class SidebarData
             new(title: "AI", icon: "fa fa-comments", childMenuItems: new List<MenuItem>
             {
                 new(href: "/edit-prompts", title: _localizer["TituloEditorPrompts"], icon: "fa fa-file-word-o"),
-                new(href: "/ai/chat", title: "Chat", icon: "fa fa-comment"),
-                new(href: "/ai/test-chat", title: _localizer["TestChat"], icon: "fa fa-paper-plane"),
-                new(href: "/aichat", title: "AI Chat", icon: "fa fa-comment"),
-                new(href: "/ai/copilot", title: "AI Copilot Chat", icon: "fa fa-comment"),
+                new(href: "/ai/chat", title: "Chat (Ollama)", icon: "fa fa-comment"), // Ollama Chat
+                new(href: "/ai/openrouter-chat", title: _localizer["TestChat"], icon: "fa fa-paper-plane"),
+                //new(href: "/aichat", title: "AI Chat", icon: "fa fa-comment"),
+                //new(href: "/ai/copilot", title: "AI Copilot Chat", icon: "fa fa-comment"),
             }),
 
         };
