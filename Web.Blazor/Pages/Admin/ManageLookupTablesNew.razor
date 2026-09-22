@@ -1,0 +1,222 @@
+@page "/admin/managelookuptables-new"
+
+@using Web.Blazor.Components
+@using Web.Blazor.Pages.LookupTables
+@using Syncfusion.Blazor.Navigations
+
+<PageTitle>@L["TituloTabelasAuxiliares"]</PageTitle>
+<PageTitleComponent PageTitle="@L["TituloTabelasAuxiliares"]" />
+
+<SfBreadcrumb>
+    <BreadcrumbItems>
+        <BreadcrumbItem Text="@L["Home"]" IconCss="e-icons e-home" Url="/" />
+        <BreadcrumbItem Text="@L["TituloTabelasAuxiliares"]" Url="/admin/managelookuptables-new" />
+    </BreadcrumbItems>
+</SfBreadcrumb>
+<hr />
+
+<div class="container settings-shell">
+    <div class="row">
+        <div class="col-md-3 col-sm-12">
+            <aside class="settings-sidebar">
+                @foreach (var group in SettingsGroups)
+                {
+                    var isExpanded = ExpandedGroups.Contains(group.Id);
+                    <div class="settings-group">
+                        <button type="button" class="settings-group-header @(isExpanded ? "expanded" : "")" @onclick="(() => ToggleGroup(group.Id))">
+                            <i class="fa @group.Icon settings-group-icon" aria-hidden="true"></i>
+                            <span class="settings-group-title">@L[group.ResxKey]</span>
+                            <i class="fa fa-chevron-down settings-group-chevron" aria-hidden="true"></i>
+                        </button>
+                        @if (isExpanded)
+                        {
+                            <div class="settings-group-items">
+                                @foreach (var leaf in group.Leaves)
+                                {
+                                    <button type="button"
+                                            class="settings-item @(SelectedNode == leaf.Id ? "active" : "")"
+                                            @onclick="(() => SelectNode(leaf.Id))">
+                                        <i class="fa @leaf.Icon settings-item-icon" aria-hidden="true"></i>
+                                        <span class="settings-item-label">@L[leaf.ResxKey]</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </aside>
+        </div>
+        <div class="col-md-9 col-sm-12">
+            <div class="settings-content">
+                @switch (SelectedNode)
+                {
+                    case "categorias-publicacoes":
+                        <div class="card-box settings-card">
+                            <CategoriasPublicacoes />
+                        </div>
+                        break;
+                    case "editoras":
+                        <div class="card-box settings-card">
+                            <Editoras />
+                        </div>
+                        break;
+                    case "formatos":
+                        <div class="card-box settings-card">
+                            <Formatos />
+                        </div>
+                        break;
+                    case "locais-arquivo":
+                        <div class="card-box settings-card">
+                            <LocaisArquivo />
+                        </div>
+                        break;
+                    case "categorias-media":
+                        <div class="card-box settings-card">
+                            <CategoriasMedia />
+                        </div>
+                        break;
+                    case "formatos-media":
+                        <div class="card-box settings-card">
+                            <FormatosMedia />
+                        </div>
+                        break;
+                    case "ai-models":
+                        <div class="card-box settings-card">
+                            <AIModels />
+                        </div>
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .settings-shell {
+        max-width: 1280px;
+    }
+
+    .settings-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface);
+    }
+
+    .settings-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--app-text-primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .15s ease;
+    }
+
+        .settings-group-header:hover {
+            background: var(--app-surface-hover);
+        }
+
+    .settings-group-icon {
+        color: var(--app-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+
+    .settings-group-title {
+        flex: 1;
+    }
+
+    .settings-group-chevron {
+        font-size: 0.7rem;
+        color: var(--app-text-secondary);
+        transition: transform .2s ease;
+    }
+
+    .settings-group-header.expanded .settings-group-chevron {
+        transform: rotate(180deg);
+    }
+
+    .settings-group-items {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 2px 0 6px 12px;
+        padding-left: 8px;
+        border-left: 2px solid var(--app-border);
+    }
+
+    .settings-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--app-text-secondary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+        .settings-item:hover {
+            background: var(--app-surface-hover);
+            color: var(--app-text-primary);
+        }
+
+        .settings-item.active {
+            background: var(--app-primary);
+            border-color: var(--app-primary);
+            color: var(--app-on-primary);
+        }
+
+            .settings-item.active .settings-item-icon {
+                color: var(--app-on-primary);
+            }
+
+    .settings-item-icon {
+        color: var(--app-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+
+    .settings-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .settings-card {
+        padding: 20px;
+    }
+
+    .card-box {
+        padding: 15px;
+        border-radius: 25px;
+        background-clip: padding-box;
+        margin-bottom: 5px;
+        background-color: var(--app-surface);
+        box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.06), 0 1px 0 0 rgba(0, 0, 0, 0.02);
+    }
+
+    [data-theme="dark"] .settings-sidebar {
+        background: var(--app-surface-alt);
+    }
+
+    [data-theme="dark"] .card-box {
+        box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.35);
+    }
+</style>

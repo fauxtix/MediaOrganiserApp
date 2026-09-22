@@ -194,6 +194,20 @@ a {
     box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.35);
 }
 
+.top-navbar .btn-primary,
+[data-theme="dark"] .top-navbar .btn-primary {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+    color: var(--app-on-primary);
+}
+
+    .top-navbar .btn-primary:hover,
+    [data-theme="dark"] .top-navbar .btn-primary:hover {
+        background-color: var(--app-primary-hover);
+        border-color: var(--app-primary-hover);
+        color: var(--app-on-primary);
+    }
+
 .card,
 .card-header,
 .card-footer {
@@ -474,6 +488,22 @@ button.e-btn.e-primary:focus {
 .e-toolbar .e-toolbar-item.e-active .e-tbar-btn,
 .e-toolbar .e-toolbar-item.e-active .e-tbar-btn:hover {
     background-color: var(--app-surface-hover);
+}
+
+/* Grid toolbar — garante "botões à esquerda, search à direita" independentemente
+   da ordem em que o Blazor renderiza os itens (e-spacer com flex-grow empurra tudo
+   o que vem a seguir; em Media/Autores o spacer era emitido antes dos botões). */
+.e-grid .e-toolbar.e-spacer-toolbar .e-toolbar-items .e-toolbar-item.e-spacer {
+    order: 1;
+    flex-grow: 1;
+}
+
+.e-grid .e-toolbar.e-spacer-toolbar .e-toolbar-items .e-toolbar-item.e-template {
+    order: 2;
+}
+
+.e-grid .e-toolbar.e-spacer-toolbar .e-toolbar-items .e-toolbar-item.e-tbtn-align {
+    order: 3;
 }
 
 /* Tabs — visual moderno mapeado para os tokens (claro/escuro automático) */

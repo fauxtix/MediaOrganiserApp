@@ -2422,4 +2422,16 @@
   <data name="TituloBaseDados" xml:space="preserve">
     <value>Base de données</value>
   </data>
+  <data name="TituloGrupoPublicacoes" xml:space="preserve">
+    <value>Publications</value>
+  </data>
+  <data name="frmFormatosMedia" xml:space="preserve">
+    <value>Formats Media</value>
+  </data>
+  <data name="TituloGrupoMedia" xml:space="preserve">
+    <value>Média</value>
+  </data>
+  <data name="TituloGrupoIA" xml:space="preserve">
+    <value>Intelligence artificielle</value>
+  </data>
 </root>

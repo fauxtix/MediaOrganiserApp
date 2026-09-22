@@ -36,7 +36,7 @@
                 <section class="showcase">
                     <div class="video-container"></div>
                     <div class="container page-content">
-                        <div class="row">
+@*                         <div class="row">
                             <div class="col-6">
                                 <img class="img-2 shadow p-3 mb-5 bg-white rounded" src="images/publicacoes_6.jpg" />
                             </div>
@@ -54,7 +54,14 @@
                                      src="images/videoimage.jpg" />
                             </div>
                         </div>
-                        <div class="mt-1 text-center text-muted">
+ *@
+                         <div class="row">
+                            <div class="col-12">
+                                <img class="img-2 mx-auto rounded" src="@generatedImageSrc" />
+                            </div>
+                        </div>
+
+ <div class="mt-1 text-center text-muted">
                             Copyright © 2026 - Fausto Luís
                         </div>
                         <div class="my-2">
@@ -104,18 +111,18 @@
                     <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 64px;">
                         <span class="brand">Organise It!</span>
                         <div class="d-flex align-items-center justify-content-end" style="flex:1;">
-                            <div class="top-row px-2 auth d-flex align-items-center" style="background-color: var(--header-bg); color: var(--header-text); border-radius: 8px; z-index:1111; padding: 4px 12px;">
+                            <div class="top-row px-2 auth d-flex align-items-center" style="background-color: var(--header-bg); color: var(--header-text); border-radius: 8px; z-index:1111; padding: 4px 16px;">
                                 <div class="d-flex align-items-center">
-                                    <div class="pl-2 pr-2 font-weight-bold" style="color: var(--header-text);">
+                                    <div class="pl-1 pr-3 font-weight-bold" style="color: var(--header-text);">
                                         <i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()
                                     </div>
-                                    <div class="pl-2 pr-2 font-weight-bold" style="color: var(--header-text);">
+                                    <div class="pl-3 pr-3 font-weight-bold" style="color: var(--header-text);">
                                         <i class="fa fa-user pr-2"></i>@userName
                                     </div>
                                 </div>
-                                <nav class="d-flex align-items-center my-2 my-md-0 mr-sm-3 font-weight-bold">
+                                <nav class="d-flex align-items-center my-2 my-md-0 mr-2 font-weight-bold">
                                     <ThemeToggle />
-                                    <a class="btn btn-primary ml-2" href="/identity/account/logout" style="white-space: nowrap; margin-right: 10px;">
+                                    <a class="btn btn-primary ml-3" href="/identity/account/logout" style="white-space: nowrap; margin-right: 6px;">
                                         Logout
                                     </a>
                                 </nav>
@@ -162,6 +169,8 @@
 
     protected string currentCultureAbbreviation = "...";
 
+    protected string generatedImageSrc = "images/MediaOrganiser_en.png";
+
     private ErrorBoundary? _errorBoundary;
     protected override async Task OnInitializedAsync()
     {
@@ -191,6 +200,9 @@
                 var currentCulture = CookieRequestCultureProvider.ParseCookieValue(cultureCookie);
                 var cultureInfo = CultureInfo.GetCultureInfo(currentCulture.Cultures.FirstOrDefault().Value);
                 currentCultureAbbreviation = cultureInfo.TwoLetterISOLanguageName;
+                generatedImageSrc = currentCultureAbbreviation == "pt"
+                    ? "images/MediaOrganiser_pt.png"
+                    : "images/MediaOrganiser_en.png";
             }
 
         }
@@ -269,9 +281,9 @@
 
     .img-2 {
         display: block;
-        width: 85%;
-        height: 85%;
-        max-width: 85%;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
         object-fit: cover;
         box-shadow: inset;
     }
@@ -301,7 +313,7 @@
 
     .video-container {
         position: absolute;
-        top: 50px;
+        top:30px;
         left: 0;
         width: 100%;
         height: 100%;

@@ -2425,4 +2425,16 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloBaseDados" xml:space="preserve">
     <value>Base de Dados</value>
   </data>
+  <data name="TituloGrupoPublicacoes" xml:space="preserve">
+    <value>Publicações</value>
+  </data>
+  <data name="frmFormatosMedia" xml:space="preserve">
+    <value>Formatos Media</value>
+  </data>
+  <data name="TituloGrupoMedia" xml:space="preserve">
+    <value>Média</value>
+  </data>
+  <data name="TituloGrupoIA" xml:space="preserve">
+    <value>Inteligência Artificial</value>
+  </data>
 </root>

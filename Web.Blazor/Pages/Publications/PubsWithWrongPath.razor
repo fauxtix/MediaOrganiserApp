@@ -3,13 +3,13 @@
 @using MediaOrganizerApp.Application.Interfaces.Services
 @using MediaOrganizerApp.Application.Interfaces.Services.Api
 @using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Logging
 @using Web.Blazor.Components
 
 @inject IPublicacaoService publicacoesService
 @inject IFileService fileService
 @inject IWebHostEnvironment env
 @inject IStringLocalizer<App> L
-@inject SfDialogService DialogService
 
 
 
@@ -27,7 +27,7 @@ else
         <BreadcrumbItems>
             <BreadcrumbItem Text="@L["BreadcrumbHome"]" IconCss="e-icons e-home" Url="/" />
             <BreadcrumbItem Text="@L["mnuLivros"]" Url="/publicacoes" />
-            <BreadcrumbItem Text="@L["TituloCaminhoFicheirosIncorretos"]" Url="/pubswithwrongpath" />
+            <BreadcrumbItem Text="@L["TituloCaminhoFicheirosIncorreto"]" Url="/pubswithwrongpath" />
         </BreadcrumbItems>
     </SfBreadcrumb>
     <hr />
@@ -63,7 +63,7 @@ else
                                 <div class="options-buttons-container">
                                     <SfButton IconCss="fa fa-exchange"
                                               CssClass="e-btn e-warning e-round-corner"
-                                              Content="@L["TituloTransferir"]" @onclick="()=>TransferFile(PubNotTransferedCtx)" />
+                                              Content="@L["TituloTransferir"]" @onclick="()=>RequestTransfer(PubNotTransferedCtx)" />
                                 </div>
                             </CardFooterContent>
                         </CardFooter>
@@ -74,9 +74,38 @@ else
         </div>
     </div>
 
+    <SfDialog Width="400px"
+              Height="auto"
+              IsModal="true"
+              ShowCloseIcon="false"
+              CloseOnEscape="false"
+              Visible="@transferConfirmVisibility">
+        <DialogTemplates>
+            <Header>
+                <div class="modal-header">
+                    <p class="text-warning">@L["ConfirmarTransferencia"]</p>
+                </div>
+            </Header>
+            <Content>
+                <div class="e-textbox">
+                    <b>@(pendingTransfer?.PubTitle)</b>
+                </div>
+            </Content>
+            <FooterTemplate>
+                <div class="modal-footer">
+                    <SfButton CssClass="e-btn e-success e-round-corner" IconCss="fa fa-check"
+                              Content="@L["Sim"]" @onclick="OnTransferConfirmYes" />
+                    <SfButton CssClass="e-btn e-outline e-round-corner" IconCss="fa fa-times"
+                              Content="@L["Nao"]" @onclick="OnTransferConfirmNo" />
+                </div>
+            </FooterTemplate>
+        </DialogTemplates>
+        <DialogAnimationSettings Effect="DialogEffect.Fade" Duration=400></DialogAnimationSettings>
+    </SfDialog>
+
     <SfDialog @ref="ErrorDialog"
               Width="600px"
-              Height="300x"
+              Height="300px"
               IsModal="true"
               ShowCloseIcon="false"
               CloseOnEscape="false"
@@ -115,6 +144,7 @@ else
 
     [Inject] public IUserService UserService { get; set; }
     [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    [Inject] ILogger<PubsWithWrongPath> Logger { get; set; }
 
     protected IEnumerable<PubsWithDescriptions> publicacoes;
     protected List<PubNotTransfered> pubsWithWrongPath = new();
@@ -164,10 +194,26 @@ else
         var wwwRoot = env.WebRootPath;
         foreach (var pub in publicacoes)
         {
-            var fileFullPath = Path.Combine(wwwRoot, pub.DigitalPath);
+            var fileFullPath = Path.Combine(wwwRoot, pub.DigitalPath ?? "");
             if (!File.Exists(fileFullPath) && !string.IsNullOrEmpty(pub.DigitalPath))
             {
                 var names = GetActualCategory(Path.GetFileName(fileFullPath));
+
+                var wantedPubDir = Path.GetDirectoryName(fileFullPath) ?? "";
+                var actualPubDir = string.IsNullOrEmpty(names.Item1)
+                    ? ""
+                    : Path.GetDirectoryName(names.Item1) ?? "";
+
+                var coverFileName = GetCoverFileName(pub.ImagemCapa);
+
+                var actualCoverPath = "";
+                var wantedCoverPath = "";
+                if (!string.IsNullOrEmpty(coverFileName) && !string.IsNullOrEmpty(actualPubDir) && !string.IsNullOrEmpty(wantedPubDir))
+                {
+                    actualCoverPath = Path.Combine(actualPubDir, "Capas", coverFileName);
+                    wantedCoverPath = Path.Combine(wantedPubDir, "Capas", coverFileName);
+                }
+
                 pubs.Add(
                     new PubNotTransfered
                         {
@@ -179,10 +225,10 @@ else
                             ActualPubPath = names.Item1,
 
                             ActualCategory = names.Item2,
-                            WantedCategory = pub.Categoria,
+                            WantedCategory = pub.Categoria ?? "",
 
-                            ActualCoverPath = Path.Combine(wwwRoot, pub.ImagemCapa).Replace(pub.Categoria, names.Item2),
-                            WantedCoverPath = Path.Combine(wwwRoot, pub.ImagemCapa).Replace(names.Item2, pub.Categoria)
+                            ActualCoverPath = actualCoverPath,
+                            WantedCoverPath = wantedCoverPath
                         }
                 );
             }
@@ -192,20 +238,43 @@ else
 
     }
 
+    private string? GetCoverFileName(string imagemCapa)
+    {
+        if (string.IsNullOrWhiteSpace(imagemCapa))
+        {
+            return null;
+        }
+
+        if (imagemCapa.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || imagemCapa.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || imagemCapa.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return Path.GetFileName(imagemCapa);
+    }
+
 
     protected (string, string) GetActualCategory(string searchFile)
     {
-        var pubsPath = Path.Combine(env.WebRootPath,"Files", "Uploads", "Publicacoes");
+        var pubsPath = Path.Combine(env.WebRootPath, "Files", "Uploads", "Publicacoes");
+        var searchExt = Path.GetExtension(searchFile).ToLowerInvariant();
+        var allowedExts = new[] { ".pdf", ".docx", ".msg", ".eml" };
+
+        if (!allowedExts.Contains(searchExt))
+        {
+            return ("", L["MsgNotFound"]);
+        }
 
         DirectoryInfo dir = new DirectoryInfo(pubsPath);
-        System.IO.FileInfo[] files = dir.GetFiles("*.pdf", SearchOption.AllDirectories);
-        foreach (var f in files)
+        foreach (var f in dir.EnumerateFiles("*." + searchExt.TrimStart('.'), SearchOption.AllDirectories))
         {
-            if (f.Name == searchFile)
+            if (string.Equals(f.Name, searchFile, StringComparison.OrdinalIgnoreCase))
             {
                 return (
                     f.FullName,
-                    f.DirectoryName.Substring(f.DirectoryName.LastIndexOf(@"\") + 1));
+                    Path.GetFileName(f.DirectoryName ?? "") ?? L["MsgNotFound"]);
             }
         }
 
@@ -213,32 +282,50 @@ else
 
     }
 
-    private async Task<bool> OkToTransferFile(string pubTitle)
+    private PubNotTransfered pendingTransfer;
+    private bool transferConfirmVisibility = false;
+
+    private void RequestTransfer(PubNotTransfered pubToMove)
     {
-        string yesMsg = L["Sim"];
-        string noMsg = L["Nao"];
-        string confirmMsg = L["ConfirmarTransferencia"];
-
-        var dialogOptions = new DialogOptions()
-            {
-                AllowDragging = true,
-                CloseOnEscape = false,
-                Width = "400px",
-                Height = "180px",
-                ShowCloseIcon = false,
-                PrimaryButtonOptions = new DialogButtonOptions() { Content = yesMsg, IconCss = "fa fa-check" },
-                CancelButtonOptions = new DialogButtonOptions() { Content = noMsg, IconCss = "fa fa-times" }
-            };
-
-        bool isConfirm = await DialogService.ConfirmAsync(confirmMsg, pubTitle, dialogOptions);
-        return isConfirm;
+        pendingTransfer = pubToMove;
+        transferConfirmVisibility = true;
     }
-    protected async Task TransferFile(PubNotTransfered pubToMove)
+
+    private void OnTransferConfirmNo()
     {
-        if (!await OkToTransferFile(pubToMove.PubTitle))
+        transferConfirmVisibility = false;
+        pendingTransfer = null;
+    }
+
+    private async Task OnTransferConfirmYes()
+    {
+        transferConfirmVisibility = false;
+        if (pendingTransfer == null)
         {
             return;
         }
+
+        var pubToMove = pendingTransfer;
+        pendingTransfer = null;
+        await ExecuteTransfer(pubToMove);
+    }
+
+    private void EnsureDirectoryExists(string filePath)
+    {
+        var dir = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+            Logger.LogInformation("TransferFile: pasta de destino criada em {Dir}", dir);
+        }
+    }
+
+    private async Task ExecuteTransfer(PubNotTransfered pubToMove)
+    {
+        Logger.LogInformation(
+            "TransferFile iniciado: Id={Id}, ActualPubPath='{ActualPubPath}', WantedDestination='{WantedDestination}', ActualCategory='{ActualCategory}', WantedCategory='{WantedCategory}'",
+            pubToMove.Id, pubToMove.ActualPubPath, pubToMove.WantedDestinationPath,
+            pubToMove.ActualCategory, pubToMove.WantedCategory);
 
         var pubFileTransfered = false;
         alertUserVisibility = false;
@@ -253,18 +340,22 @@ else
 
                 if (File.Exists(productionFullPubPath))
                 {
-                    File.Copy(productionFullPubPath, pubToMove.WantedDestinationPath);
+                    EnsureDirectoryExists(pubToMove.WantedDestinationPath);
+                    File.Copy(productionFullPubPath, pubToMove.WantedDestinationPath, overwrite: true);
                     if (File.Exists(productionFullPubCoverPath))
                     {
-                        File.Copy(productionFullPubCoverPath, pubToMove.WantedCoverPath);
+                        EnsureDirectoryExists(pubToMove.WantedCoverPath);
+                        File.Copy(productionFullPubCoverPath, pubToMove.WantedCoverPath, overwrite: true);
                     }
 
+                    Logger.LogInformation("TransferFile ok (branch de produção) para Id={Id}", pubToMove.Id);
                     pubsWithWrongPath = GetPubsWithWrongPaths();
                     alertUserVisibility = true;
                     StateHasChanged();
                     return;
                 }
 
+                Logger.LogWarning("TransferFile: ficheiro não encontrado na origem de produção para Id={Id}", pubToMove.Id);
                 ErrorMessage = L["MsgFileNotTransferredNotFound", pubToMove.PubTitle];
                 await ErrorDialog.ShowAsync();
                 return;
@@ -275,7 +366,8 @@ else
             {
                 if (File.Exists(pubToMove.ActualPubPath))
                 {
-                    File.Move(pubToMove.ActualPubPath, pubToMove.WantedDestinationPath);
+                    EnsureDirectoryExists(pubToMove.WantedDestinationPath);
+                    File.Move(pubToMove.ActualPubPath, pubToMove.WantedDestinationPath, overwrite: true);
                     pubFileTransfered = true;
                 }
                 else
@@ -284,38 +376,49 @@ else
                     await ErrorDialog.ShowAsync();
                     return;
                 }
-                if (File.Exists(pubToMove.ActualCoverPath) && pubFileTransfered)
+                if (!string.IsNullOrEmpty(pubToMove.ActualCoverPath)
+                    && !string.IsNullOrEmpty(pubToMove.WantedCoverPath)
+                    && File.Exists(pubToMove.ActualCoverPath) && pubFileTransfered)
                 {
-                    File.Move(pubToMove.ActualCoverPath, pubToMove.WantedCoverPath);
+                    EnsureDirectoryExists(pubToMove.WantedCoverPath);
+                    File.Move(pubToMove.ActualCoverPath, pubToMove.WantedCoverPath, overwrite: true);
                 }
 
+                Logger.LogInformation("TransferFile ok (branch local) para Id={Id}", pubToMove.Id);
                 pubsWithWrongPath = GetPubsWithWrongPaths();
+                alertUserVisibility = true;
+                StateHasChanged();
             }
             else
             {
+                Logger.LogWarning("TransferFile: ficheiro bloqueado para Id={Id}", pubToMove.Id);
                 ErrorMessage = L["MsgFileLocked"];
                 await ErrorDialog.ShowAsync();
             }
         }
         catch (FileNotFoundException fnfe)
         {
+            Logger.LogError(fnfe, "TransferFile: ficheiro não encontrado para Id={Id}", pubToMove.Id);
             ErrorMessage = $"{fnfe.Message}: {L["MsgFileNotFound"]}";
             await ErrorDialog.ShowAsync();
         }
         catch (IOException ioe)
         {
+            Logger.LogError(ioe, "TransferFile: erro de E/S para Id={Id}", pubToMove.Id);
             ErrorMessage = $"{ioe.Message}: {L["MsgIoError"]}";
             await ErrorDialog.ShowAsync();
         }
         catch (OutOfMemoryException oome)
         {
+            Logger.LogError(oome, "TransferFile: memória insuficiente para Id={Id}", pubToMove.Id);
             ErrorMessage = $"{oome.Message}: {L["MsgInsufficientMemory"]}";
             await ErrorDialog.ShowAsync();
         }
 
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            Logger.LogError(ex, "TransferFile: erro inesperado para Id={Id}", pubToMove.Id);
+            ErrorMessage = $"{ex.Message}: {L["MsgFileTransferError"]}";
             await ErrorDialog.ShowAsync();
         }
     }
