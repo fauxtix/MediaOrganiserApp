@@ -151,7 +151,7 @@ else
                 <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
                 <GridColumns>
                     <GridColumn Field=@nameof(PubsWithDescriptions.Id) HeaderText="ID#" IsPrimaryKey="true"
-                                Visible="false" AllowGrouping=false 
+                                Visible="true" AllowGrouping=false 
                                 HideAtMedia="(min-width: 1280px)"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" Width="90">
                     </GridColumn>
@@ -216,10 +216,10 @@ else
                                 AllowGrouping=false
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="280"></GridColumn>
                     <GridColumn Field=@nameof(PubsWithDescriptions.Autor) HeaderText=@(localizerApp["lblAutor"])
-                                HideAtMedia="(min-width: 1280px)"
+                                HideAtMedia="(min-width: 1280px)" AllowGrouping="true"
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="180"></GridColumn>
                     <GridColumn Field=@nameof(PubsWithDescriptions.Categoria) HeaderText=@(localizerApp["lblCategoria"])
-                                HideAtMedia="(min-width: 1280px)"
+                                HideAtMedia="(min-width: 1280px)" AllowGrouping="true"
                                 ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" Width="180"></GridColumn>
                     @* <GridColumn Field=@nameof(PubsWithDescriptions.Formato) HeaderText=@(localizerApp["lblFormato"])
                                 HideAtMedia="(min-width: 1280px)"

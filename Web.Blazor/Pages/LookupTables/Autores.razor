@@ -17,7 +17,8 @@
 
 @{
     var Filtering = new
-    {@@operator = "contains"
+    {
+        @@operator = "contains"
 }
 ;
 var Tool = (new List<object>()
@@ -155,13 +156,13 @@ else
                                                                                                CssClass = "e-btn e-success e-round",
                                                                                                IconCss = "fa fa-file-pdf-o"
                                                                                            })">
-                                                                </GridCommandColumn>
-                                                            </GridCommandColumns>
-                                                        </GridColumn>
-                                                    </GridColumns>
-                                                </SfGrid>
-                                            </div>
-                                                                                        }
+                                                                        </GridCommandColumn>
+                                                                    </GridCommandColumns>
+                                                                </GridColumn>
+                                                            </GridColumns>
+                                                        </SfGrid>
+                                                    </div>
+                                                }
                                             </ContentTemplate>
                                         </TabItem>
                                     </TabItems>
@@ -170,6 +171,31 @@ else
                             </DetailTemplate>
                         </GridTemplates>
                         <GridColumns>
+
+                            <GridColumn Field=@nameof(AutorDTO.Id)
+                                        HeaderText="ID#"
+                                        Visible="false"
+                                        IsPrimaryKey="true"
+                                        TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
+                                        HideAtMedia="(min-width: 700px)"
+                                        Width="60" />
+                            <GridColumn Field=@nameof(AutorDTO.Descricao)
+                                        ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip"
+                                        AllowFiltering="true"
+                                        HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
+                                        CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
+                                        Width="270" />
+                            <GridColumn HeaderText="@(localizerApp["lblSobreAutor"])"
+                                        Field=@nameof(AutorDTO.Sobre)
+                                        AllowFiltering="true"
+                                        AllowSorting="false">
+                                <Template Context="rowObj">
+                                    @{
+                                        var row = (AutorDTO)rowObj;
+                                    }
+                                    @StripHtml(row.Sobre)
+                                </Template>
+                            </GridColumn>
                             <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false"
                                         TextAlign=Syncfusion.Blazor.Grids.TextAlign.Left Width="100px">
                                 <GridCommandColumns>
@@ -181,60 +207,36 @@ else
                                                            IsPrimary = true,
                                                            IconPosition = @IconPosition.Left
                                                        })">
-                                </GridCommandColumn>
-                                <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
-                                                   ButtonOption="@(new CommandButtonOptions()
-                                                   {
-                                                       CssClass = "e-btn e-danger e-round",
-                                                       IconCss = "fa fa-trash",
-                                                       IconPosition = @IconPosition.Left
-                                                   })">
-                                </GridCommandColumn>
-                            </GridCommandColumns>
-                        </GridColumn>
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           CssClass = "e-btn e-danger e-round",
+                                                           IconCss = "fa fa-trash",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
 
-                        <GridColumn Field=@nameof(AutorDTO.Id)
-                                    HeaderText="ID#"
-                                    Visible="false"
-                                    IsPrimaryKey="true"
-                                    TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
-                                    HideAtMedia="(min-width: 700px)"
-                                    Width="60" />
-                        <GridColumn Field=@nameof(AutorDTO.Descricao)
-                                    ClipMode="Syncfusion.Blazor.Grids.ClipMode.EllipsisWithTooltip" 
-                                    AllowFiltering="true"
-                                    HeaderText="@(localizerApp["lblNomeAutor"])" AllowSorting="true"
-                                    CustomAttributes="@(new Dictionary<string, object>(){ { "class", "e-attr" }})"
-                                    Width="270" />
-                        <GridColumn HeaderText="@(localizerApp["lblSobreAutor"])" 
-                                    Field=@nameof(AutorDTO.Sobre)
-                                    AllowFiltering="true"
-                                    AllowSorting="false">
-                            <Template Context="rowObj">
-                                @{
-                                    var row = (AutorDTO)rowObj;
-                                }
-                                @StripHtml(row.Sobre)
-                            </Template>
-                        </GridColumn>      
-                    </GridColumns>
-                </SfGrid>
+                        </GridColumns>
+                    </SfGrid>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<SfDialog Width="40%"
-          Height="auto"
-          MinHeight="480px"
-          IsModal="true"
-          EnableResize="true"
-          ShowCloseIcon="false"
-          @bind-Visible="EditDialogVisibility">
-    <DialogTemplates>
-        <Header>
-            <div>
-                @if (blnEdit)
+    <SfDialog Width="40%"
+              Height="auto"
+              MinHeight="480px"
+              IsModal="true"
+              EnableResize="true"
+              ShowCloseIcon="false"
+              @bind-Visible="EditDialogVisibility">
+        <DialogTemplates>
+            <Header>
+                <div>
+                    @if (blnEdit)
                     {
                         <div>@localizerApp["editionMsg"]&nbsp;@localizerApp["lblAutor"]</div>
                     }
@@ -243,7 +245,7 @@ else
                         <div>@localizerApp["NewMsg"]&nbsp;@localizerApp["lblAutor"]</div>
                     }
                 </div>
-        </Header>
+            </Header>
             <Content>
                 <EditAuthor SelectedAuthor="@SelectedAuthor" AuthorImage="@authorImage" blnEdit="@blnEdit" />
             </Content>
@@ -251,7 +253,7 @@ else
                 <div>
                     <SfButton CssClass="e-btn e-primary e-round-corner"
                               IconCss="fa fa-edit"
-                              @onclick="AddOrSaveRecord" 
+                              @onclick="AddOrSaveRecord"
                               Content="@(localizerApp["btnSalvar"])">
                     </SfButton>
                     <SfButton CssClass="e-btn e-outline e-round-corner"
@@ -322,7 +324,7 @@ else
             </Header>
             <Content>
                 <div class="d-flex justify-content-around align-items-center mb-2">
-                    <AuthorBooks AuthorName="@SelectedAuthor?.Descricao" PageSize="3"  DebugForceGoogle429="false"/>
+                    <AuthorBooks AuthorName="@SelectedAuthor?.Descricao" PageSize="3" DebugForceGoogle429="false" />
                 </div>
             </Content>
             <FooterTemplate>
@@ -345,7 +347,7 @@ else
                             DialogDuration="400"
                             ValidationMessages="@ListValidationMessages" OnCloseDialog="@closeErrorBox" />
 
-    <ConfirmDeleteComponent Visible="DeleteRecordConfirmVisibility" 
+    <ConfirmDeleteComponent Visible="DeleteRecordConfirmVisibility"
                             AlertMessageType="AlertMessageType.Warning"
                             DialogWidth="30%"
                             ConfirmationText="@(localizerApp["ConfirmarExclusao"])"
@@ -354,7 +356,7 @@ else
                             OnConfirmationYes="ConfirmDeleteYes"
                             OnConfirmationNo="ConfirmDeleteNo" />
 
-    <ConfirmDeleteComponent Visible="@DeleteAuthorsConfirmVisibility" 
+    <ConfirmDeleteComponent Visible="@DeleteAuthorsConfirmVisibility"
                             AlertMessageType="AlertMessageType.Warning"
                             DialogWidth="20%"
                             ConfirmationText="@(localizerApp["MSG_ConfirmarOperacao"])"
@@ -421,9 +423,9 @@ else
         cursor: pointer;
     }
 
-    .btn:hover {
-        background-color: RoyalBlue;
-    }
+        .btn:hover {
+            background-color: RoyalBlue;
+        }
 
     .e-grid .e-headercell {
         background-color: var(--header-background);

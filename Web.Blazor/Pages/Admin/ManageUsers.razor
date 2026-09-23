@@ -62,33 +62,34 @@ else
                         <GridTemplates>
                         </GridTemplates>
                         <GridColumns>
-                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="90">
-                                <GridCommandColumns>
-                                    <GridCommandColumn Type=CommandButtonType.Edit
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-icon e-primary e-round",
-                                                                           IconCss = "fa fa-edit ",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                    </GridCommandColumn>
-                                    <GridCommandColumn Type=CommandButtonType.Delete
-                                                       ButtonOption="@(new CommandButtonOptions()
-                                                                       {
-                                                                           Content = "",
-                                                                           CssClass = "e-icon e-danger e-round",
-                                                                           IconCss = "fa fa-trash",
-                                                                           IconPosition = @IconPosition.Left
-                                                                       })">
-                                    </GridCommandColumn>
-                                </GridCommandColumns>
-                            </GridColumn>
                             <GridColumn Field=@nameof(IdentityUser.UserName)
                                         HeaderText="@LocalizerApp["lblUtilizador"]" IsPrimaryKey="true" AllowSorting="true" AllowGrouping="false" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Left"
                                         Width="170"></GridColumn>
                             <GridColumn Field=@nameof(IdentityUser.Email) HeaderText="e-mail"
                                         Width="220"></GridColumn>
+                            <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="90">
+                                <GridCommandColumns>
+                                    <GridCommandColumn Type=CommandButtonType.Edit
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           Content = "",
+                                                           CssClass = "e-icon e-primary e-round",
+                                                           IconCss = "fa fa-edit ",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                    </GridCommandColumn>
+                                    <GridCommandColumn Type=CommandButtonType.Delete
+                                                       ButtonOption="@(new CommandButtonOptions()
+                                                       {
+                                                           Content = "",
+                                                           CssClass = "e-icon e-danger e-round",
+                                                           IconCss = "fa fa-trash",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
+                                    </GridCommandColumn>
+                                </GridCommandColumns>
+                            </GridColumn>
+
                         </GridColumns>
                     </SfGrid>
                 </div>
