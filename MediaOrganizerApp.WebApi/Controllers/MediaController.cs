@@ -789,10 +789,10 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
-        [HttpGet("MediaFileExists/{titulo}/{autor}")]
+        [HttpGet("MediaFileExists")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> MediaFileExists(string titulo, string autor)
+        public async Task<IActionResult> MediaFileExists([FromQuery] string titulo, [FromQuery] string autor)
         {
             var location = GetControllerActionNames();
             try

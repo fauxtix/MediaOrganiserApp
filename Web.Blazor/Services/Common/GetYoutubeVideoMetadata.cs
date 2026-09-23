@@ -39,27 +39,15 @@ namespace Web.Blazor.Services.Common
                     searchResponse = await searchRequest.ExecuteAsync();
 
                 }
-                catch (HttpRequestException rxc)
+                catch (HttpRequestException)
                 {
+                    return null;
 
-                    YouTubeVideoDetails videoDetails = new YouTubeVideoDetails()
-                    {
-                        Title = $"error searching video id:{searchRequest_Id} ( HttpRequestException: {rxc.Message})",
-                        VideoId = "-1"
-
-                    };
-                    return videoDetails;
                 }
 
-                catch (Exception exc)
+                catch (Exception)
                 {
-
-                    YouTubeVideoDetails videoDetails = new YouTubeVideoDetails()
-                    {
-                        Title = $"error searching video id:{searchRequest_Id} ( Exception: {exc.Message})",
-                        VideoId = "-1"
-                    };
-                    return videoDetails;
+                    return null;
                 }
 
                 var youTubeVideo = searchResponse.Items.FirstOrDefault();

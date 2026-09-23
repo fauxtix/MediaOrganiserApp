@@ -501,8 +501,13 @@ namespace Web.Blazor.Pages.Media
             alertMessage = "";
             if (!string.IsNullOrEmpty(SelectedRecord.FileUrl))
             {
-                int indexPos = SelectedRecord.FileUrl.IndexOf("v=") + 2;
-                string videoId = SelectedRecord.FileUrl.Substring(indexPos);
+                string videoId = YouTubeHelpers.GetVideoId(SelectedRecord.FileUrl);
+                if (string.IsNullOrEmpty(videoId))
+                {
+                    ShowMessage(L["ApiNoResults"], MessageSeverity.Warning);
+                    return;
+                }
+
                 var videoMetadata = await YoutubeService.GetVideoMetadata(videoId);
 
                 if (videoMetadata is not null)

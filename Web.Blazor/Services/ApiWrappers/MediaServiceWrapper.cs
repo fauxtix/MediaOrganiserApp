@@ -108,7 +108,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public async Task<string> GetFromDataBase(string fileName)
         {
-            string uri = $"{_Uri}/GetFromDataBase/{fileName}";
+            string uri = $"{_Uri}/GetFromDataBase/{Uri.EscapeDataString(fileName ?? "")}";
             try
             {
                 var _mediaFile = await _httpClient
@@ -140,7 +140,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public async Task<IEnumerable<MediaVM>> GetTitlesFromDataBase(string sCriteria)
         {
-            string uri = $"{_Uri}/GetTitlesFromDataBase/{sCriteria}";
+            string uri = $"{_Uri}/GetTitlesFromDataBase/{Uri.EscapeDataString(sCriteria ?? "")}";
             try
             {
                 var _mediaFile = await _httpClient
@@ -156,7 +156,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public async Task<bool> MediaFileExists(string mediaTitle, string mediaAuthor)
         {
-            string uri = $"{_Uri}/MediaFileExists/{mediaTitle}/{mediaAuthor}";
+            string uri = $"{_Uri}/MediaFileExists?titulo={Uri.EscapeDataString(mediaTitle ?? "")}&autor={Uri.EscapeDataString(mediaAuthor ?? "")}";
             try
             {
                 var _mediaFileExist = await _httpClient
@@ -310,7 +310,7 @@ namespace Web.Blazor.Services.ApiWrappers
 
         public async Task<MediaVM> GetMediaByTitle(string sFileName)
         {
-            string uri = $"{_Uri}/GetMediaByTitle/{sFileName}";
+            string uri = $"{_Uri}/GetMediaByTitle/{Uri.EscapeDataString(sFileName ?? "")}";
             try
             {
                 var _mediaFile = await _httpClient
