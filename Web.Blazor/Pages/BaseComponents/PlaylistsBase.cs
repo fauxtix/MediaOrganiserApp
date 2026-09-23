@@ -100,7 +100,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Error loading playlists.", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorLoadingPlaylists"], ex.Message));
             }
             finally
             {
@@ -145,7 +145,7 @@ namespace Web.Blazor.Pages.BaseComponents
             var ok = await PlaylistsService.UpdateSortOrderAsync(items);
             if (!ok)
             {
-                ShowError("Error", "API returned non-success while updating SortOrder.");
+                ShowError(localizerApp["TituloErro"], localizerApp["ErrorUpdatingSortOrder"]);
                 return;
             }
 
@@ -179,7 +179,7 @@ namespace Web.Blazor.Pages.BaseComponents
                 // PlaylistDto.MediaType: 2 = Audio, else = Video (per your UI template)
                 if (data.MediaType != MediaType.Audio)
                 {
-                    await ShowToastAsync("This option is only available for Audio playlists.", "e-toast-info");
+                    await ShowToastAsync(localizerApp["AudioPlaylistsOnly"], "e-toast-info");
                     return;
                 }
 
@@ -206,7 +206,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Error loading playlist details.", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorLoadingPlaylistDetails"], ex.Message));
             }
             finally
             {
@@ -248,7 +248,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 if (string.IsNullOrWhiteSpace(EditModel.Name))
                 {
-                    ShowError("Validation", "Name is required.");
+                    ShowError(localizerApp["TituloDadosInvalidos"], localizerApp["PlaylistNameRequired"]);
                     return;
                 }
 
@@ -256,7 +256,10 @@ namespace Web.Blazor.Pages.BaseComponents
                 {
                     var ok = await PlaylistsService.UpdateAsync(EditingPlaylistId, EditModel);
                     if (!ok)
-                        throw new System.Exception("Error updating playlist.");
+                    {
+                        ShowError(localizerApp["TituloErro"], localizerApp["ErrorUpdatingPlaylist"]);
+                        return;
+                    }
                 }
                 else
                 {
@@ -268,7 +271,10 @@ namespace Web.Blazor.Pages.BaseComponents
                     };
                     int? createdId = await PlaylistsService.CreateAsync(createDto);
                     if (createdId <= 0)
-                        throw new System.Exception("Error creating playlist.");
+                    {
+                        ShowError(localizerApp["TituloErro"], localizerApp["ErrorCreatingPlaylist"]);
+                        return;
+                    }
                 }
 
                 EditDialogVisibility = false;
@@ -278,7 +284,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (System.Exception ex)
             {
-                ShowError("Erro", ex.Message);
+                ShowError(localizerApp["TituloErro"], ex.Message);
             }
         }
 
@@ -294,11 +300,11 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 await PlaylistsService.DeleteAsync(SelectedPlaylist.Id);
                 await LoadPlaylistsAsync();
-                await ShowToastAsync(localizerApp["RecordDeleted"], "e-toast-success");
+                await ShowToastAsync(localizerApp["SuccessDelete"], "e-toast-success");
             }
             catch (Exception ex)
             {
-                ShowError("Error deleting playlist.", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorDeletingPlaylist"], ex.Message));
             }
         }
 
@@ -315,11 +321,11 @@ namespace Web.Blazor.Pages.BaseComponents
                 // Atualizar a interface
                 StateHasChanged();
 
-                await ShowToastAsync(localizerApp["RecordDeleted"], "e-toast-success");
+                await ShowToastAsync(localizerApp["SuccessDelete"], "e-toast-success");
             }
             catch (Exception ex)
             {
-                ShowError("Error deleting playlist item.", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorDeletingPlaylistItem"], ex.Message));
             }
         }
 
@@ -348,7 +354,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Error loading media files.", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorLoadingMediaFiles"], ex.Message));
             }
         }
 
@@ -385,7 +391,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Error adding item", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorAddingItemToPlaylist"], ex.Message));
             }
         }
 
@@ -436,7 +442,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Error adding file", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorAddingFileToPlaylist"], ex.Message));
             }
         }
 
@@ -459,7 +465,7 @@ namespace Web.Blazor.Pages.BaseComponents
             }
             catch (Exception ex)
             {
-                ShowError("Erro ao carregar itens", ex.Message);
+                ShowError(localizerApp["TituloErro"], string.Format(localizerApp["ErrorLoadingPlaylistItems"], ex.Message));
                 PlaylistItemsCache[playlistId] = new();
             }
             finally

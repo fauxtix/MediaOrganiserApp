@@ -79,8 +79,8 @@ else
                             </div>
 
                             <div class="pp-flags">
-                                <span class="pp-pill">@(_currentItem?.MediaType.ToString() ?? "")</span>
-                                <span class="pp-pill">@L["Repeat"]: @_repeatMode</span>
+                                <span class="pp-pill">@GetMediaTypeLabel(_currentItem?.MediaType)</span>
+                                <span class="pp-pill">@L["Repeat"]: @GetRepeatModeLabel(_repeatMode)</span>
                                 <span class="pp-pill">@L["Shuffle"]: @(_shuffle ? L["On"] : L["Off"])</span>
                             </div>
 
@@ -607,6 +607,20 @@ else
         var ts = TimeSpan.FromSeconds(seconds);
         return ts.Hours > 0 ? ts.ToString(@"h\:mm\:ss") : ts.ToString(@"m\:ss");
     }
+
+    private string GetMediaTypeLabel(MediaType? type) => type switch
+    {
+        MediaType.Audio => L["MediaFormatAudio"],
+        MediaType.Video => L["MediaFormatVideo"],
+        _ => ""
+    };
+
+    private string GetRepeatModeLabel(RepeatMode mode) => mode switch
+    {
+        RepeatMode.One => L["RepeatOne"],
+        RepeatMode.All => L["RepeatAll"],
+        _ => L["Off"]
+    };
 
     public void Dispose()
     {

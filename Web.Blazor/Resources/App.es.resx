@@ -2437,4 +2437,112 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="TituloGrupoIA" xml:space="preserve">
     <value>Inteligencia artificial</value>
   </data>
+  <data name="AINotesServiceFailed" xml:space="preserve">
+    <value>El servicio de notas de IA no devolvió ningún resultado.</value>
+  </data>
+  <data name="AddedToPlaylist" xml:space="preserve">
+    <value>Añadido a la playlist '{0}'.</value>
+  </data>
+  <data name="AudioPlaylistsOnly" xml:space="preserve">
+    <value>Esta opción solo está disponible para playlists de audio.</value>
+  </data>
+  <data name="CreationMsgMedia" xml:space="preserve">
+    <value>Creación de Media</value>
+  </data>
+  <data name="DeletionMsgMedia" xml:space="preserve">
+    <value>Eliminación de Media</value>
+  </data>
+  <data name="ErrorAddingFileToPlaylist" xml:space="preserve">
+    <value>Error al añadir el archivo: {0}</value>
+  </data>
+  <data name="ErrorAddingItemToPlaylist" xml:space="preserve">
+    <value>Error al añadir el elemento: {0}</value>
+  </data>
+  <data name="ErrorCreatingPlaylist" xml:space="preserve">
+    <value>Error al crear la playlist.</value>
+  </data>
+  <data name="ErrorDeletingMediaFile" xml:space="preserve">
+    <value>Error al eliminar el archivo {0} ({1}). Verifique, por favor.</value>
+  </data>
+  <data name="ErrorDeletingPlaylist" xml:space="preserve">
+    <value>Error al eliminar la playlist: {0}</value>
+  </data>
+  <data name="ErrorDeletingPlaylistItem" xml:space="preserve">
+    <value>Error al eliminar el elemento de la playlist: {0}</value>
+  </data>
+  <data name="ErrorLoadingMediaFiles" xml:space="preserve">
+    <value>Error al cargar los archivos multimedia: {0}</value>
+  </data>
+  <data name="ErrorLoadingPlaylistDetails" xml:space="preserve">
+    <value>Error al cargar los detalles de la playlist: {0}</value>
+  </data>
+  <data name="ErrorLoadingPlaylistItems" xml:space="preserve">
+    <value>Error al cargar los elementos: {0}</value>
+  </data>
+  <data name="ErrorProcessingPlaylist" xml:space="preserve">
+    <value>Error al procesar la playlist: {0}</value>
+  </data>
+  <data name="ErrorSearchingPlaylist" xml:space="preserve">
+    <value>Error al buscar la playlist: {0}</value>
+  </data>
+  <data name="ErrorUpdatingPlaylist" xml:space="preserve">
+    <value>Error al actualizar la playlist.</value>
+  </data>
+  <data name="ErrorUpdatingSortOrder" xml:space="preserve">
+    <value>La API devolvió una respuesta no válida al actualizar el orden.</value>
+  </data>
+  <data name="FalhaCriacaoRegistoMedia" xml:space="preserve">
+    <value>El registro no fue creado. Verifique el registro (Media)</value>
+  </data>
+  <data name="InformPlaylistNameOrUrl" xml:space="preserve">
+    <value>Introduzca el nombre o la URL de la playlist.</value>
+  </data>
+  <data name="MediaFormatCd" xml:space="preserve">
+    <value>CD</value>
+  </data>
+  <data name="MediaFormatDvd" xml:space="preserve">
+    <value>DVD</value>
+  </data>
+  <data name="MediaFormatLp" xml:space="preserve">
+    <value>LP</value>
+  </data>
+  <data name="MediaStoredOnDiskYoutubeSkipped" xml:space="preserve">
+    <value>{0} ({1}) - {2}: {3} está guardado en disco. Búsqueda en la API de Youtube no realizada.</value>
+  </data>
+  <data name="Mp3PlayerNoPlay" xml:space="preserve">
+    <value>Reproductor Mp3 - {0}</value>
+  </data>
+  <data name="NewMsgLocal" xml:space="preserve">
+    <value>Nuevo (Local)</value>
+  </data>
+  <data name="NewMsgYoutube" xml:space="preserve">
+    <value>Nuevo (Youtube)</value>
+  </data>
+  <data name="OnlyMp3OrUrlInPlaylist" xml:space="preserve">
+    <value>Solo se pueden añadir a la playlist archivos .mp3 o medios basados en URL (p. ej., YouTube).</value>
+  </data>
+  <data name="PlaylistNameRequired" xml:space="preserve">
+    <value>El nombre de la playlist es obligatorio.</value>
+  </data>
+  <data name="RepeatAll" xml:space="preserve">
+    <value>Todas</value>
+  </data>
+  <data name="RepeatOne" xml:space="preserve">
+    <value>Una vez</value>
+  </data>
+  <data name="TabPlaylistMp3" xml:space="preserve">
+    <value>🎧 [MP3]</value>
+  </data>
+  <data name="TabPlaylistYoutube" xml:space="preserve">
+    <value>▶️ YouTube</value>
+  </data>
+  <data name="TituloErro" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="TituloFicheirosLocais" xml:space="preserve">
+    <value>Archivos locales</value>
+  </data>
+  <data name="TituloGoogleApi" xml:space="preserve">
+    <value>Google Api</value>
+  </data>
 </root>

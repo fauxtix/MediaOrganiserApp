@@ -2436,4 +2436,112 @@
   <data name="TituloGrupoIA" xml:space="preserve">
     <value>Artificial Intelligence</value>
   </data>
+  <data name="AINotesServiceFailed" xml:space="preserve">
+    <value>The AI notes service did not return any results.</value>
+  </data>
+  <data name="AddedToPlaylist" xml:space="preserve">
+    <value>Added to playlist '{0}'.</value>
+  </data>
+  <data name="AudioPlaylistsOnly" xml:space="preserve">
+    <value>This option is only available for audio playlists.</value>
+  </data>
+  <data name="CreationMsgMedia" xml:space="preserve">
+    <value>Creation of Media</value>
+  </data>
+  <data name="DeletionMsgMedia" xml:space="preserve">
+    <value>Removal of Media</value>
+  </data>
+  <data name="ErrorAddingFileToPlaylist" xml:space="preserve">
+    <value>Error adding file: {0}</value>
+  </data>
+  <data name="ErrorAddingItemToPlaylist" xml:space="preserve">
+    <value>Error adding item: {0}</value>
+  </data>
+  <data name="ErrorCreatingPlaylist" xml:space="preserve">
+    <value>Error creating playlist.</value>
+  </data>
+  <data name="ErrorDeletingMediaFile" xml:space="preserve">
+    <value>Error deleting file {0} ({1}). Please verify.</value>
+  </data>
+  <data name="ErrorDeletingPlaylist" xml:space="preserve">
+    <value>Error deleting playlist: {0}</value>
+  </data>
+  <data name="ErrorDeletingPlaylistItem" xml:space="preserve">
+    <value>Error deleting playlist item: {0}</value>
+  </data>
+  <data name="ErrorLoadingMediaFiles" xml:space="preserve">
+    <value>Error loading media files: {0}</value>
+  </data>
+  <data name="ErrorLoadingPlaylistDetails" xml:space="preserve">
+    <value>Error loading playlist details: {0}</value>
+  </data>
+  <data name="ErrorLoadingPlaylistItems" xml:space="preserve">
+    <value>Error loading items: {0}</value>
+  </data>
+  <data name="ErrorProcessingPlaylist" xml:space="preserve">
+    <value>Error processing playlist: {0}</value>
+  </data>
+  <data name="ErrorSearchingPlaylist" xml:space="preserve">
+    <value>Error searching playlist: {0}</value>
+  </data>
+  <data name="ErrorUpdatingPlaylist" xml:space="preserve">
+    <value>Error updating playlist.</value>
+  </data>
+  <data name="ErrorUpdatingSortOrder" xml:space="preserve">
+    <value>API returned a non-success response while updating the order.</value>
+  </data>
+  <data name="FalhaCriacaoRegistoMedia" xml:space="preserve">
+    <value>Record was not created. Please check the log (Media)</value>
+  </data>
+  <data name="InformPlaylistNameOrUrl" xml:space="preserve">
+    <value>Please enter the playlist name or URL.</value>
+  </data>
+  <data name="MediaFormatCd" xml:space="preserve">
+    <value>CD</value>
+  </data>
+  <data name="MediaFormatDvd" xml:space="preserve">
+    <value>DVD</value>
+  </data>
+  <data name="MediaFormatLp" xml:space="preserve">
+    <value>LP</value>
+  </data>
+  <data name="MediaStoredOnDiskYoutubeSkipped" xml:space="preserve">
+    <value>{0} ({1}) - {2}: {3} is stored on disk. YouTube API search was not performed.</value>
+  </data>
+  <data name="Mp3PlayerNoPlay" xml:space="preserve">
+    <value>Mp3 player - {0}</value>
+  </data>
+  <data name="NewMsgLocal" xml:space="preserve">
+    <value>New (Local)</value>
+  </data>
+  <data name="NewMsgYoutube" xml:space="preserve">
+    <value>New (Youtube)</value>
+  </data>
+  <data name="OnlyMp3OrUrlInPlaylist" xml:space="preserve">
+    <value>Only .mp3 files or URL-based media (e.g., YouTube) can be added to playlists.</value>
+  </data>
+  <data name="PlaylistNameRequired" xml:space="preserve">
+    <value>Playlist name is required.</value>
+  </data>
+  <data name="RepeatAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="RepeatOne" xml:space="preserve">
+    <value>One</value>
+  </data>
+  <data name="TabPlaylistMp3" xml:space="preserve">
+    <value>🎧 [MP3]</value>
+  </data>
+  <data name="TabPlaylistYoutube" xml:space="preserve">
+    <value>▶️ YouTube</value>
+  </data>
+  <data name="TituloErro" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="TituloFicheirosLocais" xml:space="preserve">
+    <value>Local files</value>
+  </data>
+  <data name="TituloGoogleApi" xml:space="preserve">
+    <value>Google Api</value>
+  </data>
 </root>

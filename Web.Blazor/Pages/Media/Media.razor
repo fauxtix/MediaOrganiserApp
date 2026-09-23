@@ -23,7 +23,7 @@ var Tool = (new List<object>()
              {
                 Align = ItemAlign.Left,
                 PrefixIcon = "oi oi-audio",
-                Text = "Audio",
+                Text = localizerApp["MediaFormatAudio"],
                 Id = "AUD"
              },
              new ItemModel()
@@ -34,7 +34,7 @@ var Tool = (new List<object>()
              {
                 Align = ItemAlign.Left,
                 PrefixIcon = "oi oi-video",
-                Text = "Video",
+                Text = localizerApp["MediaFormatVideo"],
                 Id = "VID"
              },
              new ItemModel()
@@ -103,13 +103,13 @@ else
         <SfButton CssClass="e-btn e-primary e-round-corner"
                   IconCss="fa fa-plus"
                   @onclick="NotifyAddingYoutubeRecord">
-            &nbsp;@(localizerApp["NewMsg"])&nbsp;(Youtube)&nbsp;&nbsp;
+            &nbsp;@(localizerApp["NewMsgYoutube"])&nbsp;&nbsp;
             <i class="fa fa-youtube" />
         </SfButton>
         <SfButton CssClass="e-btn e-warning e-round-corner"
                   IconCss="fa fa-plus"
                   @onclick="@(() => UploadMediaVisibility = true)">
-            &nbsp;@(localizerApp["NewMsg"])&nbsp;(Local)&nbsp;&nbsp;
+            &nbsp;@(localizerApp["NewMsgLocal"])&nbsp;&nbsp;
             <i class="fa fa-cloud-download" />
         </SfButton>
     </div>
@@ -261,19 +261,19 @@ else
                                                 }
                                                 else if (currentRow.IdFormato_Media == 2) // CD
                                                 {
-                                                    msg = "CD";
+                                                    msg = localizerApp["MediaFormatCd"];
                                                     classe = "e-primary";
                                                     icon = "oi oi-audio";
                                                 }
                                                 else if (currentRow.IdFormato_Media == 3) // LP
                                                 {
-                                                    msg = "LP";
+                                                    msg = localizerApp["MediaFormatLp"];
                                                     classe = "e-primary";
                                                     icon = "oi oi-audio";
                                                 }
                                                 else if (currentRow.IdFormato_Media == 4) // DVD
                                                 {
-                                                    msg = "DVD";
+                                                    msg = localizerApp["MediaFormatDvd"];
                                                     classe = "e-primary";
                                                     icon = "fa fa-compact disk";
                                                 }
@@ -297,13 +297,13 @@ else
                                             {
                                                 if (currentRow.IdFormato_Media == 3) // LP
                                                 {
-                                                    msg = "LP";
+                                                    msg = localizerApp["MediaFormatLp"];
                                                     classe = "e-primary";
                                                     icon = "oi oi-audio";
                                                 }
                                                 else if (currentRow.IdFormato_Media == 2) // CD
                                                 {
-                                                    msg = "CD";
+                                                    msg = localizerApp["MediaFormatCd"];
                                                     classe = "e-primary";
                                                     icon = "oi oi-audio";
                                                 }

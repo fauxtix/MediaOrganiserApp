@@ -63,7 +63,6 @@ namespace Web.Blazor.Pages.BaseComponents
         protected bool blnEdit = true;
         protected string OperationResult { get; set; }
         protected string CriarEditarMsg; // = "Editar Registo";
-        protected string MediaTypeMsg = "Play Mp3";
 
         protected bool isMp3 = false;
         protected bool isMp4 = false;
@@ -210,7 +209,7 @@ namespace Web.Blazor.Pages.BaseComponents
 
         private async Task ProcessCDOrLPInfo(string optionTitle)
         {
-            SpinnerLabel = "Accessing youtube Api (SearchByArtistAndSong)";
+            SpinnerLabel = localizerApp["SpinnerAccessingYoutubeApi"];
             var mediaArtist = SelectedRecord.Autor;
             await Task.Delay(100);
             await SpinnerObj?.ShowAsync();
@@ -292,7 +291,7 @@ namespace Web.Blazor.Pages.BaseComponents
                                 sb.Append(notFound);
                                 sb.AppendLine("\n");
                                 sb.AppendLine(contactAdmin);
-                                AlertUserTitle = $"Mp3 player - {noPlay}";
+                                AlertUserTitle = string.Format(localizerApp["Mp3PlayerNoPlay"], noPlay);
                                 AlertUserMessage = $"{fileTitle} '{SelectedRecord.FileName} ({SelectedRecord.Autor})' {sb.ToString()}";
                                 isValidMedia = false;
                                 Mp3DialogVisibility = false;
@@ -359,8 +358,16 @@ namespace Web.Blazor.Pages.BaseComponents
         {
             if (!string.IsNullOrEmpty(SelectedRecord.FileUrl))
             {
-                int iPos = SelectedRecord.FileUrl.IndexOf("v=") + 2;
-                string videoId = SelectedRecord.FileUrl.Substring(iPos);
+                string videoId = YouTubeHelpers.GetVideoId(SelectedRecord.FileUrl);
+                if (string.IsNullOrEmpty(videoId))
+                {
+                    AlertUserTitle = $"{localizerApp["TituloConsultarInfo"]} - '{SelectedRecord.FileName} ({SelectedRecord.Autor}')";
+                    AlertUserMessage = $"{localizerApp["msgNoResults"]}  ({SelectedRecord.FileName}) - {localizerApp["lblAutor"]}: {SelectedRecord.Autor}";
+                    isValidMedia = false;
+                    AlertUserVisibility = true;
+                    return;
+                }
+
                 var output = await YouTubeService.GetVideoMetadata(videoId);
                 if (output is not null)
                 {
@@ -392,7 +399,7 @@ namespace Web.Blazor.Pages.BaseComponents
                     YoutubeDialogVisibility = false;
                     ErrorVisibility = true;
                     ValidationMessages = new() { $"{localizerApp["msgNoResults"]}  ({SelectedRecord.FileName}) - {localizerApp["lblAutor"]}: {SelectedRecord.Autor}" };
-                    ErrorTitle = $"Google Api";
+                    ErrorTitle = localizerApp["TituloGoogleApi"];
                     VideoDetail = new();
                 }
             }
@@ -447,7 +454,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 MediaCardInfoVisibility = false;
                 ErrorVisibility = true;
-                ValidationMessages = new() { $"{localizerApp["lblTitulo"]} ({SelectedRecord.FileName}) - {localizerApp["lblAutor"]}: {SelectedRecord.Autor} está guardado em disco. Pesquisa ao API do Youtube não efetuada." };
+                ValidationMessages = new() { string.Format(localizerApp["MediaStoredOnDiskYoutubeSkipped"], localizerApp["lblTitulo"], SelectedRecord.FileName, localizerApp["lblAutor"], SelectedRecord.Autor) };
                 ErrorTitle = localizerApp["msgNoResults"];
             }
 
@@ -500,7 +507,6 @@ namespace Web.Blazor.Pages.BaseComponents
 
         private void SetMp3DialogProperties()
         {
-            MediaTypeMsg = "Play Mp3";
             mediaExtension = ".mp3";
             dialogWidth = "400px";
             dialogHeight = "auto";
@@ -513,7 +519,6 @@ namespace Web.Blazor.Pages.BaseComponents
         private void SetMp4DialogProperties()
         {
             YouTubePlayerDialogVisibility = true;
-            MediaTypeMsg = "Play Mp4";
             mediaExtension = ".mp4";
             dialogWidth = "800px";
             dialogHeight = "800px";
@@ -571,20 +576,20 @@ namespace Web.Blazor.Pages.BaseComponents
                     mediaFiles = await MediaService.GetFilesByMediaType(AppDefinitions.Query_TipoMedia.Audio);
                     reportOption = AppDefinitions.Query_TipoMedia.Audio;
                     showBadge = true;
-                    badgeCaption = "Audio";
+                    badgeCaption = localizerApp["MediaFormatAudio"];
                     break;
                 case "vid":
                     mediaFiles = await MediaService.GetFilesByMediaType(AppDefinitions.Query_TipoMedia.Video);
                     reportOption = AppDefinitions.Query_TipoMedia.Video;
                     showBadge = true;
-                    badgeCaption = "Video";
+                    badgeCaption = localizerApp["MediaFormatVideo"];
 
                     break;
                 case "others":
                     mediaFiles = await MediaService.GetFilesByMediaType(AppDefinitions.Query_TipoMedia.Others);
                     reportOption = AppDefinitions.Query_TipoMedia.Others;
                     showBadge = true;
-                    badgeCaption = "Outros";
+                    badgeCaption = localizerApp["MediaFormatOther"];
 
                     break;
                 case "all":
@@ -784,12 +789,12 @@ namespace Web.Blazor.Pages.BaseComponents
 
             SelectedRecord.CreatedBy = userDetails.UserId;
 
-            ToastTitle = localizerApp["creationMsg"] + " Media";
+            ToastTitle = localizerApp["CreationMsgMedia"];
             InsertUpdateOk = await MediaService.CreateMediaFile(SelectedRecord);
             if (InsertUpdateOk == false)
             {
                 ToastCssClass = "e-toast-danger";
-                ToastContent = localizerApp["FalhaCriacaoRegisto"] + " (Media)";
+                ToastContent = localizerApp["FalhaCriacaoRegistoMedia"];
                 ToastTimeOut = 4000;
                 logger.LogWarning(ToastContent);
                 //StateHasChanged();
@@ -854,7 +859,7 @@ namespace Web.Blazor.Pages.BaseComponents
             };
 
             blnEdit = false;
-            CriarEditarMsg = localizerApp["NewMsg"] + " (Youtube)";
+            CriarEditarMsg = localizerApp["NewMsgYoutube"];
 
             YouTubeDialogVisibility = true;
             StateHasChanged();
@@ -875,9 +880,9 @@ namespace Web.Blazor.Pages.BaseComponents
                     }
                     catch (Exception ex)
                     {
-                        ToastTitle = localizerApp["deletionMsg"] + " Media";
+                        ToastTitle = localizerApp["DeletionMsgMedia"];
                         ToastCssClass = "e-toast-danger";
-                        ToastContent = $"Erro ao apagar ficheiro {SelectedRecord.FilePath} ({ex.Message}. Verifique, por favor)";
+                        ToastContent = string.Format(localizerApp["ErrorDeletingMediaFile"], SelectedRecord.FilePath, ex.Message);
                     }
                 }
                 var coverFilePath = SelectedRecord.CoverFile;
@@ -892,9 +897,9 @@ namespace Web.Blazor.Pages.BaseComponents
                     }
                     catch (Exception ex)
                     {
-                        ToastTitle = localizerApp["deletionMsg"] + " Media";
+                        ToastTitle = localizerApp["DeletionMsgMedia"];
                         ToastCssClass = "e-toast-danger";
-                        ToastContent = $"Erro ao apagar ficheiro {coverFilePath} ({ex.Message}. Verifique, por favor)";
+                        ToastContent = string.Format(localizerApp["ErrorDeletingMediaFile"], coverFilePath, ex.Message);
                     }
                 }
 
@@ -903,13 +908,13 @@ namespace Web.Blazor.Pages.BaseComponents
                 mediaFiles = await GetAllMediaFiles();
                 await gridObj.Refresh();
 
-                ToastTitle = localizerApp["deletionMsg"] + " Media";
+                ToastTitle = localizerApp["DeletionMsgMedia"];
                 ToastCssClass = "e-toast-success";
                 ToastContent = localizerApp["SuccessDelete"];
             }
             else
             {
-                ToastTitle = localizerApp["deletionMsg"] + " Media";
+                ToastTitle = localizerApp["DeletionMsgMedia"];
                 ToastCssClass = "e-toast-error";
                 ToastContent = localizerApp["FalhaAnulacaoRegisto"];
                 logger.LogError(ToastContent);
@@ -933,7 +938,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 mediaFiles = await GetAllMediaFiles();
                 ToastTimeOut = 5000;
-                ToastTitle = "Upload Media";
+                ToastTitle = localizerApp["TituloUploadsMedia"];
                 ToastCssClass = "e-toast-info";
                 ToastContent = localizerApp["TituloFicheiroProcessadoSucesso"];
 
@@ -946,7 +951,7 @@ namespace Web.Blazor.Pages.BaseComponents
             else
             {
                 AlertUserVisibility = true;
-                AlertUserTitle = "Ficheiros locais";
+                AlertUserTitle = localizerApp["TituloFicheirosLocais"];
                 AlertUserMessage = uploadMediaResult.Message;
                 AlertUserMessageType = AppDefinitions.OpcoesRegisto.Warning;
                 StateHasChanged();
@@ -1026,7 +1031,7 @@ namespace Web.Blazor.Pages.BaseComponents
             {
                 ToastTitle = localizerApp["Info"];
                 ToastCssClass = "e-toast-warning";
-                ToastContent = "Only .mp3 files or URL-based media (e.g., YouTube) can be added to playlists.";
+                ToastContent = localizerApp["OnlyMp3OrUrlInPlaylist"];
                 ToastTimeOut = 3500;
 
                 StateHasChanged();
@@ -1050,7 +1055,7 @@ namespace Web.Blazor.Pages.BaseComponents
 
             ToastTitle = localizerApp["Info"];
             ToastCssClass = "e-toast-success";
-            ToastContent = $"Added to playlist '{playlistName}'.";
+            ToastContent = string.Format(localizerApp["AddedToPlaylist"], playlistName);
             ToastTimeOut = 2500;
 
             StateHasChanged();

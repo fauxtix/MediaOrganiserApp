@@ -71,7 +71,7 @@ namespace Web.Blazor.Components.Playlists
 
             if (string.IsNullOrWhiteSpace(selectedPlaylistId))
             {
-                youtubeSearchError = "Informe o nome ou URL da playlist.";
+                youtubeSearchError = localizerApp["InformPlaylistNameOrUrl"];
                 return;
             }
 
@@ -90,7 +90,7 @@ namespace Web.Blazor.Components.Playlists
             }
             catch (Exception ex)
             {
-                youtubeSearchError = $"Erro ao pesquisar playlist: {ex.Message}";
+                youtubeSearchError = string.Format(localizerApp["ErrorSearchingPlaylist"], ex.Message);
             }
             finally
             {
@@ -133,7 +133,7 @@ namespace Web.Blazor.Components.Playlists
             }
             catch (Exception ex)
             {
-                youtubeSearchError = $"Erro ao pesquisar playlist: {ex.Message}";
+                youtubeSearchError = string.Format(localizerApp["ErrorSearchingPlaylist"], ex.Message);
             }
             finally
             {
@@ -149,7 +149,7 @@ namespace Web.Blazor.Components.Playlists
             }
             catch (Exception ex)
             {
-                youtubeSearchError = $"Erro ao processar playlist: {ex.Message}";
+                youtubeSearchError = string.Format(localizerApp["ErrorProcessingPlaylist"], ex.Message);
             }
         }
 

@@ -20,7 +20,7 @@
     <TabItems>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="🎧 [MP3]"></TabHeader>
+                <TabHeader Text="@localizerApp["TabPlaylistMp3"]"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 @if (isLoading)
@@ -228,7 +228,7 @@
         </TabItem>
         <TabItem>
             <ChildContent>
-                <TabHeader Text="▶️ YouTube" IconCss="fa fa-times" IconPosition="IconPosition.Left"></TabHeader>
+                <TabHeader Text="@localizerApp["TabPlaylistYoutube"]" IconCss="fa fa-times" IconPosition="IconPosition.Left"></TabHeader>
             </ChildContent>
             <ContentTemplate>
                 <YoutubePlaylists />
