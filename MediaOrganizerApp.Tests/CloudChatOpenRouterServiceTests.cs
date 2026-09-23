@@ -74,6 +74,24 @@ public sealed class CloudChatHelperTests
         Assert.EndsWith("...", description);
         Assert.True(description.Length <= 84);
     }
+
+    [Fact]
+    public void ComputeTokensPerSecond_GenerationWindowBased()
+    {
+        // 200 tokens de saída em janela de geração de 8 s (10 s total, 2 s TTFT)
+        Assert.Equal(25.0, CloudResponseMetrics.ComputeTokensPerSecond(200, 10.0, 2.0));
+        Assert.Equal(12.5, CloudResponseMetrics.ComputeTokensPerSecond(100, 10.0, 2.0));
+
+        // sem tokens de saída -> sem taxa
+        Assert.Null(CloudResponseMetrics.ComputeTokensPerSecond(0, 10.0, 2.0));
+
+        // streams sub-segundo (cache/burst) -> sem taxa
+        Assert.Null(CloudResponseMetrics.ComputeTokensPerSecond(100, 0.5, 0.2));
+
+        // janela de geração nula/negativa (TTFT >= total) -> sem taxa
+        Assert.Null(CloudResponseMetrics.ComputeTokensPerSecond(50, 1.2, 1.5));
+        Assert.Null(CloudResponseMetrics.ComputeTokensPerSecond(50, 1.0, 1.0));
+    }
 }
 
 public sealed class OpenRouterChatServiceTests
@@ -265,6 +283,51 @@ public sealed class OpenRouterChatServiceTests
         foreach (var response in responses) response.Dispose();
     }
 
+    [Fact]
+    public async Task StreamChatAsync_YieldsChunksWhileStreamIsStillOpen()
+    {
+        var beforeGate =
+            """data: {"choices":[{"delta":{"content":"Olá"}}],"model":"nvidia/foo"}""" + "\n";
+        var afterGate =
+            """data: {"choices":[{"delta":{"content":" mundo"}}]}""" + "\n" +
+            """data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}""" + "\n" +
+            "data: [DONE]\n";
+
+        var stream = new GatedSseStream(beforeGate, afterGate);
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(stream) { Headers = { { "Content-Type", "text/event-stream" } } }
+        };
+
+        var service = CreateService(new Queue<HttpResponseMessage>(new[] { response }), out _);
+
+        var firstChunk = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consume = Task.Run(async () =>
+        {
+            var text = new StringBuilder();
+            await foreach (var chunk in service.StreamChatAsync(CreatePayload("openrouter/free"), "user-1", "pt"))
+            {
+                text.Append(chunk.Text);
+                if (text.Length > 0 && !firstChunk.Task.IsCompleted)
+                    firstChunk.TrySetResult(text.ToString());
+            }
+        });
+
+        // Sem o fix, o serviço faz ReadAsStringAsync e bloqueia até ao fim do stream, pelo
+        // que o primeiro chunk nunca chega antes do Release(). Com o fix, o streaming é
+        // incremental: o primeiro chunk chega ainda com o stream aberto.
+        var received = await firstChunk.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.Equal("Olá", received);
+        Assert.False(stream.IsReleased);
+
+        stream.Release();
+        await consume.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.True(stream.IsReleased);
+
+        response.Dispose();
+    }
+
     private static CloudChatPayload CreatePayload(string model) => new()
     {
         Model = model,
@@ -365,5 +428,77 @@ public sealed class OpenRouterChatServiceTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(handler(request));
+    }
+
+    /// <summary>
+    /// Stream SSE simulando um servidor lento: devolve imediatamente o primeiro segmento e
+    /// bloqueia antes de expor o restante até <see cref="Release"/> ser chamado. Simula o
+    /// streaming incremental real do OpenRouter (TTFT antes do fim do stream).
+    /// </summary>
+    private sealed class GatedSseStream : Stream
+    {
+        private readonly byte[][] _segments;
+        private readonly ManualResetEventSlim _gate = new(false);
+        private int _segmentIndex;
+        private int _offset;
+
+        public bool IsReleased => _gate.IsSet;
+
+        public GatedSseStream(string beforeGate, string afterGate)
+        {
+            _segments = new[]
+            {
+                Encoding.UTF8.GetBytes(beforeGate),
+                Encoding.UTF8.GetBytes(afterGate)
+            };
+        }
+
+        public void Release() => _gate.Set();
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public override int Read(byte[] buffer, int offset, int count)
+            => ReadAsync(buffer.AsMemory(offset, count)).AsTask().GetAwaiter().GetResult();
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            while (true)
+            {
+                if (_segmentIndex >= _segments.Length)
+                    return 0;
+
+                var current = _segments[_segmentIndex];
+
+                if (_offset >= current.Length)
+                {
+                    // O último segmento não tem gate; os anteriores exigem Release().
+                    if (_segmentIndex == _segments.Length - 1 || _gate.IsSet)
+                    {
+                        _segmentIndex++;
+                        _offset = 0;
+                        continue;
+                    }
+
+                    _gate.Wait(cancellationToken);
+                    _segmentIndex++;
+                    _offset = 0;
+                    continue;
+                }
+
+                var toCopy = Math.Min(buffer.Length, current.Length - _offset);
+                current.AsMemory(_offset, toCopy).CopyTo(buffer[..toCopy]);
+                _offset += toCopy;
+                return toCopy;
+            }
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

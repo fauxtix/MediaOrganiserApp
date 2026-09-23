@@ -17,4 +17,17 @@ public static class CloudResponseMetrics
         var firstLine = prompt.Split('\n')[0].Trim();
         return firstLine.Length > 80 ? $"{firstLine[..80]}..." : firstLine;
     }
+
+    /// <summary>
+    /// Tokens/s físicos de geração: tokens de saída a dividir pela janela de geração
+    /// (tempo total do stream - tempo até ao primeiro token). Respostas sub-segundo
+    /// (cache/burst), sem tokens de saída ou com janela nula/negativa não têm taxa válida.
+    /// </summary>
+    public static double? ComputeTokensPerSecond(int completionTokens, double seconds, double firstChunkSeconds)
+    {
+        var generationWindow = seconds - Math.Max(0, firstChunkSeconds);
+        if (completionTokens <= 0 || generationWindow < 1.0)
+            return null;
+        return Math.Round(completionTokens / generationWindow, 2);
+    }
 }

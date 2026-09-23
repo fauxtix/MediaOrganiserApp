@@ -315,10 +315,12 @@ public sealed class OpenRouterChatService
             throw new CloudProviderTransientException($"Erro de rede ao comunicar com OpenRouter: {ex.Message}", ex);
         }
 
-        var responseBody = await response.Content.ReadAsStringAsync(ct);
-
         if (!response.IsSuccessStatusCode)
         {
+            // Só lemos o body em caso de erro: ler num 200 de streaming bloquearia até
+            // ao fim do SSE, destruindo o streaming token-a-token do chat.
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+
             var statusCode = response.StatusCode;
             _logger.LogWarning("[OpenRouter] HTTP {StatusCode}: {Body}", (int)statusCode, responseBody);
             response.Dispose();
@@ -374,11 +376,9 @@ public sealed class OpenRouterChatService
 
             var totalTokens = promptTokens + completionTokens;
             var seconds = elapsed.TotalSeconds > 0 ? elapsed.TotalSeconds : 0.001;
-            // A rate só é representativa para streams reais (>= 1s). Respostas "instantâneas"
-            // (cached/buffered em menos de um segundo) produzem tokens/s sem significado físico.
-            var tokensPerSecond = totalTokens > 0 && seconds >= 1.0
-                ? Math.Round(totalTokens / seconds, 2)
-                : (double?)null;
+            // Tokens/s físicos de geração: tokens de saída na janela de geração
+            // (tempo total - TTFT). Streams sub-segundo (cache/burst) não têm taxa válida.
+            var tokensPerSecond = CloudResponseMetrics.ComputeTokensPerSecond(completionTokens, seconds, firstChunkSeconds);
             var response = new AIResponse
             {
                 PromptId = promptId,
