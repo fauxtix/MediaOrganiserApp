@@ -5,6 +5,7 @@ using MediaOrganizerApp.WebApi.Services;
 using MediaOrganizerApp.WebApi.Services.CloudChat;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Text.Json;
 
 namespace MediaOrganizerApp.WebApi.Controllers
 {
@@ -986,7 +987,7 @@ namespace MediaOrganizerApp.WebApi.Controllers
         [HttpPost("chat")]
         public async Task Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
         {
-            Response.ContentType = "text/plain";
+            Response.ContentType = "application/x-ndjson";
 
             if (!string.IsNullOrWhiteSpace(request?.Language))
             {
@@ -1006,7 +1007,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     request.CorrelationId,
                     cancellationToken))
                 {
-                    await Response.WriteAsync(chunk, cancellationToken);
+                    await Response.WriteAsync(JsonSerializer.Serialize(chunk), cancellationToken);
+                    await Response.WriteAsync("\n", cancellationToken);
 
                     await Response.Body.FlushAsync(cancellationToken);
                 }

@@ -14,13 +14,13 @@
 
 <div class="chat-history-aside @(IsOpen ? "open" : "")" @onclick:stopPropagation>
     <div class="chat-history-header">
-        <h3>@L["TestChatHistory"]</h3>
+        <h3>@L["ChatHistory"]</h3>
         <button class="chat-history-close" @onclick="Close" title="@L["btnFechar"]">&times;</button>
     </div>
 
     <div class="chat-history-actions">
-        <button class="chat-history-action" @onclick="ExportConversationsAsync">@L["TestChatExport"]</button>
-        <button class="chat-history-action" @onclick="ImportConversationsAsync">@L["TestChatImport"]</button>
+        <button class="chat-history-action" @onclick="ExportConversationsAsync">@L["ChatExport"]</button>
+        <button class="chat-history-action" @onclick="ImportConversationsAsync">@L["ChatImport"]</button>
     </div>
 
     @if (!string.IsNullOrEmpty(_status))
@@ -35,7 +35,7 @@
         }
         else if (Conversations.Count == 0)
         {
-            <div class="chat-history-empty">@L["TestChatNoConversations"]</div>
+            <div class="chat-history-empty">@L["ChatNoConversations"]</div>
         }
         else
         {
@@ -127,11 +127,11 @@
             string fileName = $"conversas_{DateTime.Now:yyyyMMdd_HHmmss}.json";
 
             await JS.InvokeVoidAsync("downloadJson", fileName, json);
-            _status = string.Format(L["TestChatExportOk"], items.Count);
+            _status = string.Format(L["ChatExportOk"], items.Count);
         }
         catch (Exception ex)
         {
-            _status = string.Format(L["TestChatExportError"], ex.Message);
+            _status = string.Format(L["ChatExportError"], ex.Message);
         }
 
         StateHasChanged();
@@ -159,7 +159,7 @@
 
             if (items is null || items.Count == 0)
             {
-                _status = L["TestChatImportInvalid"];
+                _status = L["ChatImportInvalid"];
                 StateHasChanged();
                 return;
             }
@@ -180,11 +180,11 @@
             }
 
             Conversations = await ConversationsClient.GetAllAsync() ?? new List<ConversationDto>();
-            _status = string.Format(L["TestChatImportOk"], imported);
+            _status = string.Format(L["ChatImportOk"], imported);
         }
         catch (Exception ex)
         {
-            _status = string.Format(L["TestChatImportError"], ex.Message);
+            _status = string.Format(L["ChatImportError"], ex.Message);
         }
 
         StateHasChanged();

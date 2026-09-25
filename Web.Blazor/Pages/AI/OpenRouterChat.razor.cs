@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Text.Json;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.DTOs.AI.CloudChat;
+using MediaOrganizerApp.Application.Utilities;
 using Web.Blazor.Components.Chat;
 using Web.Blazor.Services.ApiWrappers;
 using Web.Blazor.Services.CloudChat;
@@ -18,6 +19,13 @@ namespace Web.Blazor.Pages.AI
     {
         private const string ModeloRouterFree = "openrouter/free";
 
+        // Coalescing do stream: acumula deltas SSE e só faz render quando o texto
+        // pendente atinge o limiar de caracteres OU decorreu o intervalo desde o último
+        // render — mesma cadência de rendering do Chat.razor (Ollama), evitando
+        // StateHasChanged/FormatMessage/scroll por delta minúsculo.
+        private const int CoalesceMinChars = 400;
+        private const int CoalesceIntervalMs = 50;
+
         [Inject] private ConversationsClientService ConversationsClient { get; set; } = null!;
         [Inject] private CloudChatClientService CloudChatClient { get; set; } = null!;
         [Inject] private ChatFeedbackClientService ChatFeedbackClient { get; set; } = null!;
@@ -26,8 +34,8 @@ namespace Web.Blazor.Pages.AI
         [Inject] private IStringLocalizer<App> Localizer { get; set; } = null!;
         [Inject] private ILogger<OpenRouterChat> Logger { get; set; } = null!;
 
-        private readonly List<TestChatMessage> messages = new();
-        private TestChatMessage? currentAssistantMessage;
+        private readonly List<CloudChatUiMessage> messages = new();
+        private CloudChatUiMessage? currentAssistantMessage;
         private string userInput = "";
         private string? lastUserPrompt;
         private string welcomeMessage = "";
@@ -61,6 +69,8 @@ namespace Web.Blazor.Pages.AI
 
         private readonly Dictionary<int, int> _feedbackByIndex = new();
 
+        private readonly Dictionary<int, bool> _reasoningToggled = new();
+
         private SfToast? toastObj;
         protected string ToastTitle = "";
         protected string ToastContent = "";
@@ -69,11 +79,11 @@ namespace Web.Blazor.Pages.AI
 
         protected override async Task OnInitializedAsync()
         {
-            welcomeMessage = Localizer["TestChatWelcome"];
+            welcomeMessage = Localizer["ChatWelcome"];
 
             var (userId, _) = await UserIdentity.GetAsync();
 
-            _systemPrompt = $"You are a helpful assistant. Respond in {TargetLanguageResolver.GetTargetLanguage()}. Be concise and accurate.";
+            _systemPrompt = $"You are a helpful assistant. Respond in {TargetLanguageResolver.GetTargetLanguage()}. Be concise and accurate. Never output content-safety or moderation classifications (such as \"User Safety: safe\"). Always answer the user's request directly.";
 
             await LoadConversations();
 
@@ -107,7 +117,7 @@ namespace Web.Blazor.Pages.AI
             _contextLength = ContextWindowResolver.GetContextLength("OpenRouter", _selectedModel, _contextLengthCatalog);
             _contextResolvedForModel = _selectedModel;
 
-            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+            messages.Add(new CloudChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -165,12 +175,12 @@ namespace Web.Blazor.Pages.AI
             if (_contextLength > 0 && _contextUsedTokens + ChatComposerService.EstimateTokens(userText) > _contextLength)
             {
                 await ShowWarningToastAsync(
-                    Localizer["TestChatContextExceeded"],
-                    string.Format(Localizer["TestChatContextExceededDetail"], _contextLength));
+                    Localizer["ChatContextExceeded"],
+                    string.Format(Localizer["ChatContextExceededDetail"], _contextLength));
                 return;
             }
 
-            var userMsg = new TestChatMessage { Role = "user", Content = userText };
+            var userMsg = new CloudChatUiMessage { Role = "user", Content = userText };
             messages.Add(userMsg);
 
             var prepared = ChatComposerService.Prepare(
@@ -190,7 +200,7 @@ namespace Web.Blazor.Pages.AI
             _contextUsedTokens += ChatComposerService.EstimateTokens(userText);
             _showContextBar = true;
 
-            currentAssistantMessage = new TestChatMessage
+            currentAssistantMessage = new CloudChatUiMessage
             {
                 Role = "assistant",
                 Content = "..."
@@ -234,6 +244,9 @@ namespace Web.Blazor.Pages.AI
             {
                 var firstChunkReceived = false;
                 string? servedModel = null;
+                var pendingText = new System.Text.StringBuilder();
+                var pendingReasoning = new System.Text.StringBuilder();
+                var lastRenderAt = DateTime.UtcNow;
 
                 await foreach (var chunk in CloudChatClient.StreamChatAsync(prepared.Payload, LanguageCode, localToken))
                 {
@@ -244,18 +257,20 @@ namespace Web.Blazor.Pages.AI
 
                     if (currentAssistantMessage is null)
                     {
-                        currentAssistantMessage = new TestChatMessage { Role = "assistant", Content = "" };
+                        currentAssistantMessage = new CloudChatUiMessage { Role = "assistant", Content = "" };
                         messages.Add(currentAssistantMessage);
                     }
 
                     if (!string.IsNullOrEmpty(chunk.Text))
                     {
-                        if (currentAssistantMessage.Content == "...")
-                            currentAssistantMessage.Content = chunk.Text;
-                        else
-                            currentAssistantMessage.Content += chunk.Text;
-
+                        pendingText.Append(chunk.Text);
                         _contextUsedTokens += ChatComposerService.EstimateTokens(chunk.Text);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(chunk.Reasoning))
+                    {
+                        pendingReasoning.Append(chunk.Reasoning);
+                        _contextUsedTokens += ChatComposerService.EstimateTokens(chunk.Reasoning);
                     }
 
                     ApplyRealUsage(chunk);
@@ -269,6 +284,19 @@ namespace Web.Blazor.Pages.AI
                     }
 
                     _elapsed = stopwatch.Elapsed.TotalSeconds;
+
+                    var now = DateTime.UtcNow;
+                    var renderDue = pendingText.Length >= CoalesceMinChars
+                        || pendingReasoning.Length >= CoalesceMinChars
+                        || ((pendingText.Length > 0 || pendingReasoning.Length > 0) && (now - lastRenderAt).TotalMilliseconds >= CoalesceIntervalMs);
+
+                    if (!renderDue)
+                        continue;
+
+FlushPendingText(currentAssistantMessage, pendingText);
+                    FlushPendingReasoning(currentAssistantMessage, pendingReasoning);
+                    lastRenderAt = now;
+
                     await InvokeAsync(StateHasChanged);
 
                     if (userAtBottom)
@@ -277,29 +305,50 @@ namespace Web.Blazor.Pages.AI
                     }
                 }
 
+                FlushPendingText(currentAssistantMessage, pendingText);
+
+                var hasAnswer = false;
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...")
                         currentAssistantMessage.Content = string.Empty;
 
                     var (_, cleanText) = ChatComposerService.ExtractSummaryFromResponse(currentAssistantMessage.Content);
-                    currentAssistantMessage.Content = cleanText;
-                    currentAssistantMessage.LanguageWarning = LanguageWarningFor(cleanText);
+                    string finalContent;
+                    if (ChatSafetyArtifactFilter.IsSafetyOnly(cleanText))
+                    {
+                        finalContent = Localizer["ChatSafetyArtifactHint"];
+                    }
+                    else
+                    {
+                        finalContent = ChatSafetyArtifactFilter.StripSafetyLines(cleanText);
+                        if (string.IsNullOrWhiteSpace(finalContent))
+                            finalContent = Localizer["ChatEmptyResponseHint"];
+                        else
+                            hasAnswer = true;
+                    }
+
+                    currentAssistantMessage.Content = finalContent;
+                    currentAssistantMessage.IsError = !hasAnswer;
+                    currentAssistantMessage.LanguageWarning = LanguageWarningFor(finalContent);
                 }
 
                 await SaveCurrentConversationAsync();
 
-                await ShowSuccessToastAsync(Localizer["TestChatResponseReceived"]);
+                if (hasAnswer)
+                    await ShowSuccessToastAsync(Localizer["ChatResponseReceived"]);
+                else
+                    await ShowWarningToastAsync(Localizer["Chat"], currentAssistantMessage?.Content ?? Localizer["ChatEmptyResponseHint"]);
             }
             catch (OperationCanceledException)
             {
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
-                    currentAssistantMessage.Content += "\n\n⚠️ " + Localizer["TestChatCancelled"];
+                    currentAssistantMessage.Content += "\n\n⚠️ " + Localizer["ChatCancelled"];
                 }
 
-                await ShowWarningToastAsync("Test Chat", Localizer["TestChatCancelled"]);
+                await ShowWarningToastAsync(Localizer["Chat"], Localizer["ChatCancelled"]);
             }
             catch (Exception ex)
             {
@@ -308,11 +357,11 @@ namespace Web.Blazor.Pages.AI
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
-                    currentAssistantMessage.Content += "\n\n⚠️ " + string.Format(Localizer["TestChatError"], ex.Message);
+                    currentAssistantMessage.Content += "\n\n⚠️ " + string.Format(Localizer["ChatError"], ex.Message);
                     currentAssistantMessage.IsError = true;
                 }
 
-                await ShowWarningToastAsync("Test Chat", ex.Message);
+                await ShowWarningToastAsync(Localizer["Chat"], ex.Message);
             }
             finally
             {
@@ -327,6 +376,8 @@ namespace Web.Blazor.Pages.AI
                         ? $"{_elapsed:F2}s"
                         : $"{_elapsed:F1}s";
                 }
+
+                currentAssistantMessage = null;
 
                 chatCts?.Dispose();
                 chatCts = null;
@@ -361,7 +412,27 @@ namespace Web.Blazor.Pages.AI
             if (!ResponseLanguageChecker.IsMismatch(detected, LanguageCode))
                 return null;
 
-            return string.Format(Localizer["TestChatLanguageWarning"], TargetLanguageResolver.GetTargetLanguage());
+            return string.Format(Localizer["ChatLanguageWarning"], TargetLanguageResolver.GetTargetLanguage());
+        }
+
+        private static void FlushPendingText(CloudChatUiMessage? message, System.Text.StringBuilder pendingText)
+        {
+            if (message is null || pendingText.Length == 0)
+                return;
+
+            var text = pendingText.ToString();
+            pendingText.Clear();
+            message.Content = message.Content == "..." ? text : message.Content + text;
+        }
+
+        private static void FlushPendingReasoning(CloudChatUiMessage? message, System.Text.StringBuilder pendingReasoning)
+        {
+            if (message is null || pendingReasoning.Length == 0)
+                return;
+
+            var reasoning = pendingReasoning.ToString();
+            pendingReasoning.Clear();
+            message.Reasoning = (message.Reasoning ?? string.Empty) + reasoning;
         }
 
         private void ApplyRealUsage(CloudChatChunk chunk)
@@ -469,7 +540,16 @@ namespace Web.Blazor.Pages.AI
         private int GetFeedback(int index)
             => _feedbackByIndex.TryGetValue(index, out var value) ? value : 0;
 
-        private async Task CopyMessageAsync(TestChatMessage msg)
+        private bool IsReasoningExpanded(int index, CloudChatUiMessage msg)
+            => _reasoningToggled.TryGetValue(index, out var expanded) && expanded;
+
+        private void ToggleReasoning(int index)
+        {
+            if (index < 0 || index >= messages.Count) return;
+            _reasoningToggled[index] = !IsReasoningExpanded(index, messages[index]);
+        }
+
+        private async Task CopyMessageAsync(CloudChatUiMessage msg)
         {
             if (string.IsNullOrWhiteSpace(msg.Content)) return;
 
@@ -479,16 +559,16 @@ namespace Web.Blazor.Pages.AI
                 if (ok)
                     await ShowSuccessToastAsync(Localizer["ChatResponseCopied"]);
                 else
-                    await ShowWarningToastAsync("Test Chat", Localizer["ChatCopyFailed"]);
+                    await ShowWarningToastAsync(Localizer["Chat"], Localizer["ChatCopyFailed"]);
             }
             catch (Exception ex)
             {
                 Logger.LogWarning(ex, "Falha ao copiar resposta do chat.");
-                await ShowWarningToastAsync("Test Chat", Localizer["ChatCopyFailed"]);
+                await ShowWarningToastAsync(Localizer["Chat"], Localizer["ChatCopyFailed"]);
             }
         }
 
-        private async Task RateMessageAsync(int index, TestChatMessage msg, int rating)
+        private async Task RateMessageAsync(int index, CloudChatUiMessage msg, int rating)
         {
             var current = GetFeedback(index);
             var effective = current == rating ? 0 : rating;
@@ -519,7 +599,7 @@ namespace Web.Blazor.Pages.AI
             {
                 Logger.LogWarning(ex, "Falha ao registar avaliação no chat.");
                 _feedbackByIndex[index] = current;
-                await ShowWarningToastAsync("Test Chat", Localizer["ChatRatingFailed"]);
+                await ShowWarningToastAsync(Localizer["Chat"], Localizer["ChatRatingFailed"]);
             }
 
             await InvokeAsync(StateHasChanged);
@@ -542,12 +622,13 @@ namespace Web.Blazor.Pages.AI
 
             messages.Clear();
             currentAssistantMessage = null;
-            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+            messages.Add(new CloudChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
             _contextUsedTokens = 0;
             _showContextBar = false;
             _elapsed = 0;
             selectedConversationId = null;
             _feedbackByIndex.Clear();
+            _reasoningToggled.Clear();
 
             await InvokeAsync(StateHasChanged);
 
@@ -578,6 +659,7 @@ namespace Web.Blazor.Pages.AI
             _showContextBar = false;
             _elapsed = 0;
             _feedbackByIndex.Clear();
+            _reasoningToggled.Clear();
 
             var conv = conversations.FirstOrDefault(c => c.Id == id);
             if (conv is not null && !string.IsNullOrEmpty(conv.Json))
@@ -589,10 +671,11 @@ namespace Web.Blazor.Pages.AI
                     {
                         foreach (var m in restored)
                         {
-                            messages.Add(new TestChatMessage
+                            messages.Add(new CloudChatUiMessage
                             {
                                 Role = m.Role,
                                 Content = m.Content,
+                                Reasoning = m.Reasoning,
                                 Temperature = m.Temperature,
                                 ElapsedTime = m.ElapsedTime
                             });
@@ -603,7 +686,7 @@ namespace Web.Blazor.Pages.AI
             }
 
             if (messages.Count == 0)
-            messages.Add(new TestChatMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
+            messages.Add(new CloudChatUiMessage { Role = "assistant", Content = welcomeMessage, IsWelcome = true });
 
             try
             {
@@ -648,6 +731,7 @@ namespace Web.Blazor.Pages.AI
             {
                 Role = m.Role,
                 Content = m.Content,
+                Reasoning = m.Reasoning,
                 Temperature = m.Temperature,
                 ElapsedTime = m.ElapsedTime
             }));
@@ -679,7 +763,7 @@ namespace Web.Blazor.Pages.AI
 
         private async Task ShowSuccessToastAsync(string content)
         {
-            ToastTitle = "Test Chat";
+            ToastTitle = Localizer["Chat"];
             ToastContent = content;
             ToastCssClass = "e-toast-success";
             await ShowToastAsync();
@@ -725,15 +809,17 @@ namespace Web.Blazor.Pages.AI
         {
             public string Role { get; set; } = string.Empty;
             public string Content { get; set; } = string.Empty;
+            public string? Reasoning { get; set; }
             public double Temperature { get; set; }
             public string? ElapsedTime { get; set; }
             public bool IsWelcome { get; set; }
         }
 
-        public class TestChatMessage
+        public class CloudChatUiMessage
         {
             public string Role { get; set; } = "assistant";
             public string Content { get; set; } = string.Empty;
+            public string? Reasoning { get; set; }
             public bool IsError { get; set; }
             public bool IsWelcome { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;

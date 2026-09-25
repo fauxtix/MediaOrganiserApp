@@ -16,7 +16,7 @@
                         <label class="form-label">@L["TituloIdiomaOrigem"]</label>
                         <SfDropDownList TValue="string" TItem="LanguageItem" @bind-Value="SourceLanguage"
                                         DataSource="languages" Placeholder="@L["TituloIdiomaOrigem"]"
-                                        CssClass="w-100 mb-2" PopupHeight="220px">
+                                        CssClass="mb-2" PopupHeight="220px">
                             <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
                         </SfDropDownList>
 
@@ -31,7 +31,7 @@
                         <label class="form-label">@L["TituloIdiomaDestino"]</label>
                         <SfDropDownList TValue="string" TItem="LanguageItem" @bind-Value="TargetLanguage"
                                         DataSource="targetLanguages" Placeholder="@L["TituloIdiomaDestino"]"
-                                        CssClass="w-100 mb-2" PopupHeight="220px">
+                                        CssClass="mb-2" PopupHeight="220px">
                             <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
                         </SfDropDownList>
 

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using MediaOrganizerApp.Application.DTOs.AI;
 using System.Text;
+using System.Text.Json;
 
 namespace Web.Blazor.Services.ApiWrappers;
 
@@ -107,7 +108,7 @@ public sealed class AiClientService
     }
 
     // Streams chat response chunks from API POST /api/ai/chat
-    public async IAsyncEnumerable<string> StreamChatAsync(
+    public async IAsyncEnumerable<AiChatChunk> StreamChatAsync(
         List<ChatMessageDto> messages,
         string? connectionId,
         string? correlationId,
@@ -138,29 +139,62 @@ public sealed class AiClientService
 
         response.EnsureSuccessStatusCode();
 
+        // The server streams NDJSON (one AiChatChunk per line).
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
 
-        // Read raw bytes so reads can observe the cancellation token, and decode
-        // using a Decoder to preserve UTF-8 state across buffer boundaries.
-        var byteBuffer = new byte[4096];
-        var decoder = Encoding.UTF8.GetDecoder();
-        var charBuffer = new char[Encoding.UTF8.GetMaxCharCount(byteBuffer.Length)];
+        // TEMP DIAG (Ollama chat reasoning): counts per request.
+        int diagLines = 0, diagChunks = 0, diagReasonChunks = 0, diagWhiteSpaceOnly = 0;
 
         while (true)
         {
-            var read = await stream.ReadAsync(byteBuffer.AsMemory(0, byteBuffer.Length), cancellationToken);
-            if (read == 0)
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null)
                 break;
 
-            var charsDecoded = decoder.GetChars(byteBuffer, 0, read, charBuffer, 0, false);
-            if (charsDecoded > 0)
-                yield return new string(charBuffer, 0, charsDecoded);
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            diagLines++;
+
+            AiChatChunk? chunk;
+            try
+            {
+                chunk = JsonSerializer.Deserialize<AiChatChunk>(line);
+            }
+            catch (JsonException)
+            {
+                chunk = null;
+            }
+
+            if (chunk is not null)
+            {
+                diagChunks++;
+                if (!string.IsNullOrWhiteSpace(chunk.Reasoning))
+                    diagReasonChunks++;
+                if (string.IsNullOrEmpty(chunk.Text))
+                    diagWhiteSpaceOnly++;
+                var reasonInfo = chunk.Reasoning is null
+                    ? "null"
+                    : $"len={chunk.Reasoning.Length} head=\"{Trunc(chunk.Reasoning, 60)}\"";
+                _logger.LogInformation("[AI-WIRE] textLen={TextLen} textHead=\"{TextHead}\" reason={ReasonInfo}", chunk.Text.Length, Trunc(chunk.Text, 40), reasonInfo);
+            }
+            else
+            {
+                _logger.LogWarning("[AI-WIRE] PARSE_FAIL line=\"{Line}\"", Trunc(line, 120));
+            }
+
+            if (chunk is not null)
+                yield return chunk;
         }
 
-        // Flush any remaining decoder state
-        var finalChars = decoder.GetChars(Array.Empty<byte>(), 0, 0, charBuffer, 0, true);
-        if (finalChars > 0)
-            yield return new string(charBuffer, 0, finalChars);
+        _logger.LogInformation("[AI-WIRE] SUMMARY lines={Lines} chunks={Chunks} reasonChunks={ReasonChunks} whitespaceOnly={WhitespaceOnly}", diagLines, diagChunks, diagReasonChunks, diagWhiteSpaceOnly);
+    }
+
+    private static string Trunc(string s, int max)
+    {
+        s = s.Replace("\n", "\\n").Replace("\r", "\\r");
+        return s.Length <= max ? s : s[..max] + "...";
     }
 
     // Start a hub-driven chat: POST to /api/ai/chat/start to request background processing.

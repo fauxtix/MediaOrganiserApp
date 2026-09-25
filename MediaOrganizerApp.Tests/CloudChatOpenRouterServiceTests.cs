@@ -118,6 +118,25 @@ public sealed class OpenRouterChatServiceTests
     }
 
     [Fact]
+    public async Task StreamChatAsync_DoesNotFetchCatalog_BeforeFirstToken()
+    {
+        var responses = SseQueue(
+            """{"choices":[{"delta":{"content":"Olá"}}],"model":"openrouter/free"}""",
+            """{"choices":[{"delta":{"content":" mundo"}}]}""",
+            """{"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}""");
+
+        var catalogCalls = 0;
+        var service = CreateService(responses, out _, onCatalogRequest: () => catalogCalls++);
+
+        var chunks = new List<CloudChatChunk>();
+        await foreach (var chunk in service.StreamChatAsync(CreatePayload("openrouter/free"), "user-1", "pt"))
+            chunks.Add(chunk);
+
+        Assert.Equal("Olá mundo", string.Concat(chunks.Select(c => c.Text)));
+        Assert.Equal(0, catalogCalls);
+    }
+
+    [Fact]
     public async Task StreamChatAsync_Throws_WhenApiKeyMissing()
     {
         var service = CreateService(SseQueue("ignored"), out _, apiKey: null);
@@ -363,7 +382,8 @@ public sealed class OpenRouterChatServiceTests
         string? apiKey = ApiKey,
         Mock<IAIBenchmarkRepository>? benchmarkMock = null,
         int freeRequestsRemaining = 1000,
-        string catalogResponse = EmptyCatalogResponse)
+        string catalogResponse = EmptyCatalogResponse,
+        Action? onCatalogRequest = null)
     {
         requestBodies = new List<string>();
         var bodies = requestBodies;
@@ -388,6 +408,7 @@ public sealed class OpenRouterChatServiceTests
         {
             if (request.RequestUri?.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase) == true)
             {
+                onCatalogRequest?.Invoke();
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent(catalogResponse, Encoding.UTF8, "application/json")

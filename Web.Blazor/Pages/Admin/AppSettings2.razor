@@ -164,9 +164,9 @@ else
                                     </SfDropDownList>
                                 </div>
                                 break;
-                            case "ialocal":
+                            case "iaollama":
                                 <div class="card-box settings-card">
-                                    <h6 class="settings-card-title">@L["TituloIALocal"]</h6>
+                                    <h6 class="settings-card-title">@L["TituloIAOllama"]</h6>
                                     <div class="settings-field">
                                         <SfTextBox CssClass="form-control" @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                                     </div>
@@ -229,9 +229,19 @@ else
                                     </div>
                                 </div>
                                 break;
-                            case "cloudchat":
+                            case "iacomum":
                                 <div class="card-box settings-card">
-                                    <h6 class="settings-card-title">@L["CloudChatTab"]</h6>
+                                    <h6 class="settings-card-title">@L["TituloIAComum"]</h6>
+                                    <div class="cloudchat-model-list mt-4 mx-3">
+                                        <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
+                                        <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                        <div class="cloudchat-hint" style="color:var(--app-text-secondary); font-size:x-small">@L["CloudChatEnableReasoningHint"]</div>
+                                    </div>
+                                </div>
+                                break;
+                            case "iaopenrouter":
+                                <div class="card-box settings-card">
+                                    <h6 class="settings-card-title">@L["TituloIAOpenRouter"]</h6>
                                     <div class="row">
                                         <div class="col-md-6 col-sm-12">
                                             @if (CloudChatIsAdmin)
@@ -251,8 +261,6 @@ else
                                             }
                                             <hr />
                                             <div class="cloudchat-model-list mt-4 mx-3">
-                                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
-                                                <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
                                                 <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAllowPaidModels"]</div>
                                                 <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAllowPaidModels" OnLabel="On" OffLabel="Off"></SfSwitch></div>
                                                 <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAuthorBooksUseCloud"]</div>

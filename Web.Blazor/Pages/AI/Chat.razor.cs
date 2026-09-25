@@ -1,6 +1,7 @@
 using Markdig;
 using MediaOrganizerApp.Application.DTOs.AI;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
+using MediaOrganizerApp.Application.Utilities;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
@@ -25,6 +26,7 @@ namespace Web.Blazor.Pages.AI
         [Inject] private IAiModelsService AiModelsService { get; set; } = null!;
         [Inject] private IAiModelResolver AiModelResolver { get; set; } = null!;
         [Inject] private IStringLocalizer<App> L { get; set; } = null!;
+        [Inject] private ILogger<Chat> Logger { get; set; } = null!;
 
         private readonly List<ChatUiMessage> messages = new();
         private ChatUiMessage? currentAssistantMessage;
@@ -55,6 +57,8 @@ namespace Web.Blazor.Pages.AI
 
         private readonly Dictionary<int, int> _feedbackByIndex = new();
 
+        private readonly Dictionary<int, bool> _reasoningToggled = new();
+
         private SfToast? toastObj;
         protected string ToastTitle = "";
         protected string ToastContent = "";
@@ -74,7 +78,7 @@ namespace Web.Blazor.Pages.AI
 
         protected override async Task OnInitializedAsync()
         {
-            welcomeMessage = L["TestChatWelcome"];
+            welcomeMessage = L["ChatWelcome"];
 
             _selectedModel = await AiModelResolver.ResolveModelAsync();
 
@@ -167,7 +171,7 @@ namespace Web.Blazor.Pages.AI
             {
                 await ShowWarningToastAsync(
                     L["ChatRoomTitle"],
-                    string.Format(L["TestChatContextExceededDetail"], _contextLength));
+                    string.Format(L["ChatContextExceededDetail"], _contextLength));
                 return;
             }
 
@@ -220,11 +224,16 @@ namespace Web.Blazor.Pages.AI
             try
             {
                 var dtoList = messages
-                    .Where(m => !m.IsWelcome)
+                    .Where(m => !m.IsWelcome && !(m.Role == "assistant" && m.Content == "..."))
                     .Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content })
                     .ToList();
 
                 var language = await ResolveRequestLanguageAsync();
+
+                // TEMP DIAG (Ollama chat reasoning): accumulated lengths per request.
+                var diagReasonLen = 0;
+                var diagReasonChunks = 0;
+                var diagTextChunks = 0;
 
                 await foreach (var chunk in AiClient.StreamChatAsync(dtoList, null, null, language, localToken))
                 {
@@ -234,14 +243,22 @@ namespace Web.Blazor.Pages.AI
                         messages.Add(currentAssistantMessage);
                     }
 
-                    if (!string.IsNullOrEmpty(chunk))
+                    if (!string.IsNullOrEmpty(chunk.Text))
                     {
                         if (currentAssistantMessage.Content == "...")
-                            currentAssistantMessage.Content = chunk;
+                            currentAssistantMessage.Content = chunk.Text;
                         else
-                            currentAssistantMessage.Content += chunk;
+                            currentAssistantMessage.Content += chunk.Text;
 
-                        _contextUsedTokens += ChatComposerService.EstimateTokens(chunk);
+                        _contextUsedTokens += ChatComposerService.EstimateTokens(chunk.Text);
+                        diagTextChunks++;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(chunk.Reasoning))
+                    {
+                        currentAssistantMessage.Reasoning = (currentAssistantMessage.Reasoning ?? string.Empty) + chunk.Reasoning;
+                        diagReasonChunks++;
+                        diagReasonLen += chunk.Reasoning.Length;
                     }
 
                     _elapsed = stopwatch.Elapsed.TotalSeconds;
@@ -253,39 +270,60 @@ namespace Web.Blazor.Pages.AI
                     }
                 }
 
+                var hasAnswer = false;
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...")
                         currentAssistantMessage.Content = string.Empty;
 
+                    var rawContent = currentAssistantMessage.Content;
+                    string finalContent;
+                    if (ChatSafetyArtifactFilter.IsSafetyOnly(rawContent))
+                    {
+                        finalContent = L["ChatSafetyArtifactHint"];
+                    }
+                    else
+                    {
+                        finalContent = ChatSafetyArtifactFilter.StripSafetyLines(rawContent);
+                        if (string.IsNullOrWhiteSpace(finalContent))
+                            finalContent = L["ChatEmptyResponseHint"];
+                        else
+                            hasAnswer = true;
+                    }
+
+                    currentAssistantMessage.Content = finalContent;
+                    currentAssistantMessage.IsError = !hasAnswer;
                     currentAssistantMessage.RealModelName = _selectedModel;
-                    currentAssistantMessage.LanguageWarning = LanguageWarningFor(currentAssistantMessage.Content);
+                    currentAssistantMessage.LanguageWarning = LanguageWarningFor(finalContent);
                 }
 
                 await SaveCurrentConversationAsync();
 
-                await ShowSuccessToastAsync(L["TestChatResponseReceived"]);
+                if (hasAnswer)
+                    await ShowSuccessToastAsync(L["ChatResponseReceived"]);
+                else
+                    await ShowWarningToastAsync(L["ChatRoomTitle"], currentAssistantMessage?.Content ?? L["ChatEmptyResponseHint"]);
             }
             catch (OperationCanceledException)
             {
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
-                    currentAssistantMessage.Content += "\n\n⚠️ " + L["TestChatCancelled"];
+                    currentAssistantMessage.Content += "\n\n⚠️ " + L["ChatCancelled"];
                 }
 
-                await ShowWarningToastAsync("Chat", L["TestChatCancelled"]);
+                await ShowWarningToastAsync(L["ChatRoomTitle"], L["ChatCancelled"]);
             }
             catch (Exception ex)
             {
                 if (currentAssistantMessage is not null)
                 {
                     if (currentAssistantMessage.Content == "...") currentAssistantMessage.Content = string.Empty;
-                    currentAssistantMessage.Content += "\n\n⚠️ " + string.Format(L["TestChatError"], ex.Message);
+                    currentAssistantMessage.Content += "\n\n⚠️ " + string.Format(L["ChatError"], ex.Message);
                     currentAssistantMessage.IsError = true;
                 }
 
-                await ShowWarningToastAsync("Chat", Truncate(ex.Message));
+                await ShowWarningToastAsync(L["ChatRoomTitle"], Truncate(ex.Message));
             }
             finally
             {
@@ -300,6 +338,8 @@ namespace Web.Blazor.Pages.AI
                         ? $"{_elapsed:F2}s"
                         : $"{_elapsed:F1}s";
                 }
+
+                currentAssistantMessage = null;
 
                 chatCts?.Dispose();
                 chatCts = null;
@@ -359,7 +399,7 @@ namespace Web.Blazor.Pages.AI
             if (!ResponseLanguageChecker.IsMismatch(detected, LanguageCode))
                 return null;
 
-            return string.Format(L["TestChatLanguageWarning"], TargetLanguageResolver.GetTargetLanguage());
+            return string.Format(L["ChatLanguageWarning"], TargetLanguageResolver.GetTargetLanguage());
         }
 
         private string GetContextPercent()
@@ -457,6 +497,15 @@ namespace Web.Blazor.Pages.AI
         private int GetFeedback(int index)
             => _feedbackByIndex.TryGetValue(index, out var value) ? value : 0;
 
+        private bool IsReasoningExpanded(int index, ChatUiMessage msg)
+            => _reasoningToggled.TryGetValue(index, out var expanded) && expanded;
+
+        private void ToggleReasoning(int index)
+        {
+            if (index < 0 || index >= messages.Count) return;
+            _reasoningToggled[index] = !IsReasoningExpanded(index, messages[index]);
+        }
+
         private async Task CopyMessageAsync(ChatUiMessage msg)
         {
             if (string.IsNullOrWhiteSpace(msg.Content)) return;
@@ -467,12 +516,12 @@ namespace Web.Blazor.Pages.AI
                 if (ok)
                     await ShowSuccessToastAsync(L["ChatResponseCopied"]);
                 else
-                    await ShowWarningToastAsync("Chat", L["ChatCopyFailed"]);
+                    await ShowWarningToastAsync(L["ChatRoomTitle"], L["ChatCopyFailed"]);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error copying response: " + ex.Message);
-                await ShowWarningToastAsync("Chat", L["ChatCopyFailed"]);
+                await ShowWarningToastAsync(L["ChatRoomTitle"], L["ChatCopyFailed"]);
             }
         }
 
@@ -506,7 +555,7 @@ namespace Web.Blazor.Pages.AI
             {
                 Console.WriteLine("Error saving rating: " + ex.Message);
                 _feedbackByIndex[index] = current;
-                await ShowWarningToastAsync("Chat", L["ChatRatingFailed"]);
+                await ShowWarningToastAsync(L["ChatRoomTitle"], L["ChatRatingFailed"]);
             }
 
             await InvokeAsync(StateHasChanged);
@@ -535,6 +584,7 @@ namespace Web.Blazor.Pages.AI
             _elapsed = 0;
             selectedConversationId = null;
             _feedbackByIndex.Clear();
+            _reasoningToggled.Clear();
 
             await InvokeAsync(StateHasChanged);
 
@@ -562,6 +612,7 @@ namespace Web.Blazor.Pages.AI
             messages.Clear();
             currentAssistantMessage = null;
             _feedbackByIndex.Clear();
+            _reasoningToggled.Clear();
 
             var conv = conversations.FirstOrDefault(c => c.Id == id);
             if (conv is not null && !string.IsNullOrEmpty(conv.Json))
@@ -577,6 +628,7 @@ namespace Web.Blazor.Pages.AI
                             {
                                 Role = m.Role,
                                 Content = m.Content,
+                                Reasoning = m.Reasoning,
                                 Temperature = m.Temperature,
                                 ElapsedTime = m.ElapsedTime,
                                 IsWelcome = m.IsWelcome
@@ -636,6 +688,7 @@ namespace Web.Blazor.Pages.AI
             {
                 Role = m.Role,
                 Content = m.Content,
+                Reasoning = m.Reasoning,
                 Temperature = m.Temperature,
                 ElapsedTime = m.ElapsedTime,
                 IsWelcome = m.IsWelcome
@@ -668,7 +721,7 @@ namespace Web.Blazor.Pages.AI
 
         private async Task ShowSuccessToastAsync(string content)
         {
-            ToastTitle = "Chat";
+            ToastTitle = L["ChatRoomTitle"];
             ToastContent = content;
             ToastCssClass = "e-toast-success";
             await ShowToastAsync();
@@ -714,6 +767,7 @@ namespace Web.Blazor.Pages.AI
         {
             public string Role { get; set; } = string.Empty;
             public string Content { get; set; } = string.Empty;
+            public string? Reasoning { get; set; }
             public double Temperature { get; set; }
             public string? ElapsedTime { get; set; }
             public bool IsWelcome { get; set; }
@@ -723,6 +777,7 @@ namespace Web.Blazor.Pages.AI
         {
             public string Role { get; set; } = "assistant";
             public string Content { get; set; } = string.Empty;
+            public string? Reasoning { get; set; }
             public bool IsError { get; set; }
             public bool IsWelcome { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;

@@ -160,7 +160,7 @@ else
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 col-sm-12">
+                                <div class="col-sm-12">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
                                                Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloDefaultLanguage"]</h5></SfMessage>
                                     <SfDropDownList TValue="string" CssClass="template"
@@ -186,32 +186,7 @@ else
                                     </SfDropDownList>
                                 </div>
 
-                                <div class="col-md-6 col-sm-12">
-                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
-                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloChaveApi"]</h5></SfMessage>
-                                    <SfTextBox @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]"></SfTextBox>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 col-sm-12">
-                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
-                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloModelBaseUrl"]</h5></SfMessage>
-                                    <SfTextBox @bind-Value="settings.ModelBaseUrl" Placeholder="@L["TituloModelBaseUrl"]"></SfTextBox>
-                                </div>
-                                <div class="col-md-6 col-sm-12">
-                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
-                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloAIModelName"]</h5></SfMessage>
-                                    @* <SfTextBox @bind-Value="settings.AiModelName" Placeholder="@L["TituloAIModelName"]"></SfTextBox> *@
-                                    <SfDropDownList TItem="AIModelVM"
-                                                    TValue="string"
-                                                    DataSource="@AiModels"
-                                                    @bind-Value="settings.AiModelName"
-                                                    Placeholder="@L["TituloAIModelName"]">
-                                        <DropDownListFieldSettings Text="Descricao" Value="Descricao" />
-                                    </SfDropDownList>
-
-                                </div>
-                            </div>
                         </ContentTemplate>
                     </TabItem>
                     <TabItem>
@@ -288,9 +263,19 @@ else
 
                     <TabItem>
                         <ChildContent>
-                            <TabHeader Text="@L["CloudChatTab"]" IconCss="e-cloud"></TabHeader>
+                            <TabHeader Text="@L["TituloGrupoIA"]" IconCss="e-cloud"></TabHeader>
                         </ChildContent>
                         <ContentTemplate>
+                            <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                       Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloIAComum"]</h5></SfMessage>
+                            <div class="cloudchat-model-list mt-4 mx-3">
+                                <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
+                                <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
+                                <div class="cloudchat-hint" style="color:var(--app-text-secondary); font-size:x-small">@L["CloudChatEnableReasoningHint"]</div>
+                            </div>
+                            <hr />
+                            <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                       Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloIAOpenRouter"]</h5></SfMessage>
                             <div class="row">
                                 <div class="col-md-6 col-sm-12">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
@@ -312,8 +297,6 @@ else
                                     }
                                     <hr/>
                                     <div class="cloudchat-model-list mt-4 mx-3">
-                                        <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatEnableReasoning"]</div>
-                                        <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatEnableReasoning" OnLabel="On" OffLabel="Off"></SfSwitch></div>
                                         <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAllowPaidModels"]</div>
                                         <div><SfSwitch CssClass="mt-1 p-2" @bind-Checked="CloudChatAllowPaidModels" OnLabel="On" OffLabel="Off"></SfSwitch></div>
                                         <div class="form-label mt-2" style="color:var(--app-text-primary); font-size:small">@L["CloudChatAuthorBooksUseCloud"]</div>
@@ -479,6 +462,33 @@ else
                                             </div>
                                         </div>
                                     }
+                                </div>
+                            </div>
+                            <hr />
+                            <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                       Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloIAOllama"]</h5></SfMessage>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloChaveApi"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.ApiKey" Placeholder="@L["TituloChaveApi"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloModelBaseUrl"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.ModelBaseUrl" Placeholder="@L["TituloModelBaseUrl"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["TituloAIModelName"]</h5></SfMessage>
+                                    @* <SfTextBox @bind-Value="settings.AiModelName" Placeholder="@L["TituloAIModelName"]"></SfTextBox> *@
+                                    <SfDropDownList TItem="AIModelVM"
+                                                    TValue="string"
+                                                    DataSource="@AiModels"
+                                                    @bind-Value="settings.AiModelName"
+                                                    Placeholder="@L["TituloAIModelName"]">
+                                        <DropDownListFieldSettings Text="Descricao" Value="Descricao" />
+                                    </SfDropDownList>
                                 </div>
                             </div>
                         </ContentTemplate>

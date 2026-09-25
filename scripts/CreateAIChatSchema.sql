@@ -1,5 +1,5 @@
 -- =============================================================================
--- AIChat schema for the OpenRouter "Test Chat" feature (MediaOrganizer)
+-- AIChat schema for the Cloud Chat (OpenRouter) feature (MediaOrganizer)
 -- - AIChatSettings : key/value settings (UserID NULL = global / admin-managed)
 -- - AIPrompts      : auto-recorded prompts (unique per TextoPrompt + UserID)
 -- - AIResponses    : auto-recorded model responses (single-slot, 12-metric future-ready)

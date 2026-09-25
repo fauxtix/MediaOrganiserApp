@@ -6,7 +6,7 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.AI
 {
     public interface IAiChatService
     {
-        IAsyncEnumerable<string> StreamChatAsync(
+        IAsyncEnumerable<AiChatChunk> StreamChatAsync(
             List<ChatMessageDto> messages,
             string? connectionId,
             string? correlationId,

@@ -161,8 +161,7 @@ namespace Web.Blazor.Pages.Admin
                 {
                     new("contactos", "TituloContactos", "fa-address-book"),
                     new("definicoes", "TituloOutrasDefinicoes", "fa-sliders"),
-                    new("idioma", "TituloDefaultLanguage", "fa-language"),
-                    new("ialocal", "TituloIALocal", "fa-microchip")
+                    new("idioma", "TituloDefaultLanguage", "fa-language")
                 }),
                 new("apis", "TituloApisUrls", "fa-plug", new List<SettingsLeaf>
                 {
@@ -170,9 +169,11 @@ namespace Web.Blazor.Pages.Admin
                     new("servicos", "TituloServicos", "fa-key"),
                     new("basedados", "TituloBaseDados", "fa-database")
                 }),
-                new("cloud", "CloudChatTab", "fa-cloud", new List<SettingsLeaf>
+                new("ia", "TituloGrupoIA", "fa-microchip", new List<SettingsLeaf>
                 {
-                    new("cloudchat", "CloudChatTab", "fa-cloud")
+                    new("iacomum", "TituloIAComum", "fa-cog"),
+                    new("iaopenrouter", "TituloIAOpenRouter", "fa-cloud"),
+                    new("iaollama", "TituloIAOllama", "fa-microchip")
                 })
             };
         }

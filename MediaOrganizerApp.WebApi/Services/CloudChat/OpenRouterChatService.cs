@@ -72,8 +72,12 @@ public sealed class OpenRouterChatService
         // tenta automaticamente os candidatos seguintes quando um deles termina sem
         // produzir texto. Modelos pagos, modelos gratuitos escolhidos explicitamente e
         // falhas HTTP/404/429 nunca são varridos.
-        var sweep = await BuildChatCandidatesAsync(payload.Model, allowPaid, ct);
-        var sweepIndex = sweep is null ? 0 : 1; // o primeiro candidato já foi tentado abaixo
+        // A lista de candidatos é construída LAZIAMENTE (só quando um candidato termina sem
+        // texto), para não fazer o fetch do catálogo (rede) antes do primeiro token em cada
+        // pedido.
+        List<string>? sweep = null;
+        var sweepIndex = 0;
+        var initialModel = payload.Model;
 
         var reasoningRetried = false;
         var producedText = false;
@@ -141,7 +145,15 @@ public sealed class OpenRouterChatService
                 continue;
             }
 
-            // Candidato terminou sem produzir texto: tenta o próximo da varredura.
+            // Candidato terminou sem produzir texto: constrói a varredura (se ainda não
+            // existir) e tenta o próximo candidato. Com texto produzido, não há
+            // varredura — termina aqui (o topo do loop também já o faria).
+            if (producedText)
+                yield break;
+
+            sweep ??= await BuildChatCandidatesAsync(initialModel, allowPaid, ct);
+            sweepIndex = Math.Max(sweepIndex, sweep is null ? 0 : 1); // o primeiro candidato já foi tentado
+
             if (sweep is null || sweepIndex >= sweep.Count)
                 yield break;
 

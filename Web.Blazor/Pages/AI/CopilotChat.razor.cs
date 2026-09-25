@@ -153,7 +153,7 @@ namespace Web.Blazor.Pages.AI
                         await InvokeAsync(StateHasChanged);
                     }
 
-                    suggestion += chunk;
+                    suggestion += chunk.Text;
                     if (currentAssistantMessage is null)
                     {
                         currentAssistantMessage = new ChatMessage { Role = "assistant", Content = "" };

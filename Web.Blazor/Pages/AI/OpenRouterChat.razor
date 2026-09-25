@@ -16,7 +16,7 @@
                     <span class="chat-avatar-initials">AI</span>
                     <span class="chat-presence"></span>
                 </div>
-                <div class="chat-persona-name">@Localizer["TestChatAssistantName"]</div>
+                <div class="chat-persona-name">@Localizer["ChatAssistantName"]</div>
             </div>
 
             <div class="chat-model-pill" title="@_selectedModel">
@@ -33,11 +33,11 @@
         <div class="chat-actions">
             <SfButton CssClass="chat-action-btn" OnClick="NewChat" Disabled="@isProcessing">
                 <span class="btn-icon">+</span>
-                <span class="btn-text">@Localizer["TestChatNewChat"]</span>
+                <span class="btn-text">@Localizer["ChatNewChat"]</span>
             </SfButton>
             <SfButton CssClass="chat-action-btn" OnClick="OpenHistory" Disabled="@isProcessing">
                 <span class="btn-icon">&#9776;</span>
-                <span class="btn-text">@Localizer["TestChatHistory"]</span>
+                <span class="btn-text">@Localizer["ChatHistory"]</span>
             </SfButton>
         </div>
 
@@ -48,8 +48,8 @@
                     <div class="context-progress-fill" style="width:@GetContextPercent(); background-color:@GetContextColor();"></div>
                 </div>
                 <div class="context-progress-labels">
-                    <span>@string.Format(Localizer["TestChatTokensUsed"], _contextUsedTokens.ToString("N0"), _contextLength.ToString("N0"))</span>
-                    <span>@string.Format(Localizer["TestChatTokensRemaining"], ContextRemaining.ToString("N0"))</span>
+                    <span>@string.Format(Localizer["ChatTokensUsed"], _contextUsedTokens.ToString("N0"), _contextLength.ToString("N0"))</span>
+                    <span>@string.Format(Localizer["ChatTokensRemaining"], ContextRemaining.ToString("N0"))</span>
                 </div>
             </div>
         }
@@ -64,15 +64,15 @@
                     <div class="msg-meta">
                         @if (isUser)
                         {
-                            <span class="msg-author">@Localizer["TestChatUserName"]</span>
+                            <span class="msg-author">@Localizer["ChatUserName"]</span>
                             @if (msg.Temperature > 0)
                             {
-                                <span class="msg-temp-chip">@string.Format(Localizer["TestChatTemperature"], msg.Temperature)</span>
+                                <span class="msg-temp-chip">@string.Format(Localizer["ChatTemperature"], msg.Temperature)</span>
                             }
                         }
                         else
                         {
-                            <span class="msg-author">@Localizer["TestChatAssistantName"]</span>
+                            <span class="msg-author">@Localizer["ChatAssistantName"]</span>
                             <span class="msg-timestamp">- @msg.Timestamp.ToString("HH:mm")</span>
                             @if (!string.IsNullOrEmpty(msg.ElapsedTime))
                             {
@@ -90,6 +90,21 @@
                         }
                     </div>
 
+                    @if (!isUser && !string.IsNullOrWhiteSpace(msg.Reasoning))
+                    {
+                        <div class="reasoning-block">
+                            <button type="button" class="reasoning-toggle @(IsReasoningExpanded(index, msg) ? "expanded" : "")" @onclick="() => ToggleReasoning(index)">
+                                <span class="reasoning-icon">💭</span>
+                                <span class="reasoning-label">@Localizer["ChatReasoning"]</span>
+                                <span class="reasoning-chevron"></span>
+                            </button>
+                            @if (IsReasoningExpanded(index, msg))
+                            {
+                                <div class="reasoning-content">@((MarkupString)FormatMessage(msg.Reasoning, false))</div>
+                            }
+                        </div>
+                    }
+
                     <div class="chat-content">
                         @if (msg.IsError)
                         {
@@ -97,7 +112,14 @@
                         }
                         else if (msg.Role == "assistant" && msg.Content == "...")
                         {
-                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                            @if (msg == currentAssistantMessage && !string.IsNullOrWhiteSpace(msg.Reasoning))
+                            {
+                                <div class="thinking-indicator">💭 @Localizer["ChatReasoningThinking"]</div>
+                            }
+                            else
+                            {
+                                <div class="typing-dots"><span></span><span></span><span></span></div>
+                            }
                         }
                         else
                         {
@@ -410,6 +432,86 @@
 
     .msg-error-label {
         font-size: 1.2rem;
+    }
+
+    .reasoning-block {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin: 2px 0 6px 0;
+        max-width: 95%;
+    }
+
+    .reasoning-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        background: var(--app-surface-alt);
+        color: var(--app-text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: color .15s ease, border-color .15s ease;
+    }
+
+    .reasoning-toggle:hover {
+        color: var(--app-text-primary);
+        border-color: var(--app-primary);
+    }
+
+    .reasoning-icon {
+        font-size: 0.85rem;
+    }
+
+    .reasoning-label {
+        font-weight: 600;
+    }
+
+    .reasoning-chevron {
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid currentColor;
+        transition: transform .15s ease;
+    }
+
+    .reasoning-toggle.expanded .reasoning-chevron {
+        transform: rotate(180deg);
+    }
+
+    .reasoning-content {
+        margin-top: 6px;
+        padding: 8px 12px;
+        border: 1px dashed var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        font-size: 0.85rem;
+        color: var(--app-text-secondary);
+        line-height: 1.45;
+        word-break: break-word;
+        max-width: 100%;
+    }
+
+    .thinking-indicator {
+        font-size: 0.85rem;
+        color: var(--app-text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        animation: thinkPulse 1.6s infinite ease-out;
+    }
+
+    @@keyframes thinkPulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.45;
+        }
     }
 
     .msg-actions {

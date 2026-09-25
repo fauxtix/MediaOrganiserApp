@@ -1321,64 +1321,58 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="AiModelsTitle" xml:space="preserve">
     <value>Modelos de IA</value>
   </data>
-  <data name="TestChat" xml:space="preserve">
+  <data name="Chat" xml:space="preserve">
     <value>Chat (OpenRouter)</value>
   </data>
-  <data name="TestChatWelcome" xml:space="preserve">
+  <data name="ChatWelcome" xml:space="preserve">
     <value>¡Hola! Soy tu asistente de IA. Pregúntame lo que quieras.</value>
   </data>
-  <data name="TestChatContextExceeded" xml:space="preserve">
+  <data name="ChatContextExceeded" xml:space="preserve">
     <value>Límite de contexto alcanzado</value>
   </data>
-  <data name="TestChatContextExceededDetail" xml:space="preserve">
+  <data name="ChatContextExceededDetail" xml:space="preserve">
     <value>La conversación superó el límite de contexto del modelo ({0} tokens). Inicie una nueva conversación.</value>
   </data>
-  <data name="TestChatSelectModel" xml:space="preserve">
-    <value>Seleccione un modelo</value>
-  </data>
-  <data name="TestChatReasoning" xml:space="preserve">
-    <value>Razonamiento</value>
-  </data>
-  <data name="TestChatReasoningTitle" xml:space="preserve">
-    <value>Razonamiento del modelo</value>
-  </data>
-  <data name="TestChatResponseReceived" xml:space="preserve">
+        <data name="ChatResponseReceived" xml:space="preserve">
     <value>Respuesta recibida</value>
   </data>
-  <data name="TestChatCancelled" xml:space="preserve">
+  <data name="ChatSafetyArtifactHint" xml:space="preserve">
+    <value>El modelo solo devolvió una clasificación de seguridad interna en lugar de una respuesta. Escribe «continua» para reintentar.</value>
+  </data>
+  <data name="ChatEmptyResponseHint" xml:space="preserve">
+    <value>El modelo no devolvió ninguna respuesta. Intenta reformular la petición o responde «continua».</value>
+  </data>
+  <data name="ChatCancelled" xml:space="preserve">
     <value>La solicitud fue cancelada o interrumpida. Inténtelo de nuevo.</value>
   </data>
-  <data name="TestChatError" xml:space="preserve">
+  <data name="ChatError" xml:space="preserve">
     <value>No se pudo obtener una respuesta IA en este momento. {0}</value>
   </data>
-  <data name="TestChatLanguageWarning" xml:space="preserve">
+  <data name="ChatLanguageWarning" xml:space="preserve">
     <value>La respuesta parece estar en un idioma inesperado ({0}).</value>
   </data>
-  <data name="TestChatNewChat" xml:space="preserve">
+  <data name="ChatNewChat" xml:space="preserve">
     <value>Nuevo</value>
   </data>
-  <data name="TestChatHistory" xml:space="preserve">
+  <data name="ChatHistory" xml:space="preserve">
     <value>Historial</value>
   </data>
-  <data name="TestChatNoConversations" xml:space="preserve">
+  <data name="ChatNoConversations" xml:space="preserve">
     <value>No hay conversaciones guardadas.</value>
   </data>
-  <data name="TestChatAssistantName" xml:space="preserve">
+  <data name="ChatAssistantName" xml:space="preserve">
     <value>Cloud AI</value>
   </data>
-  <data name="TestChatUserName" xml:space="preserve">
+  <data name="ChatUserName" xml:space="preserve">
     <value>Tú</value>
   </data>
-  <data name="TestChatTokensUsed" xml:space="preserve">
+  <data name="ChatTokensUsed" xml:space="preserve">
     <value>{0} / {1} tokens</value>
   </data>
-  <data name="TestChatTokensRemaining" xml:space="preserve">
+  <data name="ChatTokensRemaining" xml:space="preserve">
     <value>Quedan {0}</value>
   </data>
-  <data name="CloudChatTab" xml:space="preserve">
-    <value>OpenRouter (Chat)</value>
-  </data>
-  <data name="CloudChatApiKey" xml:space="preserve">
+    <data name="CloudChatApiKey" xml:space="preserve">
     <value>Clave de API de OpenRouter</value>
   </data>
   <data name="CloudChatApiKeyConfigured" xml:space="preserve">
@@ -1465,6 +1459,18 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="CloudChatAuthorBooksUseCloudHint" xml:space="preserve">
     <value>Usa OpenRouter para la búsqueda de títulos de un autor; si falla o está desactivado, recurre al modelo local (Ollama).</value>
   </data>
+  <data name="CloudChatEnableReasoningHint" xml:space="preserve">
+    <value>Se aplica a ambos chats (OpenRouter y Ollama local).</value>
+  </data>
+  <data name="TituloIAComum" xml:space="preserve">
+    <value>Ajustes comunes</value>
+  </data>
+  <data name="TituloIAOpenRouter" xml:space="preserve">
+    <value>OpenRouter</value>
+  </data>
+  <data name="TituloIAOllama" xml:space="preserve">
+    <value>Ollama (local)</value>
+  </data>
   <data name="CloudChatFreeUsedLabel" xml:space="preserve">
     <value>Usadas hoy</value>
   </data>
@@ -1489,28 +1495,28 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   <data name="CloudChatFreeCapOverrideHint" xml:space="preserve">
     <value>Déjelo vacío o use 0 para automático.</value>
   </data>
-  <data name="TestChatExport" xml:space="preserve">
+  <data name="ChatExport" xml:space="preserve">
     <value>Exportar</value>
   </data>
-  <data name="TestChatImport" xml:space="preserve">
+  <data name="ChatImport" xml:space="preserve">
     <value>Importar</value>
   </data>
-  <data name="TestChatTemperature" xml:space="preserve">
+  <data name="ChatTemperature" xml:space="preserve">
     <value>Temp: {0}</value>
   </data>
-  <data name="TestChatExportOk" xml:space="preserve">
+  <data name="ChatExportOk" xml:space="preserve">
     <value>Conversación(es) exportada(s): {0}.</value>
   </data>
-  <data name="TestChatImportOk" xml:space="preserve">
+  <data name="ChatImportOk" xml:space="preserve">
     <value>Conversación(es) importada(s): {0}.</value>
   </data>
-  <data name="TestChatImportError" xml:space="preserve">
+  <data name="ChatImportError" xml:space="preserve">
     <value>Error al importar: {0}</value>
   </data>
-  <data name="TestChatExportError" xml:space="preserve">
+  <data name="ChatExportError" xml:space="preserve">
     <value>Error al exportar: {0}</value>
   </data>
-  <data name="TestChatImportInvalid" xml:space="preserve">
+  <data name="ChatImportInvalid" xml:space="preserve">
     <value>Archivo JSON no válido o sin conversaciones.</value>
   </data>
   <data name="ChatCopyResponse" xml:space="preserve">
@@ -1548,6 +1554,12 @@ Puede copiar el detalle o informar del problema a través de correo electrónico
   </data>
   <data name="ChatVoteNone" xml:space="preserve">
     <value>Sin votar</value>
+  </data>
+  <data name="ChatReasoning" xml:space="preserve">
+    <value>Razonamiento</value>
+  </data>
+  <data name="ChatReasoningThinking" xml:space="preserve">
+    <value>Pensando...</value>
   </data>
   <data name="AuthorSearchErrorGoogle" xml:space="preserve">
     <value>Error al obtener Google Books de {0}; probando Wikidata.</value>
