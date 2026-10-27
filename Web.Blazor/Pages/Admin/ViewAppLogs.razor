@@ -1,5 +1,4 @@
 ﻿@page "/admin/viewapplogs"
-@using Microsoft.Extensions.Localization
 @using Web.Blazor.Components
 @using Web.Blazor.Components.Logs
 @using static MediaOrganizerApp.Application.Enums.AppDefinitions
@@ -7,7 +6,7 @@
 
 @inherits ViewAppLogsBase
 @{
-    var Tool = (new List<object>() { "Search" });
+    var Tool = (new List<object>() { "Search", "ExcelExport" });
 }
 
 <PageTitle>@L["LogViewer"]</PageTitle>
@@ -51,6 +50,7 @@ else
                 <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu"></GridFilterSettings>
                 <GridEvents OnActionBegin="OnActionBegin" OnRecordDoubleClick="OnAppLogDoubleClickHandler"
                             CommandClicked="OnAppLogCommandClicked"
+                            OnToolbarClick="ToolbarClickHandler"
                             TValue="AppLogDto" />
                 <GridColumns>
                     <GridColumn Field=@nameof(AppLogDto.Id) Width="80" TextAlign=Syncfusion.Blazor.Grids.TextAlign.Center
@@ -126,7 +126,7 @@ else
         </Content>
         <FooterTemplate>
             <div>
-                @if (SelectedAppLog.Level.ToLower() == "error")
+                @if (SelectedAppLog.Level.ToLower() == "error" || SelectedAppLog.Level.ToLower() == "fatal")
                 {
                     <SfButton CssClass="e-outline e-success e-round-corner float-left" IconCss="fa fa-bug"
                               @onclick="@(() => OpenReportDialog())" Content="@L["btnSendEmail"]">

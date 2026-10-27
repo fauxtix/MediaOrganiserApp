@@ -8,25 +8,32 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.x'
+  RUNTIME: 'win-x64'
 
   API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
   WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
 
+  # Os nomes dos app pools TEM de coincidir com os logins SQL ja existentes
+  # em Publicacoes_Prod (IIS APPPOOL\MediaOrganiserApi / IIS APPPOOL\OrganiseIt,
+  # ambos db_owner). Criar pools com outros nomes = sem acesso a base de dados.
+  API_POOL: 'MediaOrganiserApi'
+  WEB_POOL: 'OrganiseIt'
+
   API_SITE: 'MediaOrganiserApi'
   WEB_SITE: 'OrganiseIt'
-
-  API_POOL: 'MediaOrganiserApiPool'
-  WEB_POOL: 'OrganiseItPool'
 
   API_PORT: '4100'
   WEB_PORT: '4110'
 
-  # Pastas finais dos sites do IIS
   API_PATH: 'C:\inetpub\MediaOrganizerAPI'
   WEB_PATH: 'C:\inetpub\OrganiseIt'
 
-  # Pasta temporária de staging para publicação
+  # NOTA: wwwroot\Files esta versionado no git (Pictures\ = assets da app,
+  # Uploads\ e Backup\ = dados do utilizador). O git e a fonte de verdadeira,
+  # por isso o mirror eIntegral: o destino tem de ficar igual ao publish.
+  # A unica proteccao contra perda e o passo de backup abaixo.
   DEPLOY_PATH: 'C:\NewProjects\Publish\MediaOrganizer'
+  BACKUP_PATH: 'C:\NewProjects\Publish\_backup_uploads'
 
 jobs:
   build-and-deploy:
@@ -49,29 +56,73 @@ jobs:
         shell: powershell
         run: dotnet build MediaOrganizerApp.sln --configuration Release --no-restore
 
-      - name: Publish API
+      - name: Publish API (self-contained)
         shell: powershell
         run: |
-          $apiPublish = Join-Path $env:DEPLOY_PATH 'api'
-          if (Test-Path $apiPublish) { Remove-Item $apiPublish -Recurse -Force }
-          New-Item -Path $apiPublish -ItemType Directory -Force | Out-Null
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:DEPLOY_PATH 'api'
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -Path $out -ItemType Directory -Force | Out-Null
 
           dotnet publish $env:API_PROJECT `
             --configuration Release `
-            --output $apiPublish `
-            --no-build
+            --runtime $env:RUNTIME `
+            --self-contained true `
+            -p:PublishReadyToRun=false `
+            --output $out
 
-      - name: Publish frontend
+          if ($LASTEXITCODE -ne 0) { throw "Publish da API falhou com codigo $LASTEXITCODE" }
+
+      - name: Publish frontend (self-contained)
         shell: powershell
         run: |
-          $webPublish = Join-Path $env:DEPLOY_PATH 'web'
-          if (Test-Path $webPublish) { Remove-Item $webPublish -Recurse -Force }
-          New-Item -Path $webPublish -ItemType Directory -Force | Out-Null
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:DEPLOY_PATH 'web'
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -Path $out -ItemType Directory -Force | Out-Null
 
           dotnet publish $env:WEB_PROJECT `
             --configuration Release `
-            --output $webPublish `
-            --no-build
+            --runtime $env:RUNTIME `
+            --self-contained true `
+            -p:PublishReadyToRun=false `
+            --output $out
+
+          if ($LASTEXITCODE -ne 0) { throw "Publish do frontend falhou com codigo $LASTEXITCODE" }
+
+      - name: Backup uploads and clean target folders
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+
+          # 1) Parar o que existir, para libertar ficheiros bloqueados.
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+              if (Test-Path "IIS:\AppPools\$pool") {
+                  $state = (Get-WebAppPoolState -Name $pool).Value
+                  if ($state -ne 'Stopped') { Stop-WebAppPool -Name $pool }
+              }
+          }
+          foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
+              if (Get-Website -Name $site -ErrorAction SilentlyContinue) {
+                  Stop-Website -Name $site
+              }
+          }
+
+          # 2) Backup de wwwroot\Files antes de qualquer limpeza. Sao ~466 MB no
+          #    estado actual e incluem uploads e backups do utilizador.
+          $files = Join-Path $env:WEB_PATH 'wwwroot\Files'
+          if (Test-Path -LiteralPath $files) {
+              $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+              $dest = Join-Path $env:BACKUP_PATH "Files-$stamp"
+              New-Item -Path $dest -ItemType Directory -Force | Out-Null
+              & robocopy $files $dest /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP | Out-Null
+              if ($LASTEXITCODE -gt 7) { throw "Backup de wwwroot\Files falhou com codigo $LASTEXITCODE" }
+              Write-Host "Backup de wwwroot\Files -> $dest"
+          }
+
+          # 3) Nao e preciso apagar: o /MIR do passo seguinte e /E + /PURGE, ou
+          #    seja, deixa o destino exactamente igual ao publish.
 
       - name: Deploy to IIS
         shell: powershell
@@ -79,31 +130,30 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Import-Module WebAdministration
 
-          foreach ($path in @($env:API_PATH, $env:WEB_PATH, $env:DEPLOY_PATH)) {
+          foreach ($path in @($env:API_PATH, $env:WEB_PATH)) {
               New-Item -Path $path -ItemType Directory -Force | Out-Null
           }
 
+          # App pools. O nome determina a identidade Windows (IIS APPPOOL\<nome>),
+          # que tem de corresponder ao login SQL ja criado em Publicacoes_Prod.
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
               if (-not (Test-Path "IIS:\AppPools\$pool")) {
                   New-WebAppPool -Name $pool | Out-Null
               }
-              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion -Value ''
-              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode -Value 'Integrated'
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion  -Value ''
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode  -Value 'Integrated'
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
           }
 
-          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
-              try {
-                  $state = (Get-WebAppPoolState -Name $pool).Value
-                  if ($state -ne 'Stopped') { Stop-WebAppPool -Name $pool }
-              } catch { }
-          }
+          # /MIR integral: wwwroot\Files e versionado no git, logo o destino
+          # tem de ficar exactamente igual ao publish (assets + dados).
+          & robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          if ($LASTEXITCODE -gt 7) { throw "Deploy da API falhou com codigo $LASTEXITCODE" }
 
-          robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5
-          if ($LASTEXITCODE -gt 7) { throw "API deployment failed with code $LASTEXITCODE" }
+          & robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          if ($LASTEXITCODE -gt 7) { throw "Deploy do frontend falhou com codigo $LASTEXITCODE" }
 
-          robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5
-          if ($LASTEXITCODE -gt 7) { throw "Frontend deployment failed with code $LASTEXITCODE" }
-
+          # API: apenas HTTP em loopback.
           if (-not (Get-Website -Name $env:API_SITE -ErrorAction SilentlyContinue)) {
               New-Website -Name $env:API_SITE `
                 -Port ([int]$env:API_PORT) `
@@ -111,38 +161,113 @@ jobs:
                 -PhysicalPath $env:API_PATH `
                 -ApplicationPool $env:API_POOL | Out-Null
           } else {
-              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name physicalPath -Value $env:API_PATH
-              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name applicationPool -Value $env:API_POOL
+              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name physicalPath     -Value $env:API_PATH
+              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name applicationPool  -Value $env:API_POOL
           }
 
-          if (-not (Get-Website -Name $env:WEB_SITE -ErrorAction SilentlyContinue)) {
+          # Frontend: HTTPS com certificado auto-assinado para localhost.
+          # Reaproveita o certificado ja existente para localhost, para nao criar
+          # um novo em cada deploy.
+          $cert = Get-ChildItem Cert:\LocalMachine\My |
+              Where-Object { $_.Subject -like '*localhost*' -and $_.NotAfter -gt (Get-Date).AddDays(30) } |
+              Select-Object -First 1
+
+          if (-not $cert) {
+              $cert = New-SelfSignedCertificate `
+                  -DnsName 'localhost' `
+                  -CertStoreLocation 'Cert:\LocalMachine\My' `
+                  -NotAfter (Get-Date).AddYears(5) `
+                  -FriendlyName 'MediaOrganizer localhost'
+          }
+
+          $webSite = Get-Website -Name $env:WEB_SITE -ErrorAction SilentlyContinue
+          if (-not $webSite) {
               New-Website -Name $env:WEB_SITE `
                 -Port ([int]$env:WEB_PORT) `
                 -IPAddress '*' `
                 -PhysicalPath $env:WEB_PATH `
                 -ApplicationPool $env:WEB_POOL | Out-Null
           } else {
-              Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name physicalPath -Value $env:WEB_PATH
+              Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name physicalPath    -Value $env:WEB_PATH
               Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name applicationPool -Value $env:WEB_POOL
           }
 
-          Start-WebAppPool -Name $env:API_POOL
-          Start-WebAppPool -Name $env:WEB_POOL
-          Start-Website -Name $env:API_SITE
-          Start-Website -Name $env:WEB_SITE
+          # Uma unica binding https na porta do frontend. O http criado pelo
+          # New-Website e removido, para o site ficar so acessivel por HTTPS.
+          $bindingInfo = "*:$($env:WEB_PORT):"
 
-      - name: Smoke test API and frontend
+          Get-WebBinding -Name $env:WEB_SITE -Protocol http -ErrorAction SilentlyContinue |
+              Where-Object { $_.bindingInformation -eq $bindingInfo } |
+              Remove-WebBinding -Confirm:$false
+
+          $existing = Get-WebBinding -Name $env:WEB_SITE -Protocol https -ErrorAction SilentlyContinue |
+              Where-Object { $_.bindingInformation -eq $bindingInfo } |
+              Select-Object -First 1
+
+          if (-not $existing) {
+              New-WebBinding -Name $env:WEB_SITE -Protocol https `
+                -Port ([int]$env:WEB_PORT) -IPAddress '*' -SslFlags 0 -Force | Out-Null
+          }
+
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
+              -PropertyName 'sslFlags' -Value '0'
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
+              -PropertyName 'certificateStoreName' -Value 'My'
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
+              -PropertyName 'iisCertificateThumbprint' -Value $cert.Thumbprint
+
+          # Ambiente Production explicito. Sem isto o pipeline de producao
+          # (UseExceptionHandler, sem DetailedErrors) nunca seria aplicado.
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+              $poolEnv = "IIS:\AppPools\$pool\EnvironmentVariables"
+              if (-not (Test-Path $poolEnv)) {
+                  New-Item -Path $poolEnv -Force | Out-Null
+              }
+              Set-ItemProperty $poolEnv -Name 'ASPNETCORE_ENVIRONMENT' -Value 'Production'
+          }
+
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) { Start-WebAppPool -Name $pool }
+          foreach ($site in @($env:API_SITE, $env:WEB_SITE))  { Start-Website  -Name $site  }
+
+      - name: Smoke test
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          Start-Sleep -Seconds 5
 
-          $api = Invoke-WebRequest -Uri "http://localhost:$env:API_PORT" -UseBasicParsing -TimeoutSec 30
-          if ($api.StatusCode -lt 200 -or $api.StatusCode -ge 500) {
-              throw "API returned HTTP $($api.StatusCode)"
+          # O certificado e auto-assinado: o Windows PowerShell 5.1 nao tem
+          # -SkipCertificateCheck, por isso valida-se o callback.
+          [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+              $deadline = (Get-Date).AddSeconds(60)
+              while ((Get-WebAppPoolState -Name $pool).Value -ne 'Running' -and (Get-Date) -lt $deadline) {
+                  Start-Sleep -Seconds 2
+              }
+              if ((Get-WebAppPoolState -Name $pool).Value -ne 'Running') {
+                  throw "App pool '$pool' nao arrancou"
+              }
           }
 
-          $web = Invoke-WebRequest -Uri "http://localhost:$env:WEB_PORT" -UseBasicParsing -TimeoutSec 30
-          if ($web.StatusCode -lt 200 -or $web.StatusCode -ge 500) {
-              throw "Frontend returned HTTP $($web.StatusCode)"
+          Start-Sleep -Seconds 5
+
+          $targets = @(
+              @{ Name = 'API';       Uri = "http://localhost:$($env:API_PORT)/" },
+              @{ Name = 'Frontend';  Uri = "https://localhost:$($env:WEB_PORT)/" }
+          )
+
+          foreach ($t in $targets) {
+              try {
+                  $r = Invoke-WebRequest -Uri $t.Uri -UseBasicParsing -TimeoutSec 60
+                  $code = $r.StatusCode
+              } catch [System.Net.WebException] {
+                  # Response nulo = ligacao recusada / sem resposta do servidor.
+                  if ($null -eq $_.Exception.Response) { $code = 0 } else { $code = [int]$_.Exception.Response.StatusCode }
+              } catch {
+                  throw "$($t.Name) falhou ao pedir $($t.Uri): $($_.Exception.Message)"
+              }
+
+              if ($code -eq 0) { throw "$($t.Name) nao respondeu em $($t.Uri)" }
+              if ($code -ge 500) { throw "$($t.Name) devolveu HTTP $code em $($t.Uri)" }
+
+              Write-Host "$($t.Name) respondeu HTTP $code ($($t.Uri))"
           }

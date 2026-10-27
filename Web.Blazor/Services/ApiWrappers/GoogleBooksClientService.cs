@@ -89,7 +89,8 @@ namespace Web.Blazor.Services.ApiWrappers
             try
             {
                 var sw = Stopwatch.StartNew();
-                var q = $"inauthor:\"{Uri.EscapeDataString(author)}\"";
+                var q = $"inauthor:{Uri.EscapeDataString(author)}";
+                //var q = $"inauthor:\"{Uri.EscapeDataString(author)}\"";
                 var defaultMax = 20;
                 var url = $"https://www.googleapis.com/books/v1/volumes?q={q}&maxResults={defaultMax}&fields=totalItems,items(id,volumeInfo/title,volumeInfo/publishedDate,volumeInfo/imageLinks)";
                 var suffix = BuildAuthSuffix(out var country);
@@ -100,6 +101,16 @@ namespace Web.Blazor.Services.ApiWrappers
                 _logger.LogInformation("Google Books lookup. Author={Author} Url={Url} KeyUsed={KeyUsed} Country={Country}", author, url, true, country);
 
                 using var resp = await _http.GetAsync(url);
+
+                // Surface rate-limit to callers by throwing so callers can detect 429 specifically
+                if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var googleError = await TryReadBodyAsync(resp, 4000);
+                    _logger.LogWarning(
+                        "Google Books API service unavailable (503). Author={Author} ReasonInfo={ReasonInfo} Url={Url} DurationMs={DurationMs}",
+                        author, DescribeGoogleError(googleError), url, sw.ElapsedMilliseconds);
+                    throw new HttpRequestException("Google Books API service unavailable", null, resp.StatusCode);
+                }
 
                 // Surface rate-limit to callers by throwing so callers can detect 429 specifically
                 if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
@@ -361,7 +372,6 @@ namespace Web.Blazor.Services.ApiWrappers
             }
         }
 
-        // Minimal DTOs for deserialization - reuse existing Application DTOs shape
         private class GoogleBooksResponse { public long? totalItems { get; set; } public Item[]? items { get; set; } }
         private class Item { public string? id { get; set; } public Volumeinfo? volumeInfo { get; set; } }
         private class Volumeinfo { public string? title { get; set; } public string? publishedDate { get; set; } public Imagelinks? imageLinks { get; set; } }

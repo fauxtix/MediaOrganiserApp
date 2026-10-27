@@ -38,6 +38,7 @@ namespace Web.Blazor.Components.Authors
         private bool booksLoading;
         private bool aiFallbackUsed;
         private bool googleRateLimited;
+        private bool googleServiceUnavailable;
         private int currentPage = 1;
 
         private string? aiProviderMessage;
@@ -215,6 +216,14 @@ namespace Web.Blazor.Components.Authors
 
                 return result;
             }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.ServiceUnavailable)
+            {
+                googleServiceUnavailable = true;
+                _googleOutcome = L["AuthorSearchGoogleServiceUnavailable", AuthorName];
+                MessageLabel = _googleOutcome;
+                await UpdateMessageLabelAsync(MessageLabel);
+                return null;
+            }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 googleRateLimited = true;
@@ -301,6 +310,7 @@ namespace Web.Blazor.Components.Authors
             booksLoading = true;
             SpinnerVisible = false;
             googleRateLimited = false;
+            googleServiceUnavailable = false;
             aiFallbackUsed = false;
             booksFromCache = false;
             booksJustCached = false;
@@ -343,10 +353,20 @@ namespace Web.Blazor.Components.Authors
                     return;
                 }
 
-                // Ask confirmation for AI (always opt-in)
-                MessageLabel = googleRateLimited
-                    ? L["AuthorSearchGoogleRateLimitedCombined", AuthorName]
-                    : L["AuthorSearchNoResultsGoogleWikidata", AuthorName];
+                if(googleRateLimited || googleServiceUnavailable)
+                {
+                    if(googleRateLimited)
+                    {
+                        MessageLabel = googleRateLimited
+                            ? L["AuthorSearchGoogleRateLimitedCombined", AuthorName]
+                            : L["AuthorSearchNoResultsGoogleWikidata", AuthorName];
+                    }
+                    else
+                    {
+                        MessageLabel = $"Google Books Online não disponível ({AuthorName}, verifique credenciais de acesso ao serviço)";
+                    }
+                }
+
 
                 await UpdateMessageLabelAsync(MessageLabel);
                 showAISearchDialog = true;

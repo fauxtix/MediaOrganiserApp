@@ -30,6 +30,8 @@ public sealed class TranslateClientService
         if (cloud is not null)
             return cloud;
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogInformation("OpenRouter translation unavailable; falling back to local Ollama.");
         req.Scenario = "cloud-fallback";
         return await TranslateLocalAsync(req, cancellationToken);
@@ -72,6 +74,12 @@ public sealed class TranslateClientService
             using var resp = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(_http, uri, req, cancellationToken);
             if (!resp.IsSuccessStatusCode) return null;
             return await resp.Content.ReadFromJsonAsync<TranslateResponseDto>(cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // User cancelled: never fall through as "provider unavailable".
+            _logger.LogInformation("Translate local request cancelled by the caller.");
+            throw;
         }
         catch (Exception ex)
         {

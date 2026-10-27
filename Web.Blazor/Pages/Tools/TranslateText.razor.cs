@@ -1,3 +1,4 @@
+using MediaOrganizerApp.Application.Configurations;
 using MediaOrganizerApp.Application.DTOs.AI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
@@ -30,10 +31,74 @@ namespace Web.Blazor.Pages.Tools
         double? Confidence { get; set; }
         string ErrorMessage { get; set; } = string.Empty;
         bool IsTranslating { get; set; } = false;
+
+        // Set when the user cancels: the animated "waiting" block is replaced by a
+        // static "cancelled by the user" note until the next attempt or dialog close.
+        bool IsCancelled { get; set; } = false;
         private bool _progressClientOwned;
         private string? _activeCorrelationId;
         private bool _wasVisible;
         private bool _progressHandlersAttached;
+
+        // Provider/model that produced the finished translation, straight from the response
+        // DTO. Authoritative: it survives a lost progress event.
+        string? ResultProvider { get; set; }
+        string? ResultModel { get; set; }
+
+        // Provider/model that was in flight when the user cancelled. A cancellation never
+        // returns a response body (the request is aborted), so the progress channel is the
+        // only source - this is what explains a slow translation that fell back to Ollama.
+        string? AttemptedProvider { get; set; }
+        string? AttemptedModel { get; set; }
+
+        bool HasResultModel => !string.IsNullOrWhiteSpace(ResultModel);
+        bool HasAttemptedModel => !string.IsNullOrWhiteSpace(AttemptedModel);
+
+        /// <summary>
+        /// The finished answer wins over the model that was merely in flight, and the chip stays
+        /// hidden while translating because the progress message already names the model.
+        /// </summary>
+        bool ShowModelChip => !IsTranslating && (HasResultModel || HasAttemptedModel);
+        string? ShownProvider => HasResultModel ? ResultProvider : AttemptedProvider;
+        string? ShownModel => HasResultModel ? ResultModel : AttemptedModel;
+
+        /// <summary>OpenRouter and Ollama are product names and are never localized.</summary>
+        string ProviderLabel(string? provider) => provider switch
+        {
+            "openrouter" => "OpenRouter",
+            "ollama" => "Ollama",
+            _ => provider ?? string.Empty
+        };
+
+        string ProviderIcon(string? provider) => provider == "ollama" ? "fa fa-desktop" : "fa fa-cloud";
+
+        /// <summary>
+        /// Falls back to "Automatic" when the answer can only be attributed to the
+        /// openrouter/free router, matching the model pill in the chats.
+        /// </summary>
+        string ModelLabel(string? model)
+            => string.IsNullOrWhiteSpace(model)
+                ? string.Empty
+                : string.Equals(model, CloudChatSettingsKeys.DefaultModelValue, StringComparison.OrdinalIgnoreCase)
+                    ? L["CloudChatAutomaticModel"].Value
+                    : model;
+
+        string ModelTooltip(string? provider, string? model, bool attempted)
+        {
+            if (string.IsNullOrWhiteSpace(model))
+                return string.Empty;
+
+            var label = attempted
+                ? string.Format(L["TraducaoModeloTentado"].Value, model)
+                : string.Format(L["TraducaoModelo"].Value, model);
+            var providerLabel = ProviderLabel(provider);
+            return string.IsNullOrWhiteSpace(providerLabel) ? label : $"{providerLabel} - {label}";
+        }
+
+        // Owns the token of the in-flight translation so the user (or the dialog close /
+        // component disposal) can abort it. The request is abandoned immediately on the UI;
+        // any late answer from a superseded call is discarded by the guard in Translate().
+        private CancellationTokenSource? _cts;
 
         List<LanguageItem> languages = new()
     {
@@ -79,6 +144,8 @@ namespace Web.Blazor.Pages.Tools
             }
             else if (_wasVisible)
             {
+                // dialog was closed: drop the "cancelled" note and abort anything still in flight
+                CancelPendingSilently();
                 await CleanupProgressClientAsync();
             }
 
@@ -93,14 +160,19 @@ namespace Web.Blazor.Pages.Tools
             }
 
             IsTranslating = true;
+            IsCancelled = false;
             ErrorMessage = string.Empty;
             ProgressMessage = string.Empty;
+            ClearModelInfo();
             await InvokeAsync(StateHasChanged);
             await Task.Delay(50);
             TranslatedText = string.Empty;
             Confidence = null;
 
             TranslatedText = "";
+
+            var cts = new CancellationTokenSource();
+            _cts = cts;
 
             try
             {
@@ -122,12 +194,17 @@ namespace Web.Blazor.Pages.Tools
                 {
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
-                    resp = await TranslateFunc(req, System.Threading.CancellationToken.None);
+                    resp = await TranslateFunc(req, cts.Token);
                 }
                 else if (OnTranslateRequested.HasDelegate)
                 {
                     await OnTranslateRequested.InvokeAsync(req);
                 }
+
+                // A cancelled or superseded call must never write state: the user already moved on
+                // (or closed the dialog) and a late answer would overwrite the text/field.
+                if (cts.IsCancellationRequested || !ReferenceEquals(_cts, cts))
+                    return;
 
                 if (resp is not null)
                 {
@@ -143,6 +220,10 @@ namespace Web.Blazor.Pages.Tools
                         TranslatedText = resp.TranslatedText ?? string.Empty;
                         Confidence = resp.Confidence;
                         ErrorMessage = string.Empty;
+                        // Who actually answered: the sweep makes this unpredictable, and a
+                        // local fallback is the usual reason for a slow translation.
+                        ResultProvider = resp.Provider;
+                        ResultModel = resp.Model;
                     }
                 }
                 else
@@ -150,6 +231,10 @@ namespace Web.Blazor.Pages.Tools
                     // No response (non-success status or exception in client). Show a friendly message.
                     ErrorMessage = L["msgTranslateServiceUnavailable"] ?? "Translation service is unavailable (server error or network issue).";
                 }
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                // Deliberate cancel: no error message, the UI already shows "cancelled by the user".
             }
             catch (Exception ex)
             {
@@ -159,13 +244,83 @@ namespace Web.Blazor.Pages.Tools
             {
                 if (!string.IsNullOrWhiteSpace(_activeCorrelationId))
                 {
-                    await ProgressClient.LeaveCorrelationAsync(_activeCorrelationId);
+                    try
+                    {
+                        await ProgressClient.LeaveCorrelationAsync(_activeCorrelationId);
+                    }
+                    catch (Exception)
+                    {
+                        // after an immediate cancel + close the progress hub may already be gone
+                    }
                     _activeCorrelationId = null;
                 }
 
+                if (ReferenceEquals(_cts, cts))
+                    _cts = null;
+
+                cts.Dispose();
+
                 IsTranslating = false;
-                await InvokeAsync(StateHasChanged);
+
+                try
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // the dialog was closed right after cancelling: nothing left to paint
+                }
             }
+        }
+
+        /// <summary>
+        /// Aborts the in-flight translation. The UI stops immediately - it never waits for the
+        /// provider to acknowledge the cancel (local Ollama may keep inferring on its own).
+        /// </summary>
+        private async Task CancelTranslate()
+        {
+            var cts = _cts;
+            if (cts is null || cts.IsCancellationRequested)
+                return;
+
+            IsTranslating = false;
+            IsCancelled = true;
+            ProgressMessage = string.Empty;
+            cts.Cancel();
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+        /// <summary>
+        /// Cancels the pending translation without touching UI state (dialog is closing or the
+        /// component is being disposed). Disposal is left to the owning Translate() call.
+        /// </summary>
+        private void CancelPendingSilently()
+        {
+            var cts = _cts;
+            _cts = null;
+            IsCancelled = false;
+            ClearModelInfo();
+
+            if (cts is null)
+                return;
+
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // the owning call already finished and disposed the source
+            }
+        }
+
+        private void ClearModelInfo()
+        {
+            ResultProvider = null;
+            ResultModel = null;
+            AttemptedProvider = null;
+            AttemptedModel = null;
         }
 
         private Task Copy() => Task.CompletedTask;
@@ -205,6 +360,9 @@ namespace Web.Blazor.Pages.Tools
 
         private async Task OnExit()
         {
+            // Abort before closing so a late answer cannot write into the closed dialog
+            // (it would otherwise overwrite the field the translation was requested for).
+            CancelPendingSilently();
             await CleanupProgressClientAsync();
             Visible = false;
             if (OnClose.HasDelegate)
@@ -213,6 +371,7 @@ namespace Web.Blazor.Pages.Tools
 
         public async ValueTask DisposeAsync()
         {
+            CancelPendingSilently();
             await CleanupProgressClientAsync();
         }
 
@@ -276,6 +435,8 @@ namespace Web.Blazor.Pages.Tools
             if (update is null)
                 return;
 
+            TrackModelInFlight(update);
+
             var text = update.Stage switch
             {
                 "preparing_prompt" or "request_sent" => L["AIProcessingPreparing"].Value,
@@ -290,6 +451,28 @@ namespace Web.Blazor.Pages.Tools
                 _ => update.Message
             };
             _ = UpdateProgressMessageAsync(text);
+        }
+
+        /// <summary>
+        /// Remembers which provider/model is handling the request right now, so a cancellation
+        /// can report it (the aborted request never returns a body). Falls back to the stage
+        /// message when the structured field is missing.
+        /// </summary>
+        private void TrackModelInFlight(ProgressUpdateDto update)
+        {
+            var model = update.Model;
+            if (string.IsNullOrWhiteSpace(model)
+                && update.Stage is "cloud_try" or "cloud_success"
+                && !string.IsNullOrWhiteSpace(update.Message))
+            {
+                model = update.Message;
+            }
+
+            if (string.IsNullOrWhiteSpace(model))
+                return;
+
+            AttemptedModel = model;
+            AttemptedProvider = update.Provider;
         }
 
         private async Task UpdateProgressMessageAsync(string? message)

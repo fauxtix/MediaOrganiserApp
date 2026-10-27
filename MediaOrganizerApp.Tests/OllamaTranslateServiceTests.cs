@@ -61,6 +61,39 @@ public sealed class OllamaTranslateServiceTests
         Assert.True(parsingIndex > responseReceivedIndex);
     }
 
+    [Fact]
+    public async Task TranslateAsync_StampsProviderAndLocalModel_AndReportsThemWhileInFlight()
+    {
+        var service = CreateService("""{"response":"{\"translatedText\":\"Olá mundo\",\"confidence\":0.91}"}""", out var progressPublisher);
+
+        var result = await service.TranslateAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Equal("ollama", result.Provider);
+        Assert.Equal("test-model", result.Model);
+
+        var updates = progressPublisher.Invocations
+            .Where(i => i.Method.Name == nameof(IProgressPublisher.PublishAsync))
+            .Select(i => (ProgressUpdateDto)i.Arguments[1])
+            .ToList();
+
+        Assert.NotEmpty(updates);
+        Assert.All(updates, u => Assert.Equal("ollama", u.Provider));
+        Assert.All(updates, u => Assert.Equal("test-model", u.Model));
+    }
+
+    [Fact]
+    public async Task TranslateAsync_IgnoresProviderAndModelEmittedByTheModel()
+    {
+        var service = CreateService(
+            """{"response":"{\"translatedText\":\"Olá mundo\",\"confidence\":0.91,\"provider\":\"openrouter\",\"model\":\"fake/model\"}"}""",
+            out _);
+
+        var result = await service.TranslateAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Equal("ollama", result.Provider);
+        Assert.Equal("test-model", result.Model);
+    }
+
     private static TranslateRequestDto CreateRequest()
         => new()
         {

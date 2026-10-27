@@ -6,6 +6,8 @@ namespace MediaOrganizerApp.WebApi.Services;
 
 public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
 {
+    private const string ProviderName = "ollama";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> KnownCodeFenceMarkers = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -35,7 +37,8 @@ public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
     public async Task<TranslateResponseDto> TranslateAsync(TranslateRequestDto request, CancellationToken cancellationToken)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
-        await PublishAsync(request.ConnectionId, request.CorrelationId, "preparing_prompt", 5, "Preparing translation prompt...", cancellationToken);
+        var model = await ResolveModelNameAsync();
+        await PublishAsync(request.ConnectionId, request.CorrelationId, "preparing_prompt", 5, "Preparing translation prompt...", cancellationToken, model: model);
         var template = await Prompts.GetTemplateAsync("translate-text.prompt.txt", cancellationToken);
 
         var prompt = PromptTemplateRenderer.Render(template, new Dictionary<string, string?>
@@ -47,20 +50,20 @@ public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
 
         try
         {
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "request_sent", 40, "Sending translation prompt to AI model...", cancellationToken);
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "request_sent", 40, "Sending translation prompt to AI model...", cancellationToken, model: model);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "waiting_response", 65, "Waiting for AI response...", cancellationToken, model: model);
             var responseText = await ExecuteGenerateAsync(prompt, cancellationToken);
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "response_received", 75, "AI response received.", cancellationToken);
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "parsing", 80, "Parsing translation response...", cancellationToken);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "response_received", 75, "AI response received.", cancellationToken, model: model);
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "parsing", 80, "Parsing translation response...", cancellationToken, model: model);
 
             if (string.IsNullOrWhiteSpace(responseText))
             {
-                return new TranslateResponseDto
+                return Stamp(new TranslateResponseDto
                 {
                     TranslatedText = string.Empty,
                     Confidence = 0,
                     ErrorMessage = "No response received from translation backend."
-                };
+                }, model);
             }
 
             var text = CleanResponseText(responseText);
@@ -70,24 +73,57 @@ public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
                 var parsed = TryDeserializeTranslateResponse(extracted);
                 if (parsed is not null)
                 {
-                    await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
-                    return parsed;
+                    await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken, model: model);
+                    return Stamp(parsed, model);
                 }
             }
 
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken);
-            return new TranslateResponseDto { TranslatedText = text.Trim(), Confidence = 0.2 };
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "completed", 100, "Translation completed.", cancellationToken, model: model);
+            return Stamp(new TranslateResponseDto { TranslatedText = text.Trim(), Confidence = 0.2 }, model);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // User cancelled (dialog closed / Cancel button): propagate so the caller stops the
+            // request instead of reporting an AI failure.
+            _logger.LogInformation("Ollama translate cancelled by the caller.");
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Ollama for translate");
-            await PublishAsync(request.ConnectionId, request.CorrelationId, "failed", 100, ex.Message ?? "Translation failed.", cancellationToken, "error");
-            return new TranslateResponseDto
+            await PublishAsync(request.ConnectionId, request.CorrelationId, "failed", 100, ex.Message ?? "Translation failed.", cancellationToken, "error", model);
+            return Stamp(new TranslateResponseDto
             {
                 TranslatedText = string.Empty,
                 Confidence = 0,
                 ErrorMessage = "Translation service error: " + (ex.Message ?? "Unexpected error")
-            };
+            }, model);
+        }
+    }
+
+    /// <summary>
+    /// Overwrites the provider/model with the ones this service actually used. Required because
+    /// the response DTO is deserialized straight from the model's own JSON output, which must
+    /// never be trusted to report which provider answered.
+    /// </summary>
+    private static TranslateResponseDto Stamp(TranslateResponseDto dto, string? model)
+    {
+        dto.Provider = ProviderName;
+        dto.Model = model;
+        return dto;
+    }
+
+    private async Task<string?> ResolveModelNameAsync()
+    {
+        try
+        {
+            var (_, modelName) = await GetAiSettingsAsync();
+            return string.IsNullOrWhiteSpace(modelName) ? null : modelName;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[OllamaTranslate] Falha ao resolver o nome do modelo local.");
+            return null;
         }
     }
 
@@ -199,7 +235,8 @@ public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
         int percent,
         string message,
         CancellationToken cancellationToken,
-        string level = "info")
+        string level = "info",
+        string? model = null)
         => _progressPublisher.PublishAsync(
             ProgressChannel.BooksInfo,
             new ProgressUpdateDto
@@ -210,7 +247,9 @@ public sealed class OllamaTranslateService : OllamaBaseClient, ITranslateService
                 Message = message,
                 Level = level,
                 Service = nameof(OllamaTranslateService),
-                Operation = "translate"
+                Operation = "translate",
+                Provider = ProviderName,
+                Model = model
             },
             connectionId,
             cancellationToken);

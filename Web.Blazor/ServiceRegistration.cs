@@ -55,8 +55,14 @@ namespace Web.Blazor
 
             services.AddHttpClient<IAutorService, AutorService>();
 
-            // Translate client for generic text translation
-            services.AddHttpClient<TranslateClientService>();
+            // Translate client for generic text translation.
+            // Timeout must outlast the server-side Ollama budget (OllamaBaseClient.ExecuteGenerateAsync,
+            // 300s) - the 100s default used to abort valid long translations (e.g. an author bio)
+            // while the model kept generating server-side.
+            services.AddHttpClient<TranslateClientService>(client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(6);
+            });
 
             // AI wrapper used as fallback only when external metadata APIs fail (e.g., author profile).
             services.AddHttpClient<AiClientService>();

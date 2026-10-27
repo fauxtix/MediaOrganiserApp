@@ -69,6 +69,30 @@ namespace Web.Blazor.Pages.BaseComponents
             }
         }
 
+        protected async Task OnRecordDoubleClick(RecordDoubleClickEventArgs<AutorDTO> args)
+        {
+            var data = args.RowData;
+            authorID = data.Id;
+            SelectedAuthor = await AutorService.GetAuthorsById(authorID);
+            authorImage = SelectedAuthor.ImagemAutor;
+            if (!string.IsNullOrEmpty(authorImage) && File.Exists(authorImage))
+            {
+                byte[] imageByteData = File.ReadAllBytes(authorImage);
+                string imageBase64Data = Convert.ToBase64String(imageByteData);
+                string imageDataURL = string.Format("data:image/png;base64,{0}", imageBase64Data);
+                if (imageDataURL != null)
+                {
+                    authorImage = imageDataURL; //$"Images/Autores/{authorImage.Substring(posImg + 1)}";
+                }
+            }
+            else
+            {
+                authorImage = "Images/NoPhoto.png";
+            }
+            this.EditDialogVisibility = true;
+            StateHasChanged();
+        }
+
         public async Task OnCommandClicked(CommandClickEventArgs<AutorDTO> args)
         {
             var data = args.RowData;

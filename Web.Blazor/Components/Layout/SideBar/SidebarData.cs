@@ -67,8 +67,9 @@ public class SidebarData
     public List<MenuItem> GetFooterMenuItems()
     {
         return new List<MenuItem>
+
         {
-            new(href: "/admin/appsettings", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
+            new(href: "/admin/appsettings2", title: _localizer["TituloDefinicoes"], icon: "fa fa-cog"),
         };
     }
 }

@@ -35,7 +35,7 @@ namespace Web.Blazor.Data
             _logger = logger;
             _env = Env;
             httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/dashboard";
+            _Uri = $"{_env["BaseUrl"]}/api/media";
 
             _YouTubeServices = YouTubeServices;
         }

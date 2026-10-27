@@ -41,7 +41,9 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
                 var query = $@"
                 SELECT ?book ?bookLabel ?image ?date WHERE {{
                   ?book wdt:P50 wd:{qid}.
-                  ?book wdt:P31 wd:Q571.
+  
+                  VALUES ?classes {{ wd:Q571 wd:Q7725634 }}
+                  ?book wdt:P31/wdt:P279* ?classes.
 
                   OPTIONAL {{ ?book wdt:P18 ?image. }}
                   OPTIONAL {{ ?book wdt:P577 ?date. }}
@@ -69,7 +71,10 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
                     return new List<BookResult>();
                 }
 
-                var data = JsonSerializer.Deserialize<SparqlResult>(body);
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var data = JsonSerializer.Deserialize<SparqlResult>(body, options);
+
 
                 return data?.results?.bindings?
                     .Select(b => new BookResult
@@ -108,6 +113,7 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
                     $"?action=wbsearchentities" +
                     $"&search={Uri.EscapeDataString(authorDecoupled)}" +
                     $"&language={Uri.EscapeDataString(lang)}" +
+                    $"&uselang=en" +
                     $"&type=item" +
                     $"&limit=10" +
                     $"&format=json";
@@ -126,7 +132,8 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
                     return null;
                 }
 
-                var result = JsonSerializer.Deserialize<WikidataSearchResult>(body);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = JsonSerializer.Deserialize<WikidataSearchResult>(body, options);
 
                 var candidates = result?.search ?? new List<WikidataSearchItem>();
 
@@ -152,35 +159,39 @@ namespace MediaOrganizerApp.Persistence.Services.WikiData
         // =========================================================
         // AUTHOR FILTER + SCORING (STRICT WHITELIST)
         // =========================================================
+        // =========================================================
+        // AUTHOR FILTER + SCORING (CORRIGIDO)
+        // =========================================================
         private int ScoreAuthorCandidate(WikidataSearchItem c)
         {
             var desc = c.description?.ToLowerInvariant() ?? "";
-
-            // ONLY allow author-like entities
-            bool isAuthor =
-                desc.Contains("writer") ||
-                desc.Contains("author") ||
-                desc.Contains("novelist") ||
-                desc.Contains("poet") ||
-                desc.Contains("playwright") ||
-                desc.Contains("essayist") ||
-                desc.Contains("literary");
-
-            if (!isAuthor)
-                return int.MinValue;
-
             int score = 0;
 
+            // 1. Pontuação para termos em Inglês
             if (desc.Contains("novelist")) score += 12;
             if (desc.Contains("writer")) score += 10;
             if (desc.Contains("author")) score += 10;
             if (desc.Contains("poet")) score += 8;
             if (desc.Contains("playwright")) score += 7;
             if (desc.Contains("essayist")) score += 6;
+            if (desc.Contains("biographer")) score += 5;
 
+            // 2. Pontuação para termos em Português (essencial se lang = "pt")
+            if (desc.Contains("romancista")) score += 12;
+            if (desc.Contains("escritor") || desc.Contains("escritora")) score += 10;
+            if (desc.Contains("autor") || desc.Contains("autora")) score += 10;
+            if (desc.Contains("poeta")) score += 8;
+            if (desc.Contains("dramaturgo") || desc.Contains("dramaturga")) score += 7;
+            if (desc.Contains("ensaísta")) score += 6;
+            if (desc.Contains("biógrafo") || desc.Contains("biógrafa")) score += 5;
+
+            // 3. Critérios gerais de integridade do resultado
+            if (desc.Contains("literary") || desc.Contains("literário") || desc.Contains("literária")) score += 4;
             if (!string.IsNullOrWhiteSpace(c.label)) score += 2;
             if (!string.IsNullOrWhiteSpace(c.description)) score += 1;
 
+            // Retorna a pontuação acumulada. Se não fizer correspondência com nenhum termo, 
+            // a pontuação será baixa, mas o candidato NÃO será descartado com int.MinValue.
             return score;
         }
 

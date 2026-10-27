@@ -1212,6 +1212,15 @@
   <data name="TituloTraducao" xml:space="preserve">
     <value>Waiting translation</value>
   </data>
+  <data name="TituloTraducaoCancelada" xml:space="preserve">
+    <value>Cancelled by the user</value>
+  </data>
+  <data name="TraducaoModelo" xml:space="preserve">
+    <value>Model: {0}</value>
+  </data>
+  <data name="TraducaoModeloTentado" xml:space="preserve">
+    <value>Model being attempted: {0}</value>
+  </data>
   <data name="TituloDadosDoApi" xml:space="preserve">
     <value>Get data from Api</value>
   </data>
@@ -1517,6 +1526,27 @@
   </data>
   <data name="ChatImportInvalid" xml:space="preserve">
     <value>Invalid JSON file or no conversations.</value>
+  </data>
+  <data name="ChatHistoryActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ChatDeleteHistory" xml:space="preserve">
+    <value>Delete history</value>
+  </data>
+  <data name="ChatDeleteHistoryTitle" xml:space="preserve">
+    <value>Delete all history</value>
+  </data>
+  <data name="ChatDeleteHistoryMessage" xml:space="preserve">
+    <value>{0} stored conversation(s) will be deleted.</value>
+  </data>
+  <data name="ChatDeleteHistoryWarning" xml:space="preserve">
+    <value>This action is irreversible: the history cannot be restored.</value>
+  </data>
+  <data name="ChatDeleteHistoryOk" xml:space="preserve">
+    <value>History deleted ({0} conversation(s)).</value>
+  </data>
+  <data name="ChatDeleteHistoryError" xml:space="preserve">
+    <value>Error deleting history: {0}</value>
   </data>
   <data name="ChatCopyResponse" xml:space="preserve">
     <value>Copy response</value>

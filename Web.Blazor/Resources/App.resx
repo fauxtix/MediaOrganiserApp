@@ -1213,6 +1213,15 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="TituloTraducao" xml:space="preserve">
     <value>Aguardando tradução</value>
   </data>
+  <data name="TituloTraducaoCancelada" xml:space="preserve">
+    <value>Cancelado pelo utilizador</value>
+  </data>
+  <data name="TraducaoModelo" xml:space="preserve">
+    <value>Modelo: {0}</value>
+  </data>
+  <data name="TraducaoModeloTentado" xml:space="preserve">
+    <value>Modelo em tentativa: {0}</value>
+  </data>
   <data name="TituloDadosDoApi" xml:space="preserve">
     <value>Obter dados da API</value>
   </data>
@@ -1518,6 +1527,27 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="ChatImportInvalid" xml:space="preserve">
     <value>Ficheiro JSON inválido ou sem conversas.</value>
+  </data>
+  <data name="ChatHistoryActions" xml:space="preserve">
+    <value>Ações</value>
+  </data>
+  <data name="ChatDeleteHistory" xml:space="preserve">
+    <value>Apagar histórico</value>
+  </data>
+  <data name="ChatDeleteHistoryTitle" xml:space="preserve">
+    <value>Apagar todo o histórico</value>
+  </data>
+  <data name="ChatDeleteHistoryMessage" xml:space="preserve">
+    <value>Serão apagadas {0} conversa(s) guardadas.</value>
+  </data>
+  <data name="ChatDeleteHistoryWarning" xml:space="preserve">
+    <value>Esta ação é irreversível: o histórico não pode ser restaurado.</value>
+  </data>
+  <data name="ChatDeleteHistoryOk" xml:space="preserve">
+    <value>Histórico apagado ({0} conversa(s)).</value>
+  </data>
+  <data name="ChatDeleteHistoryError" xml:space="preserve">
+    <value>Erro ao apagar o histórico: {0}</value>
   </data>
   <data name="ChatCopyResponse" xml:space="preserve">
     <value>Copiar resposta</value>

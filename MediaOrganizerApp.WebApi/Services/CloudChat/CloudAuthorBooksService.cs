@@ -36,26 +36,6 @@ public sealed class CloudAuthorBooksService
     private readonly OpenRouterCatalogService _catalogService;
     private readonly ILogger<CloudAuthorBooksService> _logger;
 
-    public CloudAuthorBooksService(
-        IHttpClientFactory httpClientFactory,
-        IAIChatSettingsRepository settingsRepository,
-        IPromptTemplateProvider prompts,
-        ICloudChatUsageService usageService,
-        IInternetAvailabilityService internet,
-        IProgressPublisher progressPublisher,
-        OpenRouterCatalogService catalogService,
-        ILogger<CloudAuthorBooksService> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _settingsRepository = settingsRepository;
-        _prompts = prompts;
-        _usageService = usageService;
-        _internet = internet;
-        _progressPublisher = progressPublisher;
-        _catalogService = catalogService;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Returns the author's books from OpenRouter, or null when the cloud path
     /// must be skipped (missing key, toggle off, network error, parse failure).
@@ -307,14 +287,15 @@ public sealed class CloudAuthorBooksService
             var count = code.Split('|')[1];
             return $"{count} títulos";
         }
-        return code switch
+return code switch
         {
             "ok" => "ok",
             "vazio" => "sem resultados",
             "no content" => "resposta vazia",
+            "safety artifact" => "classificador de seguranca",
             "network error" => "erro de rede",
-            "429 Too Many Requests" => "limite de requisições (429)",
-            "parse failure" => "JSON inválido",
+            "429 Too Many Requests" => "limite de requisicoes (429)",
+            "parse failure" => "JSON invalido",
             "falha" => "falha",
             _ => code
         };
@@ -359,6 +340,7 @@ public sealed class CloudAuthorBooksService
         // one), never the source of truth. Router is appended last as final resort.
         var ranked = catalog
             .Where(m => !string.IsNullOrWhiteSpace(m.Id))
+            .Where(m => !IsSafetyClassifierModel(m.Id))
             .Where(m => !models.Contains(m.Id, StringComparer.OrdinalIgnoreCase))
             .OrderByDescending(m => RecommendedExtractionModels.IsRecommendedFree(m.Id))
             .ThenByDescending(m => m.IntelligenceIndex ?? 0.0)
@@ -374,6 +356,21 @@ public sealed class CloudAuthorBooksService
         if (models.Count == 0)
             models.Add(CloudChatSettingsKeys.DefaultModelValue);
         return models;
+    }
+
+    /// <summary>
+    /// Guard/classifier models (e.g. <c>nvidia/nemotron-3.5-content-safety:free</c>)
+    /// can never produce a bibliography: they answer with a safety classification.
+    /// They sit in the free catalog, so keep them out of the sweep candidates.
+    /// </summary>
+    private static bool IsSafetyClassifierModel(string? modelId)
+    {
+        if (string.IsNullOrWhiteSpace(modelId)) return false;
+
+        return modelId.Contains("content-safety", StringComparison.OrdinalIgnoreCase)
+            || modelId.Contains("classifier", StringComparison.OrdinalIgnoreCase)
+            || modelId.Contains("guard", StringComparison.OrdinalIgnoreCase)
+            || modelId.Contains("moderation", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddUniqueModel(List<string> models, string candidate)
@@ -408,10 +405,46 @@ public sealed class CloudAuthorBooksService
         }
     }
 
+    /// <summary>
+    /// OpenRouter answers HTTP 429 with "temporarily rate-limited upstream ...
+    /// retry shortly" (limit_source: upstream_provider_shared_pool) when the shared
+    /// provider pool behind a model is saturated. That is transient and the SAME model
+    /// usually answers on a second attempt, so retry it once before the sweep moves on
+    /// to the next candidate — moving on wastes the daily free budget for nothing.
+    /// </summary>
+    private const int MaxUpstreamRetries = 1;
+    private static readonly TimeSpan DefaultUpstreamRetryDelay = TimeSpan.FromSeconds(6);
+
+    private readonly TimeSpan _upstreamRetryDelay;
+
+    public CloudAuthorBooksService(
+        IHttpClientFactory httpClientFactory,
+        IAIChatSettingsRepository settingsRepository,
+        IPromptTemplateProvider prompts,
+        ICloudChatUsageService usageService,
+        IInternetAvailabilityService internet,
+IProgressPublisher progressPublisher,
+        OpenRouterCatalogService catalogService,
+        ILogger<CloudAuthorBooksService> logger,
+        TimeSpan? upstreamRetryDelay = null)
+    {
+        _httpClientFactory = httpClientFactory;
+        _settingsRepository = settingsRepository;
+        _prompts = prompts;
+        _usageService = usageService;
+        _internet = internet;
+        _progressPublisher = progressPublisher;
+        _catalogService = catalogService;
+        _logger = logger;
+        _upstreamRetryDelay = upstreamRetryDelay ?? DefaultUpstreamRetryDelay;
+    }
+
     private async Task<(List<GoogleBookInfo>? Books, string? FailureReason)> TryGetAuthorBooksWithModelAsync(
         string model, string apiKey, string userPrompt, CancellationToken ct)
     {
-        if (CloudChatSettingsKeys.IsFreeModel(model))
+        var isFree = CloudChatSettingsKeys.IsFreeModel(model);
+
+        if (isFree)
         {
             if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
             {
@@ -423,6 +456,36 @@ public sealed class CloudAuthorBooksService
             catch (Exception ex) { _logger.LogWarning(ex, "[CloudAuthorBooks] Falha a registar requisição gratuita."); }
         }
 
+        for (var attempt = 1; ; attempt++)
+        {
+            var result = await SendCompletionAsync(model, apiKey, userPrompt, ct);
+
+            if (!result.UpstreamRateLimited || attempt > MaxUpstreamRetries)
+                return (result.Books, result.FailureReason);
+
+            // Never spend a retry outside the free budget we enforce ourselves.
+            if (isFree && await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
+                return (result.Books, result.FailureReason);
+
+            _logger.LogWarning(
+                "[CloudAuthorBooks] 429 upstream em {Model} (tentativa {Attempt}); a repetir em {DelaySeconds}s.",
+                model, attempt, _upstreamRetryDelay.TotalSeconds);
+
+            await Task.Delay(_upstreamRetryDelay, ct);
+
+            if (isFree)
+            {
+                try { await _usageService.RegisterFreeModelUsageAsync(ct); }
+                catch (Exception ex) { _logger.LogWarning(ex, "[CloudAuthorBooks] Falha a registar requisição gratuita (retry)."); }
+            }
+        }
+    }
+
+    private sealed record ModelAttempt(List<GoogleBookInfo>? Books, string? FailureReason, bool UpstreamRateLimited);
+
+    private async Task<ModelAttempt> SendCompletionAsync(
+        string model, string apiKey, string userPrompt, CancellationToken ct)
+    {
         var payload = new
         {
             model,
@@ -459,7 +522,7 @@ public sealed class CloudAuthorBooksService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[CloudAuthorBooks] Erro ao contactar OpenRouter com o modelo {Model} após {DurationMs}ms.", model, sw.ElapsedMilliseconds);
-            return (null, "network error");
+            return new ModelAttempt(null, "network error", false);
         }
 
         using (response)
@@ -468,19 +531,22 @@ public sealed class CloudAuthorBooksService
             {
                 await SyncFreeUsageFromRateLimitHeadersAsync(response, CloudChatSettingsKeys.IsFreeModel(model), ct);
                 var rateHeaders = FormatRateLimitHeaders(response);
+                var errorBody = await SafeReadBodyAsync(response, ct);
+                var upstream = IsUpstreamRateLimit(errorBody);
                 _logger.LogWarning(
-                    "[CloudAuthorBooks] 429 Too Many Requests do OpenRouter ({Model}) após {DurationMs}ms. RateLimit=[{RateLimit}]",
-                    model, sw.ElapsedMilliseconds, rateHeaders);
-                return (null, "429 Too Many Requests");
+                    "[CloudAuthorBooks] 429 Too Many Requests do OpenRouter ({Model}) após {DurationMs}ms. Upstream={Upstream} RateLimit=[{RateLimit}] Body={Body}",
+                    model, sw.ElapsedMilliseconds, upstream, rateHeaders,
+                    errorBody.Length > 300 ? errorBody[..300] + "..." : errorBody);
+                return new ModelAttempt(null, "429 Too Many Requests", upstream);
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                var errorBody = await SafeReadBodyAsync(response, ct);
                 _logger.LogWarning("[CloudAuthorBooks] HTTP {Status} ({Model}) após {DurationMs}ms: {Body}",
                     (int)response.StatusCode, model, sw.ElapsedMilliseconds,
                     errorBody.Length > 300 ? errorBody[..300] + "..." : errorBody);
-                return (null, $"HTTP {(int)response.StatusCode}");
+                return new ModelAttempt(null, $"HTTP {(int)response.StatusCode}", false);
             }
 
             var fullBody = await response.Content.ReadAsStringAsync(ct);
@@ -491,20 +557,52 @@ public sealed class CloudAuthorBooksService
                     "[CloudAuthorBooks] Resposta sem conteúdo message.content ({Model}) após {DurationMs}ms. BodyPreview={BodyPreview}",
                     model, sw.ElapsedMilliseconds,
                     fullBody.Length > 800 ? fullBody[..800] + "..." : fullBody);
-                return (null, "no content");
+                return new ModelAttempt(null, "no content", false);
             }
 
-            var books = ParseBooksJson(StripFences(content));
+            // Guard/classifier models (and free routers that happen to pick one) answer
+            // with only a safety classification ("User Safety: safe;"). That is a model
+            // artifact, not a bibliography: drop it here so the sweep reports the real
+            // reason and moves on instead of logging a bogus "parse failure".
+            if (ChatSafetyArtifactFilter.IsSafetyOnly(content))
+            {
+                _logger.LogWarning(
+                    "[CloudAuthorBooks] {Model} devolveu apenas um artefacto de classificacao de seguranca, sem bibliografia.",
+                    model);
+                return new ModelAttempt(null, "safety artifact", false);
+            }
+
+            var books = ParseBooksJson(StripFences(ChatSafetyArtifactFilter.StripSafetyLines(content)));
             if (books is null)
             {
                 _logger.LogWarning("[CloudAuthorBooks] Falha a parsear JSON de {Model} após {DurationMs}ms. ContentPreview={ContentPreview}",
                     model, sw.ElapsedMilliseconds,
                     content.Length > 500 ? content[..500] + "..." : content);
-                return (null, "parse failure");
+                return new ModelAttempt(null, "parse failure", false);
             }
 
-            return (books, null);
+            return new ModelAttempt(books, null, false);
         }
+    }
+
+    private static async Task<string> SafeReadBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try { return await response.Content.ReadAsStringAsync(ct); }
+        catch (Exception) { return string.Empty; }
+    }
+
+    /// <summary>
+    /// Distinguishes "our key / the account is throttled" from "the shared provider pool
+    /// behind this model is temporarily saturated". Only the latter is worth retrying.
+    /// </summary>
+    private static bool IsUpstreamRateLimit(string? errorBody)
+    {
+        if (string.IsNullOrWhiteSpace(errorBody))
+            return false;
+
+        return errorBody.Contains("upstream_provider_shared_pool", StringComparison.OrdinalIgnoreCase)
+            || errorBody.Contains("rate-limited upstream", StringComparison.OrdinalIgnoreCase)
+            || errorBody.Contains("temporarily rate-limited", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FormatRateLimitHeaders(HttpResponseMessage response)

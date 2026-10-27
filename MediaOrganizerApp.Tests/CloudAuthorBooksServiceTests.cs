@@ -17,6 +17,16 @@ public sealed class CloudAuthorBooksServiceTests
     private const string CatalogResponse =
         """{"data":[{"id":"z-ai/glm-5.2:free","name":"Z.ai GLM 5.2 (free)"},{"id":"google/gemma-4-31b-it:free","name":"Google Gemma 4 31B IT (free)"},{"id":"nvidia/nemotron-3.5-lightning:free","name":"NVIDIA Nemotron 3.5 Lightning (free)"},{"id":"meta-llama/llama-3.3-70b-instruct:free","name":"Meta Llama 3.3 70B Instruct (free)"}]}""";
 
+    private const string CatalogResponseWithSafetyModel =
+        """{"data":[{"id":"nvidia/nemotron-3.5-content-safety:free","name":"NVIDIA Nemotron 3.5 Content Safety (free)"},{"id":"google/gemma-4-31b-it:free","name":"Google Gemma 4 31B IT (free)"}]}""";
+
+    private const string UpstreamRateLimitBody =
+        """{"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"qwen/qwen3.8-27b:free is temporarily rate-limited upstream. Please retry shortly.","provider_name":"ModelRun","limit_source":"upstream_provider_shared_pool"}}}""";
+
+    /// <summary>Catalog with a single free model, so the sweep has exactly one candidate.</summary>
+    private const string CatalogResponseSingleModel =
+        """{"data":[{"id":"openai/gpt-4o-mini:free","name":"OpenAI GPT-4o Mini (free)"}]}""";
+
     private sealed class HttpCapture
     {
         public string? Body { get; set; }
@@ -483,12 +493,167 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
         Assert.Equal("O Raciocinado", result[0].Title);
     }
 
+    [Fact]
+    public async Task GetAuthorBooksAsync_SkipsSafetyClassifierAnswers_AndKeepsSweeping()
+    {
+        // A guard/free-router model answering with a content-safety classification
+        // ("User Safety: safe;") is a model artifact, not a bibliography.
+        var safetyOnly = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"User Safety: safe;"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+        var withBooks = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"O Livro\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { safetyOnly, withBooks }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture);
+
+        var result = await service.GetAuthorBooksAsync("Agatha Christie", "pt");
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("O Livro", result[0].Title);
+        // The safety artifact did not end the sweep: a second model was tried.
+        Assert.True(capture.RequestBodies.Count >= 2);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_StripsSafetyLinesBeforeParsingJson()
+    {
+        var safetyThenBooks = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"User Safety: safe;\n[{\"title\":\"O Livro\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { safetyThenBooks }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture);
+
+        var result = await service.GetAuthorBooksAsync("Agatha Christie", "pt");
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("O Livro", result[0].Title);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_RetriesSameModel_OnceOnUpstreamRateLimit()
+    {
+        var upstream429 = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            Content = new StringContent(UpstreamRateLimitBody, Encoding.UTF8, "application/json")
+        };
+        var withBooks = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"O Livro\"},{\"title\":\"Segundo\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { upstream429, withBooks }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o-mini"
+            },
+            capture,
+            upstreamRetryDelay: TimeSpan.Zero);
+
+        var result = await service.GetAuthorBooksAsync("Agatha Christie", "pt");
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        // Both requests went to the SAME model: the retry happened before moving on.
+        Assert.Equal(2, capture.RequestBodies.Count);
+        Assert.Contains("\"openai/gpt-4o-mini:free\"", capture.RequestBodies[0]);
+        Assert.Contains("\"openai/gpt-4o-mini:free\"", capture.RequestBodies[1]);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_DoesNotRetry_AccountLevelRateLimit()
+    {
+        var account429 = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            Content = new StringContent(
+                """{"error":{"message":"Rate limit exceeded","code":429,"metadata":{"limit_source":"key"}}}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { account429, account429 }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey,
+                [CloudChatSettingsKeys.DefaultModel] = "openai/gpt-4o-mini"
+            },
+            capture,
+            catalogResponse: CatalogResponseSingleModel,
+            upstreamRetryDelay: TimeSpan.Zero);
+
+        var result = await service.GetAuthorBooksAsync("Agatha Christie", "pt");
+
+        Assert.Null(result);
+        Assert.Single(capture.RequestBodies);
+    }
+
+    [Fact]
+    public async Task GetAuthorBooksAsync_ExcludesSafetyClassifierModels_FromLiveCatalog()
+    {
+        var withBooks = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"[{\"title\":\"O Livro\"}]"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { withBooks }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture,
+            catalogResponse: CatalogResponseWithSafetyModel);
+
+        var result = await service.GetAuthorBooksAsync("Agatha Christie", "pt");
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.DoesNotContain("content-safety", string.Join("\n", capture.RequestBodies));
+        Assert.Contains("google/gemma-4-31b-it:free", capture.RequestBodies[0]);
+    }
+
     private static CloudAuthorBooksService CreateService(
         Queue<HttpResponseMessage>? responses,
         Dictionary<string, string?> settings,
         HttpCapture capture,
         Mock<ICloudChatUsageService>? usageMock = null,
-        int freeRequestsRemaining = 1000)
+        int freeRequestsRemaining = 1000,
+        string catalogResponse = CatalogResponse,
+        TimeSpan? upstreamRetryDelay = null)
     {
         var repo = new Mock<IAIChatSettingsRepository>();
         repo.Setup(x => x.GetValueAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -508,7 +673,7 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
                 {
                     return new HttpResponseMessage(HttpStatusCode.OK)
                     {
-                        Content = new StringContent(CatalogResponse, Encoding.UTF8, "application/json")
+                        Content = new StringContent(catalogResponse, Encoding.UTF8, "application/json")
                     };
                 }
 
@@ -542,7 +707,8 @@ Assert.Contains("\"openai/gpt-4o\"", capture.RequestBodies[1]);
             internet.Object,
             Mock.Of<IProgressPublisher>(),
             new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
-            Mock.Of<ILogger<CloudAuthorBooksService>>());
+            Mock.Of<ILogger<CloudAuthorBooksService>>(),
+            upstreamRetryDelay);
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler

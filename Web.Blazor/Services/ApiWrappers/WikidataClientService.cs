@@ -45,7 +45,11 @@ namespace Web.Blazor.Services.ApiWrappers
                     return null;
                 }
 
-                var result = System.Text.Json.JsonSerializer.Deserialize<List<BookResult>>(body);
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var result = System.Text.Json.JsonSerializer.Deserialize<List<BookResult>>(body, options);
                 return result ?? new List<BookResult>();
             }
             catch (Exception ex)

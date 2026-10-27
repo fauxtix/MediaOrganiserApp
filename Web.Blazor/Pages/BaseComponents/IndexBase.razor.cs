@@ -149,7 +149,7 @@ namespace Web.Blazor.Pages.BaseComponents
             var fmtMed = await formatosMediaService.GetAllAsync();
             formatosMediaCount = fmtMed is not null ? fmtMed.Count() : 0;
 
-            IsAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+            IsAdmin = string.Equals(role, "Administrator", StringComparison.OrdinalIgnoreCase);
 
             await LoadOutputsAsync();
         }

@@ -70,13 +70,14 @@ namespace MediaOrganizerApp.WebApi.Controllers
             double durationMs,
             string? contexto = null,
             string? scenario = null,
-            CancellationToken ct = default)
+            CancellationToken ct = default,
+            string? modelo = null)
         {
             var userId = Request?.Headers["X-UserId"].ToString();
             if (string.IsNullOrWhiteSpace(userId))
                 userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-            await _usage.RecordAsync(userId, operacao, provider, contexto: contexto, scenario: scenario, durationMs: durationMs, sucesso: sucesso, ct: ct);
+            await _usage.RecordAsync(userId, operacao, provider, contexto: contexto, scenario: scenario, durationMs: durationMs, sucesso: sucesso, modelo: modelo, ct: ct);
         }
 
         private static string MapLanguageCodeToName(string? language)
@@ -278,7 +279,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     sw.ElapsedMilliseconds,
                     $"{request.SourceLanguage}->{request.TargetLanguage}",
                     request.Scenario,
-                    cancellationToken);
+                    cancellationToken,
+                    resp.Model);
 
                 return Ok(resp);
             }
@@ -960,7 +962,8 @@ namespace MediaOrganizerApp.WebApi.Controllers
                     sw.ElapsedMilliseconds,
                     $"{request.SourceLanguage}->{request.TargetLanguage}",
                     request.Scenario,
-                    cancellationToken);
+                    cancellationToken,
+                    resp.Model);
                 return Ok(resp);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -88,7 +88,8 @@ public class BooksInfoProgressClient
 
             try
             {
-                await _connection.DisposeAsync();
+                if (_connection != null)
+                    await _connection.DisposeAsync();
             }
             catch
             {

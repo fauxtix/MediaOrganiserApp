@@ -61,7 +61,7 @@ namespace MediaOrganizerApp.WebApi.Services
                     UserId = userId,
                     Operacao = operacao,
                     Provider = provider,
-                    Modelo = modelo,
+                    Modelo = Truncate(modelo, 128),
                     Contexto = Truncate(contexto, 512),
                     Scenario = NormalizeScenario(scenario, eraFallback),
                     DurationMs = durationMs,

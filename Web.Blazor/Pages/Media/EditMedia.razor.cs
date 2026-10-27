@@ -44,6 +44,21 @@ namespace Web.Blazor.Pages.Media
 
         protected ApplicationSettingsDto AppSettings;
 
+        private async Task<string> GetApiBaseUrlAsync()
+        {
+            var settings = await AppSettingsService.GetSettingsAsync();
+
+            var url = Env.IsDevelopment()
+                ? settings.ApiBaseUrl_Development
+                : settings.ApiBaseUrl_Production;
+
+            if (string.IsNullOrWhiteSpace(url))
+                throw new System.InvalidOperationException(
+                    "ApplicationSettings does not define an API base URL for the current environment.");
+
+            return url.TrimEnd('/');
+        }
+
         protected SfUploader sfUploaderCover;
         private SfSpinner spinner;
 
@@ -273,7 +288,7 @@ namespace Web.Blazor.Pages.Media
 
             var shouldAIBeUsed = SelectedRecord.IdFormato_Media > 1 && SelectedRecord.IdFormato_Media < 6;
 
-            var apiUrlAddress = (await AppSettingsService.GetSettingsAsync()).ApiBaseUrl_Development.TrimEnd('/');
+            var apiUrlAddress = await GetApiBaseUrlAsync();
             await ProgressClient.StartAsync(apiUrlAddress);
 
 
@@ -786,7 +801,7 @@ namespace Web.Blazor.Pages.Media
                 busyStatusMessage = L["FetchingMetadataViaAI"];
                 StateHasChanged();
 
-                var apiUrlAddress = (await AppSettingsService.GetSettingsAsync()).ApiBaseUrl_Development.TrimEnd('/');
+                var apiUrlAddress = await GetApiBaseUrlAsync();
                 await ProgressClient.StartAsync(apiUrlAddress);
 
                 ProgressClient.ProgressEventReceived -= OnProgressEventReceived;

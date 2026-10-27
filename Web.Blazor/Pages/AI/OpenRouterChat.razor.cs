@@ -647,6 +647,17 @@ FlushPendingText(currentAssistantMessage, pendingText);
             }
         }
 
+        /// <summary>
+        /// The history panel deleted every stored conversation (both chats share the same
+        /// list). Reset the open chat, otherwise selectedConversationId would keep pointing
+        /// at a row that no longer exists and the next save would update zero rows.
+        /// </summary>
+        private async Task OnHistoryClearedAsync()
+        {
+            await NewChat();
+            await LoadConversations();
+        }
+
         private async Task LoadConversationAsync(string id)
         {
             if (string.IsNullOrEmpty(id)) return;

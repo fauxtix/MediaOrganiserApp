@@ -1,7 +1,5 @@
 using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using MediaOrganizerApp.WebApi.Services;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaOrganizerApp.WebApi
 {

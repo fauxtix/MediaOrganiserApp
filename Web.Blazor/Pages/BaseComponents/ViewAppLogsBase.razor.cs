@@ -67,6 +67,70 @@ namespace Web.Blazor.Pages.BaseComponents
             StateHasChanged();
         }
 
+        public async Task ToolbarClickHandler(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+        {
+            await GetAllLogs();
+
+            if (args.Item.Id.ToLower().Contains("excelexport"))
+            {
+                var logFile = $"Log{DateTime.Now.ToShortDateString()}.xlsx";
+                logFile = logFile.Replace("/", "_");
+                var fullExcelFilePath = logFile;
+                try
+                {
+                    ExcelExportProperties excelExportProperties = new ExcelExportProperties
+                    {
+                        IncludeTemplateColumn = true,
+                        IncludeHeaderRow = true,
+                        FileName = fullExcelFilePath
+                    };
+                    await LogGrid!.ExportToExcelAsync(excelExportProperties);
+                    logger?.LogInformation($"Exportado ficheiro excel ({excelExportProperties.FileName})");
+                    await GetAllLogs();
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogInformation(ex.Message, ex);
+                }
+            }
+            else if (args.Item.Id.ToLower() == "warninglogs")
+            {
+                var warnings = from record in Logs
+                               where record.Level.ToLower() == "warning"
+                               select record;
+                Logs = warnings.ToList();
+
+            }
+            else if (args.Item.Id.ToLower() == "errorlogs")
+            {
+                var errors = from record in Logs
+                             where record.Level.ToLower() == "error"
+                             select record;
+                Logs = errors.ToList();
+            }
+            else if (args.Item.Id.ToLower() == "infologs")
+            {
+                var infos = from record in Logs
+                            where record.Level.ToLower() == "information"
+                            select record;
+                Logs = infos.ToList();
+            }
+            else if (args.Item.Id.ToLower() == "loginlogs")
+            {
+
+                Logs = (await logService!.ViewLogins()).ToList();
+            }
+            else if (args.Item.Id.ToLower() == "deletelogs")
+            {
+
+                await onDeleteLogs();
+            }
+            else // All Logs
+            {
+                await GetAllLogs();
+            }
+        }
+
         public async Task OnAppLogCommandClicked(CommandClickEventArgs<AppLogDto> args)
         {
 
@@ -75,9 +139,9 @@ namespace Web.Blazor.Pages.BaseComponents
 
             if (args.CommandColumn.Type == CommandButtonType.Edit)
             {
-ViewLogVisibility = true;
-            ViewLogCaption = L["ViewLogEntryDetails"];
-            StateHasChanged();
+                ViewLogVisibility = true;
+                ViewLogCaption = L["ViewLogEntryDetails"];
+                StateHasChanged();
             }
             else if (args.CommandColumn.Type == CommandButtonType.Delete)
             {

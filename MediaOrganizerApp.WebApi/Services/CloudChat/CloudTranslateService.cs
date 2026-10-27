@@ -19,6 +19,7 @@ namespace MediaOrganizerApp.WebApi.Services.CloudChat;
 public sealed class CloudTranslateService
 {
     private const string CompletionsUrl = "https://openrouter.ai/api/v1/chat/completions";
+    private const string ProviderName = "openrouter";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -28,6 +29,7 @@ public sealed class CloudTranslateService
     private readonly ICloudChatUsageService _usageService;
     private readonly IInternetAvailabilityService _internet;
     private readonly OpenRouterCatalogService _catalogService;
+    private readonly IProgressPublisher _progressPublisher;
     private readonly ILogger<CloudTranslateService> _logger;
 
     public CloudTranslateService(
@@ -37,6 +39,7 @@ public sealed class CloudTranslateService
         ICloudChatUsageService usageService,
         IInternetAvailabilityService internet,
         OpenRouterCatalogService catalogService,
+        IProgressPublisher progressPublisher,
         ILogger<CloudTranslateService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -45,6 +48,7 @@ public sealed class CloudTranslateService
         _usageService = usageService;
         _internet = internet;
         _catalogService = catalogService;
+        _progressPublisher = progressPublisher;
         _logger = logger;
     }
 
@@ -94,16 +98,34 @@ public sealed class CloudTranslateService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var content = await TryRawCompletionAsync(candidates[i], apiKey, userPrompt, maxTokens: 1024, cancellationToken);
+            var candidate = candidates[i];
+            await PublishCloudProgressAsync(
+                request, "cloud_try", candidate, 40 + (i * 5), cancellationToken);
+
+            var (content, servedModel) = await TryRawCompletionAsync(
+                candidate, apiKey, userPrompt, maxTokens: 1024, cancellationToken);
             if (content is null)
+            {
+                await PublishCloudProgressAsync(
+                    request, "cloud_failed", candidate, 40 + (i * 5), cancellationToken);
                 continue;
+            }
 
-            var attempt = ParseTranslateResponse(content);
-            if (attempt is not null
-                && !string.IsNullOrWhiteSpace(attempt.TranslatedText)
+            // The response body reports the model that ACTUALLY served the request, which
+            // differs from the requested one when the openrouter/free router is in play.
+            var effectiveModel = string.IsNullOrWhiteSpace(servedModel) ? candidate : servedModel;
+            var attempt = Stamp(ParseTranslateResponse(content), effectiveModel);
+
+            if (!string.IsNullOrWhiteSpace(attempt.TranslatedText)
                 && attempt.Confidence >= 0.5)
+            {
+                await PublishCloudProgressAsync(
+                    request, "cloud_success", effectiveModel, 100, cancellationToken);
                 return attempt;
+            }
 
+            await PublishCloudProgressAsync(
+                request, "cloud_empty", effectiveModel, 40 + (i * 5), cancellationToken);
             lastWeak = attempt;
         }
 
@@ -112,6 +134,51 @@ public sealed class CloudTranslateService
 
         _logger.LogWarning("[CloudTranslate] OpenRouter falhou a tradução; a usar fallback local (Ollama).");
         return null;
+    }
+
+    private static TranslateResponseDto Stamp(TranslateResponseDto? dto, string model)
+    {
+        var result = dto ?? new TranslateResponseDto();
+        result.Provider = ProviderName;
+        result.Model = model;
+        return result;
+    }
+
+    /// <summary>
+    /// Publishes the model in flight on the progress channel so a cancelled translation can
+    /// still report which model was being attempted (a cancellation never returns a body).
+    /// Never throws: progress is diagnostics, not part of the translation contract.
+    /// </summary>
+    private async Task PublishCloudProgressAsync(
+        TranslateRequestDto request, string stage, string model, int percent, CancellationToken ct)
+    {
+        try
+        {
+            await _progressPublisher.PublishAsync(
+                ProgressChannel.BooksInfo,
+                new ProgressUpdateDto
+                {
+                    CorrelationId = request.CorrelationId,
+                    Stage = stage,
+                    Percent = percent,
+                    Message = model,
+                    Level = "info",
+                    Service = nameof(CloudTranslateService),
+                    Operation = "TranslateAsync",
+                    Provider = ProviderName,
+                    Model = model
+                },
+                request.ConnectionId,
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[CloudTranslate] Falha ao publicar progresso {Stage}.", stage);
+        }
     }
 
     private TranslateResponseDto? ParseTranslateResponse(string content)
@@ -128,7 +195,13 @@ public sealed class CloudTranslateService
         return new TranslateResponseDto { TranslatedText = cleaned.Trim(), Confidence = 0.2 };
     }
 
-    private async Task<string?> TryRawCompletionAsync(
+    /// <summary>
+    /// Runs one raw completion and returns the cleaned content together with the model
+    /// reported by the response body (the one that actually served the request, which for
+    /// the <c>openrouter/free</c> router is never the requested id). Content is null when the
+    /// attempt failed, in which case the caller should try the next candidate.
+    /// </summary>
+    private async Task<(string? Content, string? ServedModel)> TryRawCompletionAsync(
         string model, string apiKey, string userPrompt, int maxTokens, CancellationToken ct)
     {
         if (CloudChatSettingsKeys.IsFreeModel(model))
@@ -136,7 +209,7 @@ public sealed class CloudTranslateService
             if (await _usageService.GetFreeRequestsRemainingAsync(ct) <= 0)
             {
                 _logger.LogWarning("[CloudTranslate] Teto diário de modelos gratuitos do OpenRouter atingido; a usar fallback local (Ollama).");
-                return null;
+                return (null, null);
             }
 
             try { await _usageService.RegisterFreeModelUsageAsync(ct); }
@@ -175,7 +248,7 @@ public sealed class CloudTranslateService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[CloudTranslate] Erro ao contactar OpenRouter com o modelo {Model}.", model);
-            return null;
+            return (null, null);
         }
 
         using (response)
@@ -184,7 +257,7 @@ public sealed class CloudTranslateService
             {
                 await SyncFreeUsageFromRateLimitHeadersAsync(response, CloudChatSettingsKeys.IsFreeModel(model), ct);
                 _logger.LogWarning("[CloudTranslate] 429 Too Many Requests do OpenRouter ({Model}).", model);
-                return null;
+                return (null, null);
             }
 
             if (!response.IsSuccessStatusCode)
@@ -192,7 +265,7 @@ public sealed class CloudTranslateService
                 var errorBody = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogWarning("[CloudTranslate] HTTP {Status} ({Model}): {Body}",
                     (int)response.StatusCode, model, errorBody.Length > 300 ? errorBody[..300] + "..." : errorBody);
-                return null;
+                return (null, null);
             }
 
             var fullBody = await response.Content.ReadAsStringAsync(ct);
@@ -200,10 +273,10 @@ public sealed class CloudTranslateService
             if (string.IsNullOrWhiteSpace(content))
             {
                 _logger.LogWarning("[CloudTranslate] Resposta sem conteúdo message.content ({Model}).", model);
-                return null;
+                return (null, null);
             }
 
-            return CleanResponseText(content);
+            return (CleanResponseText(content), ExtractServedModel(fullBody));
         }
     }
 
@@ -347,6 +420,27 @@ public sealed class CloudTranslateService
                 var first = choices[0];
                 if (first.TryGetProperty("message", out var message) && message.TryGetProperty("content", out var content))
                     return content.GetString();
+            }
+        }
+        catch { /* fall through */ }
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the model the provider actually served from the response body. OpenRouter echoes
+    /// the upstream model there, which is the only honest way to report which model answered
+    /// when the request went through the <c>openrouter/free</c> router.
+    /// </summary>
+    private static string? ExtractServedModel(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("model", out var model)
+                && model.ValueKind == JsonValueKind.String)
+            {
+                var value = model.GetString();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
             }
         }
         catch { /* fall through */ }

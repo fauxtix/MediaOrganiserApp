@@ -327,6 +327,163 @@ public sealed class CloudTranslateServiceTests
         Assert.Contains("\"z-ai/glm-5.2:free\"", capture.RequestBodies[1]);
     }
 
+    [Fact]
+    public async Task TranslateAsync_StampsProviderAndModelServedByResponseBody()
+    {
+        // The router answers with the upstream model, which is never the requested id.
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"model":"z-ai/glm-5.2","choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture);
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("openrouter", result!.Provider);
+        Assert.Equal("z-ai/glm-5.2", result.Model);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_FallsBackToRequestedModel_WhenResponseBodyOmitsIt()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture);
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("openrouter", result!.Provider);
+        Assert.Equal(CloudChatSettingsKeys.DefaultModelValue, result.Model);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_OverwritesProviderAndModelEmittedByTheModel()
+    {
+        // The response DTO is deserialized straight from the model's own JSON, so a rogue
+        // "provider"/"model" in the model output must never be trusted.
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95,\"provider\":\"ollama\",\"model\":\"fake/model\"}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { response }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture);
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("openrouter", result!.Provider);
+        Assert.Equal(CloudChatSettingsKeys.DefaultModelValue, result.Model);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_PublishesTheModelInFlight_ForEveryCandidate()
+    {
+        var weak = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"Hello, world!"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+        var strong = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var progress = new RecordingProgressPublisher();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { weak, strong }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture,
+            catalogResponse: """{"data":[{"id":"z-ai/glm-5.2:free","name":"GLM 5.2"}]}""",
+            progress: progress);
+
+        await service.TranslateAsync(Request(), CancellationToken.None);
+
+        var tries = progress.Updates.Where(u => u.Stage == "cloud_try").ToList();
+        Assert.Equal(2, tries.Count);
+        Assert.Equal(CloudChatSettingsKeys.DefaultModelValue, tries[0].Model);
+        Assert.Equal("z-ai/glm-5.2:free", tries[1].Model);
+        Assert.All(tries, u => Assert.Equal("openrouter", u.Provider));
+        // A cancelled request never returns a body, so the progress channel is the only
+        // way for the UI to report which model was being attempted.
+        Assert.Equal(CloudChatSettingsKeys.DefaultModelValue, tries[0].Message);
+
+        Assert.Contains(progress.Updates, u => u.Stage == "cloud_empty" && u.Model == CloudChatSettingsKeys.DefaultModelValue);
+        Assert.Contains(progress.Updates, u => u.Stage == "cloud_success" && u.Model == "z-ai/glm-5.2:free");
+    }
+
+    [Fact]
+    public async Task TranslateAsync_PublishesCloudFailed_WhenCandidateFails()
+    {
+        var failed = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            Content = new StringContent("""{"error":"rate limited"}""", Encoding.UTF8, "application/json")
+        };
+        var strong = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"choices":[{"message":{"role":"assistant","content":"{\"translatedText\":\"Hello, world!\",\"confidence\":0.95}"}}]}""",
+                Encoding.UTF8, "application/json")
+        };
+
+        var capture = new HttpCapture();
+        var progress = new RecordingProgressPublisher();
+        var service = CreateService(
+            responses: new Queue<HttpResponseMessage>(new[] { failed, strong }),
+            settings: new Dictionary<string, string?>
+            {
+                [CloudChatSettingsKeys.OpenRouterApiKey] = ApiKey
+            },
+            capture,
+            catalogResponse: """{"data":[{"id":"z-ai/glm-5.2:free","name":"GLM 5.2"}]}""",
+            progress: progress);
+
+        var result = await service.TranslateAsync(Request(), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("z-ai/glm-5.2:free", result!.Model);
+        Assert.Contains(progress.Updates, u => u.Stage == "cloud_failed" && u.Model == CloudChatSettingsKeys.DefaultModelValue);
+    }
+
     private static CloudTranslateService CreateService(
         Queue<HttpResponseMessage>? responses,
         Dictionary<string, string?> settings,
@@ -334,7 +491,8 @@ public sealed class CloudTranslateServiceTests
         bool internetReachable = true,
         Mock<ICloudChatUsageService>? usage = null,
         int freeRequestsRemaining = 1000,
-        string catalogResponse = EmptyCatalogResponse)
+        string catalogResponse = EmptyCatalogResponse,
+        RecordingProgressPublisher? progress = null)
     {
         var repo = new Mock<IAIChatSettingsRepository>();
         repo.Setup(x => x.GetValueAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -387,7 +545,38 @@ public sealed class CloudTranslateServiceTests
             usageMock.Object,
             internet.Object,
             new OpenRouterCatalogService(factory.Object, repo.Object, internet.Object, Mock.Of<ILogger<OpenRouterCatalogService>>()),
+            progress ?? new RecordingProgressPublisher(),
             Mock.Of<ILogger<CloudTranslateService>>());
+    }
+
+    private sealed class RecordingProgressPublisher : IProgressPublisher
+    {
+        public List<ProgressUpdateDto> Updates { get; } = new();
+
+        public Task PublishAsync(
+            ProgressChannel channel,
+            ProgressUpdateDto update,
+            string? connectionId,
+            CancellationToken cancellationToken = default)
+        {
+            Updates.Add(update);
+            return Task.CompletedTask;
+        }
+
+        public Task PublishChunkAsync(
+            ProgressChannel channel,
+            string chunk,
+            string? connectionId,
+            string? correlationId = null,
+            CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task PublishDoneAsync(
+            ProgressChannel channel,
+            string? connectionId,
+            string? correlationId = null,
+            CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler

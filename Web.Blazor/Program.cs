@@ -92,7 +92,7 @@ public class Program
             .AddInteractiveServerComponents()
             .AddInteractiveServerComponents(options =>
             {
-                options.DetailedErrors = true;
+                options.DetailedErrors = builder.Environment.IsDevelopment();
             });
 
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -134,14 +134,14 @@ public class Program
         builder.Services.AddHttpClient("OllamaHttpClient", client =>
         {
             client.BaseAddress = new Uri("http://localhost:11434");
-            client.Timeout = TimeSpan.FromMinutes(15); // Dá margem para qualquer modelo carregar na RAM/GPU
+            client.Timeout = TimeSpan.FromMinutes(15); // Dï¿½ margem para qualquer modelo carregar na RAM/GPU
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(15),
             EnableMultipleHttp2Connections = true,
 
-            // Força o Windows a manter o canal TCP aberto mesmo com a GPU a 100%
+            // Forï¿½a o Windows a manter o canal TCP aberto mesmo com a GPU a 100%
             KeepAlivePingDelay = TimeSpan.FromSeconds(5),
             KeepAlivePingTimeout = TimeSpan.FromSeconds(30),
             KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
@@ -152,7 +152,7 @@ public class Program
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient("OllamaHttpClient");
 
-            // Mantém-se agnóstico (sem modelo fixo) para respeitar os teus settings
+            // Mantï¿½m-se agnï¿½stico (sem modelo fixo) para respeitar os teus settings
             return new OllamaApiClient(httpClient, defaultModel: "");
         })
         .UseFunctionInvocation()
@@ -172,21 +172,24 @@ public class Program
         // ----------------------
         app.UseRequestLocalization(app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value);
 
+        var apiBaseUrl = (builder.Configuration["BaseUrl"] ?? string.Empty).TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(apiBaseUrl))
+            throw new InvalidOperationException("Missing BaseUrl configuration.");
+
+        Static.Endpoints.Initialize(apiBaseUrl + "/api");
+
         if (app.Environment.IsDevelopment())
         {
-            var apiBaseUrl = builder.Configuration["BaseUrl"] ??
-                throw new InvalidOperationException("Missing Api:BaseUrl configuration.");
-
-            Static.Endpoints.Initialize(apiBaseUrl + "/api");
             app.UseDeveloperExceptionPage();
             app.UseMigrationsEndPoint();
             app.UseHttpsRedirection();
         }
         else
         {
-            Static.Endpoints.Initialize("http://localhost:4100/api");
             app.UseExceptionHandler("/Error");
-            app.UseHsts();
+
+            if (builder.Configuration.GetValue("Hsts:Enabled", true))
+                app.UseHsts();
         }
 
         app.UseStaticFiles();

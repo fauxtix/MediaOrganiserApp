@@ -2,6 +2,7 @@
 @using Microsoft.JSInterop
 @using System.Text.Json
 @using MediaOrganizerApp.Application.DTOs.AI
+@using Web.Blazor.Components
 @using Web.Blazor.Services.ApiWrappers
 @inject ConversationsClientService ConversationsClient
 @inject IStringLocalizer<App> L
@@ -19,8 +20,19 @@
     </div>
 
     <div class="chat-history-actions">
-        <button class="chat-history-action" @onclick="ExportConversationsAsync">@L["ChatExport"]</button>
-        <button class="chat-history-action" @onclick="ImportConversationsAsync">@L["ChatImport"]</button>
+        <button class="chat-history-action"
+                disabled="@(Conversations.Count == 0)"
+                @onclick="ExportConversationsAsync">@L["ChatExport"]</button>
+        <button class="chat-history-action"
+                disabled="@(Conversations.Count == 0)"
+                @onclick="ImportConversationsAsync">@L["ChatImport"]</button>
+        <button class="chat-history-action chat-history-action-danger"
+                disabled="@(_deleting || Conversations.Count == 0)"
+                title="@L["ChatDeleteHistoryTitle"]"
+                @onclick="AskDeleteAllConversations">
+            <i class="fa fa-trash" aria-hidden="true"></i>
+            <span>@L["ChatDeleteHistory"]</span>
+        </button>
     </div>
 
     @if (!string.IsNullOrEmpty(_status))
@@ -53,20 +65,37 @@
     </div>
 </div>
 
+<ConfirmAppWarning DialogTitle="@L["ChatDeleteHistoryTitle"]"
+                   Message="@string.Format(L["ChatDeleteHistoryMessage"], Conversations.Count)"
+                   AlertMessage="@L["ChatDeleteHistoryWarning"]"
+                   AlertMessageType="AlertMessageType.Error"
+                   IconType="AppDefinitions.OpcoesRegisto.Apagar"
+                   DialogWidth="440px"
+                   ZIndex="10010"
+                   Visible="_confirmDeleteAll"
+                   OnConfirmationYes="DeleteAllConversationsAsync"
+                   OnConfirmationNo="CancelDeleteAllConversations" />
+
 @code {
     public bool IsOpen { get; set; }
 
     [Parameter]
     public EventCallback<string> OnLoadConversation { get; set; }
 
+    [Parameter]
+    public EventCallback OnHistoryCleared { get; set; }
+
     private List<ConversationDto> Conversations { get; set; } = new();
     private bool _loading;
+    private bool _deleting;
+    private bool _confirmDeleteAll;
     private string _status = string.Empty;
 
     public async Task Open()
     {
         _loading = true;
         _status = string.Empty;
+        _confirmDeleteAll = false;
         IsOpen = true;
         StateHasChanged();
 
@@ -190,6 +219,73 @@
         StateHasChanged();
     }
 
+    private void AskDeleteAllConversations()
+    {
+        if (_deleting || Conversations.Count == 0)
+        {
+            return;
+        }
+
+        _confirmDeleteAll = true;
+    }
+
+    private void CancelDeleteAllConversations()
+    {
+        _confirmDeleteAll = false;
+    }
+
+    private async Task DeleteAllConversationsAsync()
+    {
+        if (_deleting || Conversations.Count == 0)
+        {
+            _confirmDeleteAll = false;
+            return;
+        }
+
+        _deleting = true;
+        _confirmDeleteAll = false;
+        StateHasChanged();
+
+        var pending = Conversations.ToList();
+        var deleted = 0;
+
+        try
+        {
+            foreach (var conv in pending)
+            {
+                await ConversationsClient.DeleteAsync(conv.Id);
+                deleted++;
+            }
+
+            Conversations.Clear();
+            _status = string.Format(L["ChatDeleteHistoryOk"], deleted);
+
+            if (OnHistoryCleared.HasDelegate)
+            {
+                await OnHistoryCleared.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Reload what actually survived: a failure halfway through leaves the panel
+            // showing conversations that are already gone.
+            _status = string.Format(L["ChatDeleteHistoryError"], ex.Message);
+            try
+            {
+                Conversations = await ConversationsClient.GetAllAsync() ?? new List<ConversationDto>();
+            }
+            catch
+            {
+                Conversations = new List<ConversationDto>();
+            }
+        }
+        finally
+        {
+            _deleting = false;
+            StateHasChanged();
+        }
+    }
+
     private static bool IsValidMessagesJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -264,22 +360,93 @@
 
     .chat-history-actions {
         display: flex;
+        align-items: center;
         gap: 8px;
-        margin-bottom: 10px;
+        flex-wrap: wrap;
+        margin: 2px 0 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface-alt);
+        box-shadow: var(--app-shadow);
+    }
+
+    .chat-history-actions-label {
+        margin-right: 2px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--app-text-secondary);
+        white-space: nowrap;
     }
 
     .chat-history-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
         border: 1px solid var(--app-border);
-        background: var(--app-surface-alt);
+        background: var(--app-surface);
         color: var(--app-text-primary);
-        border-radius: 6px;
-        padding: 5px 12px;
+        border-radius: 8px;
+        padding: 6px 12px;
         font-size: 0.85rem;
+        font-weight: 500;
+        line-height: 1.35;
         cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease,
+                    color 0.15s ease, transform 0.1s ease;
     }
 
     .chat-history-action:hover {
         background: var(--app-surface-hover);
+    }
+
+    .chat-history-action:active {
+        transform: translateY(1px);
+    }
+
+    .chat-history-action:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .chat-history-action:disabled:hover {
+        background: var(--app-surface);
+    }
+
+    [data-theme="dark"] .chat-history-action:not(.chat-history-action-danger) {
+        background: var(--app-surface-hover);
+    }
+
+    [data-theme="dark"] .chat-history-action:not(.chat-history-action-danger):hover:not(:disabled) {
+        background: var(--app-border);
+    }
+
+    [data-theme="dark"] .chat-history-action:disabled:not(.chat-history-action-danger) {
+        background: var(--app-surface-hover);
+    }
+
+    .chat-history-action-danger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: auto;
+        background: var(--app-danger-bg);
+        border-color: var(--app-danger-border);
+        color: var(--app-danger-text);
+    }
+
+    .chat-history-action-danger:hover:not(:disabled) {
+        background: var(--app-danger-hover);
+        border-color: var(--app-danger-hover);
+        color: var(--app-on-danger);
+    }
+
+    .chat-history-action-danger:disabled {
+        background: var(--app-danger-bg);
+        border-color: var(--app-danger-border);
+        color: var(--app-danger-text);
     }
 
     .chat-history-status {

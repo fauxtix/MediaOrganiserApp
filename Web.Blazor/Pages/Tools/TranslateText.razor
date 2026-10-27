@@ -42,26 +42,58 @@
                             <div>
                                 @if (IsTranslating)
                                 {
-                                    <div class="translate-progress-wrap">
+                                    <div class="d-flex align-items-center" style="gap:10px;">
                                         <div class="bouncing-dots">
                                             @L["TituloTraducao"]
                                             <span></span><span></span><span></span>
                                         </div>
-                                        @if (!string.IsNullOrWhiteSpace(ProgressMessage))
-                                        {
-                                            <div class="translate-progress-message">@ProgressMessage</div>
-                                        }
+                                        <SfButton CssClass="e-danger e-outline e-round-corner"
+                                                  IconCss="fa fa-times"
+                                                  Content="@L["btnCancelar"]"
+                                                  @onclick="CancelTranslate"></SfButton>
                                     </div>
+                                    @if (!string.IsNullOrWhiteSpace(ProgressMessage))
+                                    {
+                                        <div class="translate-progress-message">@ProgressMessage</div>
+                                    }
                                 }
                                 else
                                 {
+                                    @* Always available, including right after a cancel: the user may
+                                       simply insist, and pressing it clears the cancelled note. *@
                                     <SfButton CssClass="e-success e-round-corner"
                                         IconCss="fa fa-language" IconPosition="IconPosition.Right"
                                               Disabled="!CanTranslate"
                                               @onclick="Translate">@L["TituloTraduzir"]</SfButton>
                                 }
+                                @* Provider/model lives under the button, never in the right slot:
+                                   that slot is taken by the cancelled note or the confidence,
+                                   and the model ids are long enough to overlap. While the
+                                   translation runs the progress message already names the
+                                   model, so the chip is hidden to avoid saying it twice. *@
+                                @if (ShowModelChip)
+                                {
+                                    <div class="translate-model-chip"
+                                         title="@ModelTooltip(ShownProvider, ShownModel, attempted: !HasResultModel)">
+                                        <i class="@ProviderIcon(ShownProvider)" aria-hidden="true"></i>
+                                        <span class="translate-model-label">@ProviderLabel(ShownProvider)</span>
+                                        <span class="translate-model-name">@ModelLabel(ShownModel)</span>
+                                    </div>
+                                }
                             </div>
-                            <div class="text-muted">@((Confidence.HasValue) ? L["Confidence", Confidence.Value] : string.Empty)</div>
+                            <div class="text-muted translate-side-meta">
+                                @if (IsCancelled)
+                                {
+                                    <span class="translate-cancelled">
+                                        <i class="fa fa-ban" aria-hidden="true"></i>
+                                        <span>@L["TituloTraducaoCancelada"]</span>
+                                    </span>
+                                }
+                                else if (Confidence.HasValue)
+                                {
+                                    @L["Confidence", Confidence.Value]
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -153,16 +185,63 @@
         }
     }
 
-    .translate-progress-wrap {
+    /* Shown on the right after the user cancels: static, no animation, and the "Translate"
+       button stays available on the left so the user can insist (which clears the note).
+       White-space: nowrap keeps the note on a single line next to the button. */
+    .translate-cancelled {
         display: inline-flex;
-        flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.9rem;
+        color: var(--app-text-secondary);
+        white-space: nowrap;
+    }
+
+    /* Right slot of the button row: the confidence (and the cancelled note) used to be
+       centred in the row, which dropped it right on top of the model chip underneath.
+       Pinned to the top of the row and centred against the button's own line instead
+       (SfButton normal = 32px: 22px line box + 2x4px padding + 2px border). */
+    .translate-panel .translate-side-meta {
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        min-height: 32px;
     }
 
     .translate-progress-message {
         font-size: 0.85rem;
         color: var(--app-text-secondary);
         margin-top: 0.25rem;
+    }
+
+    /* Provider + model that answered, under the Translate button. Model ids are long, so the
+       name is truncated and the full id lives in the title tooltip. */
+    .translate-panel .translate-model-chip,
+    .translate-panel .translate-model-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--app-text-secondary);
+        white-space: nowrap;
+    }
+
+    .translate-panel .translate-model-chip {
+        display: flex;
+        max-width: 100%;
+        margin-top: 0.35rem;
+        padding: 0.15rem 0.45rem;
+        border: 1px solid var(--app-info-border);
+        border-radius: 0.75rem;
+        background: var(--app-info-bg);
+        color: var(--app-info-text);
+    }
+
+    .translate-panel .translate-model-name {
+        max-width: 16rem;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
 </style>

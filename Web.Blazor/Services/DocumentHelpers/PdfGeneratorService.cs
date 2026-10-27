@@ -23,7 +23,7 @@ namespace Web.Blazor.Services.DocumentHelpers
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _env["ApiKey"]);
-            _Uri = $"{_env["BaseUrl"]}/authors";
+            _Uri = $"{_env["BaseUrl"]}/api/authors";
             _localizer = localizer;
         }
 
@@ -59,7 +59,7 @@ namespace Web.Blazor.Services.DocumentHelpers
             {
                 if (yPosition > page.GetClientSize().Height - 40)
                 {
-                    AddNewPage(document, ref page, ref graphics, ref yPosition, titleFont, contentFont, (g, t, c) => DrawGenericHeader(g, t, c, "Publicações Report", columns));
+                    AddNewPage(document, ref page, ref graphics, ref yPosition, titleFont, contentFont, (g, t, c) => DrawGenericHeader(g, t, c, "Publicaï¿½ï¿½es Report", columns));
                 }
 
                 var rowColumns = new List<(string Value, float XPosition, float Width)>

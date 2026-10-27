@@ -218,6 +218,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
+            app.UseHttpsRedirection();
             app.MapOpenApi();
             app.MapScalarApiReference(options =>
             {
@@ -227,8 +228,25 @@ public class Program
                     .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
             });
         }
+        else
+        {
+            app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+            {
+                var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+                app.Logger.LogError(error, "Unhandled exception in the MediaOrganizer API pipeline.");
 
-        app.UseHttpsRedirection();
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/problem+json";
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    type = "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+                    title = "An unexpected error occurred.",
+                    status = StatusCodes.Status500InternalServerError
+                });
+            }));
+        }
+
         app.UseStaticFiles();
         app.UseRouting();
 

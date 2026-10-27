@@ -11,6 +11,7 @@
           Visible="@Visible"
           AllowDragging="true"
           IsModal="true"
+          ZIndex="@ZIndex"
           ShowCloseIcon="false">
     <DialogTemplates>
         <Header>
@@ -76,6 +77,9 @@
     [Parameter] public MessageSeverity MessageSeverityType { get; set; } = MessageSeverity.Info;
     [Parameter] public string PositionX { get; set; } = "center";
     [Parameter] public string PositionY { get; set; } = "center";
+    /* Default matches the Syncfusion default. Raise it (e.g. 10010) when the dialog has to
+       sit above a custom high-z-index surface such as the chat history drawer (9999). */
+    [Parameter] public int ZIndex { get; set; } = 1000;
 
     private string TitleColor { get; set; } = "var(--app-warning-text)";
     private string OkButtonColor { get; set; } = "e-danger e-round-corner";

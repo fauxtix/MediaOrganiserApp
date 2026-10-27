@@ -165,7 +165,8 @@
         </div>
     </div>
 
-    <HistoryPanel @ref="historyPanel" OnLoadConversation="LoadConversationAsync" />
+    <HistoryPanel @ref="historyPanel" OnLoadConversation="LoadConversationAsync"
+                  OnHistoryCleared="OnHistoryClearedAsync" />
 </div>
 
 <SfToast @ref="toastObj"
