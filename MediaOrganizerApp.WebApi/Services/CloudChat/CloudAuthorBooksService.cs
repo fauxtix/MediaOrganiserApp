@@ -250,7 +250,7 @@ public sealed class CloudAuthorBooksService
 
         if (lastEmpty is null || lastEmpty.Count == 0)
         {
-            _logger.LogInformation(
+            _logger.LogWarning(
                 "[CloudAuthorBooks] Sweep terminou sem resultados para {Author}; resultados dos modelos: {Outcomes}",
                 author, string.Join("; ", outcomes.Select(kv => $"{kv.Key}={kv.Value}")));
         }

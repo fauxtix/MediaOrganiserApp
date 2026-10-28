@@ -186,6 +186,43 @@ namespace Web.Blazor.Pages.BaseComponents
         {
             await GetAllLogs();
         }
+
+        protected async Task OnFilterByLevel(string level)
+        {
+            await GetAllLogs();
+
+            if (string.IsNullOrWhiteSpace(level))
+            {
+                return;
+            }
+
+            if (level.ToLower() == "warninglogs")
+            {
+                var warnings = from record in Logs
+                               where record.Level.ToLower() == "warning"
+                               select record;
+                Logs = warnings.ToList();
+            }
+            else if (level.ToLower() == "errorlogs")
+            {
+                var errors = from record in Logs
+                             where record.Level.ToLower() == "error"
+                             select record;
+                Logs = errors.ToList();
+            }
+            else if (level.ToLower() == "infologs")
+            {
+                var infos = from record in Logs
+                            where record.Level.ToLower() == "information"
+                            select record;
+                Logs = infos.ToList();
+            }
+            else
+            {
+                await GetAllLogs();
+            }
+        }
+
         protected async Task onViewLogins()
         {
             Logs = (await logService!.ViewLogins()).ToList();

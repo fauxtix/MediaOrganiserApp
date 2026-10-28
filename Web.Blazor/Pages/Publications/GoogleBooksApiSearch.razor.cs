@@ -195,9 +195,6 @@ namespace Web.Blazor.Pages.Publications
                         {
                             bookInfo = translatedBook;
                             usedTranslation = true;
-                            _logger.LogInformation(
-                                "Google Books devolveu resultados para o título traduzido '{TranslatedTitle}' (original '{Title}' - '{Author}').",
-                                translatedTitle, bookTitle, author);
                         }
                         else
                         {

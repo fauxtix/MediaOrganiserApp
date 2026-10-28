@@ -18,16 +18,29 @@
 }
 else
 {
-    <div class="d-flex align-items-md-start">
-        <SfButton id="btn-1" CssClass="e-danger e-round-corner mx-3 pull-left" IconCss="fa fa-trash" Content="@L["DeleteMsg"]"
-                  @onclick="@onDeleteLogs">
-        </SfButton>
-        <SfButton CssClass="e-success e-round-corner mx-3 pull-left" IconCss="fa fa-eye" Content="@L["ViewLogins"]"
-                  @onclick="onViewLogins">
-        </SfButton>
-        <SfButton CssClass="e-primary e-round-corner mx-3 pull-left" IconCss="fa fa-table" Content="@L["msgAll"]"
-                  @onclick="onGetAll">
-        </SfButton>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <div class="d-flex align-items-center flex-wrap">
+            <SfButton CssClass="e-info e-round-corner mx-3" IconCss="fa fa-info-circle" Content="@L["Information"]"
+                      @onclick="@(() => OnFilterByLevel("infologs"))">
+            </SfButton>
+            <SfButton CssClass="e-warning e-round-corner mx-3" IconCss="fa fa-exclamation-triangle" Content="@L["Warning"]"
+                      @onclick="@(() => OnFilterByLevel("warninglogs"))">
+            </SfButton>
+            <SfButton CssClass="e-danger e-round-corner mx-3" IconCss="fa fa-exclamation-circle" Content="@L["Error"]"
+                      @onclick="@(() => OnFilterByLevel("errorlogs"))">
+            </SfButton>
+            <SfButton CssClass="e-success e-round-corner mx-3" IconCss="fa fa-eye" Content="@L["ViewLogins"]"
+                      @onclick="onViewLogins">
+            </SfButton>
+            <SfButton CssClass="e-primary e-round-corner mx-3" IconCss="fa fa-table" Content="@L["msgAll"]"
+                      @onclick="onGetAll">
+            </SfButton>
+        </div>
+        <div class="d-flex align-items-center">
+            <SfButton id="btn-1" CssClass="e-danger e-round-corner mx-3" IconCss="fa fa-trash" Content="@L["DeleteMsg"]"
+                      @onclick="@onDeleteLogs">
+            </SfButton>
+        </div>
     </div>
     @* <hr class="divider" /> *@
 

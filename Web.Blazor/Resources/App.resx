@@ -1342,7 +1342,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="ChatContextExceededDetail" xml:space="preserve">
     <value>A conversa ultrapassou o limite de contexto do modelo ({0} tokens). Inicie uma nova conversa.</value>
   </data>
-        <data name="ChatResponseReceived" xml:space="preserve">
+  <data name="ChatResponseReceived" xml:space="preserve">
     <value>Resposta recebida</value>
   </data>
   <data name="ChatSafetyArtifactHint" xml:space="preserve">
@@ -1381,7 +1381,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="ChatTokensRemaining" xml:space="preserve">
     <value>Restam {0}</value>
   </data>
-    <data name="CloudChatApiKey" xml:space="preserve">
+  <data name="CloudChatApiKey" xml:space="preserve">
     <value>Chave da API OpenRouter</value>
   </data>
   <data name="CloudChatApiKeyConfigured" xml:space="preserve">
@@ -1874,7 +1874,7 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
     <value>Top Albums</value>
   </data>
   <data name="MoreInfo" xml:space="preserve">
-    <value>Mais Informação</value>
+    <value>Mais Info</value>
   </data>
   <data name="DiscographyOf" xml:space="preserve">
     <value>Discografia de {0}</value>
@@ -2586,5 +2586,14 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   </data>
   <data name="TituloGoogleApi" xml:space="preserve">
     <value>Google Api</value>
+  </data>
+  <data name="Information" xml:space="preserve">
+    <value>Informação</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Aviso</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Erro</value>
   </data>
 </root>

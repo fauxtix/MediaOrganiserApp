@@ -100,9 +100,9 @@ else
                                       IconCss="fa fa-info"
                                       Content="@L["MoreInfo"]"
                                       @onclick="@(blnEdit ? GetMediaInfo : FillMediaInfoWithAI)"
-                                      Disabled="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) &&
-                                                                                                                                                                                                    !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
-                                                                                                                                                                                                    SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
+                                      hidden="@(blnEdit ? !string.IsNullOrWhiteSpace(SelectedRecord.Notas) &&
+                                                    !string.IsNullOrWhiteSpace(SelectedRecord.AnoEdicao) &&
+                                                    SelectedRecord.AnoEdicao != DateTime.Now.Year.ToString() : false)">
                             </SfButton>
                         </div>
                         <div class="mt-4">

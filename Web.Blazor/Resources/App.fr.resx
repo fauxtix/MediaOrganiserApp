@@ -683,7 +683,7 @@
     <value>Liste des formats</value>
   </data>
   <data name="DeleteMsg" xml:space="preserve">
-    <value>Apagar</value>
+    <value>Supprimer</value>
   </data>
   <data name="EditMsg" xml:space="preserve">
     <value>Éditer</value>
@@ -2583,5 +2583,14 @@
   </data>
   <data name="TituloGoogleApi" xml:space="preserve">
     <value>Google Api</value>
+  </data>
+  <data name="Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Avertissement</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Erreur</value>
   </data>
 </root>

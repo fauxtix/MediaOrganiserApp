@@ -30,18 +30,27 @@ public class Program
         // ----------------------
         // Configure Logging
         // ----------------------
-        builder.Logging.ClearProviders();
-        builder.Logging.SetMinimumLevel(LogLevel.Information);
-        builder.Logging.AddEventLog(eventLogSettings => eventLogSettings.SourceName = "OrganizeItLogs");
-        builder.Logging.AddDebug();
+        //builder.Logging.ClearProviders();
+        //builder.Logging.SetMinimumLevel(LogLevel.Information);
+        //builder.Logging.AddEventLog(eventLogSettings => eventLogSettings.SourceName = "OrganizeItLogs");
+        //builder.Logging.AddDebug();
 
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(builder.Configuration)
-            .Filter.ByExcluding(ExcludeHttpLog)
-            .Enrich.FromLogContext()
-            .CreateLogger();
+        //Log.Logger = new LoggerConfiguration()
+        //    .ReadFrom.Configuration(builder.Configuration)
+        //    .Filter.ByExcluding(ExcludeHttpLog)
+        //    .Enrich.FromLogContext()
+        //    .CreateLogger();
 
-        builder.Logging.AddSerilog();
+        //builder.Logging.AddSerilog();
+
+        builder.Host.UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .Filter.ByExcluding(ExcludeHttpLog);
+        });
 
         // ----------------------
         // Connection string
@@ -160,6 +169,7 @@ public class Program
         // ----------------------------------------------------------------
 
         var app = builder.Build();
+
 
         // ----------------------
         // Syncfusion License

@@ -4,7 +4,7 @@ using System.Text.Json;
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace Web.Blazor.Services.ApiWrappers
 {
@@ -19,6 +19,8 @@ namespace Web.Blazor.Services.ApiWrappers
             _http = http;
             _logger = logger;
             _config = config;
+
+
         }
 
         // The Google Books API key must always be taken from the database (dbo.ApplicationSettings).
@@ -90,18 +92,13 @@ namespace Web.Blazor.Services.ApiWrappers
             {
                 var sw = Stopwatch.StartNew();
                 var q = $"inauthor:{Uri.EscapeDataString(author)}";
-                //var q = $"inauthor:\"{Uri.EscapeDataString(author)}\"";
                 var defaultMax = 20;
                 var url = $"https://www.googleapis.com/books/v1/volumes?q={q}&maxResults={defaultMax}&fields=totalItems,items(id,volumeInfo/title,volumeInfo/publishedDate,volumeInfo/imageLinks)";
                 var suffix = BuildAuthSuffix(out var country);
                 url += suffix;
                 urlForLog = url;
-
-                // TEMPORARY (tests): expose the full URL incl. API key in logs. Re-mask with MaskUrl(url) later.
-                _logger.LogInformation("Google Books lookup. Author={Author} Url={Url} KeyUsed={KeyUsed} Country={Country}", author, url, true, country);
-
+                await Task.Delay(500); // slight delay to avoid Google Books rate-limit on rapid-fire queries
                 using var resp = await _http.GetAsync(url);
-
                 // Surface rate-limit to callers by throwing so callers can detect 429 specifically
                 if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
@@ -198,9 +195,6 @@ namespace Web.Blazor.Services.ApiWrappers
                     Thumbnail = i.volumeInfo?.imageLinks?.thumbnail ?? i.volumeInfo?.imageLinks?.smallThumbnail
                 }).ToList();
 
-                _logger.LogInformation(
-                    "Google Books returned {Count} items (total {TotalItems}) for author {Author}. Status=200 Url={Url} DurationMs={DurationMs}",
-                    list.Count, respObj?.totalItems, author, url, sw.ElapsedMilliseconds);
                 return list;
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
@@ -252,9 +246,6 @@ namespace Web.Blazor.Services.ApiWrappers
                 query += suffix;
                 urlForLog = query;
 
-                // TEMPORARY (tests): expose the full URL incl. API key in logs. Re-mask with MaskUrl(query) later.
-                _logger.LogInformation("Google Books GetBookAsync. Title={Title} Author={Author} Url={Url} KeyUsed={KeyUsed} Country={Country}", bookTitle, author, query, true, country);
-
                 using var resp = await _http.GetAsync(query);
 
                 // Surface 429 so callers can detect and fallback to AI
@@ -299,7 +290,6 @@ namespace Web.Blazor.Services.ApiWrappers
                     return new GoogleBook();
                 }
 
-                _logger.LogInformation("Google Books GetBookAsync succeeded. Title={Title} Author={Author} Status=200 TotalItems={TotalItems} Url={Url} DurationMs={DurationMs}", bookTitle, author, book?.totalItems, query, sw.ElapsedMilliseconds);
                 return book ?? new GoogleBook();
             }
             catch (GoogleBooksKeyNotConfiguredException)

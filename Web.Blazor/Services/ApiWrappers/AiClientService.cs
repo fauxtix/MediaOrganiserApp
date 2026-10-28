@@ -39,7 +39,7 @@ public sealed class AiClientService
         if (cloud is not null)
             return cloud;
 
-        _logger.LogInformation("OpenRouter author-profile unavailable; falling back to local provider.");
+        _logger.LogWarning("OpenRouter author-profile unavailable; falling back to local provider.");
         return await GetAuthorProfileLocalAsync(name, language, connectionId, correlationId, "cloud-fallback");
     }
 

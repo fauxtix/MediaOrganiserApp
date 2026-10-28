@@ -2586,4 +2586,13 @@
   <data name="TituloGoogleApi" xml:space="preserve">
     <value>Google Api</value>
   </data>
+  <data name="Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
 </root>

@@ -15,7 +15,6 @@ using MediaOrganizerApp.WebApi.Hubs;
 using MediaOrganizerApp.WebApi.Middlewares;
 using MediaOrganizerApp.WebApi.Services;
 using MediaOrganizerApp.WebApi.Services.CloudChat;
-using MediaOrganizerApp.Application.Interfaces.Services.AI;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;

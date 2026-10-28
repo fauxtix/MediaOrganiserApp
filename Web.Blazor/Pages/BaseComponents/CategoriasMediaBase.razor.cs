@@ -134,7 +134,6 @@ namespace Web.Blazor.Pages.BaseComponents
                     {
                         ToastCssClass = "e-toast-success";
                         ToastContent = localizerApp["SuccessInsert"];
-                        logger.LogInformation(ToastContent);
                         SelectedCategory = new CategoryVM();
                     }
                 }

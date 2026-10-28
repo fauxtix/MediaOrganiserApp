@@ -22,9 +22,10 @@ namespace Web.Blazor.Components.Authors
         [Parameter]
         public bool DebugForceGoogle429 { get; set; } = false;
 
-        [Inject] public BooksInfoProgressClient ProgressClient { get; set; } // Inject the client
+        [Inject] public BooksInfoProgressClient ProgressClient { get; set; }
         [Inject] public IConfiguration Configuration { get; set; }
         [Inject] public NavigationManager NavigationManager { get; set; }
+        [Inject] public ILogger<AuthorBooks> _logger { get; set; }
 
         private string aiProgressMessage = "";
         private bool showAiProgress = false;
@@ -196,6 +197,7 @@ namespace Web.Blazor.Components.Authors
                     _googleOutcome = L["AuthorSearchErrorGoogle", AuthorName];
                     MessageLabel = _googleOutcome;
                     await UpdateMessageLabelAsync(MessageLabel);
+                    _logger.LogWarning("Error fetching books from Google for author {AuthorName}", AuthorName);
                     return null;
                 }
 
@@ -204,6 +206,7 @@ namespace Web.Blazor.Components.Authors
                     _googleOutcome = L["AuthorSearchNoGoogleResults", AuthorName];
                     MessageLabel = _googleOutcome;
                     await UpdateMessageLabelAsync(MessageLabel);
+                    _logger.LogWarning("No books found from Google for author {AuthorName}", AuthorName);
                     return null;
                 }
 
@@ -219,6 +222,7 @@ namespace Web.Blazor.Components.Authors
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.ServiceUnavailable)
             {
                 googleServiceUnavailable = true;
+                _logger.LogError(ex, "Google Books service unavailable for author {AuthorName}", AuthorName);
                 _googleOutcome = L["AuthorSearchGoogleServiceUnavailable", AuthorName];
                 MessageLabel = _googleOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
@@ -227,6 +231,7 @@ namespace Web.Blazor.Components.Authors
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 googleRateLimited = true;
+                _logger.LogError(ex, "Google Books rate limit exceeded for author {AuthorName}", AuthorName); 
                 _googleOutcome = L["AuthorSearchGoogleRateLimited", AuthorName];
                 MessageLabel = _googleOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
@@ -236,11 +241,13 @@ namespace Web.Blazor.Components.Authors
             {
                 _googleOutcome = L["AuthorSearchGoogleNoKey"];
                 MessageLabel = _googleOutcome;
+                _logger.LogError("Google Books API key not configured for author {AuthorName}", AuthorName);
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching books from Google for author {AuthorName}", AuthorName);
                 _googleOutcome = L["AuthorSearchErrorGoogle", AuthorName];
                 MessageLabel = _googleOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
@@ -277,16 +284,18 @@ namespace Web.Blazor.Components.Authors
 
                 return wikiDataResults;
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 _wikidataOutcome = L["AuthorSearchErrorWikidata", AuthorName];
+                _logger.LogError(ex, "Error fetching books from Wikidata for author {AuthorName}", AuthorName);
                 MessageLabel = _wikidataOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _wikidataOutcome = L["AuthorSearchErrorWikidata", AuthorName];
+                _logger.LogError(ex, "Error fetching books from Wikidata for author {AuthorName}", AuthorName);
                 MessageLabel = _wikidataOutcome;
                 await UpdateMessageLabelAsync(MessageLabel);
                 return null;
@@ -363,6 +372,7 @@ namespace Web.Blazor.Components.Authors
                     }
                     else
                     {
+                        _logger.LogWarning("Google Books Online não disponível para autor {AuthorName}, verifique credenciais de acesso ao serviço", AuthorName);
                         MessageLabel = $"Google Books Online não disponível ({AuthorName}, verifique credenciais de acesso ao serviço)";
                     }
                 }
@@ -448,8 +458,9 @@ namespace Web.Blazor.Components.Authors
                 await UpdateMessageLabelAsync(MessageLabel);
                 await InvokeAsync(StateHasChanged);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error during AI search for author {AuthorName}", AuthorName);
                 resultList = new List<GoogleBookInfo>();
                 aiProviderMessage = null;
                 MessageLabel = _loaderStopwatch.IsRunning
@@ -483,9 +494,10 @@ namespace Web.Blazor.Components.Authors
                     await UpdateMessageLabelAsync(MessageLabel);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 resultList = new List<GoogleBookInfo>();
+                _logger.LogError(ex, "Error during Ollama AI search for author {AuthorName}", author);
                 aiProviderMessage = null;
                 MessageLabel = _loaderStopwatch.IsRunning
                     ? L["AuthorSearchFailedAfter", author, _loaderStopwatch.Elapsed.TotalSeconds]
