@@ -183,10 +183,10 @@ else
                             AllowSorting="false"
                             AllowFiltering="false"
                             AllowSelection="true"
-                            Height="420">
+                            Height="190">
                         <GridEvents TValue="PlaylistItemDto" RowSelected="OnQueueRowSelected"></GridEvents>
 
-                        <GridPageSettings PageSize="10" PageCount="5" PageSizes="true"></GridPageSettings>
+                        <GridPageSettings PageSize="5" PageCount="5" PageSizes="true"></GridPageSettings>
 
                         <GridColumns>
                             <GridColumn Field="@nameof(PlaylistItemDto.SortOrder)" HeaderText="#" Width="80" TextAlign="TextAlign.Center" />

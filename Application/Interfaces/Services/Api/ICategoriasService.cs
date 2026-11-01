@@ -1,5 +1,4 @@
 using MediaOrganizerApp.Application.DTOs;
-using MediaOrganizerApp.Domain.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
@@ -17,11 +16,12 @@ namespace MediaOrganizerApp.Application.Interfaces.Services.Api
         Task<List<CategoryVM>> ListByType(Query_TipoMedia tipoMedia);
 
         Task<int> GetIdCategoria(string description);
-        IEnumerable<PublicacoesVM> PublicacoesCatalogadas(int CodAutor);
+        IEnumerable<PublicacoesVM> PublicacoesCatalogadas(int authorId);
         Task<bool> CategoriaComRegistos(int id);
         string RegistoComErros(CategoryVM categoria);
 
-        List<MediaVM> MediaCatalogados(int CodCategoria);
+        List<MediaVM> MediaCatalogados(int categoryId);
+        Task<IEnumerable<MediaVM>> MediaCatalogadosAsync(int categoryId);
 
         Task<IEnumerable<CategoryVM>> GetCategoriesWithPublications();
         Task<IEnumerable<CategoryVM>> GetCategoriesWithMediaEntries();

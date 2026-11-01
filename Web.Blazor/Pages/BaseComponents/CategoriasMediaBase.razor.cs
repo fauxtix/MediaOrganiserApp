@@ -200,6 +200,11 @@ namespace Web.Blazor.Pages.BaseComponents
             var output = categoriasService.MediaCatalogados(CatId);
             return output;
         }
+        public async Task< IEnumerable<MediaVM>> GetMediaCatalogadasAsync(int CatId)
+        {
+            var output = await categoriasService.MediaCatalogadosAsync(CatId);
+            return output;
+        }
 
         public void ConfirmDeleteNo()
         {

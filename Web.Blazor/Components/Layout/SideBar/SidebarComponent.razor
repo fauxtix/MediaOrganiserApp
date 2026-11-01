@@ -1,9 +1,11 @@
 ﻿@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components.Routing
 @using Web.Blazor.Components.Layout.SideBar
+@implements IDisposable
 @inject NavigationManager _navigationManager
 @inject IStringLocalizer<App> Localizer
 
-<aside id="sidebar" class="sidebar break-point-sm has-bg-image @(_isCollapsed ? "collapsed" : "") @(_isToggled ? "toggled" : "")">
+<aside id="sidebar" class="sidebar break-point-md has-bg-image @(_isCollapsed ? "collapsed" : "") @(_isToggled ? "toggled" : "")">
     <a @onclick="BtnCollapseClicked" id="btn-collapse" class="sidebar-collapser"><i class="ri-arrow-left-s-line"></i></a>
     <div class="image-wrapper">
         @* <img src="assets/images/sidebar-bg.jpg" alt="sidebar background" /> *@
@@ -72,12 +74,34 @@
         standardItems = sidebarData.GetStandardMenuItems();
         generalMenuItems = sidebarData.GetGeneralMenuItems();
         footerlMenuItems = sidebarData.GetFooterMenuItems();
+
+        // Fecha o drawer em qualquer navegação (menu, links do conteúdo, etc.).
+        _navigationManager.LocationChanged += OnLocationChanged;
     }
 
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (!_isToggled)
+            return;
+
+        _isToggled = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _navigationManager.LocationChanged -= OnLocationChanged;
+    }
 
     public void BtnToggleClicked()
     {
         _isToggled = !_isToggled;
+
+        // Se o menu estava colapsado (só ícones) no desktop e o utilizador
+        // abre o drawer em mobile, mostra-o completo.
+        if (_isToggled)
+            _isCollapsed = false;
+
         StateHasChanged();
     }
 
@@ -119,6 +143,10 @@
 
         if (!menuItem.HasChildMenuItems && menuItem.Href != null)
         {
+            // Navegar deve fechar o drawer em mobile (mesmo quando a rota
+            // é a atual e não há LocationChanged).
+            _isToggled = false;
+            StateHasChanged();
             _navigationManager.NavigateTo(menuItem.Href);
         }
     }

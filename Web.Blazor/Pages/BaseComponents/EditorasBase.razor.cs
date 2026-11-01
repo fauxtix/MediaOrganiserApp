@@ -64,10 +64,11 @@ namespace Web.Blazor.Pages.BaseComponents
         public string PdfTitle { get; set; } = "";
         protected string sErrorMsgs = "";
 
-        protected string msgListaEditoras = "Listagem";
+        protected string msgListaEditoras = "";
 
         protected override async Task OnInitializedAsync()
         {
+            msgListaEditoras = localizerApp["TituloListagem"];
             publishers = await GetAllPublishers();
         }
 

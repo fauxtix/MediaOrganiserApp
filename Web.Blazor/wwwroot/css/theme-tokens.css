@@ -695,6 +695,40 @@ button.e-btn.e-primary:focus {
     color: var(--app-text-primary);
 }
 
+/* ==================== Conteúdo Markdown (github-markdown.css) ============
+   O github-markdown.css escolhe a paleta por `prefers-color-scheme`, que ignora
+   o tema da app: com o Windows/browser em modo escuro, um manual/.md aparecia
+   escuro mesmo em tema claro. Mapear as variáveis para os tokens resolve os
+   DOIS sentidos, porque os tokens já flipam com `[data-theme]`. Este ficheiro
+   é carregado depois do github-markdown.css, por isso ganha no cascade. */
+.markdown-body {
+    --bgColor-default: var(--app-surface);
+    --bgColor-muted: var(--app-surface-alt);
+    --bgColor-neutral-muted: var(--app-surface-hover);
+    --bgColor-attention-muted: var(--app-warning-bg);
+    --bgColor-danger-muted: var(--app-danger-bg);
+    --borderColor-default: var(--app-border);
+    --borderColor-muted: var(--app-border);
+    --borderColor-neutral-muted: var(--app-border);
+    --borderColor-accent-emphasis: var(--app-primary);
+    --borderColor-attention-emphasis: var(--app-accent-yellow);
+    --borderColor-danger-emphasis: var(--app-danger);
+    --borderColor-done-emphasis: var(--app-primary);
+    --borderColor-success-emphasis: var(--app-accent-green);
+    --fgColor-default: var(--app-text-primary);
+    --fgColor-muted: var(--app-text-secondary);
+    --fgColor-accent: var(--app-primary);
+    --fgColor-attention: var(--app-warning-text);
+    --fgColor-danger: var(--app-danger-text);
+    --fgColor-done: var(--app-primary);
+    --fgColor-success: var(--app-success-text);
+    --focus-outlineColor: var(--app-primary);
+    /* O contentor decide a superfície; o artigo não deve pintar por cima. */
+    color-scheme: normal;
+    color: var(--app-text-primary);
+    background-color: transparent;
+}
+
 /* Pager */
 .e-pager .e-currentitem,
 .e-pager .e-icons:hover,

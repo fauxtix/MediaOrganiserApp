@@ -1,0 +1,44 @@
+﻿@using Syncfusion.Blazor.Grids
+@using MediaOrganizerApp.Application.DTOs
+
+@if (mediaCatalogados == null)
+{
+    <div class="p-3 text-muted">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        A carregar publicações...
+    </div>
+}
+else
+{
+    <div class="table table-striped p-3">
+        <SfGrid Width="100%"
+                DataSource="@mediaCatalogados"
+                EnablePersistence="true"
+                RowHeight="32"
+                AllowSorting="true"
+                AllowPaging="true">
+            <GridPageSettings PageSize="8"></GridPageSettings>
+            <GridColumns>
+                <GridColumn Field=@nameof(MediaVM.Titulo) HeaderText="Título" Width="250"></GridColumn>
+                <GridColumn Field=@nameof(MediaVM.NomeAutor) HeaderText="Autor" Width="150"></GridColumn>
+                <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="Formato" Width="120"></GridColumn>
+            </GridColumns>
+        </SfGrid>
+    </div>
+}
+
+@code {
+    [Parameter] public int CategoriaId { get; set; }
+
+    // Passamos o método delegado do pai para o filho para que ele possa fazer o fetch
+    [Parameter] public Func<int, Task<IEnumerable<MediaVM>>> FetchMediaData { get; set; }
+    private IEnumerable<MediaVM> mediaCatalogados;
+    protected override async Task OnInitializedAsync()
+    {
+        if (FetchMediaData != null)
+        {
+            // O await funciona perfeitamente aqui dentro do ciclo de vida assíncrono
+            mediaCatalogados = await FetchMediaData(CategoriaId);
+        }
+    }
+}

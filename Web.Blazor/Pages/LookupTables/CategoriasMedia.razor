@@ -41,14 +41,12 @@ else
     <div class="mt-2 col-lg-12 control-section">
         <div class="content-wrapper">
             <div class="row">
-                <div class="e-dddata">
-                    <SfButton CssClass="e-btn e-success e-round-corner"
-                              IconCss="fa fa-plus"
-                              @onclick="NotifyAddingRecord">
-                        &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
-                    </SfButton>
-                    <br /><br />
-                </div>
+                <SfButton CssClass="e-success e-round-corner mb-1"
+                          IconCss="fa fa-plus"
+                          @onclick="NotifyAddingRecord">
+                    &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
+                </SfButton>
+                <br /><br />
                 <hr>
                 <div id="target" class="table table-responsive overflow-auto table-striped">
                     <SfGrid @ref="gridObj"
@@ -77,22 +75,9 @@ else
                                             <ContentTemplate>
                                                 @{
                                                     var category = (context as CategoryVM);
-                                                    var MediaCatalogados = GetMediaCatalogadas(category.Id);
                                                 }
-                                                <div class="table table-striped p-3">
-                                                    <SfGrid Width="100%"
-                                                            DataSource="@MediaCatalogados"
-                                                            EnablePersistence="true"
-                                                            RowHeight="32"
-                                                            AllowSorting="true" AllowPaging="true">
-                                                        <GridPageSettings PageSize="8"></GridPageSettings>
-                                                        <GridColumns>
-                                                            <GridColumn Field=@nameof(MediaVM.Titulo) HeaderText="Título" Width="250"></GridColumn>
-                                                            <GridColumn Field=@nameof(MediaVM.NomeAutor) HeaderText="Autor" Width="150"></GridColumn>
-                                                            <GridColumn Field=@nameof(MediaVM.FormatoMedia) HeaderText="Formato" Width="120"></GridColumn>
-                                                        </GridColumns>
-                                                    </SfGrid>
-                                                </div>
+                                                <CategoriaMediaDetail CategoriaId="@category.Id"
+                                                                      FetchMediaData="GetMediaCatalogadasAsync" />
                                             </ContentTemplate>
                                         </TabItem>
                                     </TabItems>
@@ -110,19 +95,19 @@ else
                                 <GridCommandColumns>
                                     <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["EditMsg"]"
                                                        ButtonOption="@(new CommandButtonOptions()
-                                                                                               {
-                                                                                                   CssClass = "e-btn e-primary e-round",
-                                                                                                   IconCss = "fa fa-edit",
-                                                                                                   IconPosition = @IconPosition.Left
-                                                                                               })">
+                                                       {
+                                                           CssClass = "e-btn e-primary e-round",
+                                                           IconCss = "fa fa-edit",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
                                     </GridCommandColumn>
                                     <GridCommandColumn Type=CommandButtonType.Delete Title="@localizerApp["DeleteMsg"]"
                                                        ButtonOption="@(new CommandButtonOptions()
-                                                                                               {
-                                                                                                   CssClass = "e-btn e-danger e-round",
-                                                                                                   IconCss = "fa fa-trash",
-                                                                                                   IconPosition = @IconPosition.Left
-                                                                                               })">
+                                                       {
+                                                           CssClass = "e-btn e-danger e-round",
+                                                           IconCss = "fa fa-trash",
+                                                           IconPosition = @IconPosition.Left
+                                                       })">
                                     </GridCommandColumn>
                                 </GridCommandColumns>
                             </GridColumn>

@@ -33,6 +33,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="docs\Help*.md" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="docs\Help*.md">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Include="wwwroot\css\bootstrap\bootstrap.min.css.map" />
 		<None Include="wwwroot\css\open-iconic\FONT-LICENSE" />
 		<None Include="wwwroot\css\open-iconic\font\fonts\open-iconic.svg" />
@@ -161,5 +172,4 @@
 	<ProjectExtensions><VisualStudio><UserProperties wwwroot_4css_4bootstrap_4bootstrap_1min_1css_1map__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>
-
 

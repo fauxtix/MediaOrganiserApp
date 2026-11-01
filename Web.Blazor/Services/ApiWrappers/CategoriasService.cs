@@ -248,10 +248,27 @@ namespace Web.Blazor.Services.ApiWrappers
             }
             catch (Exception exc)
             {
-                _logger.LogError(exc, "Sem registos catalogados (MediaCatalogados)");
+                _logger.LogError(exc, $"Sem registos catalogados (MediaCatalogados, ID# {id})");
                 return new List<MediaVM>();
             }
         }
+
+        public async Task<IEnumerable<MediaVM>> MediaCatalogadosAsync(int id)
+        {
+            var uri = $"{_Uri}/MediaCatalogadosAsync/{id}";
+
+            try
+            {
+                var result = await _httpClient.GetFromJsonAsync<IEnumerable<MediaVM>>(uri);
+                return result;
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(exc, $"Sem registos catalogados (MediaCatalogados, ID# {id})");
+                return new List<MediaVM>();
+            }
+        }
+
 
         public string RegistoComErros(CategoryVM categoria)
         {

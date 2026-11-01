@@ -4,10 +4,13 @@
 @using Microsoft.Extensions.Configuration
 @using Microsoft.Extensions.Logging
 @using System.Globalization
+@using Microsoft.Extensions.Localization
 @using Web.Blazor.Components
+@using Web.Blazor.Components.Help
 @using Web.Blazor.Components.Layout.SideBar
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
+@inject IStringLocalizer<App> L
 
 <div class="layout has-sidebar fixed-sidebar fixed-header">
 
@@ -109,10 +112,20 @@
             <Authorized>
                 <div class="top-navbar">
                     <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 64px;">
-                        <span class="brand">Organise It!</span>
+                        <div class="d-flex align-items-center">
+                            <a @onclick="(e => sideBarComponent?.BtnToggleClicked())"
+                               @onclick:preventDefault="true"
+                               id="btn-toggle"
+                               href="#"
+                               class="sidebar-toggler break-point-md"
+                               aria-label="Menu">
+                                <i class="ri-menu-line ri-xl"></i>
+                            </a>
+                            <span class="brand">Organise It!</span>
+                        </div>
                         <div class="d-flex align-items-center justify-content-end" style="flex:1;">
                             <div class="top-row px-2 auth d-flex align-items-center" style="background-color: var(--header-bg); color: var(--header-text); border-radius: 8px; z-index:1111; padding: 4px 16px;">
-                                <div class="d-flex align-items-center">
+                                <div class="top-identity d-flex align-items-center">
                                     <div class="pl-1 pr-3 font-weight-bold" style="color: var(--header-text);">
                                         <i class="fa fa-globe pr-2"></i>@currentCultureAbbreviation.ToUpper()
                                     </div>
@@ -121,6 +134,9 @@
                                     </div>
                                 </div>
                                 <nav class="d-flex align-items-center my-2 my-md-0 mr-2 font-weight-bold">
+                                    <button type="button" class="nav-help-btn" @onclick="OpenHelp" title="@L["btnHelp"]" aria-label="@L["btnHelp"]">
+                                        <i class="fa fa-question-circle" aria-hidden="true"></i>
+                                    </button>
                                     <ThemeToggle />
                                     <a class="btn btn-primary ml-3" href="/identity/account/logout" style="white-space: nowrap; margin-right: 6px;">
                                         Logout
@@ -133,11 +149,6 @@
                 <div @onclick="@(e => sideBarComponent?.MouseClickedInOverlay())" id="overlay" class="overlay"></div>
                 <div class="layout">
                     <main class="content" @onclick="@(e => sideBarComponent?.MouseClickedInContent())">
-                        <div>
-                            <a @onclick="(e => sideBarComponent?.BtnToggleClicked())" id="btn-toggle" href="#" class="sidebar-toggler break-point-sm">
-                                <i class="ri-menu-line ri-xl"></i>
-                            </a>
-                        </div>
                         <div class="main-content">
                             @Body
                         </div>
@@ -145,6 +156,8 @@
                     </main>
                     <div class="overlay"></div>
                 </div>
+
+                <HelpDialog @bind-Visible="_helpVisible" />
             </Authorized>
         </AuthorizeView>
 
@@ -154,6 +167,7 @@
 @code {
     SidebarComponent? sideBarComponent;
     private bool isDarkMode;
+    private bool _helpVisible;
     [CascadingParameter] protected Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
     [Inject] ILogger<MainLayout> Logger { get; set; }
@@ -216,6 +230,11 @@
     private void ResetErrorBoundary()
     {
         _errorBoundary.Recover();
+    }
+
+    private void OpenHelp()
+    {
+        _helpVisible = true;
     }
 }
 
@@ -383,6 +402,48 @@
         padding-left: 12px;
     }
 
+    /* Botão hambúrguer do menu em mobile: vive dentro da top-navbar (e não
+       sobreposto em position:fixed), para nunca ficar atrás da barra
+       (z-index 1050) nem colidir com o bloco de utilizador/idioma. */
+    .top-navbar .sidebar-toggler {
+        position: static;
+        margin-right: 6px;
+        color: var(--header-text);
+        font-size: 1.35rem;
+        line-height: 1;
+        text-decoration: none;
+    }
+
+    .top-navbar .sidebar-toggler:hover {
+        color: var(--app-accent-yellow);
+    }
+
+    @@media (max-width: 768px) {
+        .brand {
+            font-size: 15px;
+            padding-left: 4px;
+        }
+
+        /* Nome do utilizador e idioma não cabem (nem são essenciais) em ecrãs
+           pequenos; a ajuda, o tema e o logout continuam visíveis. */
+        .top-identity {
+            display: none !important;
+        }
+
+        /* O overlay (#overlay) está dentro de .main e não é irmão do
+           .sidebar, por isso a regra .sidebar.toggled ~ .overlay da
+           biblioteca css-pro-layout nunca dispara. */
+        .sidebar.toggled ~ .main #overlay {
+            display: block;
+        }
+
+        /* Drawer abaixo da top-navbar fixa (64px) e nunca maior que o ecrã. */
+        .layout .sidebar.break-point-md {
+            height: calc(100% - 64px);
+            overflow-y: auto;
+        }
+    }
+
     .top-navbar {
         position: fixed;
         top: 0;
@@ -408,6 +469,28 @@
         border-radius: 6px;
         padding: 6px 16px;
         background: transparent;
+    }
+
+    .nav-help-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 32px;
+        border: 1px solid var(--app-border);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--header-text);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        margin-right: 6px;
+    }
+
+    .nav-help-btn:hover {
+        background-color: var(--header-hover-bg);
+        color: var(--app-accent-yellow);
+        border-color: var(--app-accent-yellow);
     }
 
         .nav-link:hover {

@@ -69,12 +69,13 @@ namespace Web.Blazor.Pages.BaseComponents
         public string PdfTitle { get; set; } = "";
         protected string sErrorMsgs = "";
 
-        protected string msgListaCategorias = "Listagem";
+        protected string msgListaCategorias = "";
         public string DialogClass { get; set; } = "e-fixed";
 
         protected override async Task OnInitializedAsync()
         {
             categoriasPublicacoes = await GetAllCategories(CategoryType.Publicacoes);
+            msgListaCategorias = localizerApp["TituloListagem"];
         }
 
         public async Task OnToolbarClick(ClickEventArgs args)

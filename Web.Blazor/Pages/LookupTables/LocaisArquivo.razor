@@ -20,7 +20,7 @@
         new ItemModel() {
             Align = ItemAlign.Left,
             PrefixIcon = "e-download-icon",
-            Text = "Listagem",
+           Text=localizerApp["TituloListagem"],
             Id = "FLPDF"
         }
 
@@ -50,15 +50,12 @@ else
     <div class="col-lg-12 control-section">
         <div class="content-wrapper">
             <div class="row">
-                <div class="e-dddata">
-                    <SfButton CssClass="e-btn e-success e-round-corner"
-                              IconCss="fa fa-plus"
-                              IsPrimary="true"
-                              @onclick="NotifyAddingRecord">
-                        &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
-                    </SfButton>
-                    <br /><br />
-                </div>
+                <SfButton CssClass="e-success e-round-corner mb-1"
+                          IconCss="fa fa-plus"
+                          @onclick="NotifyAddingRecord">
+                    &nbsp;@(localizerApp["NewMsg"])&nbsp;&nbsp;@(localizerApp["Record"])
+                </SfButton>
+                <br /><br />
                 <hr>
                 <div id="target">
                     <div id="grid-container">
@@ -100,11 +97,11 @@ else
                                                                     <GridCommandColumns>
                                                                         <GridCommandColumn Type=CommandButtonType.Edit Title="@localizerApp["LerPdf"]"
                                                                                            ButtonOption="@(new CommandButtonOptions()
-                                                                                                                                                    {
-                                                                                                                                                        CssClass = "e-btn e-info e-round",
-                                                                                                                                                        IconCss = "fa fa-file-pdf-o",
-                                                                                                                                                        IconPosition = @IconPosition.Left
-                                                                                                                                                    })">
+                                                                                           {
+                                                                                               CssClass = "e-btn e-info e-round",
+                                                                                               IconCss = "fa fa-file-pdf-o",
+                                                                                               IconPosition = @IconPosition.Left
+                                                                                           })">
                                                                         </GridCommandColumn>
                                                                     </GridCommandColumns>
                                                                 </GridColumn>
@@ -128,20 +125,20 @@ else
                                     <GridCommandColumns>
                                         <GridCommandColumn Type=CommandButtonType.Edit
                                                            ButtonOption="@(new CommandButtonOptions()
-                                                                                    {
-                                                                                        CssClass = "e-btn e-primary e-round",
-                                                                                        IconCss = "fa fa-edit",
-                                                                                        IconPosition = @IconPosition.Left
-                                                                                    })">
+                                                           {
+                                                               CssClass = "e-btn e-primary e-round",
+                                                               IconCss = "fa fa-edit",
+                                                               IconPosition = @IconPosition.Left
+                                                           })">
                                         </GridCommandColumn>
                                         <GridCommandColumn Type=CommandButtonType.Delete
                                                            ButtonOption="@(new CommandButtonOptions()
-                                                                                    {
-                                                                                        Content = "",
-                                                                                        CssClass = "e-btn e-danger e-round",
-                                                                                        IconCss = "fa fa-trash",
-                                                                                        IconPosition = @IconPosition.Left
-                                                                                    })">
+                                                           {
+                                                               Content = "",
+                                                               CssClass = "e-btn e-danger e-round",
+                                                               IconCss = "fa fa-trash",
+                                                               IconPosition = @IconPosition.Left
+                                                           })">
                                         </GridCommandColumn>
                                     </GridCommandColumns>
                                 </GridColumn>

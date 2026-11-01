@@ -6,7 +6,7 @@
 
 @inherits ViewAppLogsBase
 @{
-    var Tool = (new List<object>() { "Search", "ExcelExport" });
+    var Tool = (new List<object>() { "Search"});
 }
 
 <PageTitle>@L["LogViewer"]</PageTitle>
@@ -53,6 +53,7 @@ else
                     AllowSelection="true"
                     AllowSorting="true"
                     AllowFiltering="true"
+                    AllowGrouping="true"
                     RowHeight="32"
                     Toolbar="@Tool"
                     EnableAltRow="true"
@@ -67,14 +68,20 @@ else
                             TValue="AppLogDto" />
                 <GridColumns>
                     <GridColumn Field=@nameof(AppLogDto.Id) Width="80" TextAlign=Syncfusion.Blazor.Grids.TextAlign.Center
-                                HeaderText="ID#" AllowSorting="true">
+                                HeaderText="ID#" 
+                                AllowGrouping="false" 
+                                AllowSorting="true">
                     </GridColumn>
                     <GridColumn Field=@nameof(AppLogDto.Message) Width="350"
-                                HeaderText="@L["TituloMensagem"]" AllowSorting="true">
+                                HeaderText="@L["TituloMensagem"]" 
+                                AllowGrouping="false"
+                                AllowSorting="true">
                     </GridColumn>
 
                     <GridColumn Field=@nameof(AppLogDto.Level) Width="110"
-                                HeaderText="@L["Level"]" AllowSorting="true">
+                                HeaderText="@L["Level"]" 
+                                AllowGrouping="true"
+                                AllowSorting="true">
                         <Template>
                             @{
                                 var currentEntry = (context as AppLogDto);
@@ -90,6 +97,7 @@ else
                     </GridColumn>
                     <GridColumn Field=@nameof(AppLogDto.TimeStamp) Width="180"
                                 TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center"
+                                AllowGrouping="true"
                                 HeaderText="@L["msgData"]" AllowSorting="true">
 
                         <FilterTemplate>
@@ -102,7 +110,9 @@ else
                         </FilterTemplate>
 
                     </GridColumn>
-                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false" Width="150">
+                    <GridColumn HeaderText="" AllowFiltering="false" AllowSorting="false"
+                                AllowGrouping="false"
+                                Width="150">
                         <GridCommandColumns>
                             <GridCommandColumn Type=CommandButtonType.Edit
                                                ButtonOption="@(new CommandButtonOptions()

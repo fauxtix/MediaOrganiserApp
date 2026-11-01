@@ -367,9 +367,15 @@ a {
     text-decoration: none;
 }
 
-@media (max-width: 576px) {
+@media (max-width: 768px) {
+    /* Em mobile o menu é um drawer (break-point-md) e não um painel
+       colapsável: o botão de colapsar não faz sentido. */
     #btn-collapse {
         display: none;
+    }
+
+    .layout .sidebar .pro-sidebar-logo > h5 {
+        font-size: 17px;
     }
 }
 

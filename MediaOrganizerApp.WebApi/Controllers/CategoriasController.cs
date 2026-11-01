@@ -252,6 +252,26 @@ namespace MediaOrganizerApp.WebApi.Controllers
             }
         }
 
+        [HttpGet("MediaCatalogadosAsync/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> MediaCatalogadosAsync(int id)
+        {
+            var location = GetControllerActionNames();
+            try
+            {
+                var mediaFiles = await _repoCategorias.MediaCatalogados(id);
+                return Ok(mediaFiles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro no Api (MediaCatalogados)");
+                return InternalError($"{location}: {ex.Message} - {ex.InnerException}");
+            }
+        }
+
+
         [HttpGet("GetCategoriesWithPublications")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -27,6 +27,11 @@
         formatosMediaSummary.Count() > 0 &&
         autoresSummary.Count() > 0)
         {
+            <SfFab IconCss="fa fa-arrow-up"
+                   Position="FabPosition.BottomRight"
+                   OnClick="ScrollToTop">
+            </SfFab>
+
             <div class="row">
                 <div class="col-md-6 control-section sb-property-border">
                     <div class="control-section">
@@ -780,6 +785,8 @@
     public string AlertUserMessage { get; set; } = string.Empty;
     public AppDefinitions.OpcoesRegisto AlertUserMessageType { get; set; } = AppDefinitions.OpcoesRegisto.Info;
 
+    [Inject] IJSRuntime JS { get; set; }
+
     protected override void OnInitialized()
     {
         authorMobile = _env["AuthorMobile"];
@@ -796,6 +803,13 @@
         bool isAlive = InternetService.CheckForInternetConnection(1000, "https://www.google.com");
         return isAlive;
 
+    }
+
+    protected async Task ScrollToTop()
+    {
+        await JS.InvokeVoidAsync(
+            "window.scrollTo",
+            new { top = 0, behavior = "smooth" });
     }
 
 }
