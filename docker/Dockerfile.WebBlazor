@@ -1,0 +1,31 @@
+# ──────────────────────────────────────────────────────────────────
+# Dockerfile for Media Organizer Blazor Server (Linux)
+# Runs as Kestrel directly (no IIS / hostingModel inprocess needed).
+# ──────────────────────────────────────────────────────────────────
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet publish Web.Blazor \
+    -c Release \
+    -r linux-x64 \
+    --self-contained true \
+    -o /app/build
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/build /app
+
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://0.0.0.0:5001
+ENV BaseUrl=${WEBAPI_BASEURL:-http://webapi:4100/api}
+ENV ApiKey=${WEBAPI_APIKEY:-}
+
+# wwwroot/Files volume will be mounted at runtime (assets + uploads)
+# Do not copy large data here; mount from host or persistent volume.
+EXPOSE 5001
+ENTRYPOINT ["dotnet", "Web.Blazor.dll"]

@@ -1,0 +1,69 @@
+# ──────────────────────────────────────────────────────────────────
+# docker-compose.yml — optional local Docker test
+# Not replacing the IIS deploy (.github/workflows/main.yml kept intact).
+# This is a standalone option for non-Windows environments.
+# Usage: docker-compose up --build (from repo root)
+# ──────────────────────────────────────────────────────────────────
+services:
+  webapi:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.WebApi
+    ports:
+      - "5000:5000"
+    environment:
+      - SQLCONNECTIONSTRING=${SQLCONNECTIONSTRING}
+      - OLLAMA__BASEURL=${OLLAMA_BASEURL:-http://ollama:11434}
+    depends_on:
+      - sql
+      - ollama
+    networks:
+      - mediaorganizer
+    volumes:
+      - uploads-volume:/app/wwwroot/Files
+
+  webblazor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.WebBlazor
+    ports:
+      - "5001:5001"
+    environment:
+      - BaseUrl=http://webapi:5000/api
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - webapi
+    networks:
+      - mediaorganizer
+    volumes:
+      - uploads-volume:/app/wwwroot/Files
+
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SA_PASSWORD:-YourStrong!Passw0rd}
+    ports:
+      - "1433:1433"
+    networks:
+      - mediaorganizer
+    volumes:
+      - sql-data:/var/opt/mssql
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    networks:
+      - mediaorganizer
+    volumes:
+      - ollama-data:/root/.ollama
+
+networks:
+  mediaorganizer:
+    driver: bridge
+
+volumes:
+  uploads-volume:
+  sql-data:
+  ollama-data:

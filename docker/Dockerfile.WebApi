@@ -1,0 +1,33 @@
+# ──────────────────────────────────────────────────────────────────
+# Dockerfile for Media Organizer WebApi (Linux)
+# Prerequisites: dotnet build/.NET SDK installed on host
+# Not building the docker pipeline yet (.github/workflows/main.yml
+# keeps the IIS deploy as-is; this is an optional alternative).
+# ──────────────────────────────────────────────────────────────────
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+WORKDIR /app
+
+# Build stage first to compile without conflicting base runtime
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet publish MediaOrganizerApp.WebApi \
+    -c Release \
+    -r linux-x64 \
+    --self-contained true \
+    -o /app/build
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/build /app
+
+# Environment passed at run time — see docker-compose.yml
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://0.0.0.0:5000
+ENV OLLAMA__BASEURL=${OLLAMA_BASEURL:-http://ollama:11434}
+ENV SQLCONNECTIONSTRING=${SQLCONNECTIONSTRING:-default}
+
+EXPOSE 5000
+ENTRYPOINT ["dotnet", "MediaOrganizerApp.WebApi.dll"]
