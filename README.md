@@ -71,6 +71,9 @@ This application is designed to streamline the organization, management, and ret
 - **Chat page**: The app exposes a user-facing Cloud Chat page (AI) reachable from the main sidebar. Use Chat to run ad-hoc queries, fetch author profiles, or request metadata for media and publications.
 - **Conversations**: Chats are grouped into conversations. Each conversation stores messages, context and can be re-opened for follow-up queries. The UI supports streaming replies for a natural chat experience.
 - **Chat feedback**: Assistant replies can be copied to the clipboard and rated 👍/👎 (persisted per conversation, shown in the UI).
+- **Chat history deletion**: Users can delete conversations from the History panel; deletion is per-conversation (Admin deletes all).
+- **Raciocínio (Raciocínio)**: When enabled in common IA settings, models show a collapsible "💭 Raciocínio" block per message; the choice is respected and persisted.
+- **Safety artifact filter**: strips model safety classification-only lines from responses; when the whole response is the artifact, the UI prompts the user to reply "continua".
 - **Edit Prompts**: Admins can edit prompt templates used by the AI directly from the Blazor admin UI (Edit Prompts). This enables tuning of LLM behavior without code deployments.
 - **Fallback behavior**: The UI prefers external APIs (Google Books) and falls back to the AI model only when external lookups do not return acceptable results. This reduces unnecessary LLM usage and improves metadata accuracy.
 - **Usage logging**: Every non-chat AI call is recorded in the `AIUsageLog` table and surfaced on the dashboard ("IA em uso interno").
@@ -78,6 +81,7 @@ This application is designed to streamline the organization, management, and ret
 
 ### 🔧 Additional server & utility features
 
+- **Built-in Help Manual**: The `HelpDialog` component renders the Markdown user manual (from `Web.Blazor/docs/Help*.md`) in four languages, opened via the `?` button in the top bar without leaving the current page.
 - **File integrity checks**: APIs and tools to detect publications whose digital files are missing on disk and to run verification or repair operations.
 - **PDF/PNG retention helpers**: Endpoints to store files flagged as "not deleted" and related server-side handling to preserve important uploads.
 - **Cascade author cleanup**: When deleting a publication, the system can automatically remove the author record if they have no other publications.
@@ -128,8 +132,13 @@ This application is designed to streamline the organization, management, and ret
 | **File Manager**           | Manage files and directories.                                              |
 | **View Logs**              | View application logs for debugging and monitoring.                        |
 | **Edit Prompts**           | Edit AI prompts for metadata generation.                                   |
+| **Help**                   | Open the built-in user manual via the top-bar `?` button.                  |
 | **Reports**                | Generate and download reports for publications and media.                  |
 | **User Management**        | Manage user roles, permissions, and profiles.                              |
+| **App Settings**           | Configure application-wide settings (classic tabbed version).              |
+| **App Settings 2**         | Configure application-wide settings (refactored icon-sidebar version).     |
+| **Manage Lookup Tables**   | Manage auxiliary data like authors, categories, and publishers.            |
+| **Manage Lookup Tables New**| Manage auxiliary data (refactored layout with groups/cards).              |
 
 ---
 

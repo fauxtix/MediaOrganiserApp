@@ -48,6 +48,10 @@ Esta aplicação foi concebida para simplificar a organização, gestão e recup
 
 ### 🤖 IA, Chat e Fallback
 - **Cloud-first com fallback local**: as funcionalidades de IA chamam primeiro o **OpenRouter (cloud)** e fazem fallback para um modelo **Ollama local** quando a cloud está indisponível (sem API key, offline, erros 429/HTTP). O perfil de autor pode também usar um cliente OpenAI-SDK apontado para o modelo local configurado.
+- **Recuperação de Metadados**: Busca automática de metadados (perfis de autor, livros do autor, resumos, notas/metadados de mídia, ano de edição) usando IA quando APIs externas falham.
+- **Prompts Personalizáveis**: Consultas dinâmicas; os templates de prompt são editáveis na página "Edit Prompts" do admin.
+- **Manual Integrado**: O componente `HelpDialog` renderiza o manual (`Web.Blazor/docs/Help*.md`) em 4 idiomas, aberto pelo botão `?` na barra superior — sem sair da página.
+- **Histórico e Avaliação**: Chats com histórico por conversa, avaliação 👍/👎 persistida, cópia de resposta, exclusão de histórico (conversa a conversa; Admin remove todas).
 - **Recuperação de metadados com IA**: A aplicação tenta primeiro APIs externas (ex.: Google Books) e, caso não obtenha resultados suficientes, utiliza IA para obter perfis de autor, livros do autor, resumos e metadados.
 - **Página de Chat / Conversas**: Interface para conversas com a IA (Cloud Chat) para consultas ad-hoc — p. ex. "obter perfil de autor" — com suporte a conversas encadeadas e streaming de respostas. As respostas podem ser avaliadas 👍/👎 e copiadas.
 - **Editar Prompts**: Administradores podem editar templates de prompts através da interface "Edit Prompts" sem necessidade de deploys.
