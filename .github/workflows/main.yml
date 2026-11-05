@@ -46,9 +46,14 @@ jobs:
       - name: Inject Syncfusion key
         shell: powershell
         run: |
-          (Get-Content nuget.config -Raw) `
-            -replace '<your-api-key>', $env:SYNCFUSION_NUGET_KEY `
-            | Set-Content nuget.config
+          $content = Get-Content ".\nuget.config" -Raw
+          $content = $content.Replace("&lt;your-api-key&gt;", $env:SYNCFUSION_NUGET_KEY)
+          $content = $content.Replace("<your-api-key>", $env:SYNCFUSION_NUGET_KEY)
+          Set-Content ".\nuget.config" $content
+      - name: Verify Syncfusion URL
+        shell: powershell
+        run: |
+          Get-Content ".\nuget.config"
 
       - name: Restore solution
         shell: powershell
