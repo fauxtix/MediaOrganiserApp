@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\MediaOrganizer\MediaOrganizerApp\Application\MediaOrganizerApp.Application.csproj" />
+    <ProjectReference Include="..\Application\MediaOrganizerApp.Application.csproj" />
   </ItemGroup>
 
 </Project>

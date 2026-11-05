@@ -1,33 +1,35 @@
 # ──────────────────────────────────────────────────────────────────
 # Dockerfile for Media Organizer WebApi (Linux)
-# Prerequisites: dotnet build/.NET SDK installed on host
-# Not building the docker pipeline yet (.github/workflows/main.yml
-# keeps the IIS deploy as-is; this is an optional alternative).
+# Build context = raiz do repo (ver docker-compose.yml).
+# Não substitui o deploy IIS (.github/workflows/main.yml mantém-se).
 # ──────────────────────────────────────────────────────────────────
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 
-# Build stage first to compile without conflicting base runtime
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore
-RUN dotnet publish MediaOrganizerApp.WebApi \
+# O nuget.config da raiz tem o feed Syncfusion com uma API key placeholder;
+# dentro do contentor restauramos só de nuget.org (pacotes Syncfusion públicos).
+RUN dotnet restore MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj --configfile docker/nuget.config
+RUN dotnet publish MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj \
     -c Release \
-    -r linux-x64 \
-    --self-contained true \
-    -o /app/build
+    -o /app/build \
+    --no-restore
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/build /app
 
-# Environment passed at run time — see docker-compose.yml
+# Environment/connection string são passados em runtime — ver docker-compose.yml
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://0.0.0.0:5000
-ENV OLLAMA__BASEURL=${OLLAMA_BASEURL:-http://ollama:11434}
-ENV SQLCONNECTIONSTRING=${SQLCONNECTIONSTRING:-default}
+
+LABEL org.opencontainers.image.title="Media Organizer - WebApi" \
+      org.opencontainers.image.description="REST API: publicacoes, media, autores, IA (Ollama/OpenRouter) e relatorios RDLC." \
+      org.opencontainers.image.source="https://github.com/fauxtix/MediaOrganiserApp" \
+      org.opencontainers.image.documentation="https://github.com/fauxtix/MediaOrganiserApp/blob/master/AGENTS.md#docker-local-opcional-linux-containers"
 
 EXPOSE 5000
 ENTRYPOINT ["dotnet", "MediaOrganizerApp.WebApi.dll"]

@@ -1,69 +1,147 @@
 # ──────────────────────────────────────────────────────────────────
-# docker-compose.yml — optional local Docker test
-# Not replacing the IIS deploy (.github/workflows/main.yml kept intact).
-# This is a standalone option for non-Windows environments.
-# Usage: docker-compose up --build (from repo root)
+# docker-compose.yml — stack local opcional (Linux containers)
+# Não substitui o deploy IIS (.github/workflows/main.yml mantém-se).
+# Usage (na RAIZ do repo, não dentro de docker/):
+#     docker compose up --build
+#
+# Serviços:
+#   sql       → SQL Server 2022 (só rede interna; o host já usa 1433)
+#   db-init   → restaura o .bak de Publicacoes_Prod e ajusta os settings
+#   ollama    → Ollama local (só rede interna; o host já usa 11434)
+#   webapi    → http://localhost:5000/api
+#   webblazor → http://localhost:5001
 # ──────────────────────────────────────────────────────────────────
+
+# Connection string usada pela WebApi, pelo Blazor (Identity/EF) e pelo Serilog.
+# Autenticação SQL: dentro da rede do compose não há Windows auth.
+x-sql-connection-string: &sql-connection-string "Server=sql,1433;Database=Publicacoes_Prod;User Id=sa;Password=${SQL_SA_PASSWORD:-YourStrong!Passw0rd};Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=true"
+
+# Metadados OCI comuns (visíveis no Docker Desktop → contentor → Labels).
+x-oci-labels: &oci-labels
+  org.opencontainers.image.source: "https://github.com/fauxtix/MediaOrganiserApp"
+  org.opencontainers.image.documentation: "https://github.com/fauxtix/MediaOrganiserApp/blob/master/AGENTS.md#docker-local-opcional-linux-containers"
+
 services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    labels:
+      <<: *oci-labels
+      org.opencontainers.image.title: "Media Organizer — SQL Server 2022"
+      org.opencontainers.image.description: "Base de dados Publicacoes_Prod (restaurada do .bak por db-init)."
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQL_SA_PASSWORD:-YourStrong!Passw0rd}
+    # Sem portas publicadas: o host já tem o SQLEXPRESS em 1433.
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q 'SELECT 1' -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    volumes:
+      - sql-data:/var/opt/mssql
+      # O RESTORE é executado pelo processo do SQL Server: o .bak tem de
+      # estar visível AQUI (não basta estar no db-init).
+      - ./Web.Blazor/wwwroot/Files/Backup/Database:/backup:ro
+    networks:
+      - mediaorganizer
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    labels:
+      <<: *oci-labels
+      org.opencontainers.image.title: "Media Organizer — DB init"
+      org.opencontainers.image.description: "One-shot: espera pelo SQL, restaura o .bak e normaliza ApplicationSettings para o contentor."
+    depends_on:
+      sql:
+        condition: service_healthy
+    environment:
+      SQL_SA_PASSWORD: ${SQL_SA_PASSWORD:-YourStrong!Passw0rd}
+      SQL_BACKUP_FILE: ${SQL_BACKUP_FILE:-28102026_123256.Bak}
+    volumes:
+      - ./Web.Blazor/wwwroot/Files/Backup/Database:/backup:ro
+      - ./docker/init-db.sh:/docker/init-db.sh:ro
+    entrypoint: ["/bin/bash", "/docker/init-db.sh"]
+    networks:
+      - mediaorganizer
+
+  ollama:
+    image: ollama/ollama:latest
+    labels:
+      <<: *oci-labels
+      org.opencontainers.image.title: "Media Organizer — Ollama"
+      org.opencontainers.image.description: "Runtime de IA local (fallback do OpenRouter). Arranca sem modelos: ver AGENTS.md."
+    # Sem portas publicadas: o host já tem o Ollama em 11434.
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - mediaorganizer
+
   webapi:
     build:
       context: .
       dockerfile: docker/Dockerfile.WebApi
+    labels:
+      <<: *oci-labels
+      org.opencontainers.image.title: "Media Organizer — WebApi"
+      org.opencontainers.image.description: "REST API: publicacoes, media, autores, IA (Ollama/OpenRouter) e relatorios RDLC."
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__SqlServerCon: *sql-connection-string
+      Serilog__WriteTo__0__Args__connectionString: *sql-connection-string
+      # Base URL do cliente Ollama (lida pelo Program.cs; default localhost:11434).
+      Ollama__BaseUrl: http://ollama:11434
+    depends_on:
+      sql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_started
     ports:
       - "5000:5000"
-    environment:
-      - SQLCONNECTIONSTRING=${SQLCONNECTIONSTRING}
-      - OLLAMA__BASEURL=${OLLAMA_BASEURL:-http://ollama:11434}
-    depends_on:
-      - sql
-      - ollama
+    volumes:
+      # Assets versionados + uploads (o .dockerignore exclui esta pasta da imagem).
+      - ./Web.Blazor/wwwroot/Files:/app/wwwroot/Files
     networks:
       - mediaorganizer
-    volumes:
-      - uploads-volume:/app/wwwroot/Files
 
   webblazor:
     build:
       context: .
       dockerfile: docker/Dockerfile.WebBlazor
+    labels:
+      <<: *oci-labels
+      org.opencontainers.image.title: "Media Organizer — Blazor UI"
+      org.opencontainers.image.description: "UI Blazor Server (Syncfusion): publicacoes, media, autores, playlists, IA. http://localhost:5001"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # NÃO incluir /api: o Program.cs (e todos os typed clients) acrescenta-o.
+      BaseUrl: http://webapi:5000
+      # O Blazor lê a BD diretamente para Identity/EF Core.
+      ConnectionStrings__SqlServerCon: *sql-connection-string
+      Serilog__WriteTo__0__Args__connectionString: *sql-connection-string
+      Ollama__BaseUrl: http://ollama:11434
+    depends_on:
+      webapi:
+        condition: service_started
     ports:
       - "5001:5001"
-    environment:
-      - BaseUrl=http://webapi:5000/api
-      - ASPNETCORE_ENVIRONMENT=Production
-    depends_on:
-      - webapi
+    volumes:
+      - ./Web.Blazor/wwwroot/Files:/app/wwwroot/Files
     networks:
       - mediaorganizer
-    volumes:
-      - uploads-volume:/app/wwwroot/Files
-
-  sql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${SQL_SA_PASSWORD:-YourStrong!Passw0rd}
-    ports:
-      - "1433:1433"
-    networks:
-      - mediaorganizer
-    volumes:
-      - sql-data:/var/opt/mssql
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    networks:
-      - mediaorganizer
-    volumes:
-      - ollama-data:/root/.ollama
 
 networks:
   mediaorganizer:
     driver: bridge
 
 volumes:
-  uploads-volume:
   sql-data:
   ollama-data:

@@ -13,6 +13,7 @@
 @using Web.Blazor.Components
 @using Web.Blazor.Pages.BaseComponents
 @using Web.Blazor.Pages.LookupTables
+@using Web.Blazor.Services.Common
 
 @inherits PublicacoesBase
 
@@ -175,7 +176,7 @@ else
                                     var imageSource = "";
                                     if (!imageSourceOnTheNet)
                                     {
-                                        imageSource = Path.Combine(hostingEnvironment.WebRootPath, imagemCapa);
+                                        imageSource = WebPathHelper.ToPhysicalPath(hostingEnvironment, imagemCapa);
 
                                         if (!string.IsNullOrEmpty(currentRow.ImagemCapa))
                                         {
@@ -185,7 +186,7 @@ else
                                                 else
                                                     pubmage = "/images/word.png";
                                             else
-                                                pubmage = currentRow.ImagemCapa;
+                                                pubmage = WebPathHelper.ToWebUrl(currentRow.ImagemCapa);
                                         }
                                         else
                                         {

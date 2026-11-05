@@ -68,6 +68,18 @@ namespace Web.Blazor.Pages.BaseComponents
 
         protected IEnumerable<SummaryDataDTO> storagePlacesSummary;
 
+        /// <summary>
+        /// True quando existe pelo menos um gráfico com dados. Cada pie chart é
+        /// renderizado individualmente, para que uma lista vazia (ex.: CategoriaMedia
+        /// num .bak sem registos) não esconda os restantes.
+        /// </summary>
+        protected bool HasChartData =>
+            categoriasSummaryTop10?.Any() == true ||
+            formatosSummaryTop10?.Any() == true ||
+            categoriasMediaSummaryTop10?.Any() == true ||
+            formatosMediaSummaryTop10?.Any() == true;
+
+
 
         protected int categoriasCount;
         protected int categoriasMediaCount;

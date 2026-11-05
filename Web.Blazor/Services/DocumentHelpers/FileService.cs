@@ -4,6 +4,7 @@ using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
 using System.Text;
 using System.IO;
+using Web.Blazor.Services.Common;
 
 namespace Web.Blazor.Services.DocumentHelpers
 {
@@ -197,7 +198,7 @@ namespace Web.Blazor.Services.DocumentHelpers
             }
 
             string imgUrl = "";
-            var fullP = Path.Combine(_hostingEnvironment.WebRootPath, coverFile);
+            var fullP = WebPathHelper.ToPhysicalPath(_hostingEnvironment, coverFile);
             var fileInfo = new FileInfo(fullP);
             if (File.Exists(fullP) && fileInfo.Length < 1024)
             {
@@ -205,7 +206,7 @@ namespace Web.Blazor.Services.DocumentHelpers
             }
             else
             {
-                string[] aFolders = coverFile.Split("\\");
+                string[] aFolders = coverFile.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
                 if (aFolders.Length > 2)
                 {
                     if (aFolders.Length > 8)
@@ -218,7 +219,7 @@ namespace Web.Blazor.Services.DocumentHelpers
                     }
                 }
                 else
-                    imgUrl = coverFile;
+                    imgUrl = coverFile.Replace('\\', '/');
             }
             return imgUrl;
         }
@@ -230,7 +231,7 @@ namespace Web.Blazor.Services.DocumentHelpers
         }
         public async Task<bool> DeletePhysicalPubPdf(PubsWithDescriptions pub)
         {
-            var digitalPath = Path.Combine(_hostingEnvironment.WebRootPath, pub.DigitalPath);
+            var digitalPath = WebPathHelper.ToPhysicalPath(_hostingEnvironment, pub.DigitalPath);
             var isSourceFileDocx = Path.GetExtension(digitalPath.ToLower()) == ".docx";
             var isSourceFileEmailMessage = Path.GetExtension(digitalPath.ToLower()) == ".msg";
             var noPubImage = pub.ImagemCapa.ToLower().Contains("no-image-available.png");

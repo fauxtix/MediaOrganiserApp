@@ -38,6 +38,9 @@ public class Program
         if (connString is null)
             throw new ArgumentNullException(nameof(connString), "Connection string cannot be null");
 
+        // Configura o ConnectionManager para usar a IConfiguration completa (env vars, appsettings.Production, etc.)
+        MediaOrganizerApp.Application.Factories.ConnectionManager.Configure(builder.Configuration);
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAllOrigins", policy =>
@@ -76,9 +79,13 @@ public class Program
         // ----------------------------------------------------------------
         // CONFIGURAÇÃO RESILIENTE DO POOL DE PORTAS TCP PARA O OLLAMA
         // ----------------------------------------------------------------
+        // Base URL configurável (Docker: Ollama__BaseUrl=http://ollama:11434).
+        // Sem configuração mantém o Ollama local do host.
+        var ollamaBaseUrl = builder.Configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+
         builder.Services.AddHttpClient("OllamaSharedClient", client =>
         {
-            client.BaseAddress = new Uri("http://localhost:11434");
+            client.BaseAddress = new Uri(ollamaBaseUrl);
             client.Timeout = TimeSpan.FromMinutes(10); // Evita o Timeout infinito perigoso
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler

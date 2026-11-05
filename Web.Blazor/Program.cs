@@ -59,6 +59,9 @@ public class Program
         if (connString == null)
             throw new ArgumentNullException(nameof(connString), "Connection string cannot be null");
 
+        // Configura o ConnectionManager para usar a IConfiguration completa (env vars, appsettings.Production, etc.)
+        MediaOrganizerApp.Application.Factories.ConnectionManager.Configure(builder.Configuration);
+
         // ----------------------
         // Services
         // ----------------------
@@ -140,9 +143,13 @@ public class Program
         builder.Services.AddScoped<PdfGeneratorService>();
         builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 
+        // Base URL configurável (Docker: Ollama__BaseUrl=http://ollama:11434).
+        // Sem configuração mantém o Ollama local do host.
+        var ollamaBaseUrl = builder.Configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+
         builder.Services.AddHttpClient("OllamaHttpClient", client =>
         {
-            client.BaseAddress = new Uri("http://localhost:11434");
+            client.BaseAddress = new Uri(ollamaBaseUrl);
             client.Timeout = TimeSpan.FromMinutes(15); // D� margem para qualquer modelo carregar na RAM/GPU
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler

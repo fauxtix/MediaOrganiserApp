@@ -61,3 +61,8 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# Docker: scripts de contentor têm de manter LF (bash em Linux).
+###############################################################################
+docker/*.sh text eol=lf

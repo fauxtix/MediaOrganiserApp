@@ -1,0 +1,19 @@
+# Contexto de build Docker (raiz do repo)
+.git
+.gitignore
+.gitattributes
+.vs
+.idea
+**/bin
+**/obj
+**/TestResults
+**/*.user
+Publish
+artifacts
+
+# Dados/assets de runtime: 1,3 GB (uploads + backups + imagens).
+# São montados do host em /app/wwwroot/Files pelo docker-compose.yml.
+Web.Blazor/wwwroot/Files
+
+# Documentos e planos locais
+PLAN_*.md

@@ -20,12 +20,7 @@
     else
     {
 
-        if (categoriasSummaryTop10.Count() > 0 &&
-        categoriasMediaSummary.Count() > 0 &&
-        editorasSummary.Count() > 0 &&
-        formatosSummary.Count() > 0 &&
-        formatosMediaSummary.Count() > 0 &&
-        autoresSummary.Count() > 0)
+        if (HasChartData)
         {
             <SfFab IconCss="fa fa-arrow-up"
                    Position="FabPosition.BottomRight"
@@ -34,6 +29,8 @@
 
             <div class="row">
                 <div class="col-md-6 control-section sb-property-border">
+                    @if (categoriasSummaryTop10.Any())
+                    {
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloCategoriasPublicacoes"]" EnableAnimation="true">
                             <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
@@ -49,7 +46,10 @@
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
                     </div>
+                    }
 
+                    @if (formatosSummaryTop10.Any())
+                    {
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["frmFormatos"]" EnableAnimation="true">
                             <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
@@ -65,6 +65,7 @@
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
                     </div>
+                    }
                     @*                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["frmEditoras"]" EnableAnimation="true">
                             <AccumulationChartTooltipSettings Enable="true"></AccumulationChartTooltipSettings>
@@ -83,6 +84,8 @@
  *@
                 </div>
                 <div class="col-md-6 control-section sb-property-border">
+                    @if (categoriasMediaSummaryTop10.Any())
+                    {
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloCategoriasMedia"]" EnableAnimation="true">
                             <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
@@ -98,7 +101,10 @@
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
                     </div>
+                    }
 
+                    @if (formatosMediaSummaryTop10.Any())
+                    {
                     <div class="control-section">
                         <SfAccumulationChart Background="transparent" Title="@localizerApp["TituloFormatoMedia"]" EnableAnimation="true">
                             <AccumulationChartTooltipSettings Enable="false"></AccumulationChartTooltipSettings>
@@ -114,6 +120,7 @@
                             </AccumulationChartSeriesCollection>
                         </SfAccumulationChart>
                     </div>
+                    }
 
                 </div>
             </div>

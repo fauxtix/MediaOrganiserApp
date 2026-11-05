@@ -12,6 +12,7 @@ using Syncfusion.Blazor.Popups;
 using Syncfusion.Blazor.Spinner;
 using System.Globalization;
 using Web.Blazor.Services.ApiWrappers;
+using Web.Blazor.Services.Common;
 using static MediaOrganizerApp.Application.Enums.AppDefinitions;
 
 namespace Web.Blazor.Pages.Publications
@@ -155,7 +156,7 @@ namespace Web.Blazor.Pages.Publications
                 }
                 else
                 {
-                    var imageFilePath = Path.Combine(env.WebRootPath, tempCoverImage);
+                    var imageFilePath = WebPathHelper.ToPhysicalPath(env, tempCoverImage);
                     if (File.Exists(imageFilePath))
                     {
                         var fileInfo = new System.IO.FileInfo(imageFilePath);
@@ -165,7 +166,7 @@ namespace Web.Blazor.Pages.Publications
                         }
                         else
                         {
-                            CoverImage = tempCoverImage;
+                            CoverImage = WebPathHelper.ToWebUrl(tempCoverImage);
                         }
                     }
                     else
@@ -230,7 +231,7 @@ namespace Web.Blazor.Pages.Publications
 
                 if (!FoundValidExt)
                 {
-                    //Mensagem = $"Ficheiro não tem extensão válida. Verifique, por favor";
+                    //Mensagem = $"Ficheiro nï¿½o tem extensï¿½o vï¿½lida. Verifique, por favor";
                     //clsName = "alert alert-warning";
                     //UploadOk = false;
 
