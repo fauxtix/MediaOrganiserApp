@@ -1,0 +1,145 @@
+@using MediaOrganizerApp.Application.Interfaces.Services
+@using Microsoft.Extensions.Localization
+@using Web.Blazor.Services.EmailServices
+@inject HttpClient Http
+@inject ILogService LogService
+@inject IConfiguration Configuration
+@inject IStringLocalizer<App> L
+@inject IJSRuntime JS
+@inject EmailTemplateService TemplateService
+
+<SfDialog Width="600px"
+          Height="85%"
+          IsModal="true"
+          @bind-Visible="Visible"
+          ShowCloseIcon="true"
+          CloseOnEscape="true">
+    <DialogTemplates>
+        <Header>
+            <h5>@L["ReportErrorToAuthor"]</h5>
+        </Header>
+
+        <Content>
+            <div class="p-3">
+                <div class="mb-2">
+                    <label class="form-label">@L["Email_To"]</label>
+                    <InputText @bind-Value="To" class="form-control" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">@L["msgUploadSubject"]</label>
+                    <InputText @bind-Value="Subject" class="form-control" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">@L["TituloMensagem"]</label>
+                    <SfRichTextEditor Placeholder="@L["TituloMensagem"]"
+                                      EditorMode="EditorMode.HTML"
+                                      @bind-Value="@Body">
+                        <RichTextEditorToolbarSettings Type="ToolbarType.Scrollable" EnableFloating="true" />
+                    </SfRichTextEditor>
+
+                </div>
+
+                <div class="d-flex justify-content-end mt-2" style="gap:6px">
+                    <SfButton CssClass="e-outline e-danger e-round-corner mx-2" @onclick="OnCancel" Content="@L["btnCancelar"]"></SfButton>
+                    <SfButton CssClass="e-success e-round-corner" IsPrimary="true" @onclick="SendEmail" Content="@L["TituloEnviar"]"></SfButton>
+                </div>
+            </div>
+        </Content>
+    </DialogTemplates>
+</SfDialog>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public AppLogDto? LogEntry { get; set; }
+    [Parameter] public EventCallback OnSent { get; set; }
+
+    [Inject] public IAppSettingsService? AppSettingsService { get; set; }
+
+    protected ApplicationSettingsDto? Settings;
+
+
+    string To = "";
+    string Subject = "";
+    string Body = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Settings = await AppSettingsService?.GetSettingsAsync();
+        To = Settings?.SupportMail ?? "author@example.com";
+        Subject = "Organise IT Log Error";
+        Body = await BuildBody();
+    }
+
+    async Task<string> BuildBody()
+    {
+        if (LogEntry == null) return "";
+        var appName = "Organise It!";
+        var time = LogEntry.TimeStamp.ToString("u");
+        var level = System.Net.WebUtility.HtmlEncode(LogEntry.Level ?? "Unknown");
+        var message = System.Net.WebUtility.HtmlEncode(LogEntry.Message ?? "");
+        var exception = LogEntry.Exception ?? "";
+
+        // compute CSS class outside the interpolated verbatim string to avoid parser issues
+        var levelText = LogEntry.Level?.ToLowerInvariant() ?? "";
+        var levelClass = levelText == "information"
+            ? "info"
+            : levelText == "warning"
+                ? "warning"
+                : "error";
+
+        var template = await TemplateService.LoadTemplateAsync("templates/error-report.html");
+        var values = new Dictionary<string, string>
+        {
+            ["AppName"] = "Organise It!",
+            ["Time"] = LogEntry?.TimeStamp.ToString("u") ?? "",
+            ["Level"] = LogEntry?.Level ?? "Unknown",
+            ["LevelClass"] = levelClass,
+            ["Message"] = LogEntry?.Message ?? "",
+            ["ExceptionHtml"] = EmailTemplateService.BuildExceptionHtml(LogEntry?.Exception ?? ""),
+            ["SupportMail"] = Settings?.SupportMail ?? "support@example.com"
+        };
+        Body = TemplateService.Render(template, values);
+
+
+        return Body;
+    }
+
+    private async Task SendEmail()
+    {
+        try
+        {
+
+            var payload = new { to = To, subject = Subject, body = Body };
+            var resp = await LogService.SendEmail(payload);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                await OnSent.InvokeAsync();
+                await Close();
+            }
+            else
+            {
+                var text = await resp.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", $"Send failed: {text}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Send error: {ex.Message}");
+        }
+    }
+
+    async Task OnCancel()
+    {
+        await Close();
+    }
+
+    async Task Close()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(Visible);
+    }
+}
