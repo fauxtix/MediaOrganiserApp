@@ -9,6 +9,7 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
   RUNTIME: 'win-x64'
+  SYNCFUSION_NUGET_KEY: ${{ secrets.SYNCFUSION_NUGET_KEY }}
 
   API_PROJECT: 'MediaOrganizerApp.WebApi/MediaOrganizerApp.WebApi.csproj'
   WEB_PROJECT: 'Web.Blazor/Web.Blazor.csproj'
