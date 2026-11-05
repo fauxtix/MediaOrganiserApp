@@ -43,6 +43,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Inject Syncfusion key
+        shell: powershell
+        run: |
+          (Get-Content nuget.config -Raw) `
+            -replace '<your-api-key>', $env:SYNCFUSION_NUGET_KEY `
+            | Set-Content nuget.config
 
       - name: Restore solution
         shell: powershell
