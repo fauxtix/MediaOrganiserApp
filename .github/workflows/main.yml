@@ -201,14 +201,22 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+
+          Write-Host "PASSO 1 - Import WebAdministration"
           Import-Module WebAdministration
+
+          Write-Host "PASSO 2 - Criar diretorios"
 
           foreach ($path in @($env:API_PATH, $env:WEB_PATH)) {
               New-Item -Path $path -ItemType Directory -Force | Out-Null
           }
 
-          # Criar e configurar App Pools.
+          Write-Host "PASSO 3 - Configurar App Pools"
+
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+
+              Write-Host "A processar App Pool: $pool"
+
               if (-not (Test-Path "IIS:\AppPools\$pool")) {
                   New-WebAppPool -Name $pool | Out-Null
               }
@@ -218,21 +226,32 @@ jobs:
               Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
           }
 
-          # Publicar API.
-          & robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          Write-Host "PASSO 4 - Deploy API"
 
-          if ($LASTEXITCODE -gt 7) {
-              throw "Deploy da API falhou com codigo $LASTEXITCODE"
+          robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+
+          $apiRc = $LASTEXITCODE
+
+          Write-Host "Robocopy API exit code: $apiRc"
+
+          if ($apiRc -gt 7) {
+              throw "Deploy da API falhou com codigo $apiRc"
           }
 
-          # Publicar frontend.
-          & robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          Write-Host "PASSO 5 - Deploy Frontend"
 
-          if ($LASTEXITCODE -gt 7) {
-              throw "Deploy do frontend falhou com codigo $LASTEXITCODE"
+          robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+
+          $webRc = $LASTEXITCODE
+
+          Write-Host "Robocopy Frontend exit code: $webRc"
+
+          if ($webRc -gt 7) {
+              throw "Deploy do frontend falhou com codigo $webRc"
           }
 
-          # Configurar site da API.
+          Write-Host "PASSO 6 - Configurar Site API"
+
           if (-not (Get-Website -Name $env:API_SITE -ErrorAction SilentlyContinue)) {
               New-Website -Name $env:API_SITE `
                 -Port ([int]$env:API_PORT) `
@@ -245,7 +264,8 @@ jobs:
               Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name applicationPool -Value $env:API_POOL
           }
 
-          # Obter ou criar certificado autoassinado para localhost.
+          Write-Host "PASSO 7 - Certificado"
+
           $cert = Get-ChildItem Cert:\LocalMachine\My |
               Where-Object {
                   $_.Subject -like '*localhost*' -and
@@ -261,7 +281,8 @@ jobs:
                   -FriendlyName 'MediaOrganizer localhost'
           }
 
-          # Configurar site do frontend.
+          Write-Host "PASSO 8 - Configurar Site Frontend"
+
           $webSite = Get-Website -Name $env:WEB_SITE -ErrorAction SilentlyContinue
 
           if (-not $webSite) {
@@ -276,46 +297,47 @@ jobs:
               Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name applicationPool -Value $env:WEB_POOL
           }
 
-          # Configurar binding HTTPS.
+          Write-Host "PASSO 9 - Configurar HTTPS"
+
           $bindingInfo = "*:$($env:WEB_PORT):"
 
           Get-WebBinding -Name $env:WEB_SITE -Protocol http -ErrorAction SilentlyContinue |
-              Where-Object {
-                  $_.bindingInformation -eq $bindingInfo
-              } |
+              Where-Object { $_.bindingInformation -eq $bindingInfo } |
               Remove-WebBinding -Confirm:$false
 
           $existing = Get-WebBinding -Name $env:WEB_SITE -Protocol https -ErrorAction SilentlyContinue |
-              Where-Object {
-                  $_.bindingInformation -eq $bindingInfo
-              } |
+              Where-Object { $_.bindingInformation -eq $bindingInfo } |
               Select-Object -First 1
 
           if (-not $existing) {
-              New-WebBinding -Name $env:WEB_SITE -Protocol https `
+              New-WebBinding -Name $env:WEB_SITE `
+                -Protocol https `
                 -Port ([int]$env:WEB_PORT) `
                 -IPAddress '*' `
                 -SslFlags 0 `
                 -Force | Out-Null
           }
 
-          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
-              -PropertyName 'sslFlags' -Value '0'
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'sslFlags' -Value '0'
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'certificateStoreName' -Value 'My'
+          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'iisCertificateThumbprint' -Value $cert.Thumbprint
 
-          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
-              -PropertyName 'certificateStoreName' -Value 'My'
+          Write-Host "PASSO 10 - Arrancar App Pools"
 
-          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
-              -PropertyName 'iisCertificateThumbprint' -Value $cert.Thumbprint
-
-          # Arrancar App Pools e sites.
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
               Start-WebAppPool -Name $pool
           }
 
+          Write-Host "PASSO 11 - Arrancar Sites"
+
           foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
               Start-Website -Name $site
           }
+
+          Write-Host "PASSO 12 - Deploy terminado"
+
+          $global:LASTEXITCODE = 0
+          exit 0
 
       - name: Smoke test
         shell: powershell
