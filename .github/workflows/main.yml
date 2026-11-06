@@ -128,42 +128,74 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+
+          Write-Host "Current user: $(whoami)"
+
           Import-Module WebAdministration
 
-          # Parar os App Pools para libertar ficheiros bloqueados.
+          Write-Host "Stopping application pools..."
+
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
               if (Test-Path "IIS:\AppPools\$pool") {
                   $state = (Get-WebAppPoolState -Name $pool).Value
+
+                  Write-Host "Pool $pool state: $state"
+
                   if ($state -ne 'Stopped') {
                       Stop-WebAppPool -Name $pool
+                      Write-Host "Pool $pool stopped."
                   }
+              }
+              else {
+                  Write-Host "Pool $pool does not exist."
               }
           }
 
-          # Parar os sites.
+          Write-Host "Stopping IIS websites..."
+
           foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
               if (Get-Website -Name $site -ErrorAction SilentlyContinue) {
                   Stop-Website -Name $site
+                  Write-Host "Site $site stopped."
               }
           }
 
-          # Backup de wwwroot\Files antes do /MIR.
           $files = Join-Path $env:WEB_PATH 'wwwroot\Files'
 
           if (Test-Path -LiteralPath $files) {
+
               $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
               $dest = Join-Path $env:BACKUP_PATH "Files-$stamp"
 
               New-Item -Path $dest -ItemType Directory -Force | Out-Null
 
-              & robocopy $files $dest /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP
+              robocopy $files $dest /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP
 
-              if ($LASTEXITCODE -gt 7) {
-                  throw "Backup de wwwroot\Files falhou com codigo $LASTEXITCODE"
+              $rc = $LASTEXITCODE
+
+              Write-Host "Robocopy exit code: $rc"
+
+              if ($rc -gt 7) {
+                  throw "Backup de wwwroot\Files falhou com codigo $rc"
               }
 
               Write-Host "Backup de wwwroot\Files concluido."
           }
+          else {
+              Write-Host "Folder $files not found. Backup skipped."
+          }
+
+          # IMPORTANTE:
+          # O GitHub Actions pode interpretar o LASTEXITCODE do robocopy
+          # como erro mesmo quando o script terminou com sucesso.
+
+          $global:LASTEXITCODE = 0
+
+          Write-Host "Backup step completed successfully."
+
+          exit 0
+
+      
 
       - name: Deploy to IIS
         shell: powershell
