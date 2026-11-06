@@ -1,20 +1,17 @@
 ﻿using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
+using MediaOrganizerApp.Application.DTOs;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using MediaOrganizerApp.Domain.Entities;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using Web.Blazor.Static;
 
 namespace Web.Blazor.Services.Common
 {
     public interface IGetYoutubeVideoMetadata
     {
         Task<YouTubeVideoDetails> GetAlbumArtistMetadata(string searchRequest_query);
+        Task<ApplicationSettingsDto> GetKeys();
         Task<YouTubeVideoDetails> GetSingleVideoMetadata(string searchRequest_query);
         Task<YouTubeVideoDetails> GetVideoMetadata(string searchRequest_Id);
         Task<YouTubeVideoDetails> SearchByArtistAndSong(string artistName, string songName);
@@ -22,12 +19,38 @@ namespace Web.Blazor.Services.Common
 
     public class GetYoutubeVideoMetadata : IGetYoutubeVideoMetadata
     {
+        private readonly IAppSettingsService _appSettingsService;
+        private readonly ILogger<GetYoutubeVideoMetadata> _logger;
+        private string? _youTubeApiKey;
+        private string? _youTubeApplicationName;
+
+        public GetYoutubeVideoMetadata(IAppSettingsService appSettingsService, ILogger<GetYoutubeVideoMetadata> logger)
+        {
+            _appSettingsService = appSettingsService;
+            _logger = logger;
+        }
+
+        private async Task EnsureYouTubeKeysLoaded()
+        {
+            if (!string.IsNullOrWhiteSpace(_youTubeApiKey) && !string.IsNullOrWhiteSpace(_youTubeApplicationName))
+                return;
+
+            var settings = await GetKeys();
+            _youTubeApiKey = settings.YouTubeApiKey;
+            _youTubeApplicationName = settings.YouTubeApplicationName ?? "MediaOrganizer";
+        }
+
+        private string YouTubeApiKey => _youTubeApiKey ?? string.Empty;
+        private string YouTubeApplicationName => _youTubeApplicationName ?? "MediaOrganizer";
+
         public async Task<YouTubeVideoDetails> GetVideoMetadata(string searchRequest_Id = "")
         {
+            await EnsureYouTubeKeysLoaded();
+
             using (var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = Keys.YouTubeApiKey,
-                ApplicationName = Keys.YouTubeApplicationName,
+                ApiKey = YouTubeApiKey,
+                ApplicationName = YouTubeApplicationName,
             }))
             {
                 var searchRequest = youtubeService.Videos.List("snippet,contentDetails");
@@ -45,8 +68,9 @@ namespace Web.Blazor.Services.Common
 
                 }
 
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Error occurred while fetching video metadata for ID: {VideoId}", searchRequest_Id);
                     return null;
                 }
 
@@ -80,10 +104,11 @@ namespace Web.Blazor.Services.Common
         }
         public async Task<YouTubeVideoDetails> GetAlbumArtistMetadata(string searchRequest_query)
         {
+            await EnsureYouTubeKeysLoaded();
             using (var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = Keys.YouTubeApiKey,
-                ApplicationName = Keys.YouTubeApplicationName
+                ApiKey = YouTubeApiKey,
+                ApplicationName = YouTubeApplicationName
 
             }))
             {
@@ -141,12 +166,13 @@ namespace Web.Blazor.Services.Common
 
         public async Task<YouTubeVideoDetails> GetSingleVideoMetadata(string searchRequest_query)
         {
+            await EnsureYouTubeKeysLoaded();
             try
             {
                 using (var YouTubeService = new YouTubeService(new BaseClientService.Initializer()
                 {
-                    ApiKey = Keys.YouTubeApiKey,
-                    ApplicationName = Keys.YouTubeApplicationName
+                    ApiKey = YouTubeApiKey,
+                    ApplicationName = YouTubeApplicationName
 
                 }))
                 {
@@ -191,12 +217,13 @@ namespace Web.Blazor.Services.Common
 
         public async Task<YouTubeVideoDetails> SearchByArtistAndSong(string artistName, string songName)
         {
+            await EnsureYouTubeKeysLoaded();
             try
             {
                 using (var youtubeService = new YouTubeService(new BaseClientService.Initializer()
                 {
-                    ApiKey = Keys.YouTubeApiKey,
-                    ApplicationName = Keys.YouTubeApplicationName
+                    ApiKey = YouTubeApiKey,
+                    ApplicationName = YouTubeApplicationName
                 }))
                 {
                     // Construct a search query combining artist and song name
@@ -248,11 +275,12 @@ namespace Web.Blazor.Services.Common
 
         private async Task<string> GetVideoDuration(string searchRequest_Id)
         {
+            await EnsureYouTubeKeysLoaded();
             string duration = "";
             using (var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = Keys.YouTubeApiKey,
-                ApplicationName = Keys.YouTubeApplicationName
+                ApiKey = YouTubeApiKey,
+                ApplicationName = YouTubeApplicationName
 
             }))
             {
@@ -271,6 +299,11 @@ namespace Web.Blazor.Services.Common
                 }
             }
             return duration;
+        }
+
+        public async Task<ApplicationSettingsDto> GetKeys()
+        {
+            return await _appSettingsService.GetSettingsAsync();
         }
     }
 }

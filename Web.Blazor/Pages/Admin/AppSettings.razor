@@ -252,6 +252,30 @@ else
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["YouTubeApiKey"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.YouTubeApiKey" Placeholder="@L["YouTubeApiKey"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["YouTubeClientId"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.YouTubeClientId" Placeholder="@L["YouTubeClientId"]"></SfTextBox>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["YouTubeClientSecret"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.YouTubeClientSecret" Placeholder="@L["YouTubeClientSecret"]"></SfTextBox>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
+                                               Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["YouTubeApplicationName"]</h5></SfMessage>
+                                    <SfTextBox @bind-Value="settings.YouTubeApplicationName" Placeholder="@L["YouTubeApplicationName"]"></SfTextBox>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-sm-12">
                                     <SfMessage CssClass="rounded" Variant="MessageVariant.Text"
                                                Severity="MessageSeverity.Success" ShowCloseIcon=false ShowIcon=false><h5>@L["Database_ConnectionString"]</h5></SfMessage>

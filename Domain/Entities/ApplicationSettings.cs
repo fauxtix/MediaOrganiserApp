@@ -52,5 +52,11 @@
         // Google Books settings
         public string GoogleBooksApiKey { get; set; }
         public string GoogleBooksCountry { get; set; }
+
+        // YouTube settings
+        public string YouTubeApiKey { get; set; }
+        public string YouTubeClientId { get; set; }
+        public string YouTubeClientSecret { get; set; }
+        public string YouTubeApplicationName { get; set; }
     }
 }

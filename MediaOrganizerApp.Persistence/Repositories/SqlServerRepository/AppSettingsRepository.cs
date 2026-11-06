@@ -87,6 +87,11 @@ public class AppSettingsRepository : IAppSettingsRepository
 
         parameters.Add("@GoogleBooksApiKey", settings?.GoogleBooksApiKey);
         parameters.Add("@GoogleBooksCountry", settings?.GoogleBooksCountry);
+
+        parameters.Add("@YouTubeApiKey", settings?.YouTubeApiKey);
+        parameters.Add("@YouTubeClientId", settings?.YouTubeClientId);
+        parameters.Add("@YouTubeClientSecret", settings?.YouTubeClientSecret);
+        parameters.Add("@YouTubeApplicationName", settings?.YouTubeApplicationName);
         try
         {
             using (var connection = _context.CreateConnection())

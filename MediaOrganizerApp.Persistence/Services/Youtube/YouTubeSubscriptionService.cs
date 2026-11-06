@@ -4,6 +4,7 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using MediaOrganizerApp.Application.Factories;
 using MediaOrganizerApp.Application.Interfaces;
+using MediaOrganizerApp.Application.Interfaces.Repositories;
 using MediaOrganizerApp.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -13,7 +14,6 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Text;
 using System.Threading.Tasks;
-using MediaOrganizerApp.Persistence.Services.Youtube.Settings;
 using System;
 using Google.Apis.Util.Store;
 using System.Threading;
@@ -28,20 +28,24 @@ namespace MediaOrganizerApp.Persistence.Services.Youtube
 
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDapperContext _dbContext;
+        private readonly IAppSettingsRepository _appSettingsRepository;
 
-        public YouTubeSubscriptionService(IHttpContextAccessor httpContextAccessor, IDapperContext dbContext)
+        public YouTubeSubscriptionService(IHttpContextAccessor httpContextAccessor, IDapperContext dbContext, IAppSettingsRepository appSettingsRepository)
         {
             _httpContextAccessor = httpContextAccessor;
             _dbContext = dbContext;
+            _appSettingsRepository = appSettingsRepository;
         }
 
         public async Task<IList<Google.Apis.YouTube.v3.Data.Subscription>> GetSubscriptionsAsync()
         {
             var accessToken = await _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
 
+            var settings = await _appSettingsRepository.GetSettingsAsync();
+
             var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = Keys.YouTubeApiKey,
+                ApiKey = settings.YouTubeApiKey,
                 HttpClientInitializer = GoogleCredential.FromAccessToken(accessToken),
                 ApplicationName = "MediaOrganizer"
             });
@@ -50,8 +54,8 @@ namespace MediaOrganizerApp.Persistence.Services.Youtube
             {
                 var clientSecrets = new ClientSecrets
                 {
-                    ClientId = Keys.ClientId,
-                    ClientSecret = Keys.ClientSecret,
+                    ClientId = settings.YouTubeClientId,
+                    ClientSecret = settings.YouTubeClientSecret,
                 };
                 string credPath = "token.json"; // Path to store the token
 

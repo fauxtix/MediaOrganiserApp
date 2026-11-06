@@ -76,15 +76,8 @@ namespace Web.Blazor
             services.AddHttpClient<AiMediaClientService>();
 
             // YoutubeService para integração com playlists do YouTube
-            services.AddHttpClient("YouTube");
-            services.AddScoped<Web.Blazor.Services.YouTube.YoutubeService>(sp =>
-            {
-                var apiKey = Web.Blazor.Static.Keys.YouTubeApiKey;
-                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                var logger = sp.GetRequiredService<ILogger<YoutubeService>>();
-                var httpClient = httpClientFactory.CreateClient("YouTube");
-                return new Web.Blazor.Services.YouTube.YoutubeService(httpClient, apiKey, logger);
-            });
+            // (a API key é lida da BD via IAppSettingsService, já não de Keys.cs)
+            services.AddHttpClient<Web.Blazor.Services.YouTube.YoutubeService>();
 
             services.AddHttpClient<ICategoriasService, CategoriasService>();
             services.AddHttpClient<IEditorasService, EditorasService>();

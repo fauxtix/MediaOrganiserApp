@@ -1288,6 +1288,18 @@ Pode copiar o detalhe ou reportar o problema por e-mail.</value>
   <data name="GoogleBooksCountry" xml:space="preserve">
     <value>País do Google Books (ex.: PT)</value>
   </data>
+  <data name="YouTubeApiKey" xml:space="preserve">
+    <value>Chave de API do YouTube</value>
+  </data>
+  <data name="YouTubeClientId" xml:space="preserve">
+    <value>ID do cliente OAuth do YouTube</value>
+  </data>
+  <data name="YouTubeClientSecret" xml:space="preserve">
+    <value>Secret do cliente OAuth do YouTube</value>
+  </data>
+  <data name="YouTubeApplicationName" xml:space="preserve">
+    <value>Nome da aplicação YouTube</value>
+  </data>
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>Tenta pesquisa por AI?</value>
   </data>

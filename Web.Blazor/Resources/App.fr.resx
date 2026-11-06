@@ -1288,6 +1288,18 @@
   <data name="GoogleBooksCountry" xml:space="preserve">
     <value>Pays Google Books (ex. PT)</value>
   </data>
+  <data name="YouTubeApiKey" xml:space="preserve">
+    <value>Clé API YouTube</value>
+  </data>
+  <data name="YouTubeClientId" xml:space="preserve">
+    <value>ID client OAuth YouTube</value>
+  </data>
+  <data name="YouTubeClientSecret" xml:space="preserve">
+    <value>Secret client OAuth YouTube</value>
+  </data>
+  <data name="YouTubeApplicationName" xml:space="preserve">
+    <value>Nom de l'application YouTube</value>
+  </data>
   <data name="TituloPesquisaPorAI" xml:space="preserve">
     <value>Pourquoi ne pas essayer la recherche par IA ?</value>
   </data>

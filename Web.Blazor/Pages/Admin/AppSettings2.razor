@@ -217,6 +217,15 @@ else
                                         <SfTextBox CssClass="form-control" @bind-Value="settings.GoogleBooksCountry" Placeholder="@L["GoogleBooksCountry"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                                     </div>
                                     <div class="settings-field">
+                                        <SfTextBox CssClass="form-control mt-1" @bind-Value="settings.YouTubeApiKey" Placeholder="@L["YouTubeApiKey"]" FloatLabelType="FloatLabelType.Always" HtmlAttributes="@(new Dictionary<string, object> { ["type"] = "password" })" ShowClearButton="true"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control" @bind-Value="settings.YouTubeClientId" Placeholder="@L["YouTubeClientId"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
+                                        <SfTextBox CssClass="form-control mt-1" @bind-Value="settings.YouTubeClientSecret" Placeholder="@L["YouTubeClientSecret"]" FloatLabelType="FloatLabelType.Always" HtmlAttributes="@(new Dictionary<string, object> { ["type"] = "password" })" ShowClearButton="true"></SfTextBox>
+                                    </div>
+                                    <div class="settings-field">
                                         <SfTextBox CssClass="form-control" @bind-Value="settings.IMDbKey" Placeholder="@L["IMDbKey"]" FloatLabelType="FloatLabelType.Always"></SfTextBox>
                                     </div>
                                 </div>

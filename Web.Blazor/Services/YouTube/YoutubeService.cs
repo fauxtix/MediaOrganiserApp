@@ -1,5 +1,6 @@
 using MediaOrganizerApp.Application.DTOs;
 using MediaOrganizerApp.Application.DTOs.PlayLists;
+using MediaOrganizerApp.Application.Interfaces.Services.Api;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -18,13 +19,24 @@ namespace Web.Blazor.Services.YouTube
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<YoutubeService> _logger;
-        private readonly string _apiKey;
+        private readonly IAppSettingsService _appSettingsService;
+        private string? _apiKey;
 
-        public YoutubeService(HttpClient httpClient, string apiKey, ILogger<YoutubeService> logger)
+        public YoutubeService(HttpClient httpClient, IAppSettingsService appSettingsService, ILogger<YoutubeService> logger)
         {
             _httpClient = httpClient;
-            _apiKey = apiKey;
+            _appSettingsService = appSettingsService;
             _logger = logger;
+        }
+
+        private async Task<string> GetApiKeyAsync()
+        {
+            if (!string.IsNullOrWhiteSpace(_apiKey))
+                return _apiKey;
+
+            var settings = await _appSettingsService.GetSettingsAsync();
+            _apiKey = settings.YouTubeApiKey ?? string.Empty;
+            return _apiKey;
         }
 
         public async Task<List<YoutubeVideoDto>> GetVideosFromPlaylist(string playlistIdOrUrl)
@@ -32,7 +44,8 @@ namespace Web.Blazor.Services.YouTube
             try
             {
                 string playlistId = ExtractPlaylistId(playlistIdOrUrl);
-                var url = $"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId={playlistId}&maxResults=50&key={_apiKey}";
+                var apiKey = await GetApiKeyAsync();
+                var url = $"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId={playlistId}&maxResults=50&key={apiKey}";
                 var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync();
@@ -104,13 +117,14 @@ namespace Web.Blazor.Services.YouTube
 
         public async Task<List<YoutubePlaylistItem>> GetPlaylistsAsync(string query)
         {
+            var apiKey = await GetApiKeyAsync();
             string url =
                 $"https://www.googleapis.com/youtube/v3/search" +
                 $"?part=snippet" +
                 $"&q={Uri.EscapeDataString(query)}" +
                 $"&type=playlist" +
                 $"&maxResults=10" +
-                $"&key={_apiKey}";
+                $"&key={apiKey}";
 
             var json = await _httpClient.GetStringAsync(url);
 
@@ -142,11 +156,12 @@ namespace Web.Blazor.Services.YouTube
 
             var ids = string.Join(",", videos.Select(v => v.VideoId));
 
+            var apiKey = await GetApiKeyAsync();
             var url =
                 $"https://www.googleapis.com/youtube/v3/videos" +
                 $"?part=contentDetails" +
                 $"&id={ids}" +
-                $"&key={_apiKey}";
+                $"&key={apiKey}";
 
             var json = await _httpClient.GetStringAsync(url);
 
