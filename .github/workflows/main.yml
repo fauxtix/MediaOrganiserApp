@@ -308,17 +308,6 @@ jobs:
           Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo `
               -PropertyName 'iisCertificateThumbprint' -Value $cert.Thumbprint
 
-          # Definir ambiente Production.
-          foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
-              $poolEnv = "IIS:\AppPools\$pool\EnvironmentVariables"
-
-              if (-not (Test-Path $poolEnv)) {
-                  New-Item -Path $poolEnv -Force | Out-Null
-              }
-
-              Set-ItemProperty $poolEnv -Name 'ASPNETCORE_ENVIRONMENT' -Value 'Production'
-          }
-
           # Arrancar App Pools e sites.
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
               Start-WebAppPool -Name $pool
