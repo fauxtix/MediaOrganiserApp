@@ -224,6 +224,13 @@ jobs:
               Set-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion -Value ''
               Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode -Value 'Integrated'
               Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
+
+              # ASPNETCORE_ENVIRONMENT=Production explicito no app pool.
+              # Sem isto, uma variavel a nivel de maquina pode fazer a app
+              # arrancar em Development (HttpsRedirection + DeveloperExceptionPage).
+              # NOTA: substitui as environmentVariables ja definidas no pool.
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name environmentVariables `
+                  -Value @{ name = 'ASPNETCORE_ENVIRONMENT'; value = 'Production' }
           }
 
           Write-Host "PASSO 4 - Deploy API"
@@ -345,21 +352,31 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           # Aceitar o certificado autoassinado do localhost.
-          [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+          # Windows PowerShell 5.1 usa ServicePointManager; PowerShell 7+ ignora
+          # esse callback e precisa de -SkipCertificateCheck.
+          $invokeArgs = @{ UseBasicParsing = $true; TimeoutSec = 60 }
+          if ($PSVersionTable.PSVersion.Major -ge 6) {
+              $invokeArgs['SkipCertificateCheck'] = $true
+          }
+          else {
+              [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+          }
 
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
               $deadline = (Get-Date).AddSeconds(60)
+              $state = (Get-WebAppPoolState -Name $pool).Value
 
-              while (
-                  (Get-WebAppPoolState -Name $pool).Value -ne 'Running' -and
-                  (Get-Date) -lt $deadline
-              ) {
+              # O estado valido do IIS e 'Started' (NAO 'Running').
+              while ($state -ne 'Started' -and (Get-Date) -lt $deadline) {
                   Start-Sleep -Seconds 2
+                  $state = (Get-WebAppPoolState -Name $pool).Value
               }
 
-              if ((Get-WebAppPoolState -Name $pool).Value -ne 'Running') {
-                  throw "App pool '$pool' nao arrancou"
+              if ($state -ne 'Started') {
+                  throw "App pool '$pool' nao arrancou (estado actual: $state)"
               }
+
+              Write-Host "App pool '$pool' esta Started."
           }
 
           Start-Sleep -Seconds 5
@@ -370,20 +387,28 @@ jobs:
           )
 
           foreach ($t in $targets) {
+              $code = 0
+
               try {
-                  $r = Invoke-WebRequest -Uri $t.Uri -UseBasicParsing -TimeoutSec 60
-                  $code = $r.StatusCode
+                  $r = Invoke-WebRequest -Uri $t.Uri @invokeArgs
+                  $code = [int]$r.StatusCode
               }
-              catch [System.Net.WebException] {
-                  if ($null -eq $_.Exception.Response) {
+              catch {
+                  $resp = $_.Exception.Response
+                  if ($null -eq $resp -and $null -ne $_.Exception.InnerException) {
+                      $resp = $_.Exception.InnerException.Response
+                  }
+
+                  if ($null -ne $resp) {
+                      $code = [int]$resp.StatusCode
+                  }
+                  elseif ($_ -is [System.Net.WebException]) {
+                      # Ligacao recusada / timeout: nao houve resposta HTTP.
                       $code = 0
                   }
                   else {
-                      $code = [int]$_.Exception.Response.StatusCode
+                      throw "$($t.Name) falhou ao pedir $($t.Uri): $($_.Exception.Message)"
                   }
-              }
-              catch {
-                  throw "$($t.Name) falhou ao pedir $($t.Uri): $($_.Exception.Message)"
               }
 
               if ($code -eq 0) {
