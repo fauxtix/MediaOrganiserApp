@@ -101,6 +101,17 @@ jobs:
               throw "Publish da API falhou com codigo $LASTEXITCODE"
           }
 
+          # O web.config gerado aponta para este apphost (processPath). Se um
+          # antivirus o colocar em quarentena (ex.: AVG/avast "IDP.Generic",
+          # deteccao comportamental que da falsos positivos no apphost do .NET),
+          # o robocopy falha mais tarde com um "ERROR 5 ... Acesso negado" e
+          # "Robocopy API exit code: 9", sem dizer a causa. Falhamos aqui.
+          $appHost = Join-Path $out 'MediaOrganizerApp.WebApi.exe'
+
+          if (-not (Test-Path -LiteralPath $appHost)) {
+              throw "O publish nao gerou '$appHost'. O web.config aponta para este executavel; verifique se o antivirus o colocou em quarentena (ex.: AVG/avast IDP.Generic) e adicione exclusoes para '$out' e '$env:DEPLOY_PATH'."
+          }
+
       - name: Publish frontend (self-contained)
         shell: powershell
         run: |
@@ -122,6 +133,14 @@ jobs:
 
           if ($LASTEXITCODE -ne 0) {
               throw "Publish do frontend falhou com codigo $LASTEXITCODE"
+          }
+
+          # Mesma verificacao do publish da API: o web.config do Blazor aponta
+          # para '.\Web.Blazor.exe'.
+          $appHost = Join-Path $out 'Web.Blazor.exe'
+
+          if (-not (Test-Path -LiteralPath $appHost)) {
+              throw "O publish nao gerou '$appHost'. O web.config aponta para este executavel; verifique se o antivirus o colocou em quarentena (ex.: AVG/avast IDP.Generic) e adicione exclusoes para '$out' e '$env:DEPLOY_PATH'."
           }
 
       - name: Backup uploads and clean target folders
@@ -235,26 +254,50 @@ jobs:
 
           Write-Host "PASSO 4 - Deploy API"
 
-          robocopy (Join-Path $env:DEPLOY_PATH 'api') $env:API_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          $apiSource = Join-Path $env:DEPLOY_PATH 'api'
+          $apiExe = Join-Path $apiSource 'MediaOrganizerApp.WebApi.exe'
+
+          # O apphost tem de existir ANTES do robocopy. Um antivirus pode
+          # elimina-lo entre o publish e este passo (AVG/avast IDP.Generic).
+          if (-not (Test-Path -LiteralPath $apiExe)) {
+              throw "O publish nao tem '$apiExe'. Verifique a quarentena do antivirus (ex.: AVG/avast IDP.Generic) e adicione exclusoes para '$apiSource' e '$env:DEPLOY_PATH'."
+          }
+
+          robocopy $apiSource $env:API_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
 
           $apiRc = $LASTEXITCODE
 
           Write-Host "Robocopy API exit code: $apiRc"
 
           if ($apiRc -gt 7) {
-              throw "Deploy da API falhou com codigo $apiRc"
+              throw "Deploy da API falhou com codigo $apiRc (8/9 = ficheiros por copiar; causa tipica: antivirus a bloquear/quarentena o 'MediaOrganizerApp.WebApi.exe'). Verifique a quarentena (IDP.Generic) e as exclusoes para '$apiSource' e '$env:API_PATH'."
+          }
+
+          if (-not (Test-Path -LiteralPath (Join-Path $env:API_PATH 'MediaOrganizerApp.WebApi.exe'))) {
+              throw "O deploy da API terminou mas '$env:API_PATH\MediaOrganizerApp.WebApi.exe' nao existe. Verifique a quarentena do antivirus (IDP.Generic) e as exclusoes."
           }
 
           Write-Host "PASSO 5 - Deploy Frontend"
 
-          robocopy (Join-Path $env:DEPLOY_PATH 'web') $env:WEB_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
+          $webSource = Join-Path $env:DEPLOY_PATH 'web'
+          $webExe = Join-Path $webSource 'Web.Blazor.exe'
+
+          if (-not (Test-Path -LiteralPath $webExe)) {
+              throw "O publish nao tem '$webExe'. Verifique a quarentena do antivirus (ex.: AVG/avast IDP.Generic) e adicione exclusoes para '$webSource' e '$env:DEPLOY_PATH'."
+          }
+
+          robocopy $webSource $env:WEB_PATH /MIR /R:3 /W:5 /NFL /NDL /NJH /NJS /NP
 
           $webRc = $LASTEXITCODE
 
           Write-Host "Robocopy Frontend exit code: $webRc"
 
           if ($webRc -gt 7) {
-              throw "Deploy do frontend falhou com codigo $webRc"
+              throw "Deploy do frontend falhou com codigo $webRc (8/9 = ficheiros por copiar; causa tipica: antivirus a bloquear/quarentena o 'Web.Blazor.exe'). Verifique a quarentena (IDP.Generic) e as exclusoes para '$webSource' e '$env:WEB_PATH'."
+          }
+
+          if (-not (Test-Path -LiteralPath (Join-Path $env:WEB_PATH 'Web.Blazor.exe'))) {
+              throw "O deploy do frontend terminou mas '$env:WEB_PATH\Web.Blazor.exe' nao existe. Verifique a quarentena do antivirus (IDP.Generic) e as exclusoes."
           }
 
           Write-Host "PASSO 6 - Configurar Site API"
