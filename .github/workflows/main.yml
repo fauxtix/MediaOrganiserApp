@@ -248,6 +248,15 @@ jobs:
                   throw "Nao foi possivel conceder Modify a '$identity' em '$($target.Path)' (icacls $LASTEXITCODE)."
               }
 
+              # Confirmar que a ACE ficou mesmo aplicada: sem ela o w3wp nao le o
+              # web.config (o site sobe e responde 500.19) nem escreve em
+              # wwwroot\Files. O erro deixa de ser silencioso.
+              $aclNow = (& icacls $target.Path) -join "`n"
+
+              if ($aclNow -notmatch [regex]::Escape($identity)) {
+                  throw "A ACE de '$identity' nao aparece na ACL de '$($target.Path)' depois do icacls."
+              }
+
               Write-Host "ACL OK: $identity -> $($target.Path)"
           }
 
@@ -655,6 +664,48 @@ jobs:
               foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
                   Write-Host ("site {0} = {1}" -f $site, (Get-Website -Name $site).State)
               }
+
+              # 500.19 = o IIS nao consegue ler/interpretar o web.config. As duas
+              # causas reais nesta maquina foram ACL em falta (o w3wp nao abre o
+              # ficheiro) e config do site. Estes dumps separam os dois casos.
+              Write-Host "--- ACLs das pastas de deploy ---"
+
+              foreach ($target in @(
+                      @{ Path = $env:API_PATH; Pool = $env:API_POOL },
+                      @{ Path = $env:WEB_PATH; Pool = $env:WEB_POOL }
+                  )) {
+                  $identity = "IIS APPPOOL\$($target.Pool)"
+                  $aclNow = (& icacls $target.Path 2>&1) -join "`n"
+                  $hasAce = $aclNow -match [regex]::Escape($identity)
+
+                  Write-Host ("{0} -> {1} presente={2}" -f $target.Path, $identity, $hasAce)
+              }
+
+              Write-Host "--- web.config publicado ---"
+
+              foreach ($cfg in @((Join-Path $env:API_PATH 'web.config'), (Join-Path $env:WEB_PATH 'web.config'))) {
+                  if (Test-Path -LiteralPath $cfg) {
+                      $bytes = [System.IO.File]::ReadAllBytes($cfg)
+                      Write-Host ("{0} : {1} bytes, primeiros bytes {2}" -f $cfg, $bytes.Length, (($bytes[0..2] | ForEach-Object { $_.ToString('X2') }) -join ' '))
+                  }
+                  else {
+                      Write-Host "$cfg : AUSENTE"
+                  }
+              }
+
+              Write-Host "--- appcmd: config efetiva do site da API ---"
+
+              foreach ($section in @('system.webServer/handlers', 'system.webServer/aspNetCore')) {
+                  Write-Host "[$section]"
+
+                  $cfgOut = (& "$env:windir\system32\inetsrv\appcmd.exe" list config "$($env:API_SITE)/" "-section:$section" 2>&1) -join "`n"
+                  Write-Host $cfgOut
+              }
+
+              Write-Host "--- appcmd: modulo ANCM registado ---"
+              (& "$env:windir\system32\inetsrv\appcmd.exe" list module 2>&1) -join "`n" |
+                  Select-String 'AspNetCore' |
+                  ForEach-Object { Write-Host ([string]$_) }
 
               Write-Host "--- netsh http show sslcert ---"
               (& "$env:windir\system32\netsh.exe" http show sslcert) -join "`n" | Write-Host
