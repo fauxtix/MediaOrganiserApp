@@ -646,6 +646,18 @@ jobs:
                   Write-Host $api.Body.Substring(0, [Math]::Min(1500, $api.Body.Length))
               }
 
+              # 500.19 tem duas causas distintas: ACL em falta na pasta de deploy
+              # (o w3wp nao abre o web.config) ou config/host do IIS invalido.
+              # O segundo caso afecta TODOS os sites ASP.NET Core da maquina.
+              if ($api.Body -match '500\.19' -or $api.Body -match '0x8007000d') {
+                  Write-Host ""
+                  Write-Host ">>> 500.19: o IIS nao conseguiu ler/interpretar o web.config do site."
+                  Write-Host ">>> 1) ACL: confirme 'IIS APPPOOL\$($env:API_POOL)' em '$env:API_PATH' (ver bloco de ACLs acima)."
+                  Write-Host ">>> 2) Host: corra 'appcmd list config `"$($env:API_SITE)/`" -section:system.webServer/handlers'."
+                  Write-Host ">>> 3) Se TODOS os sites ASP.NET Core falharem, o problema e do IIS (schema/ANCM/antivirus), nao do deploy."
+                  Write-Host ""
+              }
+
               Write-Host "Web  -> code=$($web.Code) erro=$($web.Error)"
 
               if ($web.Body) {
