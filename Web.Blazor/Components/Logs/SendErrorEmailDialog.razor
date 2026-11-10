@@ -76,7 +76,6 @@
     async Task<string> BuildBody()
     {
         if (LogEntry == null) return "";
-        var appName = "Organise It!";
         var time = LogEntry.TimeStamp.ToString("u");
         var level = System.Net.WebUtility.HtmlEncode(LogEntry.Level ?? "Unknown");
         var message = System.Net.WebUtility.HtmlEncode(LogEntry.Message ?? "");

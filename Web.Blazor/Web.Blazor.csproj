@@ -53,14 +53,15 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<PackageReference Include="AngleSharp" Version="1.10.0" />
 		<PackageReference Include="AspNetCore.Reporting" Version="2.1.0" />
-		<PackageReference Include="AutoMapper" Version="16.1.1" />
-		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+		<PackageReference Include="AutoMapper" Version="14.0.0" />
+
 		<PackageReference Include="Blazored.Menu" Version="2.1.0" />
 		<PackageReference Include="BoldReports.Net.Core" Version="12.1.16" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
 		<PackageReference Include="Google.Apis.YouTube.v3" Version="1.73.0.4022" />
-		<PackageReference Include="HtmlSanitizer" Version="9.0.892" />
+		<PackageReference Include="HtmlSanitizer" Version="11.0.16" />
 		<PackageReference Include="Markdig" Version="1.1.1" />
 		<PackageReference Include="MediaInfo.Wrapper.Core" Version="21.9.3" />
 		<PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
@@ -76,6 +77,7 @@
 		<PackageReference Include="NuGet.Protocol" Version="7.0.1" />
 		<PackageReference Include="OllamaSharp" Version="5.4.25" />
 		<PackageReference Include="OpenAI" Version="2.11.0" />
+		<PackageReference Include="OpenMcdf" Version="3.4.0" />
 		<PackageReference Include="ReportViewerCore.NETCore" Version="15.1.32" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
@@ -84,6 +86,7 @@
 		<PackageReference Include="SharpGrabber" Version="2.1.1" />
 		<PackageReference Include="SharpZipLib" Version="1.4.2" />
 		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.1" />
+		<PackageReference Include="SSH.NET" Version="2026.0.0" />
 		<PackageReference Include="Syncfusion.Blazor.Calendars" Version="31.2.5" />
 		<PackageReference Include="Syncfusion.Blazor.Cards" Version="31.2.5" />
 		<PackageReference Include="Syncfusion.Blazor.Charts" Version="31.2.5" />
@@ -107,6 +110,7 @@
 		<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Windows" Version="31.2.5" />
 		<PackageReference Include="Syncfusion.Pdf.Imaging.Net.Core" Version="31.2.5" />
 		<PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="31.2.5" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 	

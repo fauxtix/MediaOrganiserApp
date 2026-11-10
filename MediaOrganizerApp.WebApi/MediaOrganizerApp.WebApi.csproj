@@ -133,7 +133,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+
     <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="Google.Apis.Oauth2.v2" Version="1.68.0.1869" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.73.0.4022" />
@@ -150,12 +150,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="OpenAI" Version="2.9.1" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.13.0" />
+    <PackageReference Include="OpenAI" Version="2.11.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.12.5" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
 
     <PackageReference Include="AspNet.Security.OAuth.Spotify" Version="10.0.0" />
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
     <PackageReference Include="Google.Apis.Discovery.v1" Version="1.68.0" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.3996" />
     <PackageReference Include="Inflatable.Lastfm" Version="1.2.0" />
