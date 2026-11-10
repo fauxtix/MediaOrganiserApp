@@ -224,10 +224,31 @@ jobs:
           Write-Host "PASSO 1 - Import WebAdministration"
           Import-Module WebAdministration
 
-          Write-Host "PASSO 2 - Criar diretorios"
+          Write-Host "PASSO 2 - Criar diretorios e garantir ACLs"
 
           foreach ($path in @($env:API_PATH, $env:WEB_PATH)) {
               New-Item -Path $path -ItemType Directory -Force | Out-Null
+          }
+
+          # A identidade do pool (IIS APPPOOL\<pool>) tem de ler/escrever na pasta:
+          # arranque, leitura do web.config, uploads em wwwroot\Files e ficheiros
+          # gerados (PDFs/relatorios). Sem esta ACE o site depende da heranca de
+          # C:\inetpub e o primeiro a falhar sao os uploads.
+          $aclTargets = @(
+              @{ Path = $env:API_PATH; Pool = $env:API_POOL },
+              @{ Path = $env:WEB_PATH; Pool = $env:WEB_POOL }
+          )
+
+          foreach ($target in $aclTargets) {
+              $identity = "IIS APPPOOL\$($target.Pool)"
+
+              & icacls $target.Path /grant "${identity}:(OI)(CI)M" /C /Q | Out-Null
+
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Nao foi possivel conceder Modify a '$identity' em '$($target.Path)' (icacls $LASTEXITCODE)."
+              }
+
+              Write-Host "ACL OK: $identity -> $($target.Path)"
           }
 
           Write-Host "PASSO 3 - Configurar App Pools"
@@ -244,12 +265,37 @@ jobs:
               Set-ItemProperty "IIS:\AppPools\$pool" -Name managedPipelineMode -Value 'Integrated'
               Set-ItemProperty "IIS:\AppPools\$pool" -Name processModel.identityType -Value 'ApplicationPoolIdentity'
 
+              # startMode/autoStart explicitos. Com startMode=AlwaysRunning o IIS
+              # tenta pre-carregar a app logo que o pool arranca; se a pasta ainda
+              # nao estiver completa fica o aviso 2303 (W3SVC-WP, 0x80070002).
+              # O arranque passa a ser on-demand e deterministico.
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name startMode -Value 'OnDemand'
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name autoStart -Value $true
+
               # ASPNETCORE_ENVIRONMENT=Production explicito no app pool.
               # Sem isto, uma variavel a nivel de maquina pode fazer a app
               # arrancar em Development (HttpsRedirection + DeveloperExceptionPage).
-              # NOTA: substitui as environmentVariables ja definidas no pool.
-              Set-ItemProperty "IIS:\AppPools\$pool" -Name environmentVariables `
-                  -Value @{ name = 'ASPNETCORE_ENVIRONMENT'; value = 'Production' }
+              # Preserva as environmentVariables ja definidas no pool (nao as
+              # substitui todas, como fazia a atribuicao direta de um hashtable).
+              $poolItem = Get-Item "IIS:\AppPools\$pool"
+              $envVars = @()
+
+              if ($poolItem.environmentVariables -and $poolItem.environmentVariables.Collection) {
+                  $envVars = @($poolItem.environmentVariables.Collection |
+                      Where-Object { $_.name -ne 'ASPNETCORE_ENVIRONMENT' } |
+                      ForEach-Object { @{ name = $_.name; value = $_.value } })
+              }
+
+              $envVars += @{ name = 'ASPNETCORE_ENVIRONMENT'; value = 'Production' }
+
+              Set-ItemProperty "IIS:\AppPools\$pool" -Name environmentVariables -Value ([object[]]$envVars)
+
+              $prodEnv = (Get-Item "IIS:\AppPools\$pool").environmentVariables.Collection |
+                  Where-Object { $_.name -eq 'ASPNETCORE_ENVIRONMENT' }
+
+              if (-not $prodEnv -or $prodEnv.value -ne 'Production') {
+                  throw "O app pool '$pool' nao ficou com ASPNETCORE_ENVIRONMENT=Production."
+              }
           }
 
           Write-Host "PASSO 4 - Deploy API"
@@ -314,6 +360,23 @@ jobs:
               Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name applicationPool -Value $env:API_POOL
           }
 
+          # Preload desligado de forma explicita: com preload ligado o IIS tenta
+          # arrancar a app assim que o pool arranca e, se a pasta ainda nao
+          # estiver completa, regista o aviso 2303 (W3SVC-WP, 0x80070002).
+          & "$env:windir\system32\inetsrv\appcmd.exe" set app "$($env:API_SITE)/" /preloadEnabled:false | Out-Null
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Nao foi possivel definir preloadEnabled=false no site '$($env:API_SITE)'."
+          }
+
+          # Access logs de IIS: sem eles um 500.x fica sem qualquer rasto.
+          try {
+              Set-ItemProperty "IIS:\Sites\$($env:API_SITE)" -Name logFile.enabled -Value $true
+          }
+          catch {
+              Write-Warning "Nao foi possivel ligar o access log do site '$($env:API_SITE)': $($_.Exception.Message)"
+          }
+
           Write-Host "PASSO 7 - Certificado"
 
           $cert = Get-ChildItem Cert:\LocalMachine\My |
@@ -347,6 +410,20 @@ jobs:
               Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name applicationPool -Value $env:WEB_POOL
           }
 
+          # Mesmo motivo do site da API: preload on/off explicito e access logs ligados.
+          & "$env:windir\system32\inetsrv\appcmd.exe" set app "$($env:WEB_SITE)/" /preloadEnabled:false | Out-Null
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Nao foi possivel definir preloadEnabled=false no site '$($env:WEB_SITE)'."
+          }
+
+          try {
+              Set-ItemProperty "IIS:\Sites\$($env:WEB_SITE)" -Name logFile.enabled -Value $true
+          }
+          catch {
+              Write-Warning "Nao foi possivel ligar o access log do site '$($env:WEB_SITE)': $($_.Exception.Message)"
+          }
+
           Write-Host "PASSO 9 - Configurar HTTPS"
 
           $bindingInfo = "*:$($env:WEB_PORT):"
@@ -369,22 +446,234 @@ jobs:
           }
 
           Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'sslFlags' -Value '0'
-          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'certificateStoreName' -Value 'My'
-          Set-WebBinding -Name $env:WEB_SITE -BindingInformation $bindingInfo -PropertyName 'iisCertificateThumbprint' -Value $cert.Thumbprint
+
+          # O certificado NAO se liga ao endpoint com
+          # 'Set-WebBinding -PropertyName iisCertificateThumbprint': essa
+          # propriedade nao existe no binding (protocol/bindingInformation/
+          # sslFlags). O resultado era um endpoint HTTPS sem certificado no
+          # HTTP.sys -> handshake TLS abortado + HttpEvent 15021 no log System,
+          # com o deploy a reportar sucesso.
+          $ipport = "0.0.0.0:$($env:WEB_PORT)"
+
+          $existingSsl = (& "$env:windir\system32\netsh.exe" http show sslcert "ipport=$ipport") -join "`n"
+
+          if ($existingSsl -match 'IP:port') {
+              Write-Host "A remover binding SSL anterior para $ipport"
+              & "$env:windir\system32\netsh.exe" http delete sslcert "ipport=$ipport" | Out-Null
+          }
+
+          $httpsBinding = Get-WebBinding -Name $env:WEB_SITE -Protocol https -ErrorAction SilentlyContinue |
+              Where-Object { $_.bindingInformation -eq $bindingInfo } |
+              Select-Object -First 1
+
+          if (-not $httpsBinding) {
+              throw "O site '$($env:WEB_SITE)' nao tem binding HTTPS '$bindingInfo'."
+          }
+
+          Write-Host "A ligar o certificado $($cert.Thumbprint) ao endpoint $ipport"
+          $httpsBinding.AddSslCertificate($cert.Thumbprint, 'My')
+
+          $verifySsl = (& "$env:windir\system32\netsh.exe" http show sslcert "ipport=$ipport") -join "`n"
+
+          if ($verifySsl -notmatch 'IP:port') {
+              throw "O endpoint $ipport nao ficou com certificado SSL registado no HTTP.sys (netsh http add sslcert falhou)."
+          }
+
+          if ($verifySsl.ToLower() -notmatch [regex]::Escape($cert.Thumbprint.ToLower())) {
+              throw "O endpoint $ipport nao ficou com o certificado $($cert.Thumbprint). Ver 'netsh http show sslcert ipport=$ipport'."
+          }
+
+          Write-Host "Certificado ligado e verificado em $ipport."
 
           Write-Host "PASSO 10 - Arrancar App Pools"
 
           foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
-              Start-WebAppPool -Name $pool
+              if ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
+                  Start-WebAppPool -Name $pool
+              }
+
+              $state = (Get-WebAppPoolState -Name $pool).Value
+
+              if ($state -ne 'Started') {
+                  throw "O app pool '$pool' nao arrancou (estado: $state)."
+              }
+
+              Write-Host "Pool ${pool}: $state"
           }
 
           Write-Host "PASSO 11 - Arrancar Sites"
 
           foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
-              Start-Website -Name $site
+              if ((Get-Website -Name $site).State -ne 'Started') {
+                  Start-Website -Name $site
+              }
+
+              $siteState = (Get-Website -Name $site).State
+
+              if ($siteState -ne 'Started') {
+                  throw "O site '$site' nao arrancou (estado: $siteState)."
+              }
+
+              Write-Host "Site ${site}: $siteState"
           }
 
           Write-Host "PASSO 12 - Deploy terminado"
+
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # Sem este passo o workflow fica verde mesmo quando o IIS nao serve nada
+      # (500.19 de configuracao, 500.0 do ANCM, TLS abortado no 4110, BD sem
+      # acesso). Verifica a app real depois de os sites arrancarem.
+      - name: Smoke test (site API, Blazor e base de dados)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # Certificado auto-assinado: a validade da cadeia nao e o que se testa
+          # aqui. O que se quer provar e que o 4110 responde e nao aborta o TLS.
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+          function Invoke-Probe {
+              param(
+                  [Parameter(Mandatory = $true)][string]$Url,
+                  [hashtable]$Headers = @{}
+              )
+
+              try {
+                  $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 20 -Headers $Headers -ErrorAction Stop
+
+                  return [pscustomobject]@{ Code = [int]$response.StatusCode; Body = [string]$response.Content; Error = $null }
+              }
+              catch [System.Net.WebException] {
+                  $webResponse = $_.Exception.Response
+
+                  if (-not $webResponse) {
+                      # Sem resposta = ligacao/TLS abortados.
+                      return [pscustomobject]@{ Code = 0; Body = ''; Error = $_.Exception.Message }
+                  }
+
+                  $body = ''
+
+                  try {
+                      $reader = New-Object System.IO.StreamReader($webResponse.GetResponseStream())
+                      $body = $reader.ReadToEnd()
+                      $reader.Dispose()
+                  }
+                  catch { }
+
+                  return [pscustomobject]@{ Code = [int]$webResponse.StatusCode; Body = $body; Error = $null }
+              }
+              catch {
+                  return [pscustomobject]@{ Code = 0; Body = ''; Error = $_.Exception.Message }
+              }
+          }
+
+          # A ApiKey vive no appsettings publicado (o middleware exige o header em
+          # todos os pedidos: sem ela a resposta e 401, nao 200).
+          function Get-DeployedApiKey {
+              foreach ($name in @('appsettings.Production.json', 'appsettings.json')) {
+                  $file = Join-Path $env:API_PATH $name
+
+                  if (-not (Test-Path -LiteralPath $file)) { continue }
+
+                  try {
+                      $settings = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+
+                      if ($settings.ApiKey) { return [string]$settings.ApiKey }
+                  }
+                  catch { }
+              }
+
+              return $null
+          }
+
+          function Test-Healthy([object]$Api, [object]$Web) {
+              return ($Api.Code -eq 200) -and ($Web.Code -ge 200) -and ($Web.Code -lt 400)
+          }
+
+          $apiUrl = "http://localhost:$($env:API_PORT)/api/dashboard/health"
+          $webUrl = "https://localhost:$($env:WEB_PORT)/"
+
+          $apiHeaders = @{}
+          $apiKey = Get-DeployedApiKey
+
+          if ($apiKey) {
+              $apiHeaders['ApiKey'] = $apiKey
+          }
+          else {
+              Write-Warning "ApiKey nao encontrada em '$env:API_PATH\appsettings*.json'; o probe corre sem header (401 esperado)."
+          }
+
+          Write-Host "Probe API : $apiUrl"
+          Write-Host "Probe Web : $webUrl"
+
+          $deadline = (Get-Date).AddSeconds(180)
+          $attempt = 0
+          $api = [pscustomobject]@{ Code = 0; Body = ''; Error = 'sem pedido' }
+          $web = [pscustomobject]@{ Code = 0; Body = ''; Error = 'sem pedido' }
+
+          while ((Get-Date) -lt $deadline) {
+              $attempt++
+
+              $api = Invoke-Probe -Url $apiUrl -Headers $apiHeaders
+              $web = Invoke-Probe -Url $webUrl
+
+              Write-Host ("Tentativa {0}: API={1}  Blazor={2}" -f $attempt, $api.Code, $web.Code)
+
+              if (Test-Healthy $api $web) { break }
+
+              Start-Sleep -Seconds 5
+          }
+
+          if (-not (Test-Healthy $api $web)) {
+              Write-Host ""
+              Write-Host "===== DIAGNOSTICO DO SMOKE TEST ====="
+              Write-Host "API  -> code=$($api.Code) erro=$($api.Error)"
+
+              if ($api.Body) {
+                  Write-Host "API body (primeiros 1500 chars):"
+                  Write-Host $api.Body.Substring(0, [Math]::Min(1500, $api.Body.Length))
+              }
+
+              Write-Host "Web  -> code=$($web.Code) erro=$($web.Error)"
+
+              if ($web.Body) {
+                  Write-Host "Web body (primeiros 500 chars):"
+                  Write-Host $web.Body.Substring(0, [Math]::Min(500, $web.Body.Length))
+              }
+
+              Import-Module WebAdministration
+
+              Write-Host "--- App pools / sites ---"
+
+              foreach ($pool in @($env:API_POOL, $env:WEB_POOL)) {
+                  Write-Host ("pool {0} = {1}" -f $pool, (Get-WebAppPoolState -Name $pool).Value)
+              }
+
+              foreach ($site in @($env:API_SITE, $env:WEB_SITE)) {
+                  Write-Host ("site {0} = {1}" -f $site, (Get-Website -Name $site).State)
+              }
+
+              Write-Host "--- netsh http show sslcert ---"
+              (& "$env:windir\system32\netsh.exe" http show sslcert) -join "`n" | Write-Host
+
+              Write-Host "--- Eventos IIS/WAS (ultimos 30 min) ---"
+              Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue |
+                  Where-Object { $_.ProviderName -match 'IIS|WAS' } |
+                  Select-Object -Last 15 TimeCreated, Id, ProviderName, @{ n = 'Msg'; e = { ($_.Message -split "`r?`n")[0] } } |
+                  Format-Table -AutoSize -Wrap | Out-String -Width 200 | Write-Host
+
+              Get-WinEvent -FilterHashtable @{ LogName = 'System'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue |
+                  Where-Object { $_.ProviderName -match 'IIS|WAS|HttpEvent' } |
+                  Select-Object -Last 15 TimeCreated, Id, ProviderName, @{ n = 'Msg'; e = { ($_.Message -split "`r?`n")[0] } } |
+                  Format-Table -AutoSize -Wrap | Out-String -Width 200 | Write-Host
+
+              throw "Smoke test falhou: a app nao ficou utilizavel depois do deploy (API=$($api.Code), Blazor=$($web.Code)). Diagnostico acima."
+          }
+
+          Write-Host "Smoke test OK: API=200 (/api/dashboard/health) e Blazor=$($web.Code) em HTTPS."
 
           $global:LASTEXITCODE = 0
           exit 0
