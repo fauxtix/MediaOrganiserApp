@@ -2,7 +2,7 @@
 
 **Multi-User Collection Management System**
 
-<img width="800" height="600" alt="MediaOrganiser_en" src="https://github.com/user-attachments/assets/bc258e0e-a461-4b9b-bd7c-20cbf9a4ea3c" />
+<img width="600" height="320" alt="MediaOrganiser_en" src="https://github.com/user-attachments/assets/bc258e0e-a461-4b9b-bd7c-20cbf9a4ea3c" />
 
 
 [Versão em Português](README-PT.md) | [Architecture Diagrams](docs/architecture/USER_ROLE_DATA_FLOW.md) | [Developer Guide (AGENTS.md)](AGENTS.md)
