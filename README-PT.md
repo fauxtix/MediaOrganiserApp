@@ -1,6 +1,7 @@
 **Sistema de Gestão de Coleções Multi-Utilizador**
 
 <img width="800" height="600" alt="MediaOrganiser_pt" src="https://github.com/user-attachments/assets/04856c43-4502-484b-9d76-26674b7d5f7c" />
+
 ---
 
 [Versão em Inglês](README.md) 
