@@ -4,6 +4,7 @@
 
 <img width="800" height="600" alt="MediaOrganiser_en" src="https://github.com/user-attachments/assets/bc258e0e-a461-4b9b-bd7c-20cbf9a4ea3c" />
 
+---
 
 [Versão em Português](README-PT.md)
 
