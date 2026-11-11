@@ -511,6 +511,47 @@ This error occurs when IIS cannot read the `<aspNetCore>` section in `web.config
 3. **Folder permissions**
    Ensure the application-pool identity (`IIS APPPOOL\<PoolName>`) has **Read & Execute** (or **Modify**, if the app writes uploads/backups) on the deployment folder.
 
+### HTTP Error 500.30 (*ASP.NET Core app failed to start*)
+
+The Blazor app configures **Serilog with an MSSQL Server sink during startup** (`WriteTo: MSSqlServer` with `autoCreateSqlTable: true`), so it **cannot start while SQL Server is unreachable**. When a SQL Server restart overlaps the deploy — a **Windows Update** for SQL Server (cumulative/GDR), a manual restart or a failover — the worker starts, crashes and leaves the site stuck:
+
+- the `w3wp` process starts, throws `Microsoft.Data.SqlClient.SqlException` (`Win32Exception (258)` — TCP timeout) and **stays alive with the CLR unloaded**;
+- every later request returns **`500.30` instantly, with no new Event Log entries** — the crash is recorded only once (`1007` *failed to load coreclr*, `1018` *hit unexpected managed exception*);
+- the API can keep answering normally, because it started before the restart and reuses pooled connections.
+
+Diagnose (PowerShell):
+
+```powershell
+# worker per site and when it was created
+Get-CimInstance Win32_Process -Filter "Name='w3wp.exe'" | Select-Object ProcessId, CreationDate
+
+# crash reason (one event per crash, not per request)
+Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='IIS AspNetCore Module V2'; StartTime=(Get-Date).Date} |
+    Where-Object Id -in 1007, 1018, 1026 | Select-Object TimeCreated, Id, Message
+```
+
+A worker created around the crash time, with no `1032 started successfully` after it, is a **zombie**: the app never starts again inside that process, so the `500.30` is not a configuration error.
+
+#### How to fix
+1. Confirm that the SQL Server engine is up and the deployment database is reachable:
+   ```powershell
+   Get-Service 'MSSQL$SQLEXPRESS'
+   # or, from SQL: SELECT CONVERT(varchar(30), sqlserver_start_time, 121) FROM sys.dm_os_sys_info
+   ```
+2. Recycle the app pool from an **elevated** PowerShell — IIS creates a fresh worker and the app starts on the next request:
+   ```powershell
+   Import-Module WebAdministration
+   Restart-WebAppPool -Name 'OrganiseIt'        # Blazor
+   Restart-WebAppPool -Name 'MediaOrganiserApi' # API
+   ```
+3. Re-probe the site. A healthy start writes `1032 Application '...' started successfully` to the *Application* log:
+   ```powershell
+   curl.exe -k -sS -o NUL -w "%{http_code}`n" https://localhost:4110/
+   ```
+4. Re-run the pipeline. Its smoke test checks the API **and** the database (`/api/dashboard/health`), so a deploy that overlapped the SQL outage stays red until both are healthy again.
+
+> **Tip:** schedule SQL Server updates outside deployment windows, or re-run the pipeline once the update finishes. The `500.30` above is exactly what the smoke test is meant to catch — a deploy is only green when the API returns `200` **and** Blazor returns `2xx/3xx`.
+
 ---
 
 ## 🤝 Contribution Guidelines
