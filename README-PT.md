@@ -3,7 +3,7 @@
 <img width="800" height="600" alt="MediaOrganiser_pt" src="https://github.com/user-attachments/assets/04856c43-4502-484b-9d76-26674b7d5f7c" />
 ---
 
-[Versão em Inglês](README.md) | [Diagramas de Arquitetura](docs/architecture/USER_ROLE_DATA_FLOW.md) 
+[Versão em Inglês](README.md) 
 
 Já alguma vez sentiu frustração ao gerir centenas de ficheiros multimédia espalhados por diferentes discos e dispositivos de armazenamento? Não seria ótimo tê-los organizados e fáceis de gerir?
 
