@@ -541,8 +541,27 @@ jobs:
 
           # Certificado auto-assinado: a validade da cadeia nao e o que se testa
           # aqui. O que se quer provar e que o 4110 responde e nao aborta o TLS.
+          #
+          # NAO usar um ScriptBlock como callback (`= { $true }`): e invocado na
+          # thread do handshake TLS, onde nao existe runspace, e rebenta com
+          # "There is no Runspace available to run scripts in this thread". A
+          # ligacao e fechada ANTES de o pedido chegar ao IIS, pelo que o probe
+          # dava Blazor=0 para sempre e o worker on-demand nunca arrancava. Um
+          # delegate compilado nao precisa de runspace. Plano B: `curl.exe -k`.
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+          Add-Type -TypeDefinition @'
+          public static class TrustAllServerCertificate
+          {
+              public static void Enable()
+              {
+                  System.Net.ServicePointManager.ServerCertificateValidationCallback =
+                      (sender, certificate, chain, errors) => true;
+              }
+          }
+          '@
+
+          [TrustAllServerCertificate]::Enable()
 
           function Invoke-Probe {
               param(
