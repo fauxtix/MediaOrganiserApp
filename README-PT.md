@@ -210,7 +210,7 @@ curl -X POST "https://localhost:5001/api/ai/conversations" \
 
 ---
 
-## 🛠️ Notas de Implementação para Mantenedores
+## 🛠️ Notas de Implementação para quem faz a Manutenção
 - Componentes relevantes para autores:
   - `Web.Blazor/Pages/BaseComponents/AutoresBase.razor.cs` — lógica de grid, diálogos, export PDF, filtros e ações (editar, apagar, listar autores sem publicações).
   - `Web.Blazor/Components/Authors/AuthorBooks.razor` — componente que consulta Google Books e faz fallback para IA, inclui paginação, cache e badges de confiança de IA.
@@ -229,6 +229,4 @@ curl -X POST "https://localhost:5001/api/ai/conversations" \
 Este projeto está licenciado sob a MIT License. Consulte o ficheiro LICENSE para detalhes.
 
 ---
-
-Se quiser que eu adicione links diretos para os componentes (`AuthorReadOnly`, `AuthorBooks`, `EditPublicacoes`) ou ajustar mais a tradução, diga-me.
 
