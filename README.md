@@ -590,43 +590,43 @@ EXEC sp_addrolemember 'db_owner', 'MediaAppUser';
 
 ## Troubleshooting (IIS Deployment)
 
-### Erro HTTP 500.19 (`0x8007000d` ou `0x80070002`)
+### HTTP Error 500.19 (`0x8007000d` or `0x80070002`)
 
-Este erro ocorre quando o IIS não consegue ler a secção `<aspNetCore>` do ficheiro `web.config`, geralmente porque o **ASP.NET Core Module V2** não ficou corretamente registado na configuração global do servidor (`applicationHost.config`), mesmo após a instalação do *.NET Hosting Bundle* (por bloqueio de antivírus, falta de privilégios ou ordem de instalação).
+This error occurs when IIS cannot read the `<aspNetCore>` section inside the `web.config` file. It usually happens because the **ASP.NET Core Module V2** was not properly registered in the server's global configuration (`applicationHost.config`), even after installing the *.NET Hosting Bundle* (often due to antivirus blocking, missing administrator privileges, or installation order).
 
-> **Nota:** Se estiver a correr a aplicação localmente através do Visual Studio ou `dotnet run` (Kestrel/IIS Express), pode ignorar este aviso.
+> **Note:** If you are running the application locally via Visual Studio or `dotnet run` (Kestrel/IIS Express), you can safely ignore this section.
 
-#### Como resolver:
+#### How to fix:
 
-1. **Reparar o Hosting Bundle:**
-   * Feche o *IIS Manager*.
-   * Execute o instalador do **.NET 10 Hosting Bundle** como **Administrador** e selecione a opção **Repair**.
-   * Reinicie o IIS abrindo a linha de comandos como Administrador e executando `iisreset`.
+1. **Repair the Hosting Bundle:**
+   * Close *IIS Manager*.
+   * Run the **.NET 10 Hosting Bundle** installer as **Administrator** and select **Repair**.
+   * Restart IIS by opening a terminal as Administrator and running `iisreset`.
 
-2. **Registo Manual (se a reparação falhar):**
-   Caso o instalador seja bloqueado por políticas de segurança ou antivírus e não atualize o IIS, abra o **PowerShell como Administrador** e execute o seguinte bloco para registar a secção e o módulo manualmente:
+2. **Manual Registration (if Repair fails):**
+   If the installer is blocked by security policies or antivirus software and fails to update IIS, open **PowerShell as Administrator** and run the following script to manually register the section and module:
 
    ```powershell
    $configPath = "C:\Windows\System32\inetsrv\config\applicationHost.config"
    $content = [System.IO.File]::ReadAllText($configPath)
 
-   # 1. Declarar a secção aspNetCore (corrige 0x8007000d)
+   # 1. Declare the aspNetCore section (fixes 0x8007000d)
    if ($content -notlike "*name=`"aspNetCore`"*") {
        $content = $content -replace '<sectionGroup name="system.webServer">', "<sectionGroup name=`"system.webServer`">`n            <section name=`"aspNetCore`" overrideModeDefault=`"Allow`" />"
    }
 
-   # 2. Limpar registos antigos e injetar o módulo global com caminho absoluto (corrige 0x80070002)
+   # 2. Clean up old entries and inject the global module with an absolute path (fixes 0x80070002)
    content = content -replace '<add name="AspNetCoreModuleV2"[^>]*>', ''
    \$globalModuleLine = '<add name="AspNetCoreModuleV2" image="C:\Program Files\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll" />'
-   \$content = \(content -replace '<globalModules>', "<globalModules>`n        $globalModuleLine"  $moduleLine = '<add name="AspNetCoreModuleV2" />' $content = $content -replace '<modules[^>]*>', "$&`n        \)moduleLine"
+   \$content = \(content -replace '<globalModules>', "<globalModules>`n        $globalModuleLine" $moduleLine = '<add name="AspNetCoreModuleV2" />' $content = $content -replace '<modules[^>]*>', "$&`n        \)moduleLine"
 
    [System.IO.File]::WriteAllText(configPath, content)
    iisreset
    ```
 
-3. **Permissões na pasta de publicação:**
-   Certifique-se de que a identidade do *Application Pool* (`IIS APPPOOL\<NomeDoPool>`) tem permissões de **Leitura e Execução** (ou Modificação, caso a aplicação faça upload de ficheiros) na pasta onde o site está alojado.
+3. **Folder Permissions:**
+   Ensure the *Application Pool* identity (`IIS APPPOOL\<PoolName>`) has **Read & Execute** permissions (or **Modify**, if the app handles file uploads) on the physical deployment folder.
 
 ---
-## 🎉 Obrigado por usar Media Organizer App!
+## 🎉Thank you for using Media Organizer App!
 
