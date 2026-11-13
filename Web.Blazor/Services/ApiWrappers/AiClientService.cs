@@ -177,7 +177,6 @@ public sealed class AiClientService
                 var reasonInfo = chunk.Reasoning is null
                     ? "null"
                     : $"len={chunk.Reasoning.Length} head=\"{Trunc(chunk.Reasoning, 60)}\"";
-                _logger.LogInformation("[AI-WIRE] textLen={TextLen} textHead=\"{TextHead}\" reason={ReasonInfo}", chunk.Text.Length, Trunc(chunk.Text, 40), reasonInfo);
             }
             else
             {
@@ -187,8 +186,6 @@ public sealed class AiClientService
             if (chunk is not null)
                 yield return chunk;
         }
-
-        _logger.LogInformation("[AI-WIRE] SUMMARY lines={Lines} chunks={Chunks} reasonChunks={ReasonChunks} whitespaceOnly={WhitespaceOnly}", diagLines, diagChunks, diagReasonChunks, diagWhiteSpaceOnly);
     }
 
     private static string Trunc(string s, int max)

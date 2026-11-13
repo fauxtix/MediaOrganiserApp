@@ -7,6 +7,8 @@ Scope:
 - App: `MediaOrganizerApp.WebApi` (server-side call)
 - Client: `Web.Blazor` (calls WebApi; do **not** put LLM secrets in Blazor)
 
+> Running the app from `docker-compose.yml` instead? See [`ollama-docker-setup.md`](ollama-docker-setup.md) — the container has its own model store and starts with no models.
+
 ---
 
 ## 1) Install Ollama
