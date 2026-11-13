@@ -227,22 +227,113 @@ Labels are localized through the Blazor resources (`pt`, `en`, `fr`, `es`).
 
 ## 🛠️ Getting Started
 
-### Prerequisites
-1. **.NET SDK 10.0** installed.
-2. **SQL Server** with the `Publicacoes_Prod` database (or a database with the same schema).
-3. **Ollama** (optional) running locally at `http://localhost:11434` for the local AI fallback.
-4. **IIS** (optional) for deployment.
-5. **Node.js** only if you use npm-based tooling (not required to run the app).
+There are two supported ways to run the app. **Docker is the reference path** — it is the only one that behaves the same on Windows, Linux and macOS. The Visual Studio path is Windows-only and matches the configuration the repository ships with.
 
-### Clone, restore and build
-```powershell
-git clone https://github.com/fauxtix/MediaOrganiserApp.git
-cd MediaOrganizerApp
-dotnet restore MediaOrganizerApp.sln
-dotnet build MediaOrganizerApp.sln
+| | Docker | Windows + Visual Studio |
+|---|---|---|
+| OS | Windows, Linux, macOS | Windows |
+| Needs | Docker Desktop (Windows/macOS) or Docker Engine + compose (Linux) | .NET SDK 10, SQL Server, Visual Studio 2022 |
+| Database | restored by `db-init` from a `.bak` | restored by you in SSMS |
+| Ports | API `5000`, UI `5001` | API `44303`, UI `44327` |
+
+> **`dotnet run` on its own does not work.** Both projects default to `https://localhost:5001`, and in Development the UI calls `https://localhost:44303` (the IIS Express port). See [Running with `dotnet run`](#running-with-dotnet-run) if you want the command line.
+
+### Prerequisites (all paths)
+
+- **.NET SDK 10.0** — also required for the Docker build.
+- **A database backup** (`.bak` of `Publicacoes_Prod`) **or** an existing database with the same schema. The repository does **not** ship one: the backups under `Web.Blazor/wwwroot/Files/Backup/Database/` are ignored by git.
+- **Ollama** (optional) for the local AI fallback; the cloud path (OpenRouter) works without it.
+
+The clone is large (~400 MB) because it carries the app's image and audio assets.
+
+### Path A — Docker (recommended; Windows, Linux, macOS)
+
+1. **Place the database backup.** Copy your `.bak` into `Web.Blazor/wwwroot/Files/Backup/Database/`. If its name is not `28102026_123256.Bak`, set it in `.env`:
+
+   ```bash
+   SQL_BACKUP_FILE=mybackup.Bak
+   ```
+
+   `db-init` restores it on the first start; on later starts it detects the database and skips the restore (idempotent).
+
+2. **Start the stack** from the repository root (not from `docker/`):
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. **Open** <http://localhost:5001> (API on <http://localhost:5000>).
+
+4. **First login** — see [First login](#first-login-all-paths).
+
+5. **Local AI (optional)** — pull a model and select it in App Settings: see [Ollama in the Docker stack](#ollama-in-the-docker-stack).
+
+Notes for Linux and macOS:
+
+- Only Docker is needed; nothing else from this repository is installed on the host.
+- On **Apple Silicon** the SQL Server image is x86-64 only and runs under emulation (slow, sometimes unstable). On Intel/AMD it runs natively.
+- `System.Drawing.Common` is Windows-only: image resizing and some PDF generation throw `PlatformNotSupportedException` in the containers. Browsing, CRUD and the AI features work.
+
+### Path B — Windows + Visual Studio (IIS Express)
+
+This is the configuration the repository ships with: `appsettings.Development.json` and the sample database point at the IIS Express ports.
+
+1. Install **.NET SDK 10**, **SQL Server** (Express is enough) and **Visual Studio 2022** with the ASP.NET workload.
+2. Restore the `.bak` in SQL Server Management Studio as `Publicacoes_Prod`.
+3. Point the API at your instance — the value in the repository is the author's machine (`DESKTOP-SLIMNUD\SQLEXPRESS`):
+
+   ```powershell
+   dotnet user-secrets --project .\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj set "ConnectionStrings:SqlServerCon" "Server=.\SQLEXPRESS;Database=Publicacoes_Prod;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True;"
+   ```
+
+4. Open `MediaOrganizerApp.sln`, set **both** `MediaOrganizerApp.WebApi` and `Web.Blazor` as startup projects, and press **F5**. The API listens on `https://localhost:44303`, the UI on `https://localhost:44327`.
+5. **First login** — see below.
+
+### First login (all paths)
+
+Create an account at `/Identity/Account/Register` (linked from the login page).
+
+**The sample data belongs to the user who created the backup.** A new account has the `GeneralUser` role and only sees its own (empty) data. To see the existing data, the account must be **Administrator**:
+
+```sql
+INSERT INTO AspNetUserRoles (UserId, RoleId)
+SELECT u.Id, r.Id
+FROM AspNetUsers u CROSS JOIN AspNetRoles r
+WHERE u.UserName = 'your-user@example.com' AND r.Name = 'Administrator';
 ```
 
-> **NuGet note**: `nuget.config` includes a Syncfusion feed with a placeholder API key. If restore fails, configure your Syncfusion key/source (or use packages from your local cache).
+- **Windows / Visual Studio**: run it in SSMS against `Publicacoes_Prod`.
+- **Docker**: run it inside the container (the password comes from `.env`):
+
+  ```bash
+  docker compose exec -T sql bash -s <<'EOF'
+  /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d Publicacoes_Prod -Q "
+  INSERT INTO AspNetUserRoles (UserId, RoleId)
+  SELECT u.Id, r.Id FROM AspNetUsers u CROSS JOIN AspNetRoles r
+  WHERE u.UserName = 'your-user@example.com' AND r.Name = 'Administrator';"
+  EOF
+  ```
+
+Once an administrator exists, further roles are managed in **Administration**.
+
+### Running with `dotnet run`
+
+The command-line path is **not configured** in the repository. To use it you have to change four things:
+
+1. **Different ports** — both launch profiles ask for 5001:
+
+   ```powershell
+   dotnet run --project .\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj --urls "https://localhost:5001"
+   dotnet run --project .\Web.Blazor\Web.Blazor.csproj --urls "https://localhost:5002"
+   ```
+
+   `5002` is just an example — any free port works.
+
+2. **`BaseUrl`** in `Web.Blazor/appsettings.Development.json` must point at the API (`https://localhost:5001`), not at `https://localhost:44303`.
+3. **Connection string** — set it with user-secrets (see Path B). On Linux/macOS `Trusted_Connection=True` does not exist: use SQL authentication (`User Id=sa;Password=...`).
+4. **A database** (see below).
+
+`scripts/start-all.ps1` launches both projects with the default profiles, so it hits the same port collision — it is not a workaround.
 
 ### Configuration & secrets
 The main connection string key is **`ConnectionStrings:SqlServerCon`**. Example:
@@ -280,18 +371,8 @@ The Web API is protected by an `ApiKey` middleware. Set the `ApiKey` value in `a
   ```
 
 ### Run both processes
-The solution has **two independent processes**:
-```powershell
-# Terminal 1 — Web API
-dotnet run --project .\MediaOrganizerApp.WebApi\MediaOrganizerApp.WebApi.csproj
+The solution has **two independent processes**. Use **Path A (Docker)** or **Path B (Visual Studio + IIS Express)** above; the command-line path is described in [Running with `dotnet run`](#running-with-dotnet-run) and requires configuration changes.
 
-# Terminal 2 — Blazor Server
-dotnet run --project .\Web.Blazor\Web.Blazor.csproj
-```
-Or run `scripts/start-all.ps1` from the repository root.
-
-> **Port conflict**: both launch profiles default to `https://localhost:5001` / `http://localhost:5000`. Run them with different profiles or override the ports (for example, `dotnet run --urls "https://localhost:5001"` for one and `--urls "https://localhost:5002"` for the other), and keep the Blazor `BaseUrl` pointing to the API address.
->
 > **Production ports** used by the IIS pipeline: Web API `http://localhost:4100` (loopback), Blazor `https://localhost:4110`.
 
 ### Tests
@@ -421,9 +502,17 @@ The lookup tables area manages shared data such as authors, categories, publishe
 
 ---
 
-## 🐳 Docker (optional, Linux containers)
+## 🐳 Docker (Windows, Linux, macOS)
 
 `docker-compose.yml` starts `sql` + `db-init` + `ollama` + `webapi` + `webblazor`. It is an **optional local stack** and does **not** replace the IIS production deployment.
+
+**`.bak` prerequisite:** before the first start, copy your `Publicacoes_Prod` `.bak` into `Web.Blazor/wwwroot/Files/Backup/Database/` (the `sql` service mounts that folder as `/backup`). If its name is not `28102026_123256.Bak`, set it in `.env`:
+
+```bash
+SQL_BACKUP_FILE=mybackup.Bak
+```
+
+Without the `.bak`, `db-init` fails and the stack will not start — there is no fallback schema script in the stack.
 
 ```bash
 # from the repository root (not from docker/)
@@ -433,13 +522,60 @@ docker compose up --build
 - Published ports: **5000** (Web API) and **5001** (Blazor). `sql` and `ollama` are internal-only (the host already uses 1433/11434); access them with `docker exec`.
 - `db-init` waits for SQL Server, restores the `.bak` from `Web.Blazor/wwwroot/Files/Backup/Database`, and normalizes `ApplicationSettings` for the containers (`\` → `/`, `ModelBaseUrl=http://ollama:11434`, API URLs pointing to `webapi:5000`). It is idempotent.
 - `.env` defines `SQL_SA_PASSWORD` (do **not** end the password with `;` — it is the connection-string separator). After changing it, recreate the volume: `docker compose down -v && docker compose up -d`.
-- Ollama starts without models. Pull one when needed: `docker exec -it <ollama-container> ollama pull qwen3:1.7b`.
 - **Known limitation**: `System.Drawing.Common` is Windows-only in .NET 6+. Image resizing and some PDF generation paths throw `PlatformNotSupportedException` on Linux containers. Browsing, CRUD and most AI features work.
+
+#### Ollama in the Docker stack
+
+The `ollama` service runs the Ollama **engine**, not models: model files are downloaded at runtime
+into the compose volume (`ollama-data`). A fresh stack therefore has an **empty model library**, and
+it is **independent** from any Ollama installed on your host — the container cannot see your
+`~/.ollama`, and a host Ollama listens on `127.0.0.1:11434`, which the container cannot reach.
+
+The local AI always uses **one** model: the one selected in
+**Admin → App Settings → IA → Ollama (local)**. That is a **user setting**, not a fixed value — it is
+stored in `ApplicationSettings.AiModelName` and can be changed at any time. The sample database
+carries whatever was selected when the backup was taken (`Qwen3:1.7B`), so treat that as an example,
+not a requirement.
+
+1. **Install a model in the container** (any model you want; ~1.4 GB for a 1.7B one):
+
+   ```bash
+   docker compose up -d ollama
+   docker compose exec ollama ollama pull qwen3:1.7b
+   docker compose exec ollama ollama list
+   ```
+
+2. **Select it in the app**: Admin → App Settings → IA → Ollama (local). The dropdown lists the
+   models installed in the container (`/api/tags`), the selection is saved to
+   `ApplicationSettings.AiModelName` and applies immediately. Models can also be pulled/deleted from
+   **Admin → Lookup tables → AI Models**.
+
+3. If the selected name is not installed, every local AI call fails with
+   `404 model "..." not found` — pull that model (step 1) or pick another one (step 2).
+
+4. **Nothing needs to be "loaded"**: the app lists *installed* models; Ollama loads one into RAM on
+   the first request and evicts it later (`ollama ps` is not used).
+
+Models survive `docker compose down`/`up`; `docker compose down -v` deletes them (and the database,
+which `db-init` restores again). Budget ~2.5–3 GB of RAM for a 3B model **on top of** ~2 GB for SQL
+Server. To use the host's Ollama instead, start it with `OLLAMA_HOST=0.0.0.0:11434`, allow it
+through the firewall, and set `ModelBaseUrl` to `http://host.docker.internal:11434` **after**
+`docker compose up` (`db-init` rewrites it on every start) — then select one of the host's models.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Empty model list in App Settings | no models in the container | step 1 |
+| `404 model "..." not found` | the selected model is not installed | step 1, or step 2 |
+| Connection refused | the `ollama` container is not running | `docker compose up -d ollama` |
+| `sql` container exits with 137 | not enough memory | raise WSL2/Docker Desktop memory |
+
+Full guide: [`Web.Blazor/docs/ollama-docker-setup.md`](Web.Blazor/docs/ollama-docker-setup.md).
 
 Memory note: SQL Server 2022 needs roughly 2 GB. If the `sql` container exits with code 137, increase the WSL2/Docker Desktop memory before `docker compose up`.
 
 ---
 
+**Deploy with IIS (Windows only):** this section describes automated and manual deployment to IIS on Windows Server (`appcmd`, `icacls`, app pools, `C:\inetpub\...`). It does **not** apply to Linux/macOS.
 ## 🚀 Deploying with IIS
 
 ### Automated pipeline (GitHub Actions)

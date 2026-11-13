@@ -2,15 +2,18 @@
 
 ## Build & Run
 
+**Supported paths:**
+
+- **Docker (reference path; Windows/Linux/macOS):** `docker compose up --build` at the repo root. Requires a `Publicacoes_Prod` `.bak` in `Web.Blazor/wwwroot/Files/Backup/Database/` (the stack does not ship one and has no schema fallback). See the README Getting Started.
+- **Windows + Visual Studio / IIS Express (Windows only):** opens `MediaOrganizerApp.sln`, starts both projects (API `https://localhost:44303`, UI `https://localhost:44327`). See README Getting Started.
+
+`dotnet restore` / `dotnet build` alone are not a runnable path: both projects default to `https://localhost:5001` (port collision), `appsettings.json` points at the author's `DESKTOP-SLIMNUD\SQLEXPRESS`, and the Development `BaseUrl` points at the IIS Express port `https://localhost:44303`. `scripts/start-all.ps1` launches both with default profiles, so it hits the same collision.
+
 ```bash
 dotnet restore MediaOrganizerApp.sln
 dotnet build MediaOrganizerApp.sln
 dotnet test MediaOrganizerApp.sln
 ```
-
-Run the full app locally: `scripts/start-all.ps1` (launches WebApi, then Web.Blazor).
-
-**Port conflict**: both WebApi and Web.Blazor default to `https://localhost:5001`. Run them with separate launch profiles or override ports. The `start-all.ps1` script uses default profiles and expects you to handle this.
 
 ## Deploy de producao (IIS local, self-hosted Windows)
 
@@ -42,10 +45,12 @@ Run the full app locally: `scripts/start-all.ps1` (launches WebApi, then Web.Bla
 - **Dashboard (`Index.razor`):** cada pie chart tem o seu próprio `@if` (`HasChartData` decide o bloco/FAB), em vez de um gate único que exigia as 6 listas de resumo preenchidas — uma lista vazia (ex.: `CategoriaMedia` num `.bak` sem registos) escondia todos os gráficos.
 - **Memória:** o SQL Server 2022 precisa de ~2 GB. Com o Docker Desktop/WSL2 abaixo disso o contentor `sql` sai com **137 (OOM)** e o `db-init` falha depois com `Login failed for user 'sa'`; nesse caso aumentar a memória do WSL2 antes de `docker compose up`.
 - O `RESTORE` corre no processo do SQL Server, por isso a pasta dos `.bak` esta montada em `/backup` **no servico `sql`** (e tambem no `db-init`, que verifica o ficheiro). O `.env` versionado define `SQL_SA_PASSWORD`; **nao terminar a senha com `;`** (o `;` e o separador da connection string: fica `Password=...;;` e o login `sa` falha). Depois de mudar a senha e preciso recriar o volume: `docker compose down -v && docker compose up -d`.
-- `BaseUrl` do Blazor e `http://webapi:5000` — **sem** `/api`, que o codigo acrescenta (`Program.cs` + typed clients); incluir `/api` duplica o segmento. A connection string vai por `ConnectionStrings__SqlServerCon` (nao `SQLCONNECTIONSTRING`) com autenticacao SQL `sa`; o Serilog usa `Serilog__WriteTo__0__Args__connectionString`.
-- O cliente Ollama le `Ollama:BaseUrl` (default `localhost:11434`); o modelo continua a vir da BD (`AiSettingsProvider`). O contentor `ollama` arranca sem modelos: `docker exec -it <ollama> ollama pull qwen3:1.7b` (o fluxo cloud/OpenRouter nao depende disso).
-- `Web.Blazor\wwwroot\Files` (1,3 GB) esta no `.dockerignore` e e montado do host em `/app/wwwroot/Files` nos dois servicos — um volume nomeado esconderia os assets versionados. Os uploads escrevem no working tree, como no resto do repo.
-- `docker/nuget.config` restaura so de nuget.org: o `nuget.config` da raiz aponta para o feed Syncfusion com API key placeholder. Os Dockerfiles publicam framework-dependent (`aspnet:10.0`), sem self-contained.
+- `BaseUrl` do Blazor é `http://webapi:5000` — **sem** `/api`, que o código acrescenta (`Program.cs` + typed clients); incluir `/api` duplica o segmento. A connection string vai por `ConnectionStrings__SqlServerCon` (não `SQLCONNECTIONSTRING`) com autenticação SQL `sa`; o Serilog usa `Serilog__WriteTo__0__Args__connectionString`.
+- **O Docker requer um `.bak`:** o `db-init` restaura o `Publicacoes_Prod` a partir de `Web.Blazor/wwwroot/Files/Backup/Database/` (montado como `/backup` no serviço `sql`, default `28102026_123256.Bak`). Sem o ficheiro, `db-init` sai com erro e a stack não arranca — não há fallback com script de schema. O `.env` versionado define `SQL_SA_PASSWORD`; **não terminar a senha com `;`**.
+- **Ollama nos contentores:** o servico `ollama` corre o **motor**, nao modelos. Os ficheiros vivem no volume `ollama-data` (`/root/.ollama`) e um volume novo arranca **vazio** — a imagem nao traz modelos e o store do host (`~/.ollama`) nao e visivel no contentor (alem disso o Ollama do Windows escuta em `127.0.0.1:11434`, inacessivel de dentro da rede do compose). O `db-init` forca `ModelBaseUrl=http://ollama:11434`, e **`Ollama:BaseUrl`/`Ollama__BaseUrl` so define o `BaseAddress` do `OllamaSharedClient`**: todas as chamadas (`OllamaBaseClient`, `OllamaChatService`, `OllamaModelsService`) constroem URI absoluto a partir do `ModelBaseUrl` da BD, por isso a variavel do compose, sozinha, nao redireciona nada. **`AiModelName` e estado do utilizador, nao um default do projeto:** e o modelo escolhido em App Settings, herdado do `.bak` (`Qwen3:1.7B` no `28102026_123256.Bak`) e alteravel a qualquer momento; tem de nomear um modelo instalado nessa instancia, senao todas as chamadas locais dao `404 model not found`. A app lista **instalados** (`/api/tags`), nunca `ollama ps`. O fluxo cloud/OpenRouter nao depende disto. Guia para utilizadores: `Web.Blazor/docs/ollama-docker-setup.md`; pull manual: `docker compose exec ollama ollama pull qwen3:1.7b`.
+- **Fragilidade conhecida (settings + Ollama em baixo):** `AppSettings.razor.cs`/`AppSettings2.razor.cs` carregam `AIModelsSrvice.GetAllAsync()` e `AppSettingsService.GetSettingsAsync()` no **mesmo** `try` com `catch { settings = new(); }`; se o Ollama estiver inacessivel a lista lanca, a pagina mostra `ModelBaseUrl`/`AiModelName` vazios e gravar apaga-os. E `AIModelsApiWrapper` usa o timeout HTTP por omissao (100 s), pelo que um pull grande pela UI (`LookupTables → AI Models`) aborta a meio (o cliente da WebApi tem 10 min).
+- `Web.Blazor\wwwroot\Files` (1,3 GB) está no `.dockerignore` e é montado do host em `/app/wwwroot/Files` nos dois serviços. **Na verdade só os assets da aplicação (`Pictures\Application|Authores|BookHardCovers`) são versionados**: os `Uploads\` e `Backup\` (dados do utilizador, ~740 MB + `PdfsAndCovers.zip` 493 MB) estão no `.gitignore`, pelo que `wwwroot\Files` **não** é a fonte de verdade completa da aplicação num clone novo — um destino limpo fica sem os dados do utilizador (mas não sem os ícones). O deploy IIS faz `robocopy /MIR` integral da pasta e não exclui subpastas; `/XD wwwroot\Files` não protege contra o purge do `/MIR` (verificado em sandbox) — não confiar nele para preservar dados.
+- `docker/nuget.config` restaura só de nuget.org (o `nuget.config` da raiz já aponta apenas para nuget.org — a nota antiga de feed Syncfusion com chave placeholder está desatualizada). Os Dockerfiles publicam framework-dependent (`aspnet:10.0`), sem self-contained.
 - **Limitacao conhecida:** `System.Drawing.Common` e Windows-only em .NET 6+. Os caminhos que o usam (`Web.Blazor/Services/DocumentHelpers/PdfHelper.cs`, `Pages/BaseComponents/MediaBase.razor.cs`, `PublicacoesBase.razor.cs`, `MediaPlayer.cs`) lancam `PlatformNotSupportedException` nos contentores Linux (redimensionar/gerar imagens e alguns PDFs). Consultar/navegar e o CRUD normal funcionam; a app continua pensada para Windows/IIS.
 
 ## Project Layout
@@ -112,7 +117,7 @@ Prompt templates live in `MediaOrganizerApp.WebApi/Prompts/*.prompt.txt` and are
 
 **Workflow for any multi-step change:** before implementing any non-trivial multi-step change (AI flows, refactors, project/file removals — any work whose mid-way interruption would lose continuity), first write a transient markdown plan at the repo root (e.g. `PLAN_<TOPIC>.md`) with a **progress checklist** (`- [x]`/`- [ ]`) stating the status of each step, and present it to the user. **Implement only after the user confirms.** **Update the checklist as work progresses**, marking each step done. The plan file is a local working doc and must **not be committed**; delete it only when the work is finished and committed — never before. This ensures that if assistant credits run out mid-way, the plan still records exactly what is done, what remains, and where to resume. If the investigation finds nothing to change, don't create the plan and report the finding instead.
 
-**Documentation drift rule:** live docs (AGENTS.md, `Web.Blazor/docs/ai-fallback-*.md`, `ollama-local-setup.md`, `docs/architecture/USER_ROLE_DATA_FLOW.md`, `media_organizer_arquitetura_visao_geral.md`) must be updated in the same pass as the code change that affects them — never in a separate request. Do NOT reintroduce one-shot audit/history/plan docs into master.
+**Documentation drift rule:** live docs (AGENTS.md, `Web.Blazor/docs/ai-fallback-*.md`, `ollama-local-setup.md`, `ollama-docker-setup.md`, `README.md`/`README-PT.md` Docker section, `docs/architecture/USER_ROLE_DATA_FLOW.md`, `media_organizer_arquitetura_visao_geral.md`) must be updated in the same pass as the code change that affects them — never in a separate request. Do NOT reintroduce one-shot audit/history/plan docs into master.
 
 ## Data Isolation
 
